@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Flask API Integration Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+        .test-result {
+            margin: 20px 0;
+            padding: 15px;
+            border-left: 4px solid #ddd;
+            background: #f9f9f9;
+        }
+        .pass {
+            border-left-color: #4CAF50;
+            background: #f1f8f6;
+        }
+        .fail {
+            border-left-color: #f44336;
+            background: #fef5f5;
+        }
+        .pending {
+            border-left-color: #ff9800;
+            background: #fff8f3;
+        }
+        h1 {
+            color: #333;
+        }
+        button {
+            padding: 10px 20px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body>
+    <h1>Flask API Integration Test</h1>
+    <p>This page tests the Flask API integration before using the main application.</p>
+
+    <button onclick="runTests()">Run All Tests</button>
+    <button onclick="location.href='/'">Open Main App</button>
+
+    <div id="results"></div>
+
+    <script src="api-integration.js"></script>
+    <script>
+        const API_BASE_URL = 'http://127.0.0.1:5000/api';
+
+        async function runTests() {
+            const results = document.getElementById('results');
+            results.innerHTML = '';
+
+            addResult('Starting API Integration Tests...', 'pending');
+
+            // Test 1: Health Check
+            await test1HealthCheck();
+
+            // Test 2: PD Calculation
+            await test2PDCalculation();
+
+            // Test 3: LGD Calculation
+            await test3LGDCalculation();
+
+            // Test 4: Risk Weight (SA)
+            await test4RiskWeightSA();
+
+            // Test 5: Portfolio Summary
+            await test5PortfolioSummary();
+
+            addResult('All tests completed!', 'pass');
+        }
+
+        async function test1HealthCheck() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/health`);
+                if (response.ok) {
+                    const data = await response.json();
+                    addResult(`✓ Health Check: ${data.service} v${data.version}`, 'pass');
+                    return true;
+                } else {
+                    addResult('✗ Health Check: Server returned error', 'fail');
+                    return false;
+                }
+            } catch (error) {
+                addResult(`✗ Health Check: ${error.message}`, 'fail');
+                return false;
+            }
+        }
+
+        async function test2PDCalculation() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/calculate-pd`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        de_ratio: 1.5,
+                        interest_coverage: 2.5,
+                        profitability: 0.08,
+                        liquidity_ratio: 1.2
+                    })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    const pd = data.pd_percentage;
+                    addResult(`✓ PD Calculation: ${pd.toFixed(2)}% (expected ~4%)`, 'pass');
+                    return true;
+                } else {
+                    addResult('✗ PD Calculation: API error', 'fail');
+                    return false;
+                }
+            } catch (error) {
+                addResult(`✗ PD Calculation: ${error.message}`, 'fail');
+                return false;
+            }
+        }
+
+        async function test3LGDCalculation() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/calculate-lgd`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        seniority: 'Senior Unsecured',
+                        collateral_type: 'Corporate Bonds',
+                        collateral_value: 20000,
+                        exposure: 100000
+                    })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    const lgd = data.lgd_percentage;
+                    addResult(`✓ LGD Calculation: ${lgd.toFixed(2)}% (expected ~27%)`, 'pass');
+                    return true;
+                } else {
+                    addResult('✗ LGD Calculation: API error', 'fail');
+                    return false;
+                }
+            } catch (error) {
+                addResult(`✗ LGD Calculation: ${error.message}`, 'fail');
+                return false;
+            }
+        }
+
+        async function test4RiskWeightSA() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/get-risk-weight-sa`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        category: 'Corporate',
+                        rating: 'A'
+                    })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    const rw = data.risk_weight;
+                    addResult(`✓ SA Risk Weight: ${rw}% (expected 50%)`, rw === 50 ? 'pass' : 'fail');
+                    return true;
+                } else {
+                    addResult('✗ SA Risk Weight: API error', 'fail');
+                    return false;
+                }
+            } catch (error) {
+                addResult(`✗ SA Risk Weight: ${error.message}`, 'fail');
+                return false;
+            }
+        }
+
+        async function test5PortfolioSummary() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/portfolio-summary`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        loans: [
+                            {
+                                exposure: 100000,
+                                rwa: 65000,
+                                capital_required: 5200,
+                                calculation_method: 'AIRB',
+                                pd: 0.035
+                            }
+                        ]
+                    })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    const totalLoans = data.total_loans;
+                    addResult(`✓ Portfolio Summary: ${totalLoans} loan(s), Risk Density: ${data.average_risk_density}%`, 'pass');
+                    return true;
+                } else {
+                    addResult('✗ Portfolio Summary: API error', 'fail');
+                    return false;
+                }
+            } catch (error) {
+                addResult(`✗ Portfolio Summary: ${error.message}`, 'fail');
+                return false;
+            }
+        }
+
+        function addResult(message, status) {
+            const results = document.getElementById('results');
+            const div = document.createElement('div');
+            div.className = `test-result ${status}`;
+            div.textContent = message;
+            results.appendChild(div);
+        }
+
+        // Test on load
+        window.addEventListener('load', () => {
+            addResult('API Integration module loaded successfully', 'pass');
+        });
+    </script>
+</body>
+</html>

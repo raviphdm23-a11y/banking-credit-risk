@@ -1,0 +1,757 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Formula Reference Hub - Credit Risk Calculator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        header {
+            background: white;
+            padding: 40px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+
+        header h1 {
+            color: #1f4e78;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+        }
+
+        header p {
+            color: #666;
+            font-size: 1.1em;
+        }
+
+        .back-button {
+            display: inline-block;
+            padding: 10px 20px;
+            background: #667eea;
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            transition: all 0.3s;
+        }
+
+        .back-button:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+        }
+
+        .methodology-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 25px;
+            margin: 30px 0;
+        }
+
+        .methodology-card {
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s;
+            border-left: 5px solid #667eea;
+        }
+
+        .methodology-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+        }
+
+        .card-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 25px;
+        }
+
+        .card-header h2 {
+            font-size: 1.5em;
+            margin-bottom: 5px;
+        }
+
+        .card-status {
+            display: inline-block;
+            padding: 5px 12px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 20px;
+            font-size: 0.85em;
+            margin-top: 10px;
+        }
+
+        .card-status.complete {
+            background: #4caf50;
+        }
+
+        .card-status.beta {
+            background: #ff9800;
+        }
+
+        .card-status.planned {
+            background: #9e9e9e;
+        }
+
+        .card-body {
+            padding: 25px;
+        }
+
+        .card-body p {
+            color: #666;
+            margin-bottom: 15px;
+            line-height: 1.6;
+        }
+
+        .card-features {
+            list-style: none;
+            margin: 15px 0;
+        }
+
+        .card-features li {
+            color: #555;
+            padding: 8px 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .card-features li:before {
+            content: "✓ ";
+            color: #4caf50;
+            font-weight: bold;
+            margin-right: 8px;
+        }
+
+        .card-features li.planned:before {
+            content: "⏳ ";
+            color: #ff9800;
+        }
+
+        .card-footer {
+            padding: 15px 25px;
+            background: #f9f9f9;
+            border-top: 1px solid #e0e0e0;
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn-reference {
+            flex: 1;
+            padding: 10px 15px;
+            background: #667eea;
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            text-align: center;
+            font-weight: 600;
+            transition: all 0.3s;
+            border: none;
+            cursor: pointer;
+        }
+
+        .btn-reference:hover {
+            background: #5568d3;
+        }
+
+        .btn-reference.disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+
+        .timeline {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            margin: 30px 0;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .timeline h2 {
+            color: #1f4e78;
+            margin-bottom: 25px;
+            font-size: 1.8em;
+        }
+
+        .timeline-item {
+            display: flex;
+            margin-bottom: 20px;
+            align-items: flex-start;
+        }
+
+        .timeline-marker {
+            width: 30px;
+            height: 30px;
+            background: #667eea;
+            border-radius: 50%;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            margin-right: 20px;
+            margin-top: 3px;
+        }
+
+        .timeline-marker.complete {
+            background: #4caf50;
+        }
+
+        .timeline-content h3 {
+            color: #1f4e78;
+            margin-bottom: 5px;
+        }
+
+        .timeline-content p {
+            color: #666;
+            font-size: 0.95em;
+        }
+
+        .timeline-item:not(:last-child) .timeline-marker {
+            position: relative;
+        }
+
+        .timeline-item:not(:last-child) .timeline-marker:after {
+            content: '';
+            position: absolute;
+            width: 2px;
+            height: 50px;
+            background: #ddd;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        .comparison-section {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            margin: 30px 0;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .comparison-section h2 {
+            color: #1f4e78;
+            margin-bottom: 20px;
+            font-size: 1.8em;
+        }
+
+        .comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+
+        .comparison-table thead {
+            background: #1f4e78;
+            color: white;
+        }
+
+        .comparison-table th,
+        .comparison-table td {
+            padding: 15px;
+            text-align: left;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .comparison-table tbody tr:hover {
+            background: #f9f9f9;
+        }
+
+        .quick-links {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            margin: 30px 0;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .quick-links h2 {
+            color: #1f4e78;
+            margin-bottom: 20px;
+            font-size: 1.8em;
+        }
+
+        .quick-links-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+        }
+
+        .quick-link-item {
+            padding: 15px;
+            background: #f9f9f9;
+            border-left: 4px solid #667eea;
+            border-radius: 4px;
+            transition: all 0.3s;
+        }
+
+        .quick-link-item:hover {
+            background: #f0f0f0;
+            border-left-color: #5568d3;
+        }
+
+        .quick-link-item a {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 600;
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        .quick-link-item a:hover {
+            text-decoration: underline;
+        }
+
+        .quick-link-item p {
+            color: #666;
+            font-size: 0.9em;
+            margin: 0;
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 40px;
+            color: white;
+            font-size: 0.9em;
+        }
+
+        .info-box {
+            background: #e3f2fd;
+            border-left: 4px solid #2196f3;
+            padding: 20px;
+            border-radius: 4px;
+            margin: 20px 0;
+        }
+
+        .info-box p {
+            color: #1565c0;
+            margin: 0;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+
+        .tab-button {
+            padding: 12px 24px;
+            background: none;
+            border: none;
+            color: #666;
+            font-weight: 600;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            margin-bottom: -2px;
+            transition: all 0.3s;
+        }
+
+        .tab-button.active {
+            color: #667eea;
+            border-bottom-color: #667eea;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 8px;
+            background: #667eea;
+            color: white;
+            border-radius: 4px;
+            font-size: 0.8em;
+            margin: 0 5px;
+            font-weight: 600;
+        }
+
+        .badge.complete {
+            background: #4caf50;
+        }
+
+        .badge.beta {
+            background: #ff9800;
+        }
+
+        .badge.planned {
+            background: #9e9e9e;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <a href="index.html" class="back-button">← Back to Calculator</a>
+            <h1>📚 Formula Reference Hub</h1>
+            <p>Complete mathematical reference for all risk calculation methodologies</p>
+        </header>
+
+        <!-- Quick Navigation -->
+        <div class="quick-links">
+            <h2>🚀 Quick Navigation</h2>
+            <div class="quick-links-grid">
+                <div class="quick-link-item">
+                    <a href="#airb">AIRB Approach</a>
+                    <p>Advanced Internal Ratings Based</p>
+                </div>
+                <div class="quick-link-item">
+                    <a href="#standardized">Standardized Approach</a>
+                    <p>External Rating Based</p>
+                </div>
+                <div class="quick-link-item">
+                    <a href="#operational">Operational Risk</a>
+                    <p>Coming Soon - Phase 3</p>
+                </div>
+                <div class="quick-link-item">
+                    <a href="#market">Market Risk</a>
+                    <p>Coming Soon - Phase 4</p>
+                </div>
+                <div class="quick-link-item">
+                    <a href="#liquidity">Liquidity Risk</a>
+                    <p>Coming Soon - Phase 5</p>
+                </div>
+                <div class="quick-link-item">
+                    <a href="#comparison">Compare Methods</a>
+                    <p>Side-by-side analysis</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Implementation Timeline -->
+        <div class="timeline">
+            <h2>📅 Implementation Roadmap</h2>
+
+            <div class="timeline-item">
+                <div class="timeline-marker complete">1</div>
+                <div class="timeline-content">
+                    <h3>Phase 1: AIRB Credit Risk ✅</h3>
+                    <p><strong>Status:</strong> Complete | Advanced Internal Ratings Based Approach with PD, LGD, EAD, Maturity factors</p>
+                </div>
+            </div>
+
+            <div class="timeline-item">
+                <div class="timeline-marker complete">2</div>
+                <div class="timeline-content">
+                    <h3>Phase 2: Standardized Approach ✅</h3>
+                    <p><strong>Status:</strong> Complete | External rating-based approach with simple lookups</p>
+                </div>
+            </div>
+
+            <div class="timeline-item">
+                <div class="timeline-marker">3</div>
+                <div class="timeline-content">
+                    <h3>Phase 3: Operational Risk ⏳</h3>
+                    <p><strong>Status:</strong> Planned | Basic Indicator (BIA), Standardized (TSA), Advanced Measurement (AMA)</p>
+                </div>
+            </div>
+
+            <div class="timeline-item">
+                <div class="timeline-marker">4</div>
+                <div class="timeline-content">
+                    <h3>Phase 4: Market Risk ⏳</h3>
+                    <p><strong>Status:</strong> Planned | VaR, Stressed VaR, Incremental Risk Charge</p>
+                </div>
+            </div>
+
+            <div class="timeline-item">
+                <div class="timeline-marker">5</div>
+                <div class="timeline-content">
+                    <h3>Phase 5: Liquidity Risk ⏳</h3>
+                    <p><strong>Status:</strong> Planned | LCR (Liquidity Coverage Ratio), NSFR (Net Stable Funding Ratio)</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Methodologies Grid -->
+        <h2 style="color: white; text-align: center; margin: 40px 0 30px 0; font-size: 2em;">📊 Risk Calculation Methodologies</h2>
+
+        <div class="methodology-grid">
+            <!-- AIRB Card -->
+            <div class="methodology-card" id="airb">
+                <div class="card-header">
+                    <h2>📈 AIRB Approach</h2>
+                    <span class="card-status complete">✅ Complete</span>
+                </div>
+                <div class="card-body">
+                    <p><strong>Advanced Internal Ratings Based</strong> - Uses internal models for credit risk estimation</p>
+                    <ul class="card-features">
+                        <li>Internal PD/LGD estimation</li>
+                        <li>Maturity adjustment factors</li>
+                        <li>Correlation adjustment (PD-based)</li>
+                        <li>Complex formula calculation</li>
+                        <li>Requires regulatory approval</li>
+                        <li>Minimum 5-7 years historical data</li>
+                    </ul>
+                </div>
+                <div class="card-footer">
+                    <a href="formula-reference.html" class="btn-reference">📚 View Details</a>
+                </div>
+            </div>
+
+            <!-- Standardized Card -->
+            <div class="methodology-card" id="standardized">
+                <div class="card-header">
+                    <h2>📋 Standardized Approach</h2>
+                    <span class="card-status complete">✅ Complete</span>
+                </div>
+                <div class="card-body">
+                    <p><strong>Rating-Based Approach</strong> - Uses external ratings for risk weight determination</p>
+                    <ul class="card-features">
+                        <li>External rating required</li>
+                        <li>Fixed risk weight lookup</li>
+                        <li>Simple RWA formula</li>
+                        <li>Collateral adjustment support</li>
+                        <li>No regulatory approval needed</li>
+                        <li>21 rating levels (AAA-D)</li>
+                    </ul>
+                </div>
+                <div class="card-footer">
+                    <a href="standardized-approach-reference.html" class="btn-reference">📚 View Details</a>
+                </div>
+            </div>
+
+            <!-- Operational Risk Card -->
+            <div class="methodology-card" id="operational">
+                <div class="card-header">
+                    <h2>⚙️ Operational Risk</h2>
+                    <span class="card-status planned">⏳ Planned - Phase 3</span>
+                </div>
+                <div class="card-body">
+                    <p><strong>Risk from failed processes, people, systems, or events</strong> - Three approaches available</p>
+                    <ul class="card-features">
+                        <li class="planned">Basic Indicator Approach (BIA)</li>
+                        <li class="planned">Standardized Approach (TSA)</li>
+                        <li class="planned">Advanced Measurement (AMA)</li>
+                        <li class="planned">Income-based calculations</li>
+                        <li class="planned">Loss event scenarios</li>
+                    </ul>
+                </div>
+                <div class="card-footer">
+                    <button class="btn-reference disabled">Coming Soon</button>
+                </div>
+            </div>
+
+            <!-- Market Risk Card -->
+            <div class="methodology-card" id="market">
+                <div class="card-header">
+                    <h2>📊 Market Risk</h2>
+                    <span class="card-status planned">⏳ Planned - Phase 4</span>
+                </div>
+                <div class="card-body">
+                    <p><strong>Risk from market price movements</strong> - Multiple advanced models</p>
+                    <ul class="card-features">
+                        <li class="planned">Value at Risk (VaR)</li>
+                        <li class="planned">Stressed VaR (Stressed)</li>
+                        <li class="planned">Incremental Risk Charge (IRC)</li>
+                        <li class="planned">Greeks (Delta, Gamma, Vega)</li>
+                        <li class="planned">Backtesting capability</li>
+                    </ul>
+                </div>
+                <div class="card-footer">
+                    <button class="btn-reference disabled">Coming Soon</button>
+                </div>
+            </div>
+
+            <!-- Liquidity Risk Card -->
+            <div class="methodology-card" id="liquidity">
+                <div class="card-header">
+                    <h2>💧 Liquidity Risk</h2>
+                    <span class="card-status planned">⏳ Planned - Phase 5</span>
+                </div>
+                <div class="card-body">
+                    <p><strong>Risk of inability to meet funding needs</strong> - Regulatory ratios and analysis</p>
+                    <ul class="card-features">
+                        <li class="planned">Liquidity Coverage Ratio (LCR)</li>
+                        <li class="planned">Net Stable Funding Ratio (NSFR)</li>
+                        <li class="planned">Cash flow analysis</li>
+                        <li class="planned">Maturity ladder</li>
+                        <li class="planned">Stress scenarios</li>
+                    </ul>
+                </div>
+                <div class="card-footer">
+                    <button class="btn-reference disabled">Coming Soon</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Comparison Section -->
+        <div class="comparison-section" id="comparison">
+            <h2>🔍 Credit Risk Approaches Comparison</h2>
+
+            <div class="info-box">
+                <p><strong>📌 Note:</strong> These two approaches can be used simultaneously. The calculator allows you to add loans using either method and view portfolio summaries for each approach separately or combined.</p>
+            </div>
+
+            <table class="comparison-table">
+                <thead>
+                    <tr>
+                        <th>Feature</th>
+                        <th>AIRB Approach</th>
+                        <th>Standardized Approach</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Risk Parameters</strong></td>
+                        <td>Internal PD, LGD, EAD models</td>
+                        <td>External credit ratings only</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Complexity</strong></td>
+                        <td>High (formulas + models)</td>
+                        <td>Low (lookup tables)</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Risk Sensitivity</strong></td>
+                        <td>Very High (continuous)</td>
+                        <td>Medium (discrete ratings)</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Data Required</strong></td>
+                        <td>5-7 years historical data</td>
+                        <td>External ratings only</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Regulatory Approval</strong></td>
+                        <td>Required (from supervisor)</td>
+                        <td>Not required (Basel prescribed)</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Implementation Time</strong></td>
+                        <td>6-12 months</td>
+                        <td>2-4 weeks</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Calculation Speed</strong></td>
+                        <td>Fast</td>
+                        <td>Very Fast</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Capital Efficiency</strong></td>
+                        <td>Often Lower</td>
+                        <td>Often Higher</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Typical RWA Range</strong></td>
+                        <td>5-300%+</td>
+                        <td>0-150%</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Best For</strong></td>
+                        <td>Large banks, complex portfolios</td>
+                        <td>Mid-size banks, simple portfolios</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- User Guide Section -->
+        <div style="background: white; border-radius: 12px; padding: 30px; margin: 30px 0; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
+            <h2 style="color: #1f4e78; margin-bottom: 20px;">📖 How to Use This Reference Hub</h2>
+
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px;">
+                <div style="padding: 20px; background: #f9f9f9; border-radius: 8px;">
+                    <h3 style="color: #1f4e78; margin-bottom: 10px;">Step 1: Select Methodology</h3>
+                    <p style="color: #666;">Choose the risk calculation approach you want to learn about from the cards above or quick navigation.</p>
+                </div>
+
+                <div style="padding: 20px; background: #f9f9f9; border-radius: 8px;">
+                    <h3 style="color: #1f4e78; margin-bottom: 10px;">Step 2: Review Details</h3>
+                    <p style="color: #666;">Click the "View Details" button to access the comprehensive formula reference page for that methodology.</p>
+                </div>
+
+                <div style="padding: 20px; background: #f9f9f9; border-radius: 8px;">
+                    <h3 style="color: #1f4e78; margin-bottom: 10px;">Step 3: Study Examples</h3>
+                    <p style="color: #666;">Each reference page includes worked examples showing step-by-step calculations with real numbers.</p>
+                </div>
+
+                <div style="padding: 20px; background: #f9f9f9; border-radius: 8px;">
+                    <h3 style="color: #1f4e78; margin-bottom: 10px;">Step 4: Compare Methods</h3>
+                    <p style="color: #666;">Use the comparison section above to understand when to use each methodology and their trade-offs.</p>
+                </div>
+
+                <div style="padding: 20px; background: #f9f9f9; border-radius: 8px;">
+                    <h3 style="color: #1f4e78; margin-bottom: 10px;">Step 5: Apply in Calculator</h3>
+                    <p style="color: #666;">Go back to the main calculator and start adding loans using the methodology of your choice.</p>
+                </div>
+
+                <div style="padding: 20px; background: #f9f9f9; border-radius: 8px;">
+                    <h3 style="color: #1f4e78; margin-bottom: 10px;">Step 6: Verify Results</h3>
+                    <p style="color: #666;">Use the worked examples to verify that your calculations are correct and match expected results.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Status Dashboard -->
+        <div style="background: white; border-radius: 12px; padding: 30px; margin: 30px 0; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
+            <h2 style="color: #1f4e78; margin-bottom: 20px;">📊 Implementation Status</h2>
+
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+                <div style="padding: 20px; background: #e8f5e9; border-left: 4px solid #4caf50; border-radius: 4px;">
+                    <h3 style="color: #2e7d32; margin-bottom: 10px;">✅ Phase 1: AIRB</h3>
+                    <p style="color: #558b2f; font-size: 0.9em;">Complete - 100%</p>
+                </div>
+
+                <div style="padding: 20px; background: #e8f5e9; border-left: 4px solid #4caf50; border-radius: 4px;">
+                    <h3 style="color: #2e7d32; margin-bottom: 10px;">✅ Phase 2: Standardized</h3>
+                    <p style="color: #558b2f; font-size: 0.9em;">Complete - 100%</p>
+                </div>
+
+                <div style="padding: 20px; background: #fff3e0; border-left: 4px solid #ff9800; border-radius: 4px;">
+                    <h3 style="color: #e65100; margin-bottom: 10px;">⏳ Phase 3: Operational</h3>
+                    <p style="color: #bf360c; font-size: 0.9em;">Planned - 4-6 weeks</p>
+                </div>
+
+                <div style="padding: 20px; background: #fff3e0; border-left: 4px solid #ff9800; border-radius: 4px;">
+                    <h3 style="color: #e65100; margin-bottom: 10px;">⏳ Phase 4: Market</h3>
+                    <p style="color: #bf360c; font-size: 0.9em;">Planned - 4-6 weeks</p>
+                </div>
+
+                <div style="padding: 20px; background: #fff3e0; border-left: 4px solid #ff9800; border-radius: 4px;">
+                    <h3 style="color: #e65100; margin-bottom: 10px;">⏳ Phase 5: Liquidity</h3>
+                    <p style="color: #bf360c; font-size: 0.9em;">Planned - 3-4 weeks</p>
+                </div>
+
+                <div style="padding: 20px; background: #e3f2fd; border-left: 4px solid #2196f3; border-radius: 4px;">
+                    <h3 style="color: #1565c0; margin-bottom: 10px;">📚 Hub</h3>
+                    <p style="color: #0d47a1; font-size: 0.9em;">Complete - All Links</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="footer">
+            <p>Formula Reference Hub | Basel III Compliant | Multi-Methodology Risk Calculation Platform</p>
+            <p>Version 1.0 | June 2026 | 2 Methodologies Complete | 3 Coming Soon</p>
+            <br>
+            <a href="index.html" class="back-button">← Back to Calculator</a>
+        </div>
+    </div>
+</body>
+</html>

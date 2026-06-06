@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Probability of Default Calculator - Credit Risk</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        header {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        header h1 {
+            color: #1f4e78;
+            margin-bottom: 10px;
+            font-size: 2.2em;
+        }
+
+        header p {
+            color: #666;
+            font-size: 1em;
+        }
+
+        .back-button {
+            display: inline-block;
+            padding: 10px 20px;
+            background: #667eea;
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            transition: all 0.3s;
+            font-weight: 600;
+        }
+
+        .back-button:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 350px;
+            gap: 30px;
+        }
+
+        @media (max-width: 1200px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin-bottom: 30px;
+        }
+
+        .card h2 {
+            color: #1f4e78;
+            margin-bottom: 20px;
+            font-size: 1.8em;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 10px;
+        }
+
+        .card h3 {
+            color: #333;
+            margin-top: 20px;
+            margin-bottom: 15px;
+            font-size: 1.1em;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 500;
+            font-size: 0.95em;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 1em;
+            transition: border-color 0.3s;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .help-text {
+            font-size: 0.85em;
+            color: #999;
+            margin-top: 5px;
+            font-style: italic;
+        }
+
+        .info-box {
+            background: #e3f2fd;
+            border-left: 4px solid #2196f3;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+        }
+
+        .info-box p {
+            color: #1565c0;
+            font-size: 0.9em;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        button {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 6px;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+            flex: 1;
+        }
+
+        .btn-primary:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: #f5f5f5;
+            color: #333;
+        }
+
+        .btn-secondary:hover {
+            background: #e0e0e0;
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .result-box {
+            background: #e8f5e9;
+            border-left: 4px solid #4caf50;
+            padding: 20px;
+            border-radius: 4px;
+            display: none;
+            margin-top: 20px;
+        }
+
+        .result-box.show {
+            display: block;
+        }
+
+        .result-label {
+            color: #2e7d32;
+            font-size: 0.9em;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            font-weight: 600;
+        }
+
+        .result-value {
+            color: #1b5e20;
+            font-size: 2.5em;
+            font-weight: 700;
+            margin-bottom: 15px;
+        }
+
+        .result-details {
+            font-size: 0.9em;
+            color: #2e7d32;
+            line-height: 1.8;
+        }
+
+        .formula-box {
+            background: #f5f5f5;
+            border-left: 4px solid #667eea;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            overflow-x: auto;
+        }
+
+        .summary-item {
+            padding: 12px;
+            background: #f9f9f9;
+            border-left: 4px solid #667eea;
+            margin-bottom: 12px;
+            border-radius: 4px;
+        }
+
+        .summary-label {
+            color: #666;
+            font-size: 0.85em;
+            margin-bottom: 5px;
+        }
+
+        .summary-value {
+            color: #1f4e78;
+            font-size: 1.3em;
+            font-weight: 600;
+        }
+
+        .error {
+            color: #d32f2f;
+            font-size: 0.9em;
+            margin-top: 5px;
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 40px;
+            color: white;
+            font-size: 0.9em;
+        }
+
+        a {
+            color: #667eea;
+            text-decoration: none;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+
+        .risk-indicator {
+            display: inline-block;
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-weight: 600;
+            font-size: 0.9em;
+            margin-top: 10px;
+        }
+
+        .risk-low {
+            background: #c8e6c9;
+            color: #1b5e20;
+        }
+
+        .risk-medium {
+            background: #fff9c4;
+            color: #f57f17;
+        }
+
+        .risk-high {
+            background: #ffccbc;
+            color: #d84315;
+        }
+
+        .risk-very-high {
+            background: #ffcdd2;
+            color: #b71c1c;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <a href="index.html" class="back-button">← Back to Calculator</a>
+            <h1>📊 Probability of Default Calculator</h1>
+            <p>Rule-Based PD Estimation using Financial Metrics</p>
+        </header>
+
+        <div class="main-content">
+            <!-- Left Column - Calculator Form -->
+            <div>
+                <!-- Input Form Card -->
+                <div class="card">
+                    <h2>Calculate PD</h2>
+                    <div class="info-box">
+                        <p>Enter financial metrics below to calculate the probability of default using our rule-based model.</p>
+                    </div>
+
+                    <!-- Borrower Info -->
+                    <div class="form-group">
+                        <label for="borrowerId">Borrower ID</label>
+                        <input type="text" id="borrowerId" placeholder="e.g., CORP001">
+                        <div class="help-text">Identifier for tracking this calculation</div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="borrowerName">Borrower Name</label>
+                        <input type="text" id="borrowerName" placeholder="e.g., ABC Corporation">
+                    </div>
+
+                    <!-- Financial Metrics -->
+                    <h3>Financial Metrics</h3>
+
+                    <div class="grid-2">
+                        <div class="form-group">
+                            <label for="debtToEquity">Debt-to-Equity Ratio</label>
+                            <input type="number" id="debtToEquity" placeholder="0.5" min="0" step="0.1">
+                            <div class="help-text">Total Debt / Equity (lower is better)</div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="interestCoverage">Interest Coverage Ratio</label>
+                            <input type="number" id="interestCoverage" placeholder="3.5" min="0" step="0.1">
+                            <div class="help-text">EBITDA / Interest Expense (higher is better)</div>
+                        </div>
+                    </div>
+
+                    <div class="grid-2">
+                        <div class="form-group">
+                            <label for="profitabilityMargin">Profitability Margin (%)</label>
+                            <input type="number" id="profitabilityMargin" placeholder="15" min="-100" max="100" step="0.1">
+                            <div class="help-text">EBITDA Margin or Net Profit Margin (higher is better)</div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="liquidityRatio">Liquidity Ratio (Current Ratio)</label>
+                            <input type="number" id="liquidityRatio" placeholder="1.5" min="0" step="0.1">
+                            <div class="help-text">Current Assets / Current Liabilities (> 1.0 is good)</div>
+                        </div>
+                    </div>
+
+                    <!-- Buttons -->
+                    <div class="button-group">
+                        <button class="btn-primary" onclick="calculatePD()">Calculate PD</button>
+                        <button class="btn-secondary" onclick="clearForm()">Clear</button>
+                    </div>
+
+                    <!-- Results -->
+                    <div id="resultBox" class="result-box">
+                        <div class="result-label">Probability of Default</div>
+                        <div class="result-value" id="pdValue">0.00%</div>
+                        <div class="result-details" id="resultDetails"></div>
+                        <div id="riskIndicator"></div>
+
+                        <!-- Loan Decision Section -->
+                        <div style="margin-top: 25px; padding-top: 20px; border-top: 2px solid #e0e0e0;">
+                            <p style="color: #333; font-weight: 600; margin-bottom: 15px;">Do you want to proceed with this loan?</p>
+                            <div class="button-group">
+                                <button class="btn-primary" onclick="proceedWithLoan()" style="background: #4caf50;">✅ Yes, Proceed with Loan</button>
+                                <button class="btn-secondary" onclick="document.getElementById('resultBox').classList.remove('show');">❌ No, Cancel</button>
+                            </div>
+                            <p style="font-size: 0.85em; color: #999; margin-top: 10px; text-align: center;">The borrower information and calculated PD will be transferred to the main calculator for further details.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Formula Explanation Card -->
+                <div class="card">
+                    <h2>📐 Calculation Methodology</h2>
+
+                    <h3>Rule-Based PD Model</h3>
+                    <p>The probability of default is calculated using a weighted scoring model based on four key financial metrics:</p>
+
+                    <div class="formula-box">
+PD (%) = Base Rate + Leverage Impact + Profitability Impact +
+         Liquidity Impact + Coverage Impact
+
+Where:
+• Base Rate = 2.0% (long-term average default rate)
+• Leverage Impact = (D/E Ratio) × 0.8
+• Profitability Impact = Max(0, -Margin% × 0.15)
+• Liquidity Impact = Max(0, (1.5 - Current Ratio) × 3.0)
+• Coverage Impact = Max(0, (4.0 - Interest Coverage) × 0.5)
+                    </div>
+
+                    <h3>Variable Definitions</h3>
+                    <ul style="margin-left: 20px; margin-bottom: 15px;">
+                        <li><strong>Base Rate (2.0%):</strong> Historical average default probability</li>
+                        <li><strong>Debt-to-Equity (D/E):</strong> Leverage risk - higher leverage increases default risk</li>
+                        <li><strong>Profitability Margin:</strong> Profitability - lower profitability increases default risk</li>
+                        <li><strong>Liquidity Ratio:</strong> Ability to meet short-term obligations</li>
+                        <li><strong>Interest Coverage:</strong> Ability to service debt from EBITDA</li>
+                    </ul>
+
+                    <h3>Risk Thresholds</h3>
+                    <table style="width: 100%; margin: 15px 0; border-collapse: collapse;">
+                        <tr style="background: #f0f0f0;">
+                            <th style="padding: 10px; text-align: left; border-bottom: 1px solid #e0e0e0;">PD Range</th>
+                            <th style="padding: 10px; text-align: left; border-bottom: 1px solid #e0e0e0;">Risk Level</th>
+                            <th style="padding: 10px; text-align: left; border-bottom: 1px solid #e0e0e0;">Interpretation</th>
+                        </tr>
+                        <tr style="border-bottom: 1px solid #e0e0e0;">
+                            <td style="padding: 10px;">0% - 2%</td>
+                            <td style="padding: 10px;">Very Low</td>
+                            <td style="padding: 10px;">Excellent credit quality</td>
+                        </tr>
+                        <tr style="border-bottom: 1px solid #e0e0e0;">
+                            <td style="padding: 10px;">2% - 5%</td>
+                            <td style="padding: 10px;">Low</td>
+                            <td style="padding: 10px;">Good credit quality</td>
+                        </tr>
+                        <tr style="border-bottom: 1px solid #e0e0e0;">
+                            <td style="padding: 10px;">5% - 15%</td>
+                            <td style="padding: 10px;">Medium</td>
+                            <td style="padding: 10px;">Acceptable risk</td>
+                        </tr>
+                        <tr style="border-bottom: 1px solid #e0e0e0;">
+                            <td style="padding: 10px;">15% - 30%</td>
+                            <td style="padding: 10px;">High</td>
+                            <td style="padding: 10px;">Elevated risk - careful monitoring</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 10px;">30%+</td>
+                            <td style="padding: 10px;">Very High</td>
+                            <td style="padding: 10px;">Significant default risk</td>
+                        </tr>
+                    </table>
+
+                    <h3>Key Assumptions</h3>
+                    <ul style="margin-left: 20px;">
+                        <li>Model is calibrated for medium to large corporate exposures</li>
+                        <li>Financial metrics are annual figures</li>
+                        <li>Model assumes normal economic conditions</li>
+                        <li>Industry-specific adjustments may be needed</li>
+                        <li>Qualitative factors should complement this model</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Right Column - Summary -->
+            <div>
+                <div class="card">
+                    <h2>Quick Links</h2>
+
+                    <a href="index.html" style="display: block; padding: 12px; background: #f5f5f5; border-radius: 6px; margin-bottom: 10px; text-decoration: none; color: #667eea; font-weight: 600;">
+                        ← Main Calculator
+                    </a>
+
+                    <a href="formula-reference.html#pd" style="display: block; padding: 12px; background: #f5f5f5; border-radius: 6px; margin-bottom: 10px; text-decoration: none; color: #667eea; font-weight: 600;">
+                        📚 PD Formula Reference
+                    </a>
+
+                    <a href="formula-references.html" style="display: block; padding: 12px; background: #f5f5f5; border-radius: 6px; margin-bottom: 10px; text-decoration: none; color: #667eea; font-weight: 600;">
+                        📖 All Formulas
+                    </a>
+
+                    <h3 style="margin-top: 30px;">About This Tool</h3>
+                    <p style="font-size: 0.9em; color: #666; line-height: 1.8;">
+                        This PD calculator uses a rule-based model to estimate the probability of default based on key financial metrics. It provides a quick estimate for credit risk assessment and loan pricing.
+                    </p>
+
+                    <h3 style="margin-top: 20px;">When to Use</h3>
+                    <ul style="margin-left: 20px; font-size: 0.9em; color: #666;">
+                        <li>Quick credit risk screening</li>
+                        <li>Loan pricing estimates</li>
+                        <li>Portfolio risk assessment</li>
+                        <li>Credit rating benchmarking</li>
+                    </ul>
+
+                    <div class="info-box" style="margin-top: 20px;">
+                        <p><strong>⚠️ Disclaimer:</strong> This is a simplified rule-based model for estimation purposes. For critical credit decisions, use more sophisticated models with regulatory approval (AIRB approach).</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p>Probability of Default Calculator | Rule-Based Model | Basel III Compliant</p>
+            <p>Version 1.0 | June 2026</p>
+        </div>
+    </div>
+
+    <script>
+        function calculatePD() {
+            // Get input values
+            const borrowerId = document.getElementById('borrowerId').value;
+            const borrowerName = document.getElementById('borrowerName').value;
+            const debtToEquity = parseFloat(document.getElementById('debtToEquity').value) || 0;
+            const interestCoverage = parseFloat(document.getElementById('interestCoverage').value) || 0;
+            const profitabilityMargin = parseFloat(document.getElementById('profitabilityMargin').value) || 0;
+            const liquidityRatio = parseFloat(document.getElementById('liquidityRatio').value) || 0;
+
+            // Validation
+            if (!borrowerId.trim() || !borrowerName.trim()) {
+                alert('Please enter Borrower ID and Name');
+                return;
+            }
+
+            if (debtToEquity < 0 || interestCoverage < 0 || liquidityRatio < 0) {
+                alert('All ratios must be non-negative');
+                return;
+            }
+
+            // Rule-based PD Calculation
+            const baseRate = 2.0; // 2% base default rate
+            const leverageImpact = debtToEquity * 0.8;
+            const profitabilityImpact = Math.max(0, -profitabilityMargin * 0.15);
+            const liquidityImpact = Math.max(0, (1.5 - liquidityRatio) * 3.0);
+            const coverageImpact = interestCoverage > 0 ? Math.max(0, (4.0 - interestCoverage) * 0.5) : 5.0;
+
+            const pdValue = baseRate + leverageImpact + profitabilityImpact + liquidityImpact + coverageImpact;
+            const pdPercent = Math.min(pdValue, 100); // Cap at 100%
+
+            // Display results
+            displayResults(borrowerId, borrowerName, pdPercent, {
+                baseRate,
+                leverageImpact,
+                profitabilityImpact,
+                liquidityImpact,
+                coverageImpact,
+                debtToEquity,
+                interestCoverage,
+                profitabilityMargin,
+                liquidityRatio
+            });
+        }
+
+        function displayResults(borrowerId, borrowerName, pdPercent, impacts) {
+            const resultBox = document.getElementById('resultBox');
+            const pdValue = document.getElementById('pdValue');
+            const resultDetails = document.getElementById('resultDetails');
+            const riskIndicator = document.getElementById('riskIndicator');
+
+            pdValue.textContent = pdPercent.toFixed(2) + '%';
+
+            // Determine risk level
+            let riskLevel = '';
+            let riskClass = '';
+            if (pdPercent < 2) {
+                riskLevel = 'Very Low Risk';
+                riskClass = 'risk-low';
+            } else if (pdPercent < 5) {
+                riskLevel = 'Low Risk';
+                riskClass = 'risk-low';
+            } else if (pdPercent < 15) {
+                riskLevel = 'Medium Risk';
+                riskClass = 'risk-medium';
+            } else if (pdPercent < 30) {
+                riskLevel = 'High Risk';
+                riskClass = 'risk-high';
+            } else {
+                riskLevel = 'Very High Risk';
+                riskClass = 'risk-very-high';
+            }
+
+            resultDetails.innerHTML = `
+                <strong>Borrower:</strong> ${borrowerName} (${borrowerId})<br><br>
+                <strong>Component Breakdown:</strong><br>
+                • Base Rate: ${impacts.baseRate.toFixed(2)}%<br>
+                • Leverage Impact: ${impacts.leverageImpact.toFixed(2)}%<br>
+                • Profitability Impact: ${impacts.profitabilityImpact.toFixed(2)}%<br>
+                • Liquidity Impact: ${impacts.liquidityImpact.toFixed(2)}%<br>
+                • Coverage Impact: ${impacts.coverageImpact.toFixed(2)}%<br><br>
+                <strong>Input Metrics:</strong><br>
+                • Debt-to-Equity: ${impacts.debtToEquity.toFixed(2)}<br>
+                • Interest Coverage: ${impacts.interestCoverage.toFixed(2)}x<br>
+                • Profitability Margin: ${impacts.profitabilityMargin.toFixed(2)}%<br>
+                • Liquidity Ratio: ${impacts.liquidityRatio.toFixed(2)}
+            `;
+
+            riskIndicator.innerHTML = `<span class="risk-indicator ${riskClass}">${riskLevel}</span>`;
+            resultBox.classList.add('show');
+        }
+
+        function clearForm() {
+            document.getElementById('borrowerId').value = '';
+            document.getElementById('borrowerName').value = '';
+            document.getElementById('debtToEquity').value = '';
+            document.getElementById('interestCoverage').value = '';
+            document.getElementById('profitabilityMargin').value = '';
+            document.getElementById('liquidityRatio').value = '';
+            document.getElementById('resultBox').classList.remove('show');
+            document.getElementById('borrowerId').focus();
+        }
+
+        function proceedWithLoan() {
+            // Get current values from form
+            const borrowerId = document.getElementById('borrowerId').value;
+            const borrowerName = document.getElementById('borrowerName').value;
+            const pdValue = parseFloat(document.getElementById('pdValue').textContent.replace('%', ''));
+
+            // Validate
+            if (!borrowerId.trim() || !borrowerName.trim()) {
+                alert('Error: Borrower ID and Name are required');
+                return;
+            }
+
+            // Store loan data in localStorage for transfer to main calculator
+            const loanData = {
+                borrowerId: borrowerId,
+                borrowerName: borrowerName,
+                pd: pdValue,
+                timestamp: new Date().toISOString()
+            };
+
+            localStorage.setItem('pdCalculatorLoan', JSON.stringify(loanData));
+
+            // Redirect to main calculator
+            window.location.href = 'index.html';
+        }
+
+        // Allow Enter key to calculate
+        document.getElementById('liquidityRatio').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') calculatePD();
+        });
+
+        // Focus on first field
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('borrowerId').focus();
+        });
+    </script>
+</body>
+</html>

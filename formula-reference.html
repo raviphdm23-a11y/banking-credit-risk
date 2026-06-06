@@ -1,0 +1,1429 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Formula Reference - AIRB & Standardized Approach - Credit Risk Calculator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        header {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        header h1 {
+            color: #1f4e78;
+            margin-bottom: 10px;
+            font-size: 2.2em;
+        }
+
+        header p {
+            color: #666;
+            font-size: 1em;
+        }
+
+        .breadcrumb {
+            margin-top: 15px;
+        }
+
+        .breadcrumb a {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .breadcrumb a:hover {
+            text-decoration: underline;
+        }
+
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .card h2 {
+            color: #1f4e78;
+            margin-bottom: 20px;
+            font-size: 1.8em;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 10px;
+        }
+
+        .card h3 {
+            color: #333;
+            margin-top: 25px;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+        }
+
+        .card h4 {
+            color: #555;
+            margin-top: 20px;
+            margin-bottom: 10px;
+            font-size: 1.1em;
+            font-weight: 600;
+        }
+
+        p {
+            color: #555;
+            margin-bottom: 15px;
+            font-size: 1em;
+        }
+
+        .formula {
+            background: #f5f5f5;
+            border-left: 4px solid #667eea;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 1.05em;
+            overflow-x: auto;
+        }
+
+        .formula-title {
+            color: #1f4e78;
+            font-weight: bold;
+            margin-bottom: 10px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto';
+        }
+
+        .variable-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+
+        .variable-table thead {
+            background: #f0f0f0;
+        }
+
+        .variable-table th, .variable-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .variable-table th {
+            font-weight: 600;
+            color: #1f4e78;
+        }
+
+        .variable-table tbody tr:hover {
+            background: #f9f9f9;
+        }
+
+        .variable {
+            font-weight: 600;
+            color: #667eea;
+            font-family: 'Courier New', monospace;
+        }
+
+        .example-box {
+            background: #e3f2fd;
+            border-left: 4px solid #2196f3;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+
+        .example-box h4 {
+            color: #1565c0;
+            margin-top: 0;
+        }
+
+        .example-step {
+            margin: 15px 0;
+            padding-left: 20px;
+        }
+
+        .example-step strong {
+            color: #1565c0;
+        }
+
+        .calculation {
+            background: #fff3e0;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 0.95em;
+        }
+
+        .info-box {
+            background: #e8f5e9;
+            border-left: 4px solid #4caf50;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+
+        .warning-box {
+            background: #fff3e0;
+            border-left: 4px solid #ff9800;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+
+        .warning-box p {
+            color: #e65100;
+        }
+
+        .note {
+            color: #666;
+            font-style: italic;
+            font-size: 0.95em;
+            margin-top: 10px;
+        }
+
+        .toc {
+            background: #f9f9f9;
+            border-left: 4px solid #667eea;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+
+        .toc h4 {
+            color: #1f4e78;
+            margin-top: 0;
+        }
+
+        .toc ul {
+            list-style-position: inside;
+            margin-left: 10px;
+        }
+
+        .toc li {
+            margin: 8px 0;
+        }
+
+        .toc a {
+            color: #667eea;
+            text-decoration: none;
+        }
+
+        .toc a:hover {
+            text-decoration: underline;
+        }
+
+        .comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+
+        .comparison-table thead {
+            background: #1f4e78;
+            color: white;
+        }
+
+        .comparison-table th, .comparison-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .comparison-table tbody tr:hover {
+            background: #f5f5f5;
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 40px;
+            color: white;
+            font-size: 0.9em;
+        }
+
+        .back-button {
+            display: inline-block;
+            padding: 10px 20px;
+            background: #667eea;
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            transition: all 0.3s;
+        }
+
+        .back-button:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+        }
+
+        code {
+            background: #f0f0f0;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+            color: #667eea;
+        }
+
+        .highlight {
+            background: #ffeb3b;
+            padding: 2px 4px;
+            border-radius: 2px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <a href="index.html" class="back-button">← Back to Calculator</a>
+            <h1>Formula Reference</h1>
+            <p>AIRB & Standardized Approach - Basel III Methodologies</p>
+            <p class="note">Complete mathematical reference for credit risk calculations - two complementary approaches</p>
+        </header>
+
+        <!-- Table of Contents -->
+        <div class="card">
+            <div class="toc">
+                <h4>📑 Quick Navigation</h4>
+                <ul>
+                    <h5 style="color: #667eea; margin-top: 10px; margin-bottom: 8px;">📊 AIRB Approach</h5>
+                    <li><a href="#overview">AIRB Overview & Components</a></li>
+                    <li><a href="#pd">Probability of Default (PD)</a></li>
+                    <li><a href="#lgd">Loss Given Default (LGD)</a></li>
+                    <li><a href="#ead">Exposure at Default (EAD)</a></li>
+                    <li><a href="#maturity">Maturity Factor</a></li>
+                    <li><a href="#correlation">Correlation Adjustment</a></li>
+                    <li><a href="#rwa">RWA Calculation</a></li>
+                    <li><a href="#capital">Capital Requirement</a></li>
+                    <li><a href="#example">Worked Example</a></li>
+                    <li><a href="#regulatory">Regulatory Ratios</a></li>
+
+                    <h5 style="color: #667eea; margin-top: 15px; margin-bottom: 8px;">📋 Standardized Approach</h5>
+                    <li><a href="#sa-overview">SA Overview & Components</a></li>
+                    <li><a href="#sa-risk-weights">Risk Weight Tables</a></li>
+                    <li><a href="#sa-categories">Exposure Categories</a></li>
+                    <li><a href="#sa-collateral">Collateral Treatment</a></li>
+                    <li><a href="#sa-formulas">Calculation Formulas</a></li>
+                    <li><a href="#sa-examples">Worked Examples</a></li>
+                    <li><a href="#comparison">AIRB vs Standardized</a></li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- AIRB Overview -->
+        <div class="card">
+            <h2 id="overview">🏦 AIRB Approach Overview</h2>
+
+            <h3>What is AIRB?</h3>
+            <p>The Advanced Internal Ratings Based (AIRB) approach is a method for calculating capital requirements for credit risk under Basel III regulations. Banks use internal models to estimate key risk parameters rather than relying on external ratings.</p>
+
+            <h3>Key Components</h3>
+            <p>The AIRB framework requires estimation of four key parameters:</p>
+
+            <table class="variable-table">
+                <thead>
+                    <tr>
+                        <th>Parameter</th>
+                        <th>Code</th>
+                        <th>Description</th>
+                        <th>Range</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Probability of Default</strong></td>
+                        <td class="variable">PD</td>
+                        <td>Likelihood of borrower default within 1 year</td>
+                        <td>0.03% to 100%</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Loss Given Default</strong></td>
+                        <td class="variable">LGD</td>
+                        <td>Percentage loss on exposure if default occurs</td>
+                        <td>0% to 100%</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Exposure at Default</strong></td>
+                        <td class="variable">EAD</td>
+                        <td>Total value of exposure at time of default</td>
+                        <td>Any amount</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Maturity</strong></td>
+                        <td class="variable">M</td>
+                        <td>Time remaining until loan maturity</td>
+                        <td>0.25 to 5 years</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div class="info-box">
+                <p><strong>📌 Basel III Compliance:</strong> This calculator implements the Basel III AIRB standard formula with proper correlation adjustments, maturity factors, and scaling constants as per regulatory requirements.</p>
+            </div>
+        </div>
+
+        <!-- PD Explanation -->
+        <div class="card">
+            <h2 id="pd">📊 Probability of Default (PD)</h2>
+
+            <h3>Definition</h3>
+            <p>The PD is the estimated probability that a borrower will default within a one-year horizon. It represents the likelihood of credit loss.</p>
+
+            <h3>Key Characteristics</h3>
+            <ul style="margin-left: 20px; margin-bottom: 15px;">
+                <li>Expressed as a percentage (e.g., 1.5%)</li>
+                <li>Minimum value: 0.03% (Basel III regulatory floor)</li>
+                <li>Based on historical default experience</li>
+                <li>Must be calibrated using at least 5-7 years of data</li>
+                <li>Typically increases with credit rating deterioration</li>
+            </ul>
+
+            <h3>PD by Credit Rating</h3>
+            <table class="variable-table">
+                <thead>
+                    <tr>
+                        <th>Credit Rating</th>
+                        <th>Typical PD Range</th>
+                        <th>Risk Category</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>AAA/Excellent</td>
+                        <td>0.03% - 0.10%</td>
+                        <td>Minimal</td>
+                    </tr>
+                    <tr>
+                        <td>AA/Very Good</td>
+                        <td>0.10% - 0.25%</td>
+                        <td>Very Low</td>
+                    </tr>
+                    <tr>
+                        <td>A/Good</td>
+                        <td>0.25% - 0.50%</td>
+                        <td>Low</td>
+                    </tr>
+                    <tr>
+                        <td>BBB/Satisfactory</td>
+                        <td>0.50% - 1.00%</td>
+                        <td>Moderate</td>
+                    </tr>
+                    <tr>
+                        <td>BB/Acceptable</td>
+                        <td>1.00% - 2.00%</td>
+                        <td>Higher</td>
+                    </tr>
+                    <tr>
+                        <td>B/Watch</td>
+                        <td>2.00% - 5.00%</td>
+                        <td>High</td>
+                    </tr>
+                    <tr>
+                        <td>Below B</td>
+                        <td>5.00% - 100%</td>
+                        <td>Very High</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h3>PD Calibration</h3>
+            <p>Banks must calibrate PD based on:</p>
+            <ul style="margin-left: 20px; margin-bottom: 15px;">
+                <li>Historical default rates in the portfolio</li>
+                <li>Forecast of future default rates</li>
+                <li>Business cycle adjustments</li>
+                <li>Stress scenarios</li>
+                <li>Portfolio homogeneity checks</li>
+            </ul>
+        </div>
+
+        <!-- LGD Explanation -->
+        <div class="card">
+            <h2 id="lgd">💰 Loss Given Default (LGD)</h2>
+
+            <h3>Definition</h3>
+            <p>LGD is the percentage of exposure that is not recovered in the event of default. It depends on collateral quality, seniority, and recovery processes.</p>
+
+            <h3>Key Characteristics</h3>
+            <ul style="margin-left: 20px; margin-bottom: 15px;">
+                <li>Expressed as a percentage (e.g., 45%)</li>
+                <li>Minimum value: 0% (fully secured)</li>
+                <li>Maximum value: 100% (unsecured, no recovery)</li>
+                <li>Depends on loan type and collateral</li>
+                <li>Must reflect economic downturn conditions (PD > LGD floors)</li>
+            </ul>
+
+            <h3>LGD by Loan Type</h3>
+            <table class="variable-table">
+                <thead>
+                    <tr>
+                        <th>Loan Type</th>
+                        <th>Collateral</th>
+                        <th>Typical LGD</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Mortgage</td>
+                        <td>Real Estate</td>
+                        <td>20% - 35%</td>
+                    </tr>
+                    <tr>
+                        <td>Auto Loan</td>
+                        <td>Vehicle</td>
+                        <td>25% - 45%</td>
+                    </tr>
+                    <tr>
+                        <td>Equipment Financing</td>
+                        <td>Equipment</td>
+                        <td>30% - 50%</td>
+                    </tr>
+                    <tr>
+                        <td>Corporate Loan</td>
+                        <td>Mixed/Various</td>
+                        <td>40% - 60%</td>
+                    </tr>
+                    <tr>
+                        <td>Unsecured Personal</td>
+                        <td>None</td>
+                        <td>70% - 100%</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h3>Factors Affecting LGD</h3>
+            <ul style="margin-left: 20px; margin-bottom: 15px;">
+                <li><strong>Collateral type:</strong> Real estate, equipment, cash, receivables</li>
+                <li><strong>Collateral coverage:</strong> Loan-to-value (LTV) ratio</li>
+                <li><strong>Seniority:</strong> Senior vs. subordinated claims</li>
+                <li><strong>Recovery process:</strong> Speed and costs of recovery</li>
+                <li><strong>Economic conditions:</strong> Collateral values in downturns</li>
+            </ul>
+        </div>
+
+        <!-- EAD Explanation -->
+        <div class="card">
+            <h2 id="ead">📈 Exposure at Default (EAD)</h2>
+
+            <h3>Definition</h3>
+            <p>EAD is the total value of the loan or exposure if the borrower defaults. It includes principal, accrued interest, and any potential future drawdowns.</p>
+
+            <h3>EAD Components</h3>
+            <ul style="margin-left: 20px; margin-bottom: 15px;">
+                <li><strong>Principal Outstanding:</strong> Amount of loan borrowed</li>
+                <li><strong>Accrued Interest:</strong> Interest due but not yet paid</li>
+                <li><strong>Commitment Value:</strong> Undrawn credit facilities</li>
+                <li><strong>Other Fees:</strong> Prepayment penalties, late fees if applicable</li>
+            </ul>
+
+            <h3>EAD Calculation Examples</h3>
+            <div class="example-box">
+                <h4>Example 1: Term Loan</h4>
+                <div class="example-step">
+                    <strong>Loan Amount:</strong> $1,000,000<br>
+                    <strong>Outstanding Balance:</strong> $850,000<br>
+                    <strong>Accrued Interest:</strong> $12,500<br>
+                    <strong>EAD = $850,000 + $12,500 = $862,500</strong>
+                </div>
+            </div>
+
+            <div class="example-box">
+                <h4>Example 2: Credit Line</h4>
+                <div class="example-step">
+                    <strong>Credit Limit:</strong> $500,000<br>
+                    <strong>Amount Drawn:</strong> $300,000<br>
+                    <strong>Undrawn (50% assume drawdown):</strong> $100,000<br>
+                    <strong>EAD = $300,000 + $100,000 = $400,000</strong>
+                </div>
+            </div>
+        </div>
+
+        <!-- Maturity Factor -->
+        <div class="card">
+            <h2 id="maturity">⏰ Maturity Factor (M)</h2>
+
+            <h3>Definition</h3>
+            <p>The maturity factor represents the time remaining until loan maturity. It affects the risk adjustment through the maturity adjustment factor <span class="variable">b</span>.</p>
+
+            <h3>Key Characteristics</h3>
+            <ul style="margin-left: 20px; margin-bottom: 15px;">
+                <li>Measured in years (e.g., 3 years)</li>
+                <li>Minimum: 0.25 years (quarterly)</li>
+                <li>Maximum: 5 years (Basel III cap)</li>
+                <li>Longer maturity increases risk weight</li>
+                <li>Applies same adjustment across rating categories</li>
+            </ul>
+
+            <h3>Maturity Adjustment Formula</h3>
+            <p>The maturity adjustment factor <span class="variable">b</span> is calculated as:</p>
+
+            <div class="formula">
+                <div class="formula-title">Maturity Adjustment Factor:</div>
+                b = 0.11852 - 0.05478 × ln(PD)<br>
+                <br>
+                <span style="color: #666;">Where ln(PD) = natural logarithm of PD as decimal</span>
+            </div>
+
+            <h3>Impact on RWA</h3>
+            <table class="variable-table">
+                <thead>
+                    <tr>
+                        <th>Maturity (Years)</th>
+                        <th>Impact on RWA</th>
+                        <th>Explanation</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>1 year</td>
+                        <td>Base case</td>
+                        <td>No maturity adjustment (M=1)</td>
+                    </tr>
+                    <tr>
+                        <td>2-3 years</td>
+                        <td>+5% to +10%</td>
+                        <td>Moderate increase for medium term</td>
+                    </tr>
+                    <tr>
+                        <td>4-5 years</td>
+                        <td>+15% to +25%</td>
+                        <td>Significant increase for long term</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <p class="note">Note: The maturity adjustment increases RWA for longer maturities due to increased credit deterioration risk over time.</p>
+        </div>
+
+        <!-- Correlation Adjustment -->
+        <div class="card">
+            <h2 id="correlation">🔗 Correlation Adjustment</h2>
+
+            <h3>Definition</h3>
+            <p>The correlation factor represents the degree of co-movement between borrower defaults and systemic (market-wide) economic conditions. It adjusts for concentration risk.</p>
+
+            <h3>Basel III Correlation Formula</h3>
+
+            <div class="formula">
+                <div class="formula-title">Correlation (R):</div>
+                R = 0.03 + 0.12 × (1 - e^(-50×PD))<br>
+                <br>
+                <span style="color: #666;">Subject to: R ≤ 0.999</span>
+            </div>
+
+            <h3>Key Characteristics</h3>
+            <ul style="margin-left: 20px; margin-bottom: 15px;">
+                <li>Range: 3% to 99.9% (capped at regulatory maximum)</li>
+                <li>Increases with PD (higher risk → higher correlation)</li>
+                <li>Lower PD → lower correlation (less systemic risk)</li>
+                <li>Formula ensures inverse relationship with credit quality</li>
+            </ul>
+
+            <h3>Correlation Examples</h3>
+            <table class="variable-table">
+                <thead>
+                    <tr>
+                        <th>PD (%)</th>
+                        <th>Correlation (R)</th>
+                        <th>Interpretation</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>0.03% (AAA)</td>
+                        <td>3.04%</td>
+                        <td>Minimal systemic risk</td>
+                    </tr>
+                    <tr>
+                        <td>0.10% (AA)</td>
+                        <td>3.42%</td>
+                        <td>Very low systemic risk</td>
+                    </tr>
+                    <tr>
+                        <td>0.50% (A)</td>
+                        <td>6.21%</td>
+                        <td>Low systemic risk</td>
+                    </tr>
+                    <tr>
+                        <td>1.00% (BBB)</td>
+                        <td>10.13%</td>
+                        <td>Moderate systemic risk</td>
+                    </tr>
+                    <tr>
+                        <td>2.00% (BB)</td>
+                        <td>15.81%</td>
+                        <td>Higher systemic risk</td>
+                    </tr>
+                    <tr>
+                        <td>5.00% (B)</td>
+                        <td>27.94%</td>
+                        <td>Substantial systemic risk</td>
+                    </tr>
+                    <tr>
+                        <td>10.00%</td>
+                        <td>42.22%</td>
+                        <td>Very high systemic risk</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- RWA Calculation -->
+        <div class="card">
+            <h2 id="rwa">⚙️ RWA Calculation (Core Formula)</h2>
+
+            <h3>Complete AIRB Formula</h3>
+
+            <div class="formula">
+                <div class="formula-title">Risk-Weighted Assets (RWA):</div>
+                RWA = EAD × [PD × LGD × (1 + (M-1) × b) / (1 - 1.5 × b) × 1.06 - PD × LGD] × 12.5
+            </div>
+
+            <h3>Formula Breakdown</h3>
+
+            <h4>Step 1: Calculate Maturity Adjustment</h4>
+            <div class="calculation">
+                Maturity Adjustment = (1 + (M-1) × b) / (1 - 1.5 × b)
+            </div>
+            <p>This adjusts the risk weight based on time to maturity. Longer maturities increase the adjustment factor.</p>
+
+            <h4>Step 2: Calculate Risk Weight Component 1</h4>
+            <div class="calculation">
+                Component 1 = PD × LGD × Maturity Adjustment × 1.06
+            </div>
+            <p>This is the main risk-weighted loss component. The 1.06 factor adds a 6% safety margin per Basel III.</p>
+
+            <h4>Step 3: Calculate Risk Weight Component 2</h4>
+            <div class="calculation">
+                Component 2 = PD × LGD
+            </div>
+            <p>This is subtracted from Component 1 to remove the base loss (no adjustment case).</p>
+
+            <h4>Step 4: Calculate Scaling Factor</h4>
+            <p>The scaling factor 12.5 = 1 / 0.08 (inverse of 8% minimum capital requirement)</p>
+            <div class="calculation">
+                Risk Weight (%) = [Component 1 - Component 2] × 12.5 × 100
+            </div>
+
+            <h4>Step 5: Calculate RWA</h4>
+            <div class="calculation">
+                RWA = EAD × Risk Weight
+            </div>
+
+            <div class="warning-box">
+                <p><strong>⚠️ Important:</strong> All percentages must be converted to decimals for calculation (e.g., 1.5% = 0.015)</p>
+            </div>
+        </div>
+
+        <!-- Capital Requirement -->
+        <div class="card">
+            <h2 id="capital">🏛️ Capital Requirement</h2>
+
+            <h3>Minimum Capital Requirement</h3>
+
+            <div class="formula">
+                <div class="formula-title">Tier 1 Capital Required (8% of RWA):</div>
+                Capital Required = RWA × 0.08
+            </div>
+
+            <h3>Basel III Regulatory Minimums</h3>
+            <table class="variable-table">
+                <thead>
+                    <tr>
+                        <th>Capital Type</th>
+                        <th>Minimum Requirement</th>
+                        <th>Calculation</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Common Equity Tier 1 (CET1)</td>
+                        <td>4.5%</td>
+                        <td>RWA × 0.045</td>
+                    </tr>
+                    <tr>
+                        <td>Tier 1 Capital</td>
+                        <td>6.0%</td>
+                        <td>RWA × 0.06</td>
+                    </tr>
+                    <tr>
+                        <td>Total Capital</td>
+                        <td>8.0%</td>
+                        <td>RWA × 0.08</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h3>Capital Buffer Requirements</h3>
+            <p>Beyond minimum capital, Basel III also requires additional buffers:</p>
+            <ul style="margin-left: 20px; margin-bottom: 15px;">
+                <li><strong>Capital Conservation Buffer:</strong> 2.5% (to avoid penalties on dividends)</li>
+                <li><strong>Countercyclical Buffer:</strong> 0% - 2.5% (varies by country and cycle)</li>
+                <li><strong>Systemic Risk Buffer:</strong> Additional 1% - 3% for systemically important banks</li>
+            </ul>
+
+            <div class="info-box">
+                <p><strong>📌 Total Requirement:</strong> Minimum 8% + Conservation 2.5% = 10.5% minimum comfortable level (excluding countercyclical and systemic buffers)</p>
+            </div>
+        </div>
+
+        <!-- Worked Example -->
+        <div class="card">
+            <h2 id="example">📐 Worked Example: Complete Calculation</h2>
+
+            <h3>Loan Details</h3>
+            <table class="variable-table">
+                <thead>
+                    <tr>
+                        <th>Parameter</th>
+                        <th>Value</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Loan ID</td>
+                        <td>L001</td>
+                    </tr>
+                    <tr>
+                        <td>Borrower</td>
+                        <td>ABC Manufacturing Corp</td>
+                    </tr>
+                    <tr>
+                        <td>Exposure at Default (EAD)</td>
+                        <td>$1,000,000</td>
+                    </tr>
+                    <tr>
+                        <td>Probability of Default (PD)</td>
+                        <td>1.5% = 0.015</td>
+                    </tr>
+                    <tr>
+                        <td>Loss Given Default (LGD)</td>
+                        <td>45% = 0.45</td>
+                    </tr>
+                    <tr>
+                        <td>Maturity (M)</td>
+                        <td>3 years</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h3>Step-by-Step Calculation</h3>
+
+            <div class="example-box">
+                <h4>Step 1: Calculate Maturity Adjustment Factor (b)</h4>
+                <div class="example-step">
+                    b = 0.11852 - 0.05478 × ln(0.015)<br>
+                    ln(0.015) = -4.200<br>
+                    b = 0.11852 - 0.05478 × (-4.200)<br>
+                    b = 0.11852 + 0.23008<br>
+                    <strong>b = 0.3486</strong>
+                </div>
+            </div>
+
+            <div class="example-box">
+                <h4>Step 2: Calculate Correlation (R)</h4>
+                <div class="example-step">
+                    R = 0.03 + 0.12 × (1 - e^(-50 × 0.015))<br>
+                    e^(-50 × 0.015) = e^(-0.75) = 0.4724<br>
+                    R = 0.03 + 0.12 × (1 - 0.4724)<br>
+                    R = 0.03 + 0.12 × 0.5276<br>
+                    R = 0.03 + 0.0633<br>
+                    <strong>R = 0.0933 (9.33%)</strong>
+                </div>
+            </div>
+
+            <div class="example-box">
+                <h4>Step 3: Calculate Maturity Adjustment in Formula</h4>
+                <div class="example-step">
+                    Adjustment = (1 + (3-1) × 0.3486) / (1 - 1.5 × 0.3486)<br>
+                    Adjustment = (1 + 2 × 0.3486) / (1 - 0.5229)<br>
+                    Adjustment = (1 + 0.6972) / 0.4771<br>
+                    Adjustment = 1.6972 / 0.4771<br>
+                    <strong>Adjustment = 3.5603</strong>
+                </div>
+            </div>
+
+            <div class="example-box">
+                <h4>Step 4: Calculate RWA</h4>
+                <div class="example-step">
+                    Component 1 = 0.015 × 0.45 × 3.5603 × 1.06<br>
+                    Component 1 = 0.0255<br>
+                    <br>
+                    Component 2 = 0.015 × 0.45<br>
+                    Component 2 = 0.00675<br>
+                    <br>
+                    Difference = 0.0255 - 0.00675 = 0.01875<br>
+                    <br>
+                    RWA = $1,000,000 × 0.01875 × 12.5<br>
+                    <strong>RWA = $234,375</strong>
+                </div>
+            </div>
+
+            <div class="example-box">
+                <h4>Step 5: Calculate Capital Requirement</h4>
+                <div class="example-step">
+                    Capital Required = $234,375 × 0.08<br>
+                    <strong>Capital Required = $18,750</strong><br>
+                    <br>
+                    CET1 Required (4.5%) = $234,375 × 0.045 = $10,547<br>
+                    Tier 1 Required (6.0%) = $234,375 × 0.06 = $14,063
+                </div>
+            </div>
+
+            <h3>Summary</h3>
+            <div class="info-box">
+                <p><strong>Input:</strong> $1M loan, 1.5% PD, 45% LGD, 3-year maturity</p>
+                <p><strong>Output:</strong></p>
+                <ul style="margin-left: 20px;">
+                    <li>Risk-Weighted Assets: $234,375</li>
+                    <li>Total Capital Required: $18,750</li>
+                    <li>Risk Weight: 23.44%</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Regulatory Notes -->
+        <div class="card">
+            <h2 id="regulatory">🏛️ Regulatory Compliance Notes</h2>
+
+            <h3>Basel III Requirements</h3>
+            <ul style="margin-left: 20px; margin-bottom: 15px;">
+                <li><strong>PD Minimum:</strong> 0.03% (3 basis points) for corporates, banks, and sovereigns</li>
+                <li><strong>LGD Minimum:</strong> No specific minimum, but must be conservative and reflect economic downturns</li>
+                <li><strong>Historical Data:</strong> Minimum 5 years for PD and LGD calibration</li>
+                <li><strong>Stress Testing:</strong> Models must be stress tested for various scenarios</li>
+                <li><strong>Backtesting:</strong> Annual backtesting of PD and LGD estimates required</li>
+            </ul>
+
+            <h3>Validation Requirements</h3>
+            <ul style="margin-left: 20px; margin-bottom: 15px;">
+                <li>Independence of risk assessment from commercial pressure</li>
+                <li>Sound model governance and documentation</li>
+                <li>Regulatory review and approval before implementation</li>
+                <li>Regular monitoring and validation</li>
+                <li>Transparent reporting to regulators</li>
+            </ul>
+
+            <h3>Risk Weights Under AIRB</h3>
+            <p>The AIRB approach typically produces risk weights between:</p>
+            <ul style="margin-left: 20px; margin-bottom: 15px;">
+                <li><strong>20% - 35%:</strong> High-grade corporate loans (AAA to A range)</li>
+                <li><strong>35% - 75%:</strong> Medium-grade corporate loans (BBB to BB range)</li>
+                <li><strong>75% - 150%:</strong> Lower-grade corporate loans (below BB)</li>
+            </ul>
+
+            <p class="note">Note: Risk weights depend on all four factors (PD, LGD, EAD, M) and cannot be determined from PD alone.</p>
+        </div>
+
+        <!-- Key Differences Table -->
+        <div class="card">
+            <h2>Comparison: AIRB vs Standardized Approach</h2>
+
+            <table class="comparison-table">
+                <thead>
+                    <tr>
+                        <th>Aspect</th>
+                        <th>AIRB Approach</th>
+                        <th>Standardized Approach</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>PD/LGD Determination</strong></td>
+                        <td>Bank's internal models</td>
+                        <td>External ratings / fixed %</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Risk Sensitivity</strong></td>
+                        <td>High (customized)</td>
+                        <td>Low (standardized)</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Capital Requirement</strong></td>
+                        <td>Often lower (better risk measurement)</td>
+                        <td>Higher (more conservative)</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Implementation Complexity</strong></td>
+                        <td>High (requires model development)</td>
+                        <td>Low (simple rules)</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Regulatory Approval</strong></td>
+                        <td>Required before use</td>
+                        <td>Automatic (Basel III rules)</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Data Requirements</strong></td>
+                        <td>Extensive (5+ years)</td>
+                        <td>Minimal</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- STANDARDIZED APPROACH SECTION -->
+        <!-- ============================================ -->
+
+        <!-- SA Overview -->
+        <div class="card">
+            <h2 id="sa-overview">📋 Standardized Approach Overview</h2>
+
+            <p>The Standardized Approach is a simpler, more conservative methodology for calculating credit risk capital requirements. It uses external credit ratings and fixed risk weight tables instead of internal models.</p>
+
+            <h3>Key Characteristics</h3>
+            <ul style="margin-left: 20px; margin-bottom: 15px;">
+                <li><strong>Rating-Based:</strong> Uses external ratings (AAA to D) from recognized rating agencies</li>
+                <li><strong>Fixed Risk Weights:</strong> Determined by lookup tables based on rating and exposure category</li>
+                <li><strong>Simple Calculation:</strong> RWA = Exposure × Risk Weight (no complex formulas)</li>
+                <li><strong>No Internal Models:</strong> Doesn't require PD/LGD calibration</li>
+                <li><strong>Automatic Applicability:</strong> No regulatory approval needed</li>
+                <li><strong>Collateral Support:</strong> Can reduce exposure through haircut adjustments</li>
+            </ul>
+
+            <h3>When to Use Standardized Approach</h3>
+            <ul style="margin-left: 20px; margin-bottom: 15px;">
+                <li>Banks without AIRB regulatory approval</li>
+                <li>Simpler portfolios without complex risk profiles</li>
+                <li>Conservative capital planning</li>
+                <li>Compliance baseline requirement</li>
+            </ul>
+        </div>
+
+        <!-- SA Risk Weights -->
+        <div class="card">
+            <h2 id="sa-risk-weights">📊 Risk Weight Tables by Category</h2>
+
+            <h3>Corporate Exposures</h3>
+            <table class="variable-table">
+                <thead>
+                    <tr>
+                        <th>Rating</th>
+                        <th>Risk Weight</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td>AAA/AA-</td><td>20%</td></tr>
+                    <tr><td>A+/A/A-</td><td>50%</td></tr>
+                    <tr><td>BBB+/BBB/BBB-</td><td>75%</td></tr>
+                    <tr><td>BB+/BB/BB-</td><td>100%</td></tr>
+                    <tr><td>B+/B/B-</td><td>100%</td></tr>
+                    <tr><td>CCC+ and below</td><td>150%</td></tr>
+                    <tr><td>Unrated</td><td>100%</td></tr>
+                </tbody>
+            </table>
+
+            <h3>Sovereign Exposures</h3>
+            <table class="variable-table">
+                <thead>
+                    <tr>
+                        <th>Rating</th>
+                        <th>Risk Weight</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td>AAA</td><td>0%</td></tr>
+                    <tr><td>AA+/AA/AA-</td><td>20%</td></tr>
+                    <tr><td>A+/A/A-</td><td>50%</td></tr>
+                    <tr><td>BBB+/BBB/BBB-</td><td>50%</td></tr>
+                    <tr><td>BB+/BB/BB-</td><td>100%</td></tr>
+                    <tr><td>B+ and below</td><td>150%</td></tr>
+                    <tr><td>Unrated</td><td>100%</td></tr>
+                </tbody>
+            </table>
+
+            <h3>Bank Exposures</h3>
+            <p>Same as Corporate Exposures above (20%, 50%, 75%, 100%, 100%, 150%, 100%)</p>
+
+            <h3>Financial Institution Exposures</h3>
+            <p>Same as Corporate Exposures above (20%, 50%, 75%, 100%, 100%, 150%, 100%)</p>
+        </div>
+
+        <!-- SA Categories -->
+        <div class="card">
+            <h2 id="sa-categories">🏷️ Exposure Categories</h2>
+
+            <table class="variable-table">
+                <thead>
+                    <tr>
+                        <th>Category</th>
+                        <th>Definition</th>
+                        <th>Examples</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Corporate</strong></td>
+                        <td>Private and public corporations, non-financial companies</td>
+                        <td>Manufacturing firms, retailers, technology companies</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Sovereign</strong></td>
+                        <td>Central governments and central banks</td>
+                        <td>US Treasury, European governments, ECB</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Bank</strong></td>
+                        <td>Commercial and investment banks</td>
+                        <td>JPMorgan Chase, Deutsche Bank, HSBC</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Financial Institution</strong></td>
+                        <td>Insurance companies, brokerages, investment firms</td>
+                        <td>Insurance companies, asset managers, brokers</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- SA Collateral -->
+        <div class="card">
+            <h2 id="sa-collateral">🔐 Collateral Treatment & Credit Risk Mitigation</h2>
+
+            <h3>Collateral Adjustment Formula</h3>
+            <div class="formula">
+                <div class="formula-title">Adjusted Collateral Value:</div>
+                Adjusted Collateral = Collateral Value × (1 - Haircut)<br>
+                <br>
+                <div class="formula-title">Adjusted Exposure:</div>
+                Adjusted Exposure = Max(Loan Amount - Adjusted Collateral, 0)
+            </div>
+
+            <h3>Standard Haircuts by Collateral Type</h3>
+            <table class="variable-table">
+                <thead>
+                    <tr>
+                        <th>Collateral Type</th>
+                        <th>Standard Haircut</th>
+                        <th>Reason</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Cash</strong></td>
+                        <td>0%</td>
+                        <td>Perfect liquidity, no loss potential</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Government Securities</strong></td>
+                        <td>5%</td>
+                        <td>Sovereign credit risk, minimal price volatility</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Corporate Bonds</strong></td>
+                        <td>10%</td>
+                        <td>Issuer credit risk, moderate volatility</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Equities</strong></td>
+                        <td>20%</td>
+                        <td>Market volatility, higher haircut</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Other Collateral</strong></td>
+                        <td>25%</td>
+                        <td>Conservative default haircut</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h3>Collateral Example</h3>
+            <div class="example-box">
+                <h4>Secured Loan with Government Securities</h4>
+                <div class="example-step">
+                    <strong>Loan Amount:</strong> $1,000,000<br>
+                    <strong>Collateral Type:</strong> Government Securities<br>
+                    <strong>Collateral Value:</strong> $300,000<br>
+                    <strong>Haircut:</strong> 5%<br>
+                    <br>
+                    <strong>Calculation:</strong><br>
+                    Adjusted Collateral = $300,000 × (1 - 0.05) = $285,000<br>
+                    Adjusted Exposure = $1,000,000 - $285,000 = $715,000<br>
+                    <br>
+                    <strong>Result:</strong> Capital requirement calculated on $715,000, not $1,000,000
+                </div>
+            </div>
+        </div>
+
+        <!-- SA Formulas -->
+        <div class="card">
+            <h2 id="sa-formulas">⚙️ Calculation Formulas</h2>
+
+            <h3>Basic Calculation (No Collateral)</h3>
+            <div class="formula">
+                <div class="formula-title">Step 1: Lookup Risk Weight</div>
+                Risk Weight (RW) = Table Value based on (Rating, Category)<br>
+                <br>
+                <div class="formula-title">Step 2: Calculate RWA</div>
+                RWA = Exposure × Risk Weight<br>
+                <br>
+                <div class="formula-title">Step 3: Calculate Capital Requirement</div>
+                Capital Required = RWA × 8%
+            </div>
+
+            <h3>Complete Calculation (With Collateral)</h3>
+            <div class="formula">
+                <div class="formula-title">Step 1: Calculate Adjusted Exposure</div>
+                Adjusted Exposure = Exposure - [Collateral Value × (1 - Haircut)]<br>
+                <br>
+                <div class="formula-title">Step 2: Lookup Risk Weight</div>
+                RW = Table Value based on (Rating, Category)<br>
+                <br>
+                <div class="formula-title">Step 3: Calculate RWA</div>
+                RWA = Adjusted Exposure × Risk Weight<br>
+                <br>
+                <div class="formula-title">Step 4: Calculate Capital Required</div>
+                Capital Required = RWA × 8% (minimum Basel III requirement)
+            </div>
+
+            <h3>Capital Adequacy Ratios</h3>
+            <table class="variable-table">
+                <thead>
+                    <tr>
+                        <th>Ratio</th>
+                        <th>Minimum %</th>
+                        <th>Formula</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>CET1 Ratio</strong></td>
+                        <td>4.5%</td>
+                        <td>CET1 Capital = Total RWA × 4.5%</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Tier 1 Ratio</strong></td>
+                        <td>6.0%</td>
+                        <td>Tier 1 Capital = Total RWA × 6.0%</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Total Capital Ratio</strong></td>
+                        <td>8.0%</td>
+                        <td>Total Capital = Total RWA × 8.0%</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- SA Examples -->
+        <div class="card">
+            <h2 id="sa-examples">📐 Worked Examples</h2>
+
+            <h3>Example 1: Simple Corporate Loan (No Collateral)</h3>
+            <div class="example-box">
+                <h4>Scenario</h4>
+                <div class="example-step">
+                    • Borrower: ABC Manufacturing Corp<br>
+                    • Loan Amount: $2,000,000<br>
+                    • External Rating: A<br>
+                    • Category: Corporate
+                </div>
+
+                <h4>Step-by-Step Calculation</h4>
+                <div class="example-step">
+                    <strong>Step 1: Lookup Risk Weight</strong><br>
+                    Rating: A (Corporate) → Risk Weight = 50%<br>
+                    <br>
+                    <strong>Step 2: Calculate RWA</strong><br>
+                    RWA = $2,000,000 × 50% = $1,000,000<br>
+                    <br>
+                    <strong>Step 3: Calculate Capital Required</strong><br>
+                    Capital = $1,000,000 × 8% = $80,000
+                </div>
+
+                <h4>Results</h4>
+                <div class="info-box">
+                    <strong>Risk Weight:</strong> 50%<br>
+                    <strong>RWA:</strong> $1,000,000<br>
+                    <strong>Capital Required (8%):</strong> $80,000
+                </div>
+            </div>
+
+            <h3>Example 2: Sovereign Exposure (AAA Rated)</h3>
+            <div class="example-box">
+                <h4>Scenario</h4>
+                <div class="example-step">
+                    • Borrower: US Federal Government<br>
+                    • Exposure: $10,000,000 (Treasury Bonds)<br>
+                    • External Rating: AAA<br>
+                    • Category: Sovereign
+                </div>
+
+                <h4>Calculation</h4>
+                <div class="example-step">
+                    Rating: AAA (Sovereign) → Risk Weight = 0% (Special case!)<br>
+                    RWA = $10,000,000 × 0% = $0<br>
+                    Capital Required = $0<br>
+                    <br>
+                    <strong>Reason:</strong> AAA-rated sovereign exposures get 0% risk weight under Basel III - considered zero-risk
+                </div>
+            </div>
+
+            <h3>Example 3: Bank Loan with Collateral</h3>
+            <div class="example-box">
+                <h4>Scenario</h4>
+                <div class="example-step">
+                    • Borrower: European Bank<br>
+                    • Loan Amount: $5,000,000<br>
+                    • Rating: BBB<br>
+                    • Category: Bank<br>
+                    • Collateral: Government Securities<br>
+                    • Collateral Value: $2,000,000<br>
+                    • Haircut: 5%
+                </div>
+
+                <h4>Calculation</h4>
+                <div class="example-step">
+                    <strong>Step 1: Adjust for Collateral</strong><br>
+                    Adjusted Collateral = $2,000,000 × (1 - 0.05) = $1,900,000<br>
+                    Adjusted Exposure = $5,000,000 - $1,900,000 = $3,100,000<br>
+                    <br>
+                    <strong>Step 2: Lookup Risk Weight</strong><br>
+                    BBB (Bank) → Risk Weight = 75%<br>
+                    <br>
+                    <strong>Step 3: Calculate RWA</strong><br>
+                    RWA = $3,100,000 × 75% = $2,325,000<br>
+                    <br>
+                    <strong>Step 4: Calculate Capital</strong><br>
+                    Capital = $2,325,000 × 8% = $186,000
+                </div>
+
+                <h4>Impact Analysis</h4>
+                <div class="calculation">
+                    Without Collateral: $5,000,000 × 0.75 = $3,750,000 RWA → $300,000 Capital<br>
+                    With Collateral: $3,100,000 × 0.75 = $2,325,000 RWA → $186,000 Capital<br>
+                    <strong>Savings: $1,425,000 RWA | $114,000 Capital Saved</strong>
+                </div>
+            </div>
+        </div>
+
+        <!-- Comparison -->
+        <div class="card">
+            <h2 id="comparison">⚖️ AIRB vs Standardized Approach Comparison</h2>
+
+            <table class="variable-table">
+                <thead>
+                    <tr>
+                        <th>Feature</th>
+                        <th>AIRB Approach</th>
+                        <th>Standardized Approach</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Risk Assessment</strong></td>
+                        <td>Bank's internal models</td>
+                        <td>External ratings from agencies</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Complexity</strong></td>
+                        <td>Very High (PD/LGD calibration)</td>
+                        <td>Very Low (lookup tables)</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Core Formula</strong></td>
+                        <td>Complex (correlation, maturity)</td>
+                        <td>Simple (exposure × RW)</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Input Variables</strong></td>
+                        <td>PD, LGD, EAD, Maturity</td>
+                        <td>Rating, Category</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Risk Weights</strong></td>
+                        <td>Calculated from formula</td>
+                        <td>Fixed by Basel III tables</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Regulatory Approval</strong></td>
+                        <td>Required before use</td>
+                        <td>Automatic (Basel III rules)</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Data Requirements</strong></td>
+                        <td>Extensive (5+ years history)</td>
+                        <td>Minimal (current ratings)</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Implementation Time</strong></td>
+                        <td>2-3 years</td>
+                        <td>Weeks</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Capital Requirement</strong></td>
+                        <td>Usually lower (better measurement)</td>
+                        <td>Usually higher (conservative)</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Best For</strong></td>
+                        <td>Large banks, complex portfolios</td>
+                        <td>Smaller banks, simpler portfolios</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h3>Which Approach Should You Use?</h3>
+            <ul style="margin-left: 20px; margin-bottom: 15px;">
+                <li><strong>AIRB:</strong> If you have sophisticated risk models, large portfolio, and regulatory approval</li>
+                <li><strong>Standardized:</strong> If you need a simple, immediate solution with minimal data</li>
+                <li><strong>Both:</strong> Use Standardized as baseline, AIRB for competitive advantage on well-understood exposures</li>
+            </ul>
+        </div>
+
+        <!-- References -->
+        <div class="card">
+            <h2>📚 References</h2>
+
+            <h3>Basel Committee Standards</h3>
+            <ul style="margin-left: 20px; margin-bottom: 15px;">
+                <li><strong>Basel III:</strong> A global regulatory framework on bank capital adequacy, stress testing, and market liquidity risk (2010-2011)</li>
+                <li><strong>CRR/CRD IV:</strong> European implementation of Basel III</li>
+                <li><strong>Dodd-Frank Act:</strong> US implementation and enhanced requirements</li>
+            </ul>
+
+            <h3>Key Documents</h3>
+            <ul style="margin-left: 20px; margin-bottom: 15px;">
+                <li>Basel Committee on Banking Supervision (2017): "Regulatory Consistency Assessment Programme (RCAP)"</li>
+                <li>BIS (2019): "Minimum capital requirements for market risk"</li>
+                <li>EBA (2018): "Guidelines on PD estimation, LGD estimation and the treatment of defaulted exposures"</li>
+            </ul>
+
+            <h3>Useful Resources</h3>
+            <ul style="margin-left: 20px; margin-bottom: 15px;">
+                <li><a href="https://www.bis.org/" target="_blank">Bank for International Settlements (BIS)</a></li>
+                <li><a href="https://www.eba.europa.eu/" target="_blank">European Banking Authority (EBA)</a></li>
+                <li><a href="https://www.federalreserve.gov/" target="_blank">US Federal Reserve</a></li>
+            </ul>
+        </div>
+
+        <!-- Footer -->
+        <div class="footer">
+            <p>AIRB Formula Reference | Basel III Compliant | Credit Risk Calculation Guide</p>
+            <p>Version 1.0 | June 2026</p>
+            <br>
+            <a href="index.html" class="back-button">← Back to Calculator</a>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,14 @@
+{
+  "model_type": "RandomForestRegressor",
+  "features": [
+    "D/E Ratio",
+    "Interest Coverage",
+    "Profitability",
+    "Liquidity Ratio"
+  ],
+  "target": "PD (Probability of Default)",
+  "date_created": "2026-06-05",
+  "version": "1.0.0",
+  "data_type": "Synthetic (Demo)",
+  "note": "Replace with real data in production"
+}
