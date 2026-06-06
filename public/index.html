@@ -3,1304 +3,522 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Credit Risk Calculator</title>
+    <title>Basel III Credit Risk Calculator</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
             min-height: 100vh;
-            padding: 20px;
+            color: #333;
         }
 
-        .container {
-            max-width: 1400px;
-            margin: 0 auto;
+        .hero {
+            background: linear-gradient(135deg, #1f4e78 0%, #2980b9 100%);
+            padding: 60px 20px 50px;
+            text-align: center;
+            color: white;
+            position: relative;
+            overflow: hidden;
         }
 
-        header {
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.05) 0%, transparent 60%);
+            pointer-events: none;
+        }
+
+        .hero-badge {
+            display: inline-block;
+            background: rgba(255,255,255,0.15);
+            border: 1px solid rgba(255,255,255,0.3);
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            margin-bottom: 20px;
+            letter-spacing: 1px;
+        }
+
+        .hero h1 {
+            font-size: 2.8em;
+            font-weight: 700;
+            margin-bottom: 15px;
+            letter-spacing: -0.5px;
+        }
+
+        .hero p {
+            font-size: 1.15em;
+            opacity: 0.85;
+            max-width: 600px;
+            margin: 0 auto 30px;
+            line-height: 1.6;
+        }
+
+        .hero-cta {
+            display: inline-block;
             background: white;
-            padding: 30px;
-            border-radius: 12px;
-            margin-bottom: 30px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        }
-
-        header h1 {
             color: #1f4e78;
-            margin-bottom: 10px;
-            font-size: 2.5em;
+            padding: 16px 40px;
+            border-radius: 8px;
+            font-weight: 700;
+            font-size: 1.05em;
+            text-decoration: none;
+            transition: all 0.3s;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
         }
 
-        header p {
-            color: #666;
-            font-size: 1.1em;
+        .hero-cta:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 30px rgba(0,0,0,0.3);
+            background: #f0f4ff;
+        }
+
+        .hero-stats {
+            display: flex;
+            justify-content: center;
+            gap: 50px;
+            margin-top: 40px;
+            padding-top: 30px;
+            border-top: 1px solid rgba(255,255,255,0.2);
+        }
+
+        .hero-stat-value {
+            font-size: 1.8em;
+            font-weight: 700;
+        }
+
+        .hero-stat-label {
+            font-size: 0.8em;
+            opacity: 0.7;
+            margin-top: 4px;
         }
 
         .main-content {
-            display: grid;
-            grid-template-columns: 1fr 350px;
-            gap: 30px;
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 50px 20px;
         }
 
-        @media (max-width: 1200px) {
-            .main-content {
-                grid-template-columns: 1fr;
-            }
+        .section-title {
+            color: white;
+            font-size: 1.4em;
+            font-weight: 600;
+            margin-bottom: 25px;
+            padding-left: 5px;
         }
 
-        .card {
+        .section-title span {
+            display: block;
+            font-size: 0.7em;
+            opacity: 0.6;
+            font-weight: 400;
+            margin-top: 4px;
+        }
+
+        /* Main calculator card */
+        .main-card {
             background: white;
+            border-radius: 16px;
+            padding: 40px;
+            margin-bottom: 40px;
+            box-shadow: 0 8px 40px rgba(0,0,0,0.3);
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+            align-items: center;
+        }
+
+        .main-card-left h2 {
+            color: #1f4e78;
+            font-size: 1.8em;
+            margin-bottom: 12px;
+        }
+
+        .main-card-left p {
+            color: #555;
+            line-height: 1.7;
+            margin-bottom: 25px;
+        }
+
+        .feature-list {
+            list-style: none;
+            margin-bottom: 30px;
+        }
+
+        .feature-list li {
+            padding: 8px 0;
+            color: #444;
+            font-size: 0.95em;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .feature-list li::before {
+            content: '';
+            width: 8px;
+            height: 8px;
+            background: #27ae60;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .btn-launch {
+            display: inline-block;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 35px;
+            border-radius: 8px;
+            font-weight: 700;
+            font-size: 1em;
+            text-decoration: none;
+            transition: all 0.3s;
+            box-shadow: 0 4px 15px rgba(102,126,234,0.4);
+        }
+
+        .btn-launch:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(102,126,234,0.5);
+        }
+
+        .main-card-right {
+            background: linear-gradient(135deg, #f8f9ff 0%, #eef1ff 100%);
             border-radius: 12px;
             padding: 30px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
         }
 
-        .card h2 {
-            color: #1f4e78;
-            margin-bottom: 20px;
-            font-size: 1.8em;
-            border-bottom: 3px solid #667eea;
-            padding-bottom: 10px;
-        }
-
-        .card h3 {
-            color: #333;
-            margin-top: 20px;
-            margin-bottom: 15px;
-            font-size: 1.1em;
-        }
-
-        .form-group {
-            margin-bottom: 20px;
-        }
-
-        label {
-            display: block;
-            margin-bottom: 8px;
-            color: #333;
-            font-weight: 500;
-            font-size: 0.95em;
-        }
-
-        input, select {
-            width: 100%;
-            padding: 12px;
-            border: 2px solid #e0e0e0;
-            border-radius: 6px;
-            font-size: 1em;
-            transition: border-color 0.3s;
-        }
-
-        input:focus, select:focus {
-            outline: none;
-            border-color: #667eea;
-            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-        }
-
-        .button-group {
+        .method-cards {
             display: flex;
-            gap: 10px;
-            margin-bottom: 20px;
+            flex-direction: column;
+            gap: 15px;
         }
 
-        button {
-            padding: 12px 24px;
-            border: none;
-            border-radius: 6px;
-            font-size: 1em;
-            font-weight: 600;
-            cursor: pointer;
+        .method-card {
+            background: white;
+            border-radius: 10px;
+            padding: 18px 20px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+            border-left: 4px solid;
+        }
+
+        .method-card.airb { border-left-color: #667eea; }
+        .method-card.sa { border-left-color: #27ae60; }
+        .method-card.both { border-left-color: #f39c12; }
+
+        .method-icon {
+            font-size: 1.8em;
+            flex-shrink: 0;
+        }
+
+        .method-card h4 {
+            color: #1f4e78;
+            font-size: 0.95em;
+            margin-bottom: 3px;
+        }
+
+        .method-card p {
+            color: #777;
+            font-size: 0.82em;
+            line-height: 1.4;
+        }
+
+        /* Reference cards grid */
+        .cards-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+
+        .ref-card {
+            background: white;
+            border-radius: 12px;
+            padding: 28px;
+            text-decoration: none;
+            color: inherit;
             transition: all 0.3s;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            border-top: 4px solid;
+            display: block;
         }
 
-        .btn-primary {
-            background: #667eea;
-            color: white;
-            flex: 1;
+        .ref-card.airb { border-top-color: #667eea; }
+        .ref-card.sa { border-top-color: #27ae60; }
+        .ref-card.hub { border-top-color: #e74c3c; }
+
+        .ref-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 10px 35px rgba(0,0,0,0.25);
         }
 
-        .btn-primary:hover {
-            background: #5568d3;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
-        }
-
-        .btn-danger {
-            background: #ef5350;
-            color: white;
-        }
-
-        .btn-danger:hover {
-            background: #e53935;
-        }
-
-        .btn-secondary {
-            background: #f5f5f5;
-            color: #333;
-        }
-
-        .btn-secondary:hover {
-            background: #e0e0e0;
-        }
-
-        .btn-export {
-            background: #4caf50;
-            color: white;
-        }
-
-        .btn-export:hover {
-            background: #45a049;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-bottom: 20px;
-        }
-
-        thead {
-            background: #1f4e78;
-            color: white;
-        }
-
-        th, td {
-            padding: 12px;
-            text-align: left;
-            border-bottom: 1px solid #e0e0e0;
-        }
-
-        tbody tr:hover {
-            background: #f5f5f5;
-        }
-
-        .text-right {
-            text-align: right;
-        }
-
-        .text-bold {
-            font-weight: 600;
-        }
-
-        .text-success {
-            color: #4caf50;
-        }
-
-        .text-warning {
-            color: #ff9800;
-        }
-
-        .summary-item {
-            padding: 15px;
-            background: #f9f9f9;
-            border-left: 4px solid #667eea;
+        .ref-card-icon {
+            font-size: 2.2em;
             margin-bottom: 15px;
-            border-radius: 4px;
         }
 
-        .summary-label {
+        .ref-card h3 {
+            color: #1f4e78;
+            font-size: 1.05em;
+            margin-bottom: 8px;
+        }
+
+        .ref-card p {
             color: #666;
-            font-size: 0.9em;
+            font-size: 0.88em;
+            line-height: 1.5;
+        }
+
+        /* Roadmap */
+        .roadmap {
+            background: rgba(255,255,255,0.08);
+            border-radius: 16px;
+            padding: 35px;
+            margin-bottom: 40px;
+        }
+
+        .roadmap-title {
+            color: white;
+            font-size: 1.15em;
+            font-weight: 600;
+            margin-bottom: 25px;
+        }
+
+        .phases {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 15px;
+        }
+
+        .phase {
+            background: rgba(255,255,255,0.08);
+            border-radius: 10px;
+            padding: 20px 15px;
+            text-align: center;
+            position: relative;
+        }
+
+        .phase.complete {
+            background: rgba(39,174,96,0.2);
+            border: 1px solid rgba(39,174,96,0.4);
+        }
+
+        .phase.planned {
+            background: rgba(255,255,255,0.05);
+            border: 1px dashed rgba(255,255,255,0.2);
+        }
+
+        .phase-number {
+            font-size: 1.8em;
+            font-weight: 700;
+            color: rgba(255,255,255,0.3);
+            margin-bottom: 8px;
+        }
+
+        .phase.complete .phase-number {
+            color: #27ae60;
+        }
+
+        .phase-name {
+            color: white;
+            font-size: 0.88em;
+            font-weight: 600;
             margin-bottom: 5px;
         }
 
-        .summary-value {
-            color: #1f4e78;
-            font-size: 1.5em;
+        .phase-desc {
+            color: rgba(255,255,255,0.5);
+            font-size: 0.75em;
+            line-height: 1.4;
+        }
+
+        .phase-badge {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 0.72em;
             font-weight: 600;
+            margin-top: 10px;
         }
 
-        .error {
-            color: #d32f2f;
-            font-size: 0.9em;
-            margin-top: 5px;
+        .badge-complete {
+            background: rgba(39,174,96,0.3);
+            color: #2ecc71;
         }
 
-        .info-box {
-            background: #e3f2fd;
-            border-left: 4px solid #2196f3;
-            padding: 15px;
-            margin-bottom: 20px;
-            border-radius: 4px;
+        .badge-planned {
+            background: rgba(255,255,255,0.1);
+            color: rgba(255,255,255,0.4);
         }
 
-        .info-box p {
-            color: #1565c0;
-            font-size: 0.9em;
-        }
-
-        .grid-2 {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 15px;
-        }
-
-        .grid-3 {
-            display: grid;
-            grid-template-columns: 1fr 1fr 1fr;
-            gap: 15px;
-        }
-
-        .form-columns {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 30px;
-            margin-bottom: 20px;
-            padding: 20px 0;
-            border-top: 1px solid #e0e0e0;
-            border-bottom: 1px solid #e0e0e0;
-        }
-
-        .form-col h4 {
-            color: #667eea;
-            margin-bottom: 15px;
-            font-size: 1em;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            border-bottom: 2px solid #667eea;
-            padding-bottom: 10px;
-        }
-
-        .calc-mode-selector {
-            margin: 20px 0;
-            padding: 15px;
-            background: #f5f5f5;
-            border-radius: 6px;
-        }
-
-        .calc-mode-selector label {
-            display: inline-flex;
-            align-items: center;
-            margin-right: 20px;
-            margin-bottom: 0;
-            font-weight: normal;
-        }
-
-        .calc-mode-selector input[type="radio"] {
-            width: auto;
-            margin-right: 8px;
-            margin-bottom: 0;
-        }
-
+        /* Footer */
         .footer {
             text-align: center;
-            margin-top: 40px;
-            color: white;
-            font-size: 0.9em;
+            padding: 25px;
+            color: rgba(255,255,255,0.4);
+            font-size: 0.85em;
+            border-top: 1px solid rgba(255,255,255,0.1);
         }
 
-        .modal {
-            display: none;
-            position: fixed;
-            z-index: 1000;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.4);
-        }
-
-        .modal-content {
-            background-color: white;
-            margin: 5% auto;
-            padding: 30px;
-            border-radius: 12px;
-            width: 90%;
-            max-width: 500px;
-            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
-        }
-
-        .modal.active {
-            display: block;
-        }
-
-        .close {
-            color: #aaa;
-            float: right;
-            font-size: 28px;
-            font-weight: bold;
-            cursor: pointer;
-            line-height: 20px;
-        }
-
-        .close:hover {
-            color: #000;
+        @media (max-width: 900px) {
+            .main-card { grid-template-columns: 1fr; }
+            .cards-grid { grid-template-columns: 1fr; }
+            .phases { grid-template-columns: repeat(2, 1fr); }
+            .hero h1 { font-size: 2em; }
+            .hero-stats { gap: 25px; }
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <header>
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-                <div>
-                    <h1>🏦 Credit Risk Calculator</h1>
-                    <p>AIRB & Standardized Approach - Basel III Compliant</p>
-                </div>
-                <a href="formula-reference.html" style="padding: 12px 24px; background: #667eea; color: white; text-decoration: none; border-radius: 6px; font-weight: 600; transition: all 0.3s;" onmouseover="this.style.background='#5568d3'; this.style.transform='translateY(-2px)';" onmouseout="this.style.background='#667eea'; this.style.transform='translateY(0)';">📚 Formula Reference</a>
-            </div>
-        </header>
 
-        <div class="main-content">
-            <!-- Left side - Unified Input Form & Table -->
+    <div class="hero">
+        <div class="hero-badge">Basel III Compliant</div>
+        <h1>Banking Credit Risk Calculator</h1>
+        <p>Professional credit risk assessment platform supporting AIRB and Standardized Approach methodologies with full capital requirement calculations.</p>
+        <a href="borrower-info.html" class="hero-cta">Open Calculator</a>
+        <div class="hero-stats">
             <div>
-                <!-- Loan Summary (from Borrower Assessment) -->
-                <div id="loanSummaryCard" class="card" style="display: none; background: linear-gradient(135deg, #d5f4e6 0%, #c8f1dc 100%); border-left: 5px solid #27ae60;">
-                    <h2 style="color: #27ae60; border-bottom-color: #27ae60;">Loan Summary - Ready to Record</h2>
-                    <div class="info-box" style="background: white; border-left: 4px solid #27ae60;">
-                        <p style="color: #27ae60; font-weight: 600;">Data loaded from Borrower Assessment. Review and confirm to record loan.</p>
-                    </div>
-
-                    <!-- Summary Grid -->
-                    <div class="grid-3" style="margin: 20px 0;">
-                        <div style="background: white; padding: 15px; border-radius: 6px; border-top: 3px solid #667eea;">
-                            <div style="color: #666; font-size: 0.9em; margin-bottom: 5px;">Borrower</div>
-                            <div style="font-size: 1.2em; font-weight: 600; color: #1f4e78;" id="summaryBorrower">--</div>
-                        </div>
-                        <div style="background: white; padding: 15px; border-radius: 6px; border-top: 3px solid #667eea;">
-                            <div style="color: #666; font-size: 0.9em; margin-bottom: 5px;">Sector</div>
-                            <div style="font-size: 1.2em; font-weight: 600; color: #1f4e78;" id="summarySector">--</div>
-                        </div>
-                        <div style="background: white; padding: 15px; border-radius: 6px; border-top: 3px solid #667eea;">
-                            <div style="color: #666; font-size: 0.9em; margin-bottom: 5px;">Exposure</div>
-                            <div style="font-size: 1.2em; font-weight: 600; color: #1f4e78;" id="summaryExposure">--</div>
-                        </div>
-                    </div>
-
-                    <!-- Risk Parameters Summary -->
-                    <div style="background: white; padding: 20px; border-radius: 6px; margin: 20px 0;">
-                        <h4 style="color: #1f4e78; margin-bottom: 15px;">Calculated Risk Parameters</h4>
-                        <div class="grid-3">
-                            <div>
-                                <div style="color: #666; font-size: 0.9em;">PD (%)</div>
-                                <div style="font-size: 1.8em; font-weight: 700; color: #667eea;" id="summaryPD">--</div>
-                            </div>
-                            <div>
-                                <div style="color: #666; font-size: 0.9em;">LGD (%)</div>
-                                <div style="font-size: 1.8em; font-weight: 700; color: #667eea;" id="summaryLGD">--</div>
-                            </div>
-                            <div>
-                                <div style="color: #666; font-size: 0.9em;">Haircut (%)</div>
-                                <div style="font-size: 1.8em; font-weight: 700; color: #667eea;" id="summaryHaircut">--</div>
-                            </div>
-                        </div>
-                        <div class="grid-3" style="margin-top: 15px;">
-                            <div>
-                                <div style="color: #666; font-size: 0.9em;">Maturity (Yrs)</div>
-                                <div style="font-size: 1.8em; font-weight: 700; color: #667eea;" id="summaryMaturity">--</div>
-                            </div>
-                            <div>
-                                <div style="color: #666; font-size: 0.9em;">Risk Weight (%)</div>
-                                <div style="font-size: 1.8em; font-weight: 700; color: #667eea;" id="summaryRiskWeight">--</div>
-                            </div>
-                            <div>
-                                <div style="color: #666; font-size: 0.9em;">Collateral Adj</div>
-                                <div style="font-size: 1.8em; font-weight: 700; color: #667eea;" id="summaryAdjustedExposure">--</div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Auto-calculated Results -->
-                    <div style="background: linear-gradient(135deg, #f0f0f0 0%, #e8e8e8 100%); padding: 20px; border-radius: 6px; margin: 20px 0;">
-                        <h4 style="color: #1f4e78; margin-bottom: 15px;">Auto-calculated Results</h4>
-                        <div class="grid-2">
-                            <div>
-                                <div style="color: #666; font-size: 0.9em; margin-bottom: 5px;">Risk-Weighted Assets (RWA)</div>
-                                <div style="font-size: 2em; font-weight: 700; color: #27ae60;" id="summaryRWA">$0</div>
-                            </div>
-                            <div>
-                                <div style="color: #666; font-size: 0.9em; margin-bottom: 5px;">Capital Required (8%)</div>
-                                <div style="font-size: 2em; font-weight: 700; color: #e74c3c;" id="summaryCapitalReq">$0</div>
-                            </div>
-                        </div>
-                        <div style="margin-top: 15px;">
-                            <div style="color: #666; font-size: 0.9em; margin-bottom: 5px;">Risk Density (RWA/EAD)</div>
-                            <div style="font-size: 1.5em; font-weight: 700; color: #f39c12;" id="summaryRiskDensity">0.00%</div>
-                        </div>
-                    </div>
-
-                    <!-- Action Buttons -->
-                    <div class="button-group">
-                        <button class="btn-primary" onclick="confirmAndRecordLoan()" style="background: #27ae60; flex: 1;">✓ Confirm & Record Loan</button>
-                        <button class="btn-secondary" onclick="goBackToAssessment()" style="flex: 1;">← Go Back</button>
-                    </div>
-                </div>
-
-                <!-- Unified Input Form -->
-                <div id="inputFormCard" class="card">
-                    <h2>Add Loan</h2>
-                    <div class="info-box">
-                        <p>Enter loan details and select calculation method. Fields marked with * are required based on your selection.</p>
-                    </div>
-
-                    <!-- Common Fields -->
-                    <div class="grid-3">
-                        <div class="form-group">
-                            <label for="loanId">Loan ID *</label>
-                            <input type="text" id="loanId" placeholder="e.g., L001">
-                            <div class="error" id="loanIdError"></div>
-                        </div>
-
-                        <div class="form-group">
-                            <label for="borrower">Borrower Name *</label>
-                            <input type="text" id="borrower" placeholder="e.g., ABC Corp">
-                            <div class="error" id="borrowerError"></div>
-                        </div>
-
-                        <div class="form-group">
-                            <label for="ead">Exposure Amount ($) *</label>
-                            <input type="number" id="ead" placeholder="1000000" min="0" step="1000">
-                            <div class="error" id="eadError"></div>
-                        </div>
-                    </div>
-
-                    <!-- AIRB & SA Side-by-Side -->
-                    <div class="form-columns">
-                        <!-- AIRB Column -->
-                        <div class="form-col">
-                            <h4>AIRB Parameters</h4>
-
-                            <div class="form-group">
-                                <label for="sector">Sector</label>
-                                <select id="sector">
-                                    <option value="">-- Select Sector --</option>
-                                    <option value="Manufacturing">Manufacturing</option>
-                                    <option value="Retail">Retail</option>
-                                    <option value="Technology">Technology</option>
-                                    <option value="Financial">Financial</option>
-                                    <option value="Real Estate">Real Estate</option>
-                                    <option value="Healthcare">Healthcare</option>
-                                    <option value="Energy">Energy</option>
-                                    <option value="Utilities">Utilities</option>
-                                    <option value="Other">Other</option>
-                                </select>
-                                <div class="error" id="sectorError"></div>
-                            </div>
-
-                            <div class="form-group">
-                                <label for="pd">PD (%)</label>
-                                <input type="number" id="pd" placeholder="1.5" min="0.03" max="100" step="0.01">
-                                <div class="error" id="pdError"></div>
-                            </div>
-
-                            <div class="form-group">
-                                <label for="lgd">LGD (%)</label>
-                                <input type="number" id="lgd" placeholder="45" min="0" max="100" step="0.01">
-                                <div class="error" id="lgdError"></div>
-                            </div>
-
-                            <div class="form-group">
-                                <label for="maturity">Maturity (Years)</label>
-                                <input type="number" id="maturity" placeholder="3" min="0.25" max="5" step="0.25">
-                                <div class="error" id="maturityError"></div>
-                            </div>
-                        </div>
-
-                        <!-- Standardized Approach Column -->
-                        <div class="form-col">
-                            <h4>Standardized Approach</h4>
-
-                            <div class="form-group">
-                                <label for="saExternalRating">External Rating</label>
-                                <select id="saExternalRating">
-                                    <option value="">-- Select Rating --</option>
-                                    <option value="AAA">AAA</option>
-                                    <option value="AA+">AA+</option>
-                                    <option value="AA">AA</option>
-                                    <option value="AA-">AA-</option>
-                                    <option value="A+">A+</option>
-                                    <option value="A">A</option>
-                                    <option value="A-">A-</option>
-                                    <option value="BBB+">BBB+</option>
-                                    <option value="BBB">BBB</option>
-                                    <option value="BBB-">BBB-</option>
-                                    <option value="BB+">BB+</option>
-                                    <option value="BB">BB</option>
-                                    <option value="BB-">BB-</option>
-                                    <option value="B+">B+</option>
-                                    <option value="B">B</option>
-                                    <option value="B-">B-</option>
-                                    <option value="CCC">CCC</option>
-                                    <option value="CC">CC</option>
-                                    <option value="C">C</option>
-                                    <option value="D">D</option>
-                                    <option value="Unrated">Unrated</option>
-                                </select>
-                                <div class="error" id="saExternalRatingError"></div>
-                            </div>
-
-                            <div class="form-group">
-                                <label for="saCategory">Exposure Category</label>
-                                <select id="saCategory">
-                                    <option value="">-- Select Category --</option>
-                                    <option value="corporate">Corporate</option>
-                                    <option value="sovereign">Sovereign</option>
-                                    <option value="bank">Bank</option>
-                                    <option value="financial">Financial Institution</option>
-                                </select>
-                                <div class="error" id="saCategoryError"></div>
-                            </div>
-
-                            <div class="form-group">
-                                <label>
-                                    <input type="checkbox" id="saHasCollateral" onchange="toggleSACollateral()">
-                                    Exposure has Collateral?
-                                </label>
-                            </div>
-
-                            <div id="saCollateralSection" style="display: none; border: 2px dashed #667eea; padding: 12px; border-radius: 6px; margin-top: 10px;">
-                                <h5 style="margin-top: 0; font-size: 0.9em; color: #667eea; margin-bottom: 10px;">Collateral Details</h5>
-
-                                <div class="form-group" style="margin-bottom: 10px;">
-                                    <label for="saCollateralType" style="margin-bottom: 6px;">Type</label>
-                                    <select id="saCollateralType">
-                                        <option value="cash">Cash</option>
-                                        <option value="government_securities">Government Securities</option>
-                                        <option value="corporate_bonds">Corporate Bonds</option>
-                                        <option value="equities">Equities</option>
-                                        <option value="other">Other</option>
-                                    </select>
-                                </div>
-
-                                <div class="grid-2" style="gap: 10px;">
-                                    <div class="form-group" style="margin-bottom: 0;">
-                                        <label for="saCollateralValue" style="margin-bottom: 6px;">Value ($)</label>
-                                        <input type="number" id="saCollateralValue" placeholder="0" min="0" step="1000">
-                                        <div class="error" id="saCollateralValueError"></div>
-                                    </div>
-
-                                    <div class="form-group" style="margin-bottom: 0;">
-                                        <label for="saHaircut" style="margin-bottom: 6px;">Haircut (%)</label>
-                                        <input type="number" id="saHaircut" value="0" min="0" max="100" step="0.1">
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Calculation Mode Selector -->
-                    <div class="calc-mode-selector">
-                        <label style="font-weight: 600; display: block; margin-bottom: 10px;">Calculate As:</label>
-                        <label>
-                            <input type="radio" name="calcMode" value="airb" checked> AIRB Approach
-                        </label>
-                        <label>
-                            <input type="radio" name="calcMode" value="standardized"> Standardized Approach
-                        </label>
-                        <label>
-                            <input type="radio" name="calcMode" value="both"> Both Methods
-                        </label>
-                    </div>
-
-                    <!-- Action Buttons -->
-                    <div class="button-group">
-                        <button class="btn-primary" onclick="addLoan()">Add Loan</button>
-                        <button class="btn-secondary" onclick="clearForm()">Clear</button>
-                    </div>
-                </div>
-
-                <!-- Loans Table -->
-                <div class="card" style="margin-top: 30px;">
-                    <h2>Portfolio Loans</h2>
-                    <div style="overflow-x: auto;">
-                        <table id="loansTable">
-                            <thead id="tableHeader">
-                                <tr id="airbHeaderRow">
-                                    <th>Loan ID</th>
-                                    <th>Borrower</th>
-                                    <th>Sector</th>
-                                    <th class="text-right">EAD</th>
-                                    <th class="text-right">PD%</th>
-                                    <th class="text-right">LGD%</th>
-                                    <th class="text-right">RWA</th>
-                                    <th class="text-right">Cap Req</th>
-                                    <th>Action</th>
-                                </tr>
-                            </thead>
-                            <tbody id="loansTableBody">
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
+                <div class="hero-stat-value">2</div>
+                <div class="hero-stat-label">Methodologies</div>
             </div>
-
-            <!-- Right side - Summary -->
             <div>
-                <div class="card">
-                    <h2>Portfolio Summary</h2>
-
-                    <h3>Risk Metrics</h3>
-                    <div class="summary-item">
-                        <div class="summary-label">Total EAD</div>
-                        <div class="summary-value" id="totalEad">$0.00</div>
-                    </div>
-
-                    <div class="summary-item">
-                        <div class="summary-label">Total RWA</div>
-                        <div class="summary-value text-success" id="totalRwa">$0.00</div>
-                    </div>
-
-                    <div class="summary-item">
-                        <div class="summary-label">Total Capital (8%)</div>
-                        <div class="summary-value text-success" id="totalCapital">$0.00</div>
-                    </div>
-
-                    <div class="summary-item">
-                        <div class="summary-label">RWA Density</div>
-                        <div class="summary-value" id="rwaDensity">0.00%</div>
-                    </div>
-
-                    <h3 style="margin-top: 30px;">Regulatory Ratios</h3>
-                    <div class="summary-item">
-                        <div class="summary-label">CET1 Required (4.5%)</div>
-                        <div class="summary-value" id="cet1">$0.00</div>
-                    </div>
-
-                    <div class="summary-item">
-                        <div class="summary-label">Tier 1 Required (6%)</div>
-                        <div class="summary-value" id="tier1">$0.00</div>
-                    </div>
-
-                    <div class="summary-item">
-                        <div class="summary-label">Total Cap Required (8%)</div>
-                        <div class="summary-value text-success" id="totalCapRequired">$0.00</div>
-                    </div>
-
-                    <h3 style="margin-top: 30px;">Calculation Tools</h3>
-                    <div class="button-group" style="flex-direction: column; gap: 10px;">
-                        <a href="borrower-info.html" style="padding: 12px 24px; background: #667eea; color: white; text-decoration: none; border-radius: 6px; font-weight: 600; text-align: center; transition: all 0.3s; display: block;" onmouseover="this.style.background='#5568d3';" onmouseout="this.style.background='#667eea';">🏢 Borrower Assessment (Recommended)</a>
-                        <a href="pd-calculator.html" style="padding: 12px 24px; background: #ff9800; color: white; text-decoration: none; border-radius: 6px; font-weight: 600; text-align: center; transition: all 0.3s; display: block;" onmouseover="this.style.background='#f57c00';" onmouseout="this.style.background='#ff9800';">📊 PD Calculator (Legacy)</a>
-                    </div>
-
-                    <h3 style="margin-top: 20px;">Formula References</h3>
-                    <div class="button-group" style="flex-direction: column; gap: 10px;">
-                        <a href="formula-reference.html" style="padding: 12px 24px; background: #2196f3; color: white; text-decoration: none; border-radius: 6px; font-weight: 600; text-align: center; transition: all 0.3s; display: block;" onmouseover="this.style.background='#1976d2';" onmouseout="this.style.background='#2196f3';">📚 Complete Formula Reference</a>
-                        <a href="formula-references.html" style="padding: 12px 24px; background: #2196f3; color: white; text-decoration: none; border-radius: 6px; font-weight: 600; text-align: center; transition: all 0.3s; display: block;" onmouseover="this.style.background='#1976d2';" onmouseout="this.style.background='#2196f3';">📖 Formula Hub & Overview</a>
-                    </div>
-
-                    <h3 style="margin-top: 20px;">Actions</h3>
-                    <div class="button-group" style="flex-direction: column; gap: 10px;">
-                        <button class="btn-export" onclick="exportToCSV()">📥 Export to CSV</button>
-                        <button class="btn-export" onclick="exportToJSON()">📥 Export to JSON</button>
-                        <button class="btn-secondary" onclick="clearAll()">🗑️ Clear All Data</button>
-                    </div>
-
-                    <div class="info-box" style="margin-top: 30px;">
-                        <p><strong>Basel III Compliant:</strong> Uses AIRB methodology with proper correlation adjustments and maturity factors.</p>
-                    </div>
-                </div>
+                <div class="hero-stat-value">21</div>
+                <div class="hero-stat-label">Rating Grades</div>
             </div>
-        </div>
-
-        <div class="footer">
-            <p>Credit Risk Calculator v2.0 | AIRB & Standardized Approach | Basel III Compliant</p>
+            <div>
+                <div class="hero-stat-value">5</div>
+                <div class="hero-stat-label">Collateral Types</div>
+            </div>
+            <div>
+                <div class="hero-stat-value">Basel III</div>
+                <div class="hero-stat-label">Standard</div>
+            </div>
         </div>
     </div>
 
-    <script src="standardized-approach.js"></script>
-    <script>
-        // Data storage
-        let loans = [];
+    <div class="main-content">
+
+        <!-- Main Calculator -->
+        <div class="section-title">
+            Credit Risk Calculator
+            <span>Full single-page application — no redirects, no page reloads</span>
+        </div>
+
+        <div class="main-card">
+            <div class="main-card-left">
+                <h2>Borrower Risk Assessment</h2>
+                <p>Enter borrower financials and get auto-calculated PD, LGD, RWA, and capital requirements. Record loans into a persistent portfolio and export your results.</p>
+                <ul class="feature-list">
+                    <li>Rule-based PD from 4 financial metrics (D/E, Interest Coverage, Profitability, Liquidity)</li>
+                    <li>Auto LGD from seniority, collateral type, and sector</li>
+                    <li>Collateral haircut calculation per Basel III (5 types)</li>
+                    <li>SA risk weights from 21-grade rating table (4 exposure categories)</li>
+                    <li>Portfolio management with CSV/JSON export</li>
+                    <li>Data persists across browser sessions via localStorage</li>
+                </ul>
+                <a href="borrower-info.html" class="btn-launch">Launch Calculator</a>
+            </div>
+            <div class="main-card-right">
+                <div class="method-cards">
+                    <div class="method-card airb">
+                        <div class="method-icon">📊</div>
+                        <div>
+                            <h4>AIRB Approach</h4>
+                            <p>Internal ratings-based. Auto-calculates PD, LGD, EAD, maturity. Correlation-adjusted risk weights under Basel III.</p>
+                        </div>
+                    </div>
+                    <div class="method-card sa">
+                        <div class="method-icon">📋</div>
+                        <div>
+                            <h4>Standardized Approach</h4>
+                            <p>External rating-driven risk weights. Supports Corporate, Sovereign, Bank, and Financial Institution exposures.</p>
+                        </div>
+                    </div>
+                    <div class="method-card both">
+                        <div class="method-icon">⚖️</div>
+                        <div>
+                            <h4>Side-by-Side Comparison</h4>
+                            <p>Calculate both methods simultaneously to compare capital requirements and choose the optimal approach.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Documentation -->
+        <div class="section-title">
+            Methodology References
+            <span>Detailed formula documentation, worked examples, and regulatory notes</span>
+        </div>
+
+        <div class="cards-grid">
+            <a href="formula-reference.html" class="ref-card airb">
+                <div class="ref-card-icon">📐</div>
+                <h3>AIRB Formula Reference</h3>
+                <p>Complete AIRB methodology documentation: PD/LGD/EAD/Maturity formulas, correlation calculations, risk weight derivation, and 3 worked examples.</p>
+            </a>
+            <a href="standardized-approach-reference.html" class="ref-card sa">
+                <div class="ref-card-icon">📊</div>
+                <h3>Standardized Approach Reference</h3>
+                <p>Full SA risk weight tables for all 4 exposure categories × 21 rating grades, collateral haircut schedules, and worked examples.</p>
+            </a>
+            <a href="formula-references.html" class="ref-card hub">
+                <div class="ref-card-icon">🗂️</div>
+                <h3>Methodology Hub</h3>
+                <p>Central navigation hub with methodology comparisons, implementation status, and links to all 5 planned risk frameworks.</p>
+            </a>
+        </div>
+
+        <!-- Roadmap -->
+        <div class="roadmap">
+            <div class="roadmap-title">Development Roadmap — 5-Phase Basel III Platform</div>
+            <div class="phases">
+                <div class="phase complete">
+                    <div class="phase-number">1</div>
+                    <div class="phase-name">AIRB</div>
+                    <div class="phase-desc">Internal Ratings Based Approach</div>
+                    <div class="phase-badge badge-complete">Complete</div>
+                </div>
+                <div class="phase complete">
+                    <div class="phase-number">2</div>
+                    <div class="phase-name">Standardized</div>
+                    <div class="phase-desc">External Rating Based Approach</div>
+                    <div class="phase-badge badge-complete">Complete</div>
+                </div>
+                <div class="phase planned">
+                    <div class="phase-number">3</div>
+                    <div class="phase-name">Operational Risk</div>
+                    <div class="phase-desc">BIA, TSA, AMA approaches</div>
+                    <div class="phase-badge badge-planned">Planned</div>
+                </div>
+                <div class="phase planned">
+                    <div class="phase-number">4</div>
+                    <div class="phase-name">Market Risk</div>
+                    <div class="phase-desc">VaR models, standard approach</div>
+                    <div class="phase-badge badge-planned">Planned</div>
+                </div>
+                <div class="phase planned">
+                    <div class="phase-number">5</div>
+                    <div class="phase-name">Liquidity Risk</div>
+                    <div class="phase-desc">LCR and NSFR calculations</div>
+                    <div class="phase-badge badge-planned">Planned</div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <div class="footer">
+        Banking Credit Risk Calculator &nbsp;|&nbsp; Basel III Compliant &nbsp;|&nbsp; Phases 1–2 Complete &nbsp;|&nbsp; June 2026
+    </div>
 
-        // AIRB Calculation Functions
-        function calculateCorrelation(pd) {
-            return Math.min(0.03 + 0.12 * (1 - Math.exp(-50 * pd)), 0.999);
-        }
-
-        function calculateRWA(ead, pd, lgd, maturity) {
-            const b = 0.14;
-            const correlation = calculateCorrelation(pd);
-            const adjustment = (1 + (maturity - 1) * b) / (1 - 1.5 * b);
-            const rwa = ead * ((pd * lgd * adjustment * 1.06) - (pd * lgd)) * 12.5;
-            return rwa;
-        }
-
-        function calculateCapitalRequirement(rwa) {
-            return rwa * 0.08;
-        }
-
-        // Validation for AIRB
-        function validateAIRBLoan(loan) {
-            const errors = {};
-            if (loan.pd < 0.0003 || loan.pd > 1.0) errors.pd = 'PD must be between 0.03% and 100%';
-            if (loan.lgd < 0 || loan.lgd > 1.0) errors.lgd = 'LGD must be between 0% and 100%';
-            if (loan.maturity <= 0 || loan.maturity > 5) errors.maturity = 'Maturity must be between 0.25 and 5 years';
-            if (!loan.sector) errors.sector = 'Sector is required';
-            return errors;
-        }
-
-        // Common validation
-        function validateCommonFields(loan) {
-            const errors = {};
-            if (!loan.loanId.trim()) errors.loanId = 'Loan ID is required';
-            if (!loan.borrower.trim()) errors.borrower = 'Borrower name is required';
-            if (loan.ead <= 0) errors.ead = 'Exposure Amount must be greater than 0';
-            return errors;
-        }
-
-        // Add loan with unified form
-        function addLoan() {
-            document.querySelectorAll('.error').forEach(el => el.textContent = '');
-
-            // Get common fields
-            const commonData = {
-                loanId: document.getElementById('loanId').value,
-                borrower: document.getElementById('borrower').value,
-                ead: parseFloat(document.getElementById('ead').value) || 0
-            };
-
-            // Validate common
-            const commonErrors = validateCommonFields(commonData);
-            if (Object.keys(commonErrors).length > 0) {
-                Object.keys(commonErrors).forEach(key => {
-                    const errorEl = document.getElementById(key + 'Error');
-                    if (errorEl) errorEl.textContent = commonErrors[key];
-                });
-                return;
-            }
-
-            // Get calculation mode
-            const calcMode = document.querySelector('input[name="calcMode"]:checked').value;
-
-            // Handle AIRB
-            if (calcMode === 'airb' || calcMode === 'both') {
-                const airbLoan = {
-                    ...commonData,
-                    sector: document.getElementById('sector').value,
-                    pd: parseFloat(document.getElementById('pd').value) / 100 || 0,
-                    lgd: parseFloat(document.getElementById('lgd').value) / 100 || 0,
-                    maturity: parseFloat(document.getElementById('maturity').value) || 0
-                };
-
-                const airbErrors = validateAIRBLoan(airbLoan);
-                if (Object.keys(airbErrors).length > 0) {
-                    Object.keys(airbErrors).forEach(key => {
-                        const errorEl = document.getElementById(key + 'Error');
-                        if (errorEl) errorEl.textContent = airbErrors[key];
-                    });
-                    if (calcMode === 'airb') return;
-                } else {
-                    airbLoan.rwa = calculateRWA(airbLoan.ead, airbLoan.pd, airbLoan.lgd, airbLoan.maturity);
-                    airbLoan.capitalReq = calculateCapitalRequirement(airbLoan.rwa);
-                    loans.push(airbLoan);
-                }
-            }
-
-            // Handle Standardized Approach
-            if (calcMode === 'standardized' || calcMode === 'both') {
-                const saLoan = {
-                    loanId: commonData.loanId,
-                    borrowerName: commonData.borrower,
-                    exposureAmount: commonData.ead,
-                    externalRating: document.getElementById('saExternalRating').value,
-                    exposureCategory: document.getElementById('saCategory').value,
-                    hasCollateral: document.getElementById('saHasCollateral').checked,
-                    collateralType: document.getElementById('saCollateralType').value,
-                    collateralValue: parseFloat(document.getElementById('saCollateralValue').value) || 0,
-                    haircut: parseFloat(document.getElementById('saHaircut').value) / 100 || 0
-                };
-
-                const validation = StandardizedApproachValidation.validateLoan(saLoan);
-                if (!validation.isValid) {
-                    validation.errors.forEach(error => {
-                        const fieldName = error.split(' ')[0].toLowerCase();
-                        const errorEl = document.getElementById('sa' + fieldName.charAt(0).toUpperCase() + fieldName.slice(1) + 'Error');
-                        if (errorEl) errorEl.textContent = error;
-                    });
-                    if (calcMode === 'standardized') return;
-                } else {
-                    const result = StandardizedApproach.calculateExposure(saLoan);
-                    if (!result.success) {
-                        alert('SA Calculation error: ' + result.error);
-                        if (calcMode === 'standardized') return;
-                    } else {
-                        const finalSALoan = {
-                            ...saLoan,
-                            methodology: 'standardized',
-                            riskWeight: result.riskWeight,
-                            adjustedExposure: result.adjustedExposure,
-                            rwa: result.rwa,
-                            capitalReq: result.capitalRequired
-                        };
-                        loans.push(finalSALoan);
-                    }
-                }
-            }
-
-            updateTable();
-            updateSummary();
-            clearForm();
-        }
-
-        // Update table
-        function updateTable() {
-            const tbody = document.getElementById('loansTableBody');
-            tbody.innerHTML = '';
-
-            loans.forEach((loan, index) => {
-                const row = tbody.insertRow();
-
-                if (loan.methodology === 'standardized') {
-                    row.innerHTML = `
-                        <td>${loan.loanId}</td>
-                        <td>${loan.borrowerName}</td>
-                        <td>${loan.exposureCategory}</td>
-                        <td class="text-right">${formatCurrency(loan.exposureAmount)}</td>
-                        <td class="text-right">${loan.externalRating}</td>
-                        <td class="text-right">${loan.riskWeight}%</td>
-                        <td class="text-right text-success">${formatCurrency(loan.rwa)}</td>
-                        <td class="text-right text-success">${formatCurrency(loan.capitalReq)}</td>
-                        <td><button class="btn-danger" onclick="deleteLoan(${index})">Delete</button></td>
-                    `;
-                } else {
-                    row.innerHTML = `
-                        <td>${loan.loanId}</td>
-                        <td>${loan.borrower}</td>
-                        <td>${loan.sector}</td>
-                        <td class="text-right">${formatCurrency(loan.ead)}</td>
-                        <td class="text-right">${(loan.pd * 100).toFixed(2)}%</td>
-                        <td class="text-right">${(loan.lgd * 100).toFixed(2)}%</td>
-                        <td class="text-right text-success">${formatCurrency(loan.rwa)}</td>
-                        <td class="text-right text-success">${formatCurrency(loan.capitalReq)}</td>
-                        <td><button class="btn-danger" onclick="deleteLoan(${index})">Delete</button></td>
-                    `;
-                }
-            });
-        }
-
-        // Delete loan
-        function deleteLoan(index) {
-            loans.splice(index, 1);
-            updateTable();
-            updateSummary();
-        }
-
-        // Update summary
-        function updateSummary() {
-            const totalEad = loans.reduce((sum, loan) => sum + loan.ead, 0);
-            const totalRwa = loans.reduce((sum, loan) => sum + loan.rwa, 0);
-            const totalCapital = calculateCapitalRequirement(totalRwa);
-            const rwaDensity = totalEad > 0 ? (totalRwa / totalEad) * 100 : 0;
-
-            document.getElementById('totalEad').textContent = formatCurrency(totalEad);
-            document.getElementById('totalRwa').textContent = formatCurrency(totalRwa);
-            document.getElementById('totalCapital').textContent = formatCurrency(totalCapital);
-            document.getElementById('rwaDensity').textContent = rwaDensity.toFixed(2) + '%';
-            document.getElementById('cet1').textContent = formatCurrency(totalRwa * 0.045);
-            document.getElementById('tier1').textContent = formatCurrency(totalRwa * 0.06);
-            document.getElementById('totalCapRequired').textContent = formatCurrency(totalCapital);
-        }
-
-        // Clear form
-        function clearForm() {
-            document.getElementById('loanId').value = '';
-            document.getElementById('borrower').value = '';
-            document.getElementById('ead').value = '';
-            document.getElementById('sector').value = '';
-            document.getElementById('pd').value = '';
-            document.getElementById('lgd').value = '';
-            document.getElementById('maturity').value = '';
-            document.getElementById('saExternalRating').value = '';
-            document.getElementById('saCategory').value = '';
-            document.getElementById('saHasCollateral').checked = false;
-            document.getElementById('saCollateralValue').value = '';
-            document.getElementById('saHaircut').value = '0';
-            document.querySelectorAll('.error').forEach(el => el.textContent = '');
-            toggleSACollateral();
-            document.getElementById('loanId').focus();
-        }
-
-        // Clear all data
-        function clearAll() {
-            if (confirm('Are you sure you want to delete all loans? This cannot be undone.')) {
-                loans = [];
-                updateTable();
-                updateSummary();
-            }
-        }
-
-        // Export functions
-        function formatCurrency(value) {
-            return new Intl.NumberFormat('en-US', {
-                style: 'currency',
-                currency: 'USD',
-                minimumFractionDigits: 2
-            }).format(value);
-        }
-
-        function exportToCSV() {
-            if (loans.length === 0) {
-                alert('No data to export');
-                return;
-            }
-
-            let csv = 'Loan ID,Borrower,Sector,EAD,PD (%),LGD (%),Maturity (Yrs),RWA,Capital Req\n';
-            loans.forEach(loan => {
-                csv += `${loan.loanId},${loan.borrower},${loan.sector},${loan.ead},${(loan.pd * 100).toFixed(2)},${(loan.lgd * 100).toFixed(2)},${loan.maturity},${loan.rwa.toFixed(2)},${loan.capitalReq.toFixed(2)}\n`;
-            });
-
-            // Add summary
-            const totalEad = loans.reduce((sum, loan) => sum + loan.ead, 0);
-            const totalRwa = loans.reduce((sum, loan) => sum + loan.rwa, 0);
-            const totalCapital = calculateCapitalRequirement(totalRwa);
-
-            csv += '\n\nPORTFOLIO SUMMARY\n';
-            csv += `Total EAD,${totalEad}\n`;
-            csv += `Total RWA,${totalRwa.toFixed(2)}\n`;
-            csv += `Total Capital (8%),${totalCapital.toFixed(2)}\n`;
-            csv += `RWA Density (%),${((totalRwa / totalEad) * 100).toFixed(2)}\n`;
-
-            downloadFile(csv, 'airb-portfolio.csv', 'text/csv');
-        }
-
-        function exportToJSON() {
-            if (loans.length === 0) {
-                alert('No data to export');
-                return;
-            }
-
-            const totalEad = loans.reduce((sum, loan) => sum + loan.ead, 0);
-            const totalRwa = loans.reduce((sum, loan) => sum + loan.rwa, 0);
-            const totalCapital = calculateCapitalRequirement(totalRwa);
-
-            const data = {
-                exportDate: new Date().toISOString(),
-                loans: loans,
-                summary: {
-                    totalEad: totalEad,
-                    totalRwa: totalRwa,
-                    totalCapital: totalCapital,
-                    rwaDensity: (totalRwa / totalEad) * 100,
-                    cet1Required: totalRwa * 0.045,
-                    tier1Required: totalRwa * 0.06
-                }
-            };
-
-            downloadFile(JSON.stringify(data, null, 2), 'airb-portfolio.json', 'application/json');
-        }
-
-        function downloadFile(content, filename, type) {
-            const element = document.createElement('a');
-            element.setAttribute('href', 'data:' + type + ';charset=utf-8,' + encodeURIComponent(content));
-            element.setAttribute('download', filename);
-            element.style.display = 'none';
-            document.body.appendChild(element);
-            element.click();
-            document.body.removeChild(element);
-        }
-
-        // Toggle collateral section
-        function toggleSACollateral() {
-            const section = document.getElementById('saCollateralSection');
-            const hasCollateral = document.getElementById('saHasCollateral').checked;
-            section.style.display = hasCollateral ? 'block' : 'none';
-        }
-
-        // Load data from Borrower Assessment or PD Calculator if available
-        function loadPDCalculatorData() {
-            // First check for borrowerLoanData (new, comprehensive key)
-            const borrowerData = localStorage.getItem('borrowerLoanData');
-            if (borrowerData) {
-                try {
-                    const loanData = JSON.parse(borrowerData);
-
-                    // Pre-fill all common fields
-                    document.getElementById('loanId').value = loanData.borrowerId || '';
-                    document.getElementById('borrower').value = loanData.borrowerName || '';
-                    document.getElementById('ead').value = loanData.exposureAmount || '';
-                    document.getElementById('sector').value = loanData.sector || '';
-
-                    // Set calculation mode
-                    const modeRadio = document.querySelector(`input[name="calcMode"][value="${loanData.calcMode}"]`);
-                    if (modeRadio) {
-                        modeRadio.checked = true;
-                    }
-
-                    // Pre-fill AIRB fields if available
-                    if (loanData.pd !== undefined) {
-                        document.getElementById('pd').value = loanData.pd || '';
-                    }
-                    if (loanData.lgd !== undefined) {
-                        document.getElementById('lgd').value = loanData.lgd || '';
-                    }
-                    if (loanData.maturity !== undefined) {
-                        document.getElementById('maturity').value = loanData.maturity || '';
-                    }
-
-                    // Pre-fill SA fields if available
-                    if (loanData.saExternalRating) {
-                        document.getElementById('saExternalRating').value = loanData.saExternalRating || '';
-                    }
-                    if (loanData.saCategory) {
-                        document.getElementById('saCategory').value = loanData.saCategory || '';
-                    }
-                    if (loanData.saHasCollateral && loanData.saCollateralType && loanData.saCollateralType !== 'None') {
-                        document.getElementById('saHasCollateral').checked = true;
-                        document.getElementById('saCollateralType').value = loanData.saCollateralType || '';
-                        document.getElementById('saCollateralValue').value = loanData.saCollateralValue || '';
-                        if (document.getElementById('saCollateralSection')) {
-                            document.getElementById('saCollateralSection').style.display = 'block';
-                        }
-                    }
-
-                    // Show summary instead of form
-                    displayLoanSummary(loanData);
-
-                    // Store for later use
-                    window.currentLoanData = loanData;
-
-                    // Clear the localStorage after using it
-                    localStorage.removeItem('borrowerLoanData');
-                } catch (e) {
-                    console.error('Error loading borrower assessment data:', e);
-                }
-            } else {
-                // Fall back to old pdCalculatorLoan key for backward compatibility
-                const pdLoanData = localStorage.getItem('pdCalculatorLoan');
-                if (pdLoanData) {
-                    try {
-                        const loanData = JSON.parse(pdLoanData);
-
-                        // Pre-fill the form with PD calculator data
-                        document.getElementById('loanId').value = loanData.borrowerId || '';
-                        document.getElementById('borrower').value = loanData.borrowerName || '';
-                        document.getElementById('pd').value = loanData.pd || '';
-
-                        // Show success message
-                        showDataNotification(loanData.borrowerName, `✅ Data loaded from PD Calculator: ${loanData.borrowerName} (PD: ${loanData.pd.toFixed(2)}%)`);
-
-                        // Clear the localStorage after using it
-                        localStorage.removeItem('pdCalculatorLoan');
-                    } catch (e) {
-                        console.error('Error loading PD calculator data:', e);
-                    }
-                }
-            }
-        }
-
-        function showDataNotification(borrowerName, message) {
-            // Create temporary notification
-            const notification = document.createElement('div');
-            notification.style.cssText = `
-                position: fixed;
-                top: 20px;
-                right: 20px;
-                background: #4caf50;
-                color: white;
-                padding: 15px 20px;
-                border-radius: 6px;
-                box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-                z-index: 10000;
-                font-weight: 600;
-                animation: slideIn 0.3s ease-out;
-            `;
-            notification.innerHTML = `✅ ${message}`;
-            document.body.appendChild(notification);
-
-            // Remove after 5 seconds
-            setTimeout(() => {
-                notification.style.animation = 'slideOut 0.3s ease-out';
-                setTimeout(() => notification.remove(), 300);
-            }, 5000);
-        }
-
-        // Add animation styles
-        const style = document.createElement('style');
-        style.textContent = `
-            @keyframes slideIn {
-                from {
-                    transform: translateX(400px);
-                    opacity: 0;
-                }
-                to {
-                    transform: translateX(0);
-                    opacity: 1;
-                }
-            }
-            @keyframes slideOut {
-                from {
-                    transform: translateX(0);
-                    opacity: 1;
-                }
-                to {
-                    transform: translateX(400px);
-                    opacity: 0;
-                }
-            }
-        `;
-        document.head.appendChild(style);
-
-        // Display Loan Summary from Borrower Assessment
-        function displayLoanSummary(loanData) {
-            // Hide form, show summary
-            document.getElementById('inputFormCard').style.display = 'none';
-            document.getElementById('loanSummaryCard').style.display = 'block';
-
-            // Fill summary fields
-            document.getElementById('summaryBorrower').textContent = loanData.borrowerName || '--';
-            document.getElementById('summarySector').textContent = loanData.sector || '--';
-            document.getElementById('summaryExposure').textContent = '$' + (loanData.exposureAmount || 0).toLocaleString('en-US', { maximumFractionDigits: 0 });
-
-            // Fill risk parameters
-            document.getElementById('summaryPD').textContent = (loanData.pd || 0).toFixed(2);
-            document.getElementById('summaryLGD').textContent = (loanData.lgd !== undefined ? loanData.lgd : 0).toFixed(2);
-            document.getElementById('summaryHaircut').textContent = (loanData.haircut !== undefined ? loanData.haircut : 0).toFixed(2);
-            document.getElementById('summaryMaturity').textContent = (loanData.maturity || 3).toFixed(1);
-            document.getElementById('summaryRiskWeight').textContent = (loanData.saRiskWeight || 0).toFixed(0);
-
-            // Calculate and display results
-            const calcMode = loanData.calcMode || 'airb';
-            let rwa = 0;
-            let adjustedExposure = loanData.exposureAmount || 0;
-
-            // Apply collateral haircut if applicable
-            if (loanData.adjustedCollateral !== undefined && loanData.adjustedCollateral > 0) {
-                adjustedExposure = loanData.adjustedCollateral;
-                document.getElementById('summaryAdjustedExposure').textContent = '$' + adjustedExposure.toLocaleString('en-US', { maximumFractionDigits: 0 });
-            } else {
-                document.getElementById('summaryAdjustedExposure').textContent = '$' + adjustedExposure.toLocaleString('en-US', { maximumFractionDigits: 0 });
-            }
-
-            // Calculate RWA based on mode
-            if (calcMode === 'airb' || calcMode === 'both') {
-                // Simple RWA calculation using PD and LGD
-                const pd = (loanData.pdDecimal || (loanData.pd / 100));
-                const lgd = (loanData.lgd || 45) / 100;
-                const maturity = loanData.maturity || 3;
-
-                // Simplified correlation-based RWA
-                const correlation = 0.12 * (1 - Math.exp(-50 * pd)) / (1 - Math.exp(-50)) +
-                                   0.24 * (1 - (1 - Math.exp(-50 * pd)) / (1 - Math.exp(-50)));
-                const N = (Math.sqrt(correlation / (1 - correlation)) * normsinv(pd) + Math.sqrt(1 / (1 - correlation)) * normsinv(0.999));
-                const RW = Math.max(0, (N - pd) * 12.5 * lgd * Math.max(1, (maturity - 2.5) * 1.5 * 0.11852));
-                rwa = adjustedExposure * RW / 100;
-            } else if (calcMode === 'standardized') {
-                // SA RWA calculation
-                const riskWeight = loanData.saRiskWeight || 100;
-                rwa = adjustedExposure * riskWeight / 100;
-            }
-
-            // Display results
-            document.getElementById('summaryRWA').textContent = '$' + rwa.toLocaleString('en-US', { maximumFractionDigits: 0 });
-            document.getElementById('summaryCapitalReq').textContent = '$' + (rwa * 0.08).toLocaleString('en-US', { maximumFractionDigits: 0 });
-
-            const riskDensity = adjustedExposure > 0 ? (rwa / adjustedExposure * 100) : 0;
-            document.getElementById('summaryRiskDensity').textContent = riskDensity.toFixed(2) + '%';
-
-            // Show notification
-            showDataNotification(loanData.borrowerName, `Data loaded from Borrower Assessment: ${loanData.borrowerName} (PD: ${(loanData.pd || 0).toFixed(2)}%, LGD: ${(loanData.lgd !== undefined ? loanData.lgd : 0).toFixed(2)}%)`);
-        }
-
-        // Inverse normal distribution approximation
-        function normsinv(p) {
-            if (p < 0.5) {
-                return -Math.sqrt(-2 * Math.log(p));
-            } else {
-                return Math.sqrt(-2 * Math.log(1 - p));
-            }
-        }
-
-        // Confirm and Record Loan
-        function confirmAndRecordLoan() {
-            if (!window.currentLoanData) {
-                alert('No loan data available');
-                return;
-            }
-
-            const loanData = window.currentLoanData;
-
-            // Get or generate Loan ID
-            let loanId = loanData.borrowerId;
-            if (!loanId) {
-                loanId = 'LOAN-' + Date.now();
-            }
-
-            // Create loan record
-            const loan = {
-                loanId: loanId,
-                borrowerName: loanData.borrowerName,
-                sector: loanData.sector,
-                exposure: loanData.exposureAmount,
-                pd: loanData.pd,
-                lgd: loanData.lgd,
-                maturity: loanData.maturity,
-                riskWeight: loanData.saRiskWeight,
-                collateralType: loanData.collateralType,
-                collateralValue: loanData.collateralValue,
-                haircut: loanData.haircut,
-                adjustedExposure: loanData.adjustedCollateral || loanData.exposureAmount,
-                calcMode: loanData.calcMode
-            };
-
-            // Calculate RWA and Capital
-            let rwa = 0;
-            if (loanData.calcMode === 'airb' || loanData.calcMode === 'both') {
-                const pd = (loanData.pdDecimal || (loanData.pd / 100));
-                const lgd = (loanData.lgd || 45) / 100;
-                const correlation = 0.12 * (1 - Math.exp(-50 * pd)) / (1 - Math.exp(-50)) +
-                                   0.24 * (1 - (1 - Math.exp(-50 * pd)) / (1 - Math.exp(-50)));
-                const N = (Math.sqrt(correlation / (1 - correlation)) * normsinv(pd) + Math.sqrt(1 / (1 - correlation)) * normsinv(0.999));
-                const RW = Math.max(0, (N - pd) * 12.5 * lgd * Math.max(1, (loanData.maturity - 2.5) * 1.5 * 0.11852));
-                rwa = (loanData.adjustedCollateral || loanData.exposureAmount) * RW / 100;
-            } else if (loanData.calcMode === 'standardized') {
-                const riskWeight = loanData.saRiskWeight || 100;
-                rwa = (loanData.adjustedCollateral || loanData.exposureAmount) * riskWeight / 100;
-            }
-
-            loan.rwa = rwa;
-            loan.capitalRequired = rwa * 0.08;
-            loan.riskDensity = (loanData.adjustedCollateral || loanData.exposureAmount) > 0 ? rwa / (loanData.adjustedCollateral || loanData.exposureAmount) * 100 : 0;
-
-            // Add to portfolio - update global loans array and localStorage
-            loans.push(loan);
-            localStorage.setItem('creditRiskLoans', JSON.stringify(loans));
-
-            // Show notification
-            showDataNotification(`✓ Loan Recorded`, `${loanData.borrowerName} - RWA: $${rwa.toLocaleString('en-US', { maximumFractionDigits: 0 })}`);
-
-            // Refresh portfolio table immediately
-            updateTable();
-            updateSummary();
-
-            // Hide summary card and scroll to portfolio
-            document.getElementById('loanSummaryCard').style.display = 'none';
-            document.getElementById('inputFormCard').style.display = 'block';
-
-            // Scroll to portfolio table to show the new loan
-            setTimeout(() => {
-                const portfolioTable = document.getElementById('loansTable');
-                if (portfolioTable) {
-                    portfolioTable.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                }
-            }, 300);
-
-            // Clear current loan data
-            window.currentLoanData = null;
-        }
-
-        // Go back to Borrower Assessment
-        function goBackToAssessment() {
-            window.location.href = 'borrower-info.html';
-        }
-
-        // Initialize
-        document.addEventListener('DOMContentLoaded', function() {
-            loadPDCalculatorData();
-            updateSummary();
-            // Only focus if input form is visible
-            if (document.getElementById('inputFormCard').style.display !== 'none') {
-                document.getElementById('loanId').focus();
-            }
-        });
-
-        // Allow Enter key to add loan
-        document.getElementById('saHaircut').addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') addLoan();
-        });
-    </script>
 </body>
 </html>
