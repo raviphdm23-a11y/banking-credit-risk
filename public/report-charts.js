@@ -44,82 +44,101 @@ const ReportCharts = (() => {
   function drawGauge(container, { pd, pdLow, pdHigh, grade }) {
     container.innerHTML = '';
 
-    const W = 280, H = 170, CX = 140, CY = 145, R = 115, r = 68;
+    // Layout
+    const W = 300, H = 178, CX = 150, CY = 152, RO = 116, RI = 82;
 
     const root = svg('svg', { viewBox: `0 0 ${W} ${H}`, role: 'img',
-      'aria-label': `Risk gauge showing PD ${(pd*100).toFixed(1)}%` });
+      'aria-label': `Risk gauge: PD ${(pd*100).toFixed(1)}%` });
 
-    // Band definitions: [startPD, endPD, color, label]
-    const bands = [
-      [0,    0.02, '#16a34a', 'Low'],
-      [0.02, 0.07, '#65a30d', 'Moderate-Low'],
-      [0.07, 0.15, '#eab308', 'Moderate'],
-      [0.15, 0.35, '#f97316', 'Elevated'],
-      [0.35, 1.00, '#dc2626', 'High'],
-    ];
+    // PD 0 → angle π (left edge), PD 1 → angle 0 (right edge)
+    const pToA  = p => Math.PI * (1 - p);
+    const ptX   = (r, a) => CX + r * Math.cos(a);
+    const ptY   = (r, a) => CY - r * Math.sin(a);
 
-    // Semicircle: left = PI (180°), right = 0° (0°)
-    // PD = 0 → leftmost (180°), PD = 1 → rightmost (0°)
-    const pdToAngle = (p) => Math.PI - p * Math.PI;  // radians, 0=right axis
-
-    function arcPath(pLow, pHigh, rOuter, rInner) {
-      const a1 = pdToAngle(pLow), a2 = pdToAngle(pHigh);
-      const ox1 = CX + rOuter * Math.cos(a1), oy1 = CY - rOuter * Math.sin(a1);
-      const ox2 = CX + rOuter * Math.cos(a2), oy2 = CY - rOuter * Math.sin(a2);
-      const ix1 = CX + rInner * Math.cos(a1), iy1 = CY - rInner * Math.sin(a1);
-      const ix2 = CX + rInner * Math.cos(a2), iy2 = CY - rInner * Math.sin(a2);
-      return `M ${ox1} ${oy1} A ${rOuter} ${rOuter} 0 0 0 ${ox2} ${oy2} L ${ix2} ${iy2} A ${rInner} ${rInner} 0 0 1 ${ix1} ${iy1} Z`;
+    // Arc band: outer arc clockwise (sweep=1), inner arc counter-clockwise (sweep=0)
+    function bandPath(p0, p1, rOut, rIn) {
+      const a0 = pToA(p0), a1 = pToA(p1);
+      return [
+        `M ${ptX(rOut,a0)} ${ptY(rOut,a0)}`,
+        `A ${rOut} ${rOut} 0 0 1 ${ptX(rOut,a1)} ${ptY(rOut,a1)}`,
+        `L ${ptX(rIn, a1)} ${ptY(rIn, a1)}`,
+        `A ${rIn}  ${rIn}  0 0 0 ${ptX(rIn, a0)} ${ptY(rIn, a0)}`,
+        'Z',
+      ].join(' ');
     }
 
-    // Draw bands
-    for (const [lo, hi, color] of bands) {
-      const p = svg('path', { d: arcPath(lo, hi, R, r), fill: color, opacity: '0.85' });
-      root.appendChild(p);
+    function addBand(p0, p1, color, opacity) {
+      const el = svg('path', { d: bandPath(p0, p1, RO, RI), fill: color });
+      if (opacity != null) el.setAttribute('opacity', String(opacity));
+      root.appendChild(el);
     }
 
-    // Uncertainty arc (between pdLow and pdHigh)
+    // Background track
+    addBand(0, 1, '#dde3ec');
+
+    // Risk zones
+    [
+      [0,    0.02, '#16a34a'],
+      [0.02, 0.07, '#65a30d'],
+      [0.07, 0.15, '#eab308'],
+      [0.15, 0.35, '#f97316'],
+      [0.35, 1.00, '#dc2626'],
+    ].forEach(([lo, hi, c]) => addBand(lo, hi, c));
+
+    // White dividers at zone boundaries
+    for (const p of [0.02, 0.07, 0.15, 0.35]) {
+      const a = pToA(p);
+      root.appendChild(svg('line', {
+        x1: ptX(RI, a), y1: ptY(RI, a), x2: ptX(RO, a), y2: ptY(RO, a),
+        stroke: '#fff', 'stroke-width': '2.5',
+      }));
+    }
+
+    // Confidence band — thin outer stripe
     if (pdHigh > pdLow) {
-      const uncPath = arcPath(pdLow, pdHigh, R + 7, R);
-      const uArc = svg('path', { d: uncPath, fill: COLORS.navy, opacity: '0.18' });
-      root.appendChild(uArc);
+      const CR = RO + 7;
+      const a0 = pToA(pdLow), a1 = pToA(pdHigh);
+      const d = [
+        `M ${ptX(CR,a0)} ${ptY(CR,a0)}`,
+        `A ${CR} ${CR} 0 0 1 ${ptX(CR,a1)} ${ptY(CR,a1)}`,
+        `L ${ptX(RO,a1)} ${ptY(RO,a1)}`,
+        `A ${RO} ${RO} 0 0 0 ${ptX(RO,a0)} ${ptY(RO,a0)}`,
+        'Z',
+      ].join(' ');
+      root.appendChild(svg('path', { d, fill: '#1a2e4a', opacity: '0.28' }));
     }
 
     // Needle
-    const needleAngle = pdToAngle(pd);
-    const nLen = R - 4;
-    const nx = CX + nLen * Math.cos(needleAngle);
-    const ny = CY - nLen * Math.sin(needleAngle);
+    const na   = pToA(pd);
+    const nTip = RI - 5;
     root.appendChild(svg('line', {
-      x1: CX, y1: CY, x2: nx, y2: ny,
-      stroke: COLORS.navy, 'stroke-width': '3', 'stroke-linecap': 'round',
+      x1: CX, y1: CY, x2: ptX(nTip, na), y2: ptY(nTip, na),
+      stroke: '#1a2e4a', 'stroke-width': '3', 'stroke-linecap': 'round',
     }));
-    root.appendChild(svg('circle', {
-      cx: CX, cy: CY, r: '6',
-      fill: COLORS.navy,
-    }));
+    root.appendChild(svg('circle', { cx: CX, cy: CY, r: '8',  fill: '#1a2e4a' }));
+    root.appendChild(svg('circle', { cx: CX, cy: CY, r: '3.5', fill: '#fff' }));
 
-    // Scale ticks
-    for (const p of [0, 0.25, 0.50, 0.75, 1.0]) {
-      const a = pdToAngle(p);
-      const tx = CX + (R + 12) * Math.cos(a);
-      const ty = CY - (R + 12) * Math.sin(a);
-      svgText(root, tx, ty, `${(p * 100).toFixed(0)}%`, {
+    // Tick labels at 0 / 25 / 50 / 75 / 100%
+    [[0,'0%'],[0.25,'25%'],[0.5,'50%'],[0.75,'75%'],[1,'100%']].forEach(([p, lbl]) => {
+      const a = pToA(p);
+      svgText(root, ptX(RO + 15, a), ptY(RO + 15, a), lbl, {
         'text-anchor': 'middle', 'dominant-baseline': 'middle',
-        'font-size': '10', fill: COLORS.navy, 'font-family': 'system-ui',
+        'font-size': '9.5', fill: '#64748b', 'font-family': 'system-ui',
       });
-    }
+    });
 
-    // Central PD readout
-    svgText(root, CX, CY - 20, `${(pd * 100).toFixed(1)}%`, {
-      'text-anchor': 'middle', 'font-size': '22', 'font-weight': '700',
-      fill: GRADE_COLOR[grade] || COLORS.navy, 'font-family': 'system-ui',
+    // Central readout
+    const gc = GRADE_COLOR[grade] || COLORS.navy;
+    svgText(root, CX, CY - 26, `${(pd * 100).toFixed(1)}%`, {
+      'text-anchor': 'middle', 'font-size': '26', 'font-weight': '700',
+      fill: gc, 'font-family': 'system-ui',
     });
-    svgText(root, CX, CY - 4, grade, {
+    svgText(root, CX, CY - 8, grade, {
       'text-anchor': 'middle', 'font-size': '13', 'font-weight': '600',
-      fill: GRADE_COLOR[grade] || COLORS.navy, 'font-family': 'system-ui',
+      fill: gc, 'font-family': 'system-ui',
     });
-    svgText(root, CX, CY + 12, `Band: ${(pdLow*100).toFixed(1)}-${(pdHigh*100).toFixed(1)}%`, {
-      'text-anchor': 'middle', 'font-size': '10', fill: COLORS.grey,
+    svgText(root, CX, CY + 9, `Band: ${(pdLow*100).toFixed(1)}–${(pdHigh*100).toFixed(1)}%`, {
+      'text-anchor': 'middle', 'font-size': '9.5', fill: COLORS.grey,
       'font-family': 'system-ui',
     });
 
