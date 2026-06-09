@@ -484,7 +484,12 @@ function renderFiveCs(fiveCs) {
     (c.items || []).forEach(item => {
       rows += `<tr><td>${item.label}</td><td><strong>${item.value}</strong>${item.benchmark ? ` <span style="color:#94a3b8;font-size:11px">(bench: ${item.benchmark})</span>` : ''}</td><td>${item.assessment || ''}</td></tr>`;
     });
-    panel.innerHTML = `<table class="detail-table"><tbody>${rows}</tbody></table>`;
+    panel.innerHTML = `
+      <div class="five-c-print-header">
+        <span class="five-c-print-name">${labels[key]}</span>
+        <span class="five-c-score score-${score}" style="font-size:11px;padding:2px 10px">${score.replace('_',' ')}</span>
+      </div>
+      <table class="detail-table"><tbody>${rows}</tbody></table>`;
     det.appendChild(panel);
   });
 }
