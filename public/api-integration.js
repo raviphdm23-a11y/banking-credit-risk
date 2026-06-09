@@ -35,16 +35,13 @@ async function apiCall(endpoint, data = null, method = 'POST') {
             method: method,
             headers: {
                 'Content-Type': 'application/json'
-            },
-            timeout: API_CONFIG.TIMEOUT
+            }
         };
 
-        // Add body only for POST/PUT requests
         if (data && (method === 'POST' || method === 'PUT')) {
             options.body = JSON.stringify(data);
         }
 
-        // Make the request
         const response = await fetch(url, options);
 
         // Handle non-200 responses
@@ -99,22 +96,10 @@ async function checkAPIHealth() {
  * @param {number} interestCoverage - Interest coverage ratio
  * @param {number} profitabilityMargin - Profitability margin
  * @param {number} liquidityRatio - Liquidity ratio
+ * @param {string} pdMethod - Calculation method ('ml' for ML model, 'rule-based' for formulas)
  * @returns {Promise<object>} PD result with components and method info
  */
-async function calculatePDFromAPI(debtToEquity, interestCoverage, profitabilityMargin, liquidityRatio) {
-    // Determine which method to use
-    let pdMethod = 'rule-based';  // Default
-
-    try {
-        const methodRadio = document.querySelector('input[name="pdMethod"]:checked');
-        if (methodRadio) {
-            pdMethod = methodRadio.value;
-        }
-    } catch (e) {
-        // If no radio button found, default to rule-based
-    }
-
-    // Prepare request data
+async function calculatePDFromAPI(debtToEquity, interestCoverage, profitabilityMargin, liquidityRatio, pdMethod = 'ml') {
     const requestData = {
         de_ratio: debtToEquity,
         interest_coverage: interestCoverage,
@@ -122,9 +107,7 @@ async function calculatePDFromAPI(debtToEquity, interestCoverage, profitabilityM
         liquidity_ratio: liquidityRatio
     };
 
-    // Choose endpoint based on method
     const endpoint = pdMethod === 'ml' ? '/predict-pd-ml' : '/calculate-pd';
-
     const result = await apiCall(endpoint, requestData);
 
     if (!result || result.error) {
@@ -132,7 +115,21 @@ async function calculatePDFromAPI(debtToEquity, interestCoverage, profitabilityM
         // Fallback to rule-based if ML fails
         if (pdMethod === 'ml' && result?.error) {
             console.warn('ML prediction failed, falling back to rule-based');
-            return await calculatePDFromAPI(debtToEquity, interestCoverage, profitabilityMargin, liquidityRatio);
+            // Call rule-based endpoint directly to avoid infinite recursion
+            const ruleBased = await apiCall('/calculate-pd', requestData);
+            if (ruleBased && !ruleBased.error) {
+                return {
+                    pd: ruleBased.pd_percentage,
+                    method: 'rule-based (fallback from ML)',
+                    components: {
+                        baseRate: ruleBased.breakdown?.base_rate || 0,
+                        leverageImpact: ruleBased.breakdown?.de_ratio_adjustment || 0,
+                        profitImpact: ruleBased.breakdown?.profitability_adjustment || 0,
+                        liquidityImpact: ruleBased.breakdown?.liquidity_adjustment || 0,
+                        coverageImpact: ruleBased.breakdown?.interest_coverage_adjustment || 0
+                    }
+                };
+            }
         }
         return null;
     }
@@ -140,11 +137,11 @@ async function calculatePDFromAPI(debtToEquity, interestCoverage, profitabilityM
     // Convert to percentage for display
     return {
         pd: result.pd_percentage,  // Already in percentage
-        method: result.method || pdMethod,  // Show which method was used
+        method: result.method || pdMethod,
         components: {
             baseRate: result.breakdown?.base_rate || 0,
             leverageImpact: result.breakdown?.de_ratio_adjustment || 0,
-            profitabilityImpact: result.breakdown?.profitability_adjustment || 0,
+            profitImpact: result.breakdown?.profitability_adjustment || 0,
             liquidityImpact: result.breakdown?.liquidity_adjustment || 0,
             coverageImpact: result.breakdown?.interest_coverage_adjustment || 0
         }
@@ -433,31 +430,5 @@ async function calculateAllParametersViaAPI() {
 // INITIALIZATION
 // ============================================================================
 
-/**
- * Initialize API integration when page loads
- */
-function initializeAPIIntegration() {
-    console.log('Initializing Flask API integration...');
-
-    // Setup button event listener
-    const calculateBtn = document.getElementById('calculateBtn');
-    if (calculateBtn) {
-        calculateBtn.addEventListener('click', async function(e) {
-            e.preventDefault();
-            await calculateAllParametersViaAPI();
-        });
-        console.log('Calculate button listener attached');
-    } else {
-        console.warn('Calculate button not found');
-    }
-}
-
-// Initialize when DOM is ready
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initializeAPIIntegration);
-} else {
-    // DOM is already loaded
-    initializeAPIIntegration();
-}
-
+// API Integration module loaded - borrower-info.html calls API functions directly
 console.log('API Integration module loaded');

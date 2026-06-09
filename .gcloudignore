@@ -1,24 +1,54 @@
+# GCP deployment exclusions
+# Files listed here are NOT uploaded to App Engine
+
+# Git
 .gcloudignore
 .git
 .gitignore
-venv/
+
+# Python cache
 __pycache__/
 *.pyc
 *.pyo
 *.pyd
+
+# Environment & secrets
 .env
+.env.*
+
+# Logs
 *.log
-airb-calculator/
+
+# Virtual environments
+venv/
+venv310/
+
+# Local dev launchers
+run_flask.ps1
+
+# Old standalone training script (superseded by ml_models/trainer.py)
+train_pd_model.py
+
+# Development & session documentation
+BUG_FIX_LOG.md
+CLEANUP_COMPLETE.md
+DEPLOYMENT_GUIDE.md
+ML_MODEL_GUIDE.md
+PROJECT_STRUCTURE.md
+README_DEPLOYMENT.md
+
+# Legacy pages (not served in production)
+public/api-test.html
+public/pd-calculator.html
+
+# All testing scripts (not needed at runtime on GCP)
+testing/
+
+# Data runtime directories (ephemeral on GCP — regenerated via admin panel)
+data/archive/
+data/synthetic/
+data/runs/
+
+# Node / legacy artefacts
 node_modules/
-test_selenium_e2e.py
-test_data.xlsx
-reference_data.xlsx
-AIRB_Credit_Risk_Template.xlsx
-open_app.py
-run_app.py
-test_app_manual.py
-ARCHITECTURE_RECOMMENDATIONS.md
-METHODOLOGY_ONBOARDING_FRAMEWORK.md
-SIMPLIFIED_WORKFLOW_SUMMARY.md
-BORROWER_INFO_QUICK_TEST.md
-SESSION_SUMMARY.md
+airb-calculator/

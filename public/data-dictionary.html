@@ -1,0 +1,710 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Data Dictionary — Banking Credit Risk Calculator</title>
+  <style>
+    :root {
+      --blue:    #1d4ed8;
+      --blue-lt: #dbeafe;
+      --green:   #15803d;
+      --green-lt:#dcfce7;
+      --grey:    #f8fafc;
+      --border:  #e2e8f0;
+      --text:    #1e293b;
+      --sub:     #64748b;
+      --c1:      #7c3aed; /* Character  */
+      --c1-lt:   #ede9fe;
+      --c2:      #0369a1; /* Capacity   */
+      --c2-lt:   #e0f2fe;
+      --c3:      #b45309; /* Capital    */
+      --c3-lt:   #fef3c7;
+      --c4:      #15803d; /* Collateral */
+      --c4-lt:   #dcfce7;
+      --c5:      #be185d; /* Conditions */
+      --c5-lt:   #fce7f3;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', system-ui, sans-serif; font-size: 15px;
+           color: var(--text); background: #f1f5f9; line-height: 1.6; }
+
+    header { background: var(--blue); color: #fff; padding: 18px 32px;
+             display: flex; align-items: center; gap: 12px; }
+    header h1 { font-size: 18px; font-weight: 700; }
+    header p  { font-size: 12px; opacity: .8; margin-top: 2px; }
+
+    .container { max-width: 1400px; margin: 28px auto; padding: 0 24px 48px; }
+
+    /* ── Five C legend ── */
+    .legend { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 28px; }
+    .badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: 700;
+    }
+    .c1 { background: var(--c1-lt); color: var(--c1); }
+    .c2 { background: var(--c2-lt); color: var(--c2); }
+    .c3 { background: var(--c3-lt); color: var(--c3); }
+    .c4 { background: var(--c4-lt); color: var(--c4); }
+    .c5 { background: var(--c5-lt); color: var(--c5); }
+
+    /* ── Section headings ── */
+    .section-title {
+      font-size: 15px; font-weight: 700; color: var(--blue);
+      border-left: 4px solid var(--blue); padding-left: 10px;
+      margin: 32px 0 14px;
+    }
+
+    /* ── Tables ── */
+    .dict-table { width: 100%; border-collapse: collapse;
+                  background: #fff; border-radius: 10px;
+                  overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,.08);
+                  margin-bottom: 8px; }
+    .dict-table th {
+      background: var(--grey); padding: 11px 16px; text-align: left;
+      font-size: 12px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: .05em; color: var(--sub); border-bottom: 2px solid var(--border);
+    }
+    .dict-table td { padding: 11px 16px; border-bottom: 1px solid var(--border);
+                     vertical-align: top; }
+    .dict-table tr:last-child td { border-bottom: none; }
+    .dict-table tr:hover td { background: var(--grey); }
+
+    code { font-family: 'Cascadia Code','Consolas',monospace; font-size: 12px;
+           background: var(--grey); padding: 2px 5px; border-radius: 4px;
+           border: 1px solid var(--border); white-space: nowrap; }
+
+    .tag-input    { background:#dbeafe; color:#1d4ed8; font-size:11px;
+                    font-weight:700; padding:2px 8px; border-radius:10px; }
+    .tag-output   { background:#dcfce7; color:#15803d; font-size:11px;
+                    font-weight:700; padding:2px 8px; border-radius:10px; }
+    .tag-model    { background:#fef3c7; color:#b45309; font-size:11px;
+                    font-weight:700; padding:2px 8px; border-radius:10px; }
+    .tag-both     { background:#ede9fe; color:#7c3aed; font-size:11px;
+                    font-weight:700; padding:2px 8px; border-radius:10px; }
+    .tag-meta     { background:#f1f5f9; color:#475569; font-size:11px;
+                    font-weight:700; padding:2px 8px; border-radius:10px; }
+
+    .allowed { color: var(--sub); font-size: 13px; }
+
+    .five-c { font-weight: 700; font-size: 12px; }
+    .five-c.c1 { color: var(--c1); }
+    .five-c.c2 { color: var(--c2); }
+    .five-c.c3 { color: var(--c3); }
+    .five-c.c4 { color: var(--c4); }
+    .five-c.c5 { color: var(--c5); }
+
+    .note { font-size: 12px; color: var(--sub); margin-top: 6px;
+            padding: 10px 14px; background: var(--grey); border-radius: 6px;
+            border-left: 3px solid var(--border); }
+
+    .back-link { display: inline-flex; align-items: center; gap: 6px;
+                 font-size: 12px; color: var(--blue); text-decoration: none;
+                 margin-bottom: 20px; }
+    .back-link:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>📖 Data Dictionary — Banking Credit Risk Calculator</h1>
+    <p>Variable definitions, data types, valid values, and Five C's mapping for all model and frontend fields</p>
+  </div>
+</header>
+
+<div class="container">
+
+  <a class="back-link" href="/">← Back to Home</a>
+
+  <!-- ── Five C's Legend ─────────────────────────────────────────────────── -->
+  <div class="legend">
+    <strong style="align-self:center;font-size:12px;color:var(--sub)">Five C's:</strong>
+    <span class="badge c1">&#9679; Character — Willingness to repay; track record &amp; reputation</span>
+    <span class="badge c2">&#9679; Capacity — Cash flow &amp; ability to service debt</span>
+    <span class="badge c3">&#9679; Capital — Financial strength &amp; leverage position</span>
+    <span class="badge c4">&#9679; Collateral — Assets pledged as security</span>
+    <span class="badge c5">&#9679; Conditions — Loan purpose, tenor, industry &amp; macro environment</span>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════════════════════
+       SECTION 1 — BORROWER IDENTIFIERS
+  ═══════════════════════════════════════════════════════════════════════════ -->
+  <div class="section-title">1 — Borrower Identifiers</div>
+  <table class="dict-table">
+    <thead>
+      <tr>
+        <th style="width:160px">Frontend ID</th>
+        <th style="width:140px">Training CSV Column</th>
+        <th>Display Label</th>
+        <th>Description</th>
+        <th style="width:120px">Type / Format</th>
+        <th>Allowed Values</th>
+        <th style="width:110px">Five C's</th>
+        <th style="width:80px">Usage</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>borrowerId</code></td>
+        <td>—</td>
+        <td>Borrower ID</td>
+        <td>Unique reference code for the loan or borrower used for portfolio tracking. Not used in PD calculation.</td>
+        <td>Text, free-form</td>
+        <td class="allowed">e.g. CORP-001, SBI-LN-00001</td>
+        <td><span class="five-c c1">Character</span></td>
+        <td><span class="tag-input">Input</span></td>
+      </tr>
+      <tr>
+        <td><code>borrowerName</code></td>
+        <td>—</td>
+        <td>Borrower Name</td>
+        <td>Legal name of the borrowing entity. Used for display and portfolio records only.</td>
+        <td>Text, free-form</td>
+        <td class="allowed">e.g. Tata Steel Ltd</td>
+        <td><span class="five-c c1">Character</span></td>
+        <td><span class="tag-input">Input</span></td>
+      </tr>
+      <tr>
+        <td><code>bank_id</code></td>
+        <td><code>bank_id</code></td>
+        <td>Bank ID</td>
+        <td>Identifier of the originating bank in the training dataset. Used for data provenance only; excluded from model features.</td>
+        <td>Text, categorical</td>
+        <td class="allowed">SBI, HDFC, ICICI, AXIS, PNB, BOB</td>
+        <td><span class="five-c c1">Character</span></td>
+        <td><span class="tag-meta">Metadata</span></td>
+      </tr>
+      <tr>
+        <td>—</td>
+        <td><code>loan_id</code></td>
+        <td>Loan ID</td>
+        <td>Auto-generated unique loan identifier in the training data. Format: BANK-LN-NNNNN-XXXXXX. Not a model feature.</td>
+        <td>Text</td>
+        <td class="allowed">e.g. SBI-LN-00001-AB3K7X</td>
+        <td><span class="five-c c1">Character</span></td>
+        <td><span class="tag-meta">Metadata</span></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- ════════════════════════════════════════════════════════════════════════
+       SECTION 2 — FINANCIAL METRICS (MODEL FEATURES)
+  ═══════════════════════════════════════════════════════════════════════════ -->
+  <div class="section-title">2 — Financial Metrics &amp; ML Model Features</div>
+  <p class="note">These four variables are the <strong>only inputs to the RandomForest PD model</strong>. They must be present in every training CSV and are sent to <code>/api/predict-pd-ml</code> at inference time.</p>
+  <br>
+  <table class="dict-table">
+    <thead>
+      <tr>
+        <th style="width:160px">Frontend ID</th>
+        <th style="width:160px">Training CSV Column</th>
+        <th>Display Label</th>
+        <th>Description</th>
+        <th style="width:130px">Type / Format</th>
+        <th>Valid Range</th>
+        <th style="width:110px">Five C's</th>
+        <th style="width:80px">Usage</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>debtToEquity</code></td>
+        <td><code>de_ratio</code></td>
+        <td>Debt / Equity Ratio</td>
+        <td>Total debt divided by total shareholders' equity. Measures financial leverage. Higher ratio implies greater default risk as interest burden grows relative to equity cushion.</td>
+        <td>Numeric, decimal</td>
+        <td class="allowed">0.1 – 8.0<br><em>Typical Indian corporate: 0.5–3.0</em></td>
+        <td><span class="five-c c3">Capital</span></td>
+        <td><span class="tag-both">Input + Model</span></td>
+      </tr>
+      <tr>
+        <td><code>interestCoverage</code></td>
+        <td><code>interest_coverage</code></td>
+        <td>Interest Coverage Ratio</td>
+        <td>EBIT divided by interest expense. Measures the number of times a borrower can cover its interest payments from operating earnings. Values below 1.5 indicate severe stress.</td>
+        <td>Numeric, decimal</td>
+        <td class="allowed">0.3 – 18.0<br><em>Healthy: &gt; 3.0; Stressed: &lt; 1.5</em></td>
+        <td><span class="five-c c2">Capacity</span></td>
+        <td><span class="tag-both">Input + Model</span></td>
+      </tr>
+      <tr>
+        <td><code>profitabilityMargin</code></td>
+        <td><code>profitability</code></td>
+        <td>Net Profit Margin (%)</td>
+        <td>Net profit as a percentage of revenue. Negative values indicate losses. Higher margins provide a buffer against default; sustained losses directly elevate PD.</td>
+        <td>Numeric, percentage</td>
+        <td class="allowed">−40% – 60%<br><em>Typical: 5%–20%</em></td>
+        <td><span class="five-c c2">Capacity</span></td>
+        <td><span class="tag-both">Input + Model</span></td>
+      </tr>
+      <tr>
+        <td><code>liquidityRatio</code></td>
+        <td><code>liquidity_ratio</code></td>
+        <td>Current Ratio (Liquidity)</td>
+        <td>Current assets divided by current liabilities. Measures short-term liquidity. Values below 1.0 signal the borrower cannot meet near-term obligations without external funding.</td>
+        <td>Numeric, decimal</td>
+        <td class="allowed">0.2 – 4.0<br><em>Healthy: &gt; 1.5; Distressed: &lt; 1.0</em></td>
+        <td><span class="five-c c2">Capacity</span></td>
+        <td><span class="tag-both">Input + Model</span></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- ════════════════════════════════════════════════════════════════════════
+       SECTION 3 — LOAN STRUCTURE INPUTS
+  ═══════════════════════════════════════════════════════════════════════════ -->
+  <div class="section-title">3 — Loan Structure Inputs</div>
+  <table class="dict-table">
+    <thead>
+      <tr>
+        <th style="width:160px">Frontend ID</th>
+        <th style="width:160px">Training CSV Column</th>
+        <th>Display Label</th>
+        <th>Description</th>
+        <th style="width:130px">Type / Format</th>
+        <th>Allowed Values</th>
+        <th style="width:110px">Five C's</th>
+        <th style="width:80px">Usage</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>exposureAmount</code></td>
+        <td>—</td>
+        <td>Exposure Amount (EAD)</td>
+        <td>Gross loan amount or Exposure at Default (EAD) in Indian Rupees (₹). Forms the base for RWA and capital calculations. In AIRB this equals EAD; in SA it is adjusted for collateral.</td>
+        <td>Numeric, INR</td>
+        <td class="allowed">Any positive integer<br><em>e.g. ₹10,000,000 (₹1 Cr)</em></td>
+        <td><span class="five-c c5">Conditions</span></td>
+        <td><span class="tag-input">Input</span></td>
+      </tr>
+      <tr>
+        <td><code>sector</code></td>
+        <td>—</td>
+        <td>Industry Sector</td>
+        <td>Primary industry of the borrower. Influences LGD adjustment in rule-based calculation. High-risk sectors (Real Estate, Energy) attract a +5% LGD add-on.</td>
+        <td>Categorical</td>
+        <td class="allowed">Manufacturing, Retail, Technology, Financial, Real Estate, Healthcare, Energy, Government, Utilities, Other</td>
+        <td><span class="five-c c5">Conditions</span></td>
+        <td><span class="tag-input">Input</span></td>
+      </tr>
+      <tr>
+        <td><code>loanType</code> (value)</td>
+        <td>—</td>
+        <td>Loan / Facility Type</td>
+        <td>Type of credit facility. Used to derive the effective maturity (M) for AIRB. Working capital facilities receive M = 1 yr; long-term bonds receive M = 5 yr.</td>
+        <td>Categorical</td>
+        <td class="allowed">
+          Working Capital (1 yr),
+          Short-term Trade Finance (0.5 yr),
+          Revolving Credit (2 yr),
+          Term Loan Short (3 yr),
+          Term Loan Long (5 yr),
+          Bond / Note (5 yr)
+        </td>
+        <td><span class="five-c c5">Conditions</span></td>
+        <td><span class="tag-input">Input</span></td>
+      </tr>
+      <tr>
+        <td><code>calcMode</code><br><small>(radio: modeAIRB / modeSA / modeBoth)</small></td>
+        <td>—</td>
+        <td>Calculation Mode</td>
+        <td>Selects the Basel III methodology. AIRB uses the ML model PD + LGD + maturity formula. SA uses external rating-based risk weight tables. Both runs both in parallel.</td>
+        <td>Categorical</td>
+        <td class="allowed">airb, standardized, both</td>
+        <td><span class="five-c c5">Conditions</span></td>
+        <td><span class="tag-input">Input</span></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- ════════════════════════════════════════════════════════════════════════
+       SECTION 4 — COLLATERAL INPUTS
+  ═══════════════════════════════════════════════════════════════════════════ -->
+  <div class="section-title">4 — Collateral Inputs (AIRB)</div>
+  <table class="dict-table">
+    <thead>
+      <tr>
+        <th style="width:160px">Frontend ID</th>
+        <th style="width:160px">Training CSV Column</th>
+        <th>Display Label</th>
+        <th>Description</th>
+        <th style="width:130px">Type / Format</th>
+        <th>Allowed Values</th>
+        <th style="width:110px">Five C's</th>
+        <th style="width:80px">Usage</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>seniority</code></td>
+        <td>—</td>
+        <td>Debt Seniority</td>
+        <td>Priority ranking of the loan in the borrower's capital structure. Senior secured lenders have first claim on collateral upon default, resulting in lower LGD.</td>
+        <td>Categorical</td>
+        <td class="allowed">
+          Senior Secured (Real Estate),
+          Senior Secured (Financial Assets),
+          Senior Secured (Other),
+          Senior Unsecured,
+          Subordinated
+        </td>
+        <td><span class="five-c c4">Collateral</span></td>
+        <td><span class="tag-input">Input</span></td>
+      </tr>
+      <tr>
+        <td><code>collateralType</code></td>
+        <td>—</td>
+        <td>Collateral Type</td>
+        <td>Type of asset pledged as security. Determines the Basel III standard haircut applied to reduce effective collateral value. More liquid assets (financial) carry lower haircuts.</td>
+        <td>Categorical</td>
+        <td class="allowed">None (0%), Real Estate (20%), Financial Assets (5%), Equipment (30%), Inventory (35%), Other (25%)<br><em>Haircut shown in parentheses</em></td>
+        <td><span class="five-c c4">Collateral</span></td>
+        <td><span class="tag-input">Input</span></td>
+      </tr>
+      <tr>
+        <td><code>collateralValue</code></td>
+        <td>—</td>
+        <td>Collateral Value (₹)</td>
+        <td>Market value of the collateral before applying the haircut. The net collateral after haircut is: Collateral Value × (1 − Haircut). This reduces the effective LGD.</td>
+        <td>Numeric, INR</td>
+        <td class="allowed">≥ 0<br><em>0 = uncollateralised</em></td>
+        <td><span class="five-c c4">Collateral</span></td>
+        <td><span class="tag-input">Input</span></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- ════════════════════════════════════════════════════════════════════════
+       SECTION 5 — STANDARDISED APPROACH INPUTS
+  ═══════════════════════════════════════════════════════════════════════════ -->
+  <div class="section-title">5 — Standardised Approach Inputs (SA only)</div>
+  <table class="dict-table">
+    <thead>
+      <tr>
+        <th style="width:160px">Frontend ID</th>
+        <th style="width:160px">Training CSV Column</th>
+        <th>Display Label</th>
+        <th>Description</th>
+        <th style="width:130px">Type / Format</th>
+        <th>Allowed Values</th>
+        <th style="width:110px">Five C's</th>
+        <th style="width:80px">Usage</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>externalRating</code></td>
+        <td>—</td>
+        <td>External Credit Rating</td>
+        <td>Rating assigned by a recognised ECAI (e.g. CRISIL, ICRA, S&amp;P). Directly maps to a Basel III risk weight in the SA risk weight table. Unrated exposures attract 100% RW.</td>
+        <td>Categorical</td>
+        <td class="allowed">AAA, AA+, AA, AA−, A+, A, A−, BBB+, BBB, BBB−, BB+, BB, BB−, B+, B, B−, CCC+, CCC, CCC−, CC, D, Unrated</td>
+        <td><span class="five-c c1">Character</span></td>
+        <td><span class="tag-input">Input</span></td>
+      </tr>
+      <tr>
+        <td><code>exposureCategory</code></td>
+        <td>—</td>
+        <td>Exposure Category</td>
+        <td>Basel III borrower classification. Determines which risk weight table is used in the SA. Sovereign exposures receive the most favourable treatment (0% at AAA); corporates are most conservative.</td>
+        <td>Categorical</td>
+        <td class="allowed">Corporate, Sovereign, Bank, Financial Institution</td>
+        <td><span class="five-c c1">Character</span></td>
+        <td><span class="tag-input">Input</span></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- ════════════════════════════════════════════════════════════════════════
+       SECTION 6 — MODEL TARGET & TRAINING METADATA
+  ═══════════════════════════════════════════════════════════════════════════ -->
+  <div class="section-title">6 — Model Target &amp; Training Metadata</div>
+  <table class="dict-table">
+    <thead>
+      <tr>
+        <th style="width:160px">Frontend ID</th>
+        <th style="width:160px">Training CSV Column</th>
+        <th>Display Label</th>
+        <th>Description</th>
+        <th style="width:130px">Type / Format</th>
+        <th>Valid Range</th>
+        <th style="width:110px">Five C's</th>
+        <th style="width:80px">Usage</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>—</td>
+        <td><code>pd_observed</code></td>
+        <td>Observed PD (Target)</td>
+        <td>Realised Probability of Default for the loan, expressed as a decimal. This is the <strong>target variable</strong> the RandomForest model is trained to predict. Derived from the true PD formula plus Gaussian noise in synthetic data.</td>
+        <td>Numeric, decimal</td>
+        <td class="allowed">0.0001 – 1.0<br><em>e.g. 0.045 = 4.5% PD</em></td>
+        <td><span class="five-c c2">Capacity</span></td>
+        <td><span class="tag-model">Model Target</span></td>
+      </tr>
+      <tr>
+        <td>—</td>
+        <td><code>default_flag</code></td>
+        <td>Default Flag</td>
+        <td>Binary indicator: 1 = borrower defaulted, 0 = performing. Derived from <code>pd_observed</code> exceeding the bank's target default rate percentile. Used for classification metrics (AUC-ROC, confusion matrix) during model evaluation.</td>
+        <td>Integer (0 or 1)</td>
+        <td class="allowed">0 (performing), 1 (defaulted)</td>
+        <td><span class="five-c c1">Character</span></td>
+        <td><span class="tag-model">Eval Only</span></td>
+      </tr>
+      <tr>
+        <td>—</td>
+        <td><code>observation_date</code></td>
+        <td>Observation Date</td>
+        <td>Date on which the financial metrics were observed/reported. Used for temporal tracking and data provenance. Not a model feature.</td>
+        <td>Date (YYYY-MM-DD)</td>
+        <td class="allowed">2023-01-01 – 2024-12-31</td>
+        <td><span class="five-c c5">Conditions</span></td>
+        <td><span class="tag-meta">Metadata</span></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- ════════════════════════════════════════════════════════════════════════
+       SECTION 7 — CALCULATED OUTPUTS
+  ═══════════════════════════════════════════════════════════════════════════ -->
+  <div class="section-title">7 — Calculated Outputs (Frontend Display)</div>
+  <table class="dict-table">
+    <thead>
+      <tr>
+        <th style="width:160px">Frontend ID</th>
+        <th style="width:160px">API Field</th>
+        <th>Display Label</th>
+        <th>Description &amp; Formula</th>
+        <th style="width:130px">Type / Unit</th>
+        <th>Typical Range</th>
+        <th style="width:110px">Five C's</th>
+        <th style="width:80px">Usage</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>pdValue</code></td>
+        <td><code>pd_percentage</code></td>
+        <td>Probability of Default (PD)</td>
+        <td>ML model prediction of the likelihood the borrower will default within one year. Expressed as a percentage. Source: <code>/api/predict-pd-ml</code> (RandomForest). Falls back to rule-based formula if API unavailable.</td>
+        <td>Numeric, %</td>
+        <td class="allowed">0.01% – 100%<br><em>Investment grade: &lt; 1%</em></td>
+        <td><span class="five-c c2">Capacity</span></td>
+        <td><span class="tag-output">Output</span></td>
+      </tr>
+      <tr>
+        <td><code>lgdValue</code></td>
+        <td><code>lgd_percentage</code></td>
+        <td>Loss Given Default (LGD)</td>
+        <td>Expected percentage of EAD lost if the borrower defaults. Calculated from: base rate (by seniority) + collateral coverage adjustment + sector risk add-on. Formula: LGD = Base − (Collateral Coverage × Recovery Factor) + Sector Add-on.</td>
+        <td>Numeric, %</td>
+        <td class="allowed">10% – 75%<br><em>Senior secured: 10–25%; Subordinated: 60–75%</em></td>
+        <td><span class="five-c c4">Collateral</span></td>
+        <td><span class="tag-output">Output</span></td>
+      </tr>
+      <tr>
+        <td><code>maturityValue</code></td>
+        <td><code>maturity</code></td>
+        <td>Effective Maturity (M)</td>
+        <td>Remaining effective maturity of the facility in years, used in the AIRB maturity adjustment formula. Derived from loan type. Range capped at 1–5 years per Basel III.</td>
+        <td>Numeric, years</td>
+        <td class="allowed">0.5 – 5.0 years</td>
+        <td><span class="five-c c5">Conditions</span></td>
+        <td><span class="tag-output">Output</span></td>
+      </tr>
+      <tr>
+        <td><code>haircutValue</code></td>
+        <td><code>haircut</code></td>
+        <td>Collateral Haircut</td>
+        <td>Percentage discount applied to collateral value to account for price volatility and liquidation risk. Set by Basel III standard supervisory haircuts by collateral type.</td>
+        <td>Numeric, %</td>
+        <td class="allowed">0% (Cash) – 35% (Inventory)</td>
+        <td><span class="five-c c4">Collateral</span></td>
+        <td><span class="tag-output">Output</span></td>
+      </tr>
+      <tr>
+        <td>Loan table: <code>loan.riskWeight</code></td>
+        <td><code>risk_weight</code></td>
+        <td>Risk Weight (RW)</td>
+        <td><strong>AIRB:</strong> Derived from PD, LGD, correlation R, and maturity adjustment using the Basel II IRB formula: RW = f(PD, LGD, R, M) × 12.5.<br><strong>SA:</strong> Looked up directly from Basel III risk weight tables by rating and exposure category.</td>
+        <td>Numeric, %</td>
+        <td class="allowed">0% (Sovereign AAA) – 150%+ (CCC/D)</td>
+        <td><span class="five-c c3">Capital</span></td>
+        <td><span class="tag-output">Output</span></td>
+      </tr>
+      <tr>
+        <td>Loan table: <code>loan.rwa</code><br>Summary: <code>summaryTotalRWA</code></td>
+        <td><code>rwa</code></td>
+        <td>Risk-Weighted Assets (RWA)</td>
+        <td>EAD × Risk Weight. Represents the credit-risk-adjusted asset value used as the denominator in capital ratio calculations. The key output driving regulatory capital requirements.</td>
+        <td>Numeric, INR (₹)</td>
+        <td class="allowed">0 – EAD × 1.5<br><em>For most loans: 20%–120% of EAD</em></td>
+        <td><span class="five-c c3">Capital</span></td>
+        <td><span class="tag-output">Output</span></td>
+      </tr>
+      <tr>
+        <td>Loan table: <code>loan.capitalRequired</code><br>Summary: <code>summaryTotalCapital</code></td>
+        <td><code>capital_required</code></td>
+        <td>Capital Required</td>
+        <td>Minimum regulatory capital the bank must hold against the loan: RWA × 8% (Basel III minimum Total Capital ratio). The summary panel also shows CET1 (RWA × 4.5%) and Tier 1 (RWA × 6%).</td>
+        <td>Numeric, INR (₹)</td>
+        <td class="allowed">RWA × 8%</td>
+        <td><span class="five-c c3">Capital</span></td>
+        <td><span class="tag-output">Output</span></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- ════════════════════════════════════════════════════════════════════════
+       SECTION 8 — PORTFOLIO SUMMARY OUTPUTS
+  ═══════════════════════════════════════════════════════════════════════════ -->
+  <div class="section-title">8 — Portfolio Summary Outputs</div>
+  <table class="dict-table">
+    <thead>
+      <tr>
+        <th style="width:160px">Frontend ID</th>
+        <th>Display Label</th>
+        <th>Description &amp; Formula</th>
+        <th style="width:130px">Unit</th>
+        <th style="width:110px">Five C's</th>
+        <th style="width:80px">Usage</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>summaryLoanCount</code></td>
+        <td>Loans in Portfolio</td>
+        <td>Count of loans recorded in the current session. Persisted in browser localStorage.</td>
+        <td>Integer</td>
+        <td><span class="five-c c5">Conditions</span></td>
+        <td><span class="tag-output">Output</span></td>
+      </tr>
+      <tr>
+        <td><code>summaryTotalEAD</code></td>
+        <td>Total Exposure (EAD)</td>
+        <td>Sum of all loan exposure amounts in the portfolio (₹). Represents the bank's total credit exposure before risk-weighting.</td>
+        <td>INR (₹)</td>
+        <td><span class="five-c c5">Conditions</span></td>
+        <td><span class="tag-output">Output</span></td>
+      </tr>
+      <tr>
+        <td><code>summaryTotalRWA</code></td>
+        <td>Total RWA</td>
+        <td>Sum of risk-weighted assets across all portfolio loans. The aggregate regulatory measure of credit risk in the portfolio.</td>
+        <td>INR (₹)</td>
+        <td><span class="five-c c3">Capital</span></td>
+        <td><span class="tag-output">Output</span></td>
+      </tr>
+      <tr>
+        <td><code>summaryTotalCapital</code></td>
+        <td>Total Capital Required</td>
+        <td>Total RWA × 8%. Minimum Basel III regulatory capital the bank must hold against the entire portfolio.</td>
+        <td>INR (₹)</td>
+        <td><span class="five-c c3">Capital</span></td>
+        <td><span class="tag-output">Output</span></td>
+      </tr>
+      <tr>
+        <td><code>summaryRiskDensity</code></td>
+        <td>Risk Density</td>
+        <td>Total RWA ÷ Total EAD × 100%. Indicates the average riskiness of the portfolio. A higher density means the portfolio is concentrated in higher-risk exposures.</td>
+        <td>Percentage (%)</td>
+        <td><span class="five-c c3">Capital</span></td>
+        <td><span class="tag-output">Output</span></td>
+      </tr>
+      <tr>
+        <td><code>summaryCET1</code></td>
+        <td>CET1 Required</td>
+        <td>Total RWA × 4.5%. Common Equity Tier 1 capital minimum under Basel III. The highest quality capital (retained earnings, paid-up equity).</td>
+        <td>INR (₹)</td>
+        <td><span class="five-c c3">Capital</span></td>
+        <td><span class="tag-output">Output</span></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- ════════════════════════════════════════════════════════════════════════
+       SECTION 9 — FIVE C'S SUMMARY VIEW
+  ═══════════════════════════════════════════════════════════════════════════ -->
+  <div class="section-title">9 — Five C's Summary: Variable Mapping</div>
+  <table class="dict-table">
+    <thead>
+      <tr>
+        <th style="width:150px">Five C</th>
+        <th>Definition in Credit Risk</th>
+        <th>Variables Mapped</th>
+        <th>Role in this Model</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="badge c1" style="font-size:12px">Character</span></td>
+        <td>Borrower's willingness to repay; track record, creditworthiness, and governance quality.</td>
+        <td>
+          <code>borrowerId</code>, <code>borrowerName</code>,
+          <code>bank_id</code>, <code>loan_id</code>,
+          <code>externalRating</code>, <code>exposureCategory</code>,
+          <code>default_flag</code>
+        </td>
+        <td>Identification and rating-based classification. External rating directly drives SA risk weight; default flag is the evaluation label for model quality assessment.</td>
+      </tr>
+      <tr>
+        <td><span class="badge c2" style="font-size:12px">Capacity</span></td>
+        <td>Borrower's ability to generate cash flow sufficient to service debt obligations.</td>
+        <td>
+          <code>interestCoverage</code> / <code>interest_coverage</code>,
+          <code>profitabilityMargin</code> / <code>profitability</code>,
+          <code>liquidityRatio</code> / <code>liquidity_ratio</code>,
+          <code>pd_observed</code> (target), <code>pdValue</code> (output)
+        </td>
+        <td>These three ratios are the primary drivers of PD in the RandomForest model. Low coverage, negative margins, and poor liquidity each independently raise predicted PD. Together they explain the majority of model variance.</td>
+      </tr>
+      <tr>
+        <td><span class="badge c3" style="font-size:12px">Capital</span></td>
+        <td>Borrower's financial strength, net worth, and equity buffer absorbing losses before default.</td>
+        <td>
+          <code>debtToEquity</code> / <code>de_ratio</code>,
+          <code>risk_weight</code>, <code>rwa</code> / <code>summaryTotalRWA</code>,
+          <code>capital_required</code> / <code>summaryTotalCapital</code>,
+          <code>summaryRiskDensity</code>, <code>summaryCET1</code>
+        </td>
+        <td>D/E ratio feeds directly into the PD model as a leverage signal. RWA and capital required are the bank-side capital outputs — they measure how much of the bank's own capital must be held against the loan.</td>
+      </tr>
+      <tr>
+        <td><span class="badge c4" style="font-size:12px">Collateral</span></td>
+        <td>Assets pledged by the borrower to secure the loan; reduces lender loss in default.</td>
+        <td>
+          <code>seniority</code>, <code>collateralType</code>,
+          <code>collateralValue</code>, <code>haircutValue</code>,
+          <code>lgdValue</code> / <code>lgd_percentage</code>
+        </td>
+        <td>Collateral inputs drive LGD calculation. The seniority determines the base LGD rate; collateral type sets the haircut; collateral value reduces the net loss exposure. Higher quality collateral lowers LGD and therefore lowers RWA and capital.</td>
+      </tr>
+      <tr>
+        <td><span class="badge c5" style="font-size:12px">Conditions</span></td>
+        <td>External environment: loan purpose, tenor, industry context, and macro conditions.</td>
+        <td>
+          <code>sector</code>, <code>loanType</code>, <code>calcMode</code>,
+          <code>exposureAmount</code>, <code>maturityValue</code>,
+          <code>observation_date</code>, <code>summaryLoanCount</code>,
+          <code>summaryTotalEAD</code>
+        </td>
+        <td>Sector affects the LGD sector add-on. Loan type determines effective maturity M, which feeds into the AIRB maturity adjustment. Observation date provides temporal context for training data. Exposure amount sets the absolute scale of RWA and capital requirements.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="note" style="margin-top:24px">
+    <strong>Note on model scope:</strong> The RandomForest PD model uses only the four Capacity and Capital inputs
+    (<code>de_ratio</code>, <code>interest_coverage</code>, <code>profitability</code>, <code>liquidity_ratio</code>).
+    Character, Collateral, and Conditions variables are used in the rule-based LGD calculation and SA risk weight
+    lookup, but are not currently features of the ML model. Future model iterations could incorporate sector,
+    seniority, and maturity as additional features.
+  </div>
+
+</div><!-- /container -->
+</body>
+</html>

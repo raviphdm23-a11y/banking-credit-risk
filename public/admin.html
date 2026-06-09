@@ -1,0 +1,1109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin — PD Model Training Dashboard</title>
+<style>
+  :root {
+    --blue:   #1565C0;
+    --blue2:  #1976D2;
+    --green:  #2E7D32;
+    --red:    #C62828;
+    --orange: #E65100;
+    --grey:   #F5F7FA;
+    --border: #DDE3ED;
+    --text:   #1A2332;
+    --sub:    #5A6A7E;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', sans-serif; background: var(--grey); color: var(--text); }
+
+  /* ── Password overlay ──────────────────────────────────────────────────── */
+  #authOverlay {
+    position: fixed; inset: 0; background: rgba(21,101,192,0.96);
+    display: flex; align-items: center; justify-content: center; z-index: 9999;
+  }
+  #authBox {
+    background: #fff; border-radius: 12px; padding: 48px 40px;
+    text-align: center; width: 360px; box-shadow: 0 8px 40px rgba(0,0,0,0.3);
+  }
+  #authBox h2 { color: var(--blue); margin-bottom: 8px; font-size: 22px; }
+  #authBox p  { color: var(--sub); margin-bottom: 28px; font-size: 14px; }
+  #authInput  {
+    width: 100%; padding: 12px 16px; border: 2px solid var(--border);
+    border-radius: 8px; font-size: 18px; letter-spacing: 6px;
+    text-align: center; margin-bottom: 16px; outline: none;
+  }
+  #authInput:focus { border-color: var(--blue); }
+  #authError { color: var(--red); font-size: 13px; margin-bottom: 12px; min-height: 18px; }
+  .btn { display: inline-block; padding: 10px 24px; border-radius: 8px; border: none;
+         cursor: pointer; font-size: 14px; font-weight: 600; transition: opacity .15s; }
+  .btn:hover { opacity: .88; }
+  .btn-primary { background: var(--blue); color: #fff; }
+  .btn-success { background: var(--green); color: #fff; }
+  .btn-danger  { background: var(--red);  color: #fff; }
+  .btn-orange  { background: var(--orange); color: #fff; }
+  .btn-sm { padding: 6px 14px; font-size: 12px; }
+
+  /* ── Layout ─────────────────────────────────────────────────────────────── */
+  header {
+    background: var(--blue); color: #fff; padding: 16px 32px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  header h1 { font-size: 20px; font-weight: 700; }
+  header span { font-size: 13px; opacity: .8; }
+  nav {
+    background: #fff; border-bottom: 1px solid var(--border);
+    padding: 0 32px; display: flex; gap: 4px;
+  }
+  nav button {
+    background: none; border: none; padding: 14px 18px; cursor: pointer;
+    font-size: 14px; font-weight: 500; color: var(--sub);
+    border-bottom: 3px solid transparent; transition: all .15s;
+  }
+  nav button.active, nav button:hover { color: var(--blue); border-bottom-color: var(--blue); }
+  .container { max-width: 1200px; margin: 0 auto; padding: 28px 24px; }
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  /* ── Cards ──────────────────────────────────────────────────────────────── */
+  .card { background: #fff; border-radius: 10px; border: 1px solid var(--border);
+          padding: 24px; margin-bottom: 20px; }
+  .card h3 { font-size: 16px; font-weight: 700; color: var(--blue); margin-bottom: 16px;
+              padding-bottom: 10px; border-bottom: 1px solid var(--border); }
+  .kpi-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 16px; margin-bottom: 20px; }
+  .kpi { background: var(--grey); border-radius: 8px; padding: 16px; text-align: center; }
+  .kpi .label { font-size: 11px; color: var(--sub); text-transform: uppercase; letter-spacing: .5px; }
+  .kpi .value { font-size: 22px; font-weight: 700; color: var(--blue); margin-top: 4px; }
+  .kpi .value.green { color: var(--green); }
+  .kpi .value.red   { color: var(--red); }
+
+  /* ── Status badges ──────────────────────────────────────────────────────── */
+  .badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+  .badge-success { background: #E8F5E9; color: var(--green); }
+  .badge-fail    { background: #FFEBEE; color: var(--red); }
+  .badge-running { background: #FFF3E0; color: var(--orange); }
+  .badge-info    { background: #E3F2FD; color: var(--blue); }
+
+  /* ── Tables ─────────────────────────────────────────────────────────────── */
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { background: var(--grey); padding: 10px 14px; text-align: left;
+       font-weight: 600; color: var(--sub); font-size: 11px; text-transform: uppercase; }
+  td { padding: 10px 14px; border-bottom: 1px solid var(--border); }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: #F8FAFF; }
+
+  /* ── Forms ──────────────────────────────────────────────────────────────── */
+  .form-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; }
+  .form-group { display: flex; flex-direction: column; gap: 6px; }
+  .form-group label { font-size: 12px; font-weight: 600; color: var(--sub); text-transform: uppercase; }
+  .form-group input, .form-group select {
+    padding: 9px 12px; border: 1px solid var(--border); border-radius: 6px;
+    font-size: 14px; outline: none; transition: border-color .15s;
+  }
+  .form-group input:focus, .form-group select:focus { border-color: var(--blue); }
+  .form-actions { margin-top: 20px; display: flex; gap: 12px; align-items: center; }
+  .msg { font-size: 13px; color: var(--green); }
+
+  /* ── Charts grid ─────────────────────────────────────────────────────────── */
+  .charts-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(380px, 1fr)); gap: 20px; }
+  .chart-card { background: #fff; border-radius: 10px; border: 1px solid var(--border); overflow: hidden; }
+  .chart-card h4 { padding: 14px 18px; font-size: 13px; font-weight: 700; background: var(--grey);
+                   color: var(--text); border-bottom: 1px solid var(--border); }
+  .chart-card img { width: 100%; display: block; }
+  .chart-placeholder { padding: 48px; text-align: center; color: var(--sub); font-size: 13px; }
+
+  /* ── Misc ────────────────────────────────────────────────────────────────── */
+  .alert { padding: 12px 16px; border-radius: 8px; font-size: 13px; margin-bottom: 16px; }
+  .alert-info    { background: #E3F2FD; color: var(--blue); }
+  .alert-warning { background: #FFF8E1; color: #F57F17; }
+  .toggle { position: relative; display: inline-block; width: 44px; height: 24px; }
+  .toggle input { opacity: 0; width: 0; height: 0; }
+  .slider { position: absolute; inset: 0; background: #ccc; border-radius: 24px; cursor: pointer; transition: .3s; }
+  .slider:before { position: absolute; content: ''; height: 18px; width: 18px;
+                   left: 3px; bottom: 3px; background: #fff; border-radius: 50%; transition: .3s; }
+  input:checked + .slider { background: var(--green); }
+  input:checked + .slider:before { transform: translateX(20px); }
+  .toggle-row { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+</style>
+</head>
+<body>
+
+<!-- ── Auth overlay ─────────────────────────────────────────────────────────── -->
+<div id="authOverlay">
+  <div id="authBox">
+    <h2>&#128274; Admin Access</h2>
+    <p>PD Model Training Dashboard — Internal Use Only</p>
+    <input type="password" id="authInput" placeholder="&#9679;&#9679;&#9679;&#9679;" maxlength="20" autofocus>
+    <div id="authError"></div>
+    <button class="btn btn-primary" style="width:100%" onclick="checkPassword()">Sign In</button>
+  </div>
+</div>
+
+<!-- ── App ──────────────────────────────────────────────────────────────────── -->
+<div id="app" style="display:none">
+
+<header>
+  <h1>&#127968; PD Model Training — Admin Dashboard</h1>
+  <span id="headerStatus">Checking status...</span>
+</header>
+
+<nav>
+  <button class="active" onclick="showPanel('status')">Model Status</button>
+  <button onclick="showPanel('datasources')">Data Sources</button>
+  <button onclick="showPanel('hyperparams')">Hyperparameters</button>
+  <button onclick="showPanel('schedule')">Schedule</button>
+  <button onclick="showPanel('history')">Run History</button>
+  <button onclick="showPanel('charts')">Charts</button>
+  <button onclick="showPanel('smoketests')">Smoke Tests</button>
+  <button onclick="showPanel('creditops')">Credit Ops</button>
+</nav>
+
+<div class="container">
+
+<!-- ── Panel 1: Model Status ───────────────────────────────────────────────── -->
+<div id="panel-status" class="panel active">
+  <div class="card">
+    <h3>&#9989; Active Model</h3>
+    <div class="kpi-grid" id="modelKpis">
+      <div class="kpi"><div class="label">R²</div><div class="value" id="kpi-r2">—</div></div>
+      <div class="kpi"><div class="label">AUC-ROC</div><div class="value" id="kpi-auc">—</div></div>
+      <div class="kpi"><div class="label">F1 Score</div><div class="value" id="kpi-f1">—</div></div>
+      <div class="kpi"><div class="label">Precision</div><div class="value" id="kpi-prec">—</div></div>
+      <div class="kpi"><div class="label">Recall</div><div class="value" id="kpi-recall">—</div></div>
+      <div class="kpi"><div class="label">RMSE</div><div class="value" id="kpi-rmse">—</div></div>
+    </div>
+    <table>
+      <tr><td><b>Version</b></td><td id="meta-version">—</td></tr>
+      <tr><td><b>Trained on</b></td><td id="meta-date">—</td></tr>
+      <tr><td><b>Triggered by</b></td><td id="meta-trigger">—</td></tr>
+      <tr><td><b>Rows trained</b></td><td id="meta-rows">—</td></tr>
+      <tr><td><b>Currency</b></td><td>&#8377; INR</td></tr>
+    </table>
+    <div class="form-actions" style="margin-top:20px">
+      <button class="btn btn-success" id="trainBtn" onclick="triggerTrain()">&#9654; Train Now</button>
+      <button class="btn btn-danger" onclick="rollback()">&#8617; Rollback to Previous</button>
+      <span id="trainMsg" class="msg"></span>
+    </div>
+    <div id="trainingIndicator" style="display:none;margin-top:12px" class="alert alert-warning">
+      &#9203; Training in progress... Refreshing status every 5 seconds.
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>&#128202; Data Available for Training</h3>
+    <div class="kpi-grid">
+      <div class="kpi"><div class="label">Files in Drop Zone</div><div class="value" id="kpi-files">—</div></div>
+      <div class="kpi"><div class="label">Total Rows</div><div class="value" id="kpi-totalrows">—</div></div>
+      <div class="kpi"><div class="label">Next Scheduled Run</div><div class="value" style="font-size:14px" id="kpi-next">—</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Panel 2: Data Sources ───────────────────────────────────────────────── -->
+<div id="panel-datasources" class="panel">
+  <div class="card">
+    <h3>&#128193; Training Drop Zone — <code>data/training/</code></h3>
+    <p style="color:var(--sub);font-size:13px;margin-bottom:16px">
+      Banks deposit CSV files here. All files must share the same schema.
+      Files are moved to <code>data/archive/</code> after a successful training run.
+    </p>
+    <div id="filesTable"><p style="color:var(--sub)">Loading...</p></div>
+    <div class="form-actions">
+      <button class="btn btn-primary" onclick="generateSynthetic()">&#43; Generate Indian Bank Synthetic Data</button>
+      <span id="synthMsg" class="msg"></span>
+    </div>
+  </div>
+  <div class="card">
+    <h3>&#128196; Required CSV Schema</h3>
+    <table>
+      <thead><tr><th>Column</th><th>Type</th><th>Valid Range</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td>bank_id</td><td>string</td><td>Any</td><td>Bank identifier (e.g., SBI, HDFC)</td></tr>
+        <tr><td>bank_name</td><td>string</td><td>Any</td><td>Full bank name</td></tr>
+        <tr><td>loan_id</td><td>string</td><td>Unique</td><td>Loan reference number</td></tr>
+        <tr><td>de_ratio</td><td>float</td><td>0.0 – 10.0</td><td>Debt-to-Equity ratio</td></tr>
+        <tr><td>interest_coverage</td><td>float</td><td>0.0 – 20.0</td><td>Interest Coverage ratio</td></tr>
+        <tr><td>profitability</td><td>float</td><td>-50 to 100</td><td>Net Profit Margin %</td></tr>
+        <tr><td>liquidity_ratio</td><td>float</td><td>0.1 – 5.0</td><td>Current Ratio</td></tr>
+        <tr><td>default_flag</td><td>int</td><td>0 or 1</td><td>1 = defaulted within 12 months</td></tr>
+        <tr><td>pd_observed</td><td>float</td><td>0.0001 – 1.0</td><td>Observed PD (training target)</td></tr>
+        <tr><td>observation_date</td><td>date</td><td>YYYY-MM-DD</td><td>Date of observation</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ── Panel 3: Hyperparameters ────────────────────────────────────────────── -->
+<div id="panel-hyperparams" class="panel">
+  <div class="card">
+    <h3>&#9881; Random Forest Hyperparameters</h3>
+    <p style="color:var(--sub);font-size:13px;margin-bottom:20px">
+      Changes take effect on the next training run. Leave max_depth empty for unlimited depth.
+    </p>
+    <div class="form-grid" id="hpForm">
+      <div class="form-group">
+        <label>n_estimators (trees)</label>
+        <input type="number" id="hp-n_estimators" min="10" max="1000" step="10">
+      </div>
+      <div class="form-group">
+        <label>max_depth (empty = unlimited)</label>
+        <input type="text" id="hp-max_depth" placeholder="null">
+      </div>
+      <div class="form-group">
+        <label>min_samples_split</label>
+        <input type="number" id="hp-min_samples_split" min="2" max="50">
+      </div>
+      <div class="form-group">
+        <label>min_samples_leaf</label>
+        <input type="number" id="hp-min_samples_leaf" min="1" max="50">
+      </div>
+      <div class="form-group">
+        <label>max_features</label>
+        <select id="hp-max_features">
+          <option value="sqrt">sqrt</option>
+          <option value="log2">log2</option>
+          <option value="null">None (all)</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>bootstrap</label>
+        <select id="hp-bootstrap">
+          <option value="true">True</option>
+          <option value="false">False</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>random_state (seed)</label>
+        <input type="number" id="hp-random_state" min="0">
+      </div>
+    </div>
+    <h3 style="margin-top:24px">&#127891; Training Settings</h3>
+    <div class="form-grid" style="margin-top:16px">
+      <div class="form-group">
+        <label>Test Set Size (0.1–0.4)</label>
+        <input type="number" id="hp-test_size" min="0.1" max="0.4" step="0.05">
+      </div>
+      <div class="form-group">
+        <label>CV Folds</label>
+        <input type="number" id="hp-cv_folds" min="3" max="10">
+      </div>
+      <div class="form-group">
+        <label>PD Classification Threshold</label>
+        <input type="number" id="hp-pd_threshold" min="0.01" max="0.30" step="0.01">
+      </div>
+      <div class="form-group">
+        <label>Min R² Improvement to Promote</label>
+        <input type="number" id="hp-min_improv" min="0" max="0.2" step="0.005">
+      </div>
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-primary" onclick="saveHyperparameters()">&#128190; Save Hyperparameters</button>
+      <span id="hpMsg" class="msg"></span>
+    </div>
+  </div>
+</div>
+
+<!-- ── Panel 4: Schedule ────────────────────────────────────────────────────── -->
+<div id="panel-schedule" class="panel">
+  <div class="card">
+    <h3>&#128197; Scheduled Training</h3>
+    <div class="toggle-row">
+      <label class="toggle">
+        <input type="checkbox" id="schedEnabled">
+        <span class="slider"></span>
+      </label>
+      <span id="schedEnabledLabel" style="font-size:14px;font-weight:600">Enabled</span>
+    </div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label>Frequency</label>
+        <select id="sched-frequency" onchange="updateScheduleUI()">
+          <option value="daily">Daily</option>
+          <option value="weekly">Weekly</option>
+          <option value="monthly">Monthly</option>
+        </select>
+      </div>
+      <div class="form-group" id="sched-dow-group">
+        <label>Day of Week</label>
+        <select id="sched-day_of_week">
+          <option value="monday">Monday</option>
+          <option value="tuesday">Tuesday</option>
+          <option value="wednesday">Wednesday</option>
+          <option value="thursday">Thursday</option>
+          <option value="friday">Friday</option>
+          <option value="saturday">Saturday</option>
+          <option value="sunday">Sunday</option>
+        </select>
+      </div>
+      <div class="form-group" id="sched-dom-group" style="display:none">
+        <label>Day of Month</label>
+        <input type="number" id="sched-day_of_month" min="1" max="28" value="1">
+      </div>
+      <div class="form-group">
+        <label>Time (24h)</label>
+        <input type="time" id="sched-time" value="02:00">
+      </div>
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-primary" onclick="saveSchedule()">&#128190; Save Schedule</button>
+      <span id="schedMsg" class="msg"></span>
+    </div>
+    <div style="margin-top:20px" id="schedInfo"></div>
+  </div>
+</div>
+
+<!-- ── Panel 5: Run History ─────────────────────────────────────────────────── -->
+<div id="panel-history" class="panel">
+  <div class="card">
+    <h3>&#128203; Training Run History</h3>
+    <div id="historyTable"><p style="color:var(--sub)">Loading...</p></div>
+  </div>
+  <div class="card" id="runDetailCard" style="display:none">
+    <h3>&#128270; Run Detail — <span id="runDetailId"></span></h3>
+    <div id="runDetailContent"></div>
+  </div>
+</div>
+
+<!-- ── Panel 6: Charts ──────────────────────────────────────────────────────── -->
+<div id="panel-charts" class="panel">
+  <div class="card">
+    <h3>&#128200; Model Evaluation Charts</h3>
+    <div style="display:flex;gap:12px;align-items:center;margin-bottom:20px">
+      <label style="font-weight:600;font-size:13px">Select Run:</label>
+      <select id="chartRunSelector" onchange="loadCharts()" style="padding:8px 12px;border:1px solid var(--border);border-radius:6px;font-size:13px">
+        <option value="">— select a run —</option>
+      </select>
+    </div>
+    <div class="charts-grid" id="chartsGrid">
+      <div class="chart-placeholder">Select a training run above to view its evaluation charts.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Panel 7: Smoke Tests ──────────────────────────────────────────────── -->
+<div id="panel-smoketests" class="panel">
+  <div class="card">
+    <h3>&#129514; Consumer UI Smoke Tests</h3>
+    <p style="color:var(--sub);font-size:13px;margin-bottom:20px">
+      Runs a headless Selenium test against the live application to verify key
+      consumer workflows — page load, AIRB ML calculation, portfolio recording,
+      and portfolio summary. Flask must be running on port 5000.
+    </p>
+    <button id="smokeRunBtn" onclick="runSmokeTests()" class="btn-primary">&#9654; Run Smoke Tests</button>
+    <span id="smokeStatus" style="margin-left:14px;font-size:13px;color:var(--sub)"></span>
+
+    <div id="smokeResults" style="margin-top:24px;display:none">
+      <div class="kpi-grid" id="smokeKpis" style="margin-bottom:20px">
+        <div class="kpi"><div class="label">Total</div><div class="value" id="smoke-total">—</div></div>
+        <div class="kpi"><div class="label">Passed</div><div class="value" id="smoke-passed" style="color:#22c55e">—</div></div>
+        <div class="kpi"><div class="label">Failed</div><div class="value" id="smoke-failed" style="color:#ef4444">—</div></div>
+        <div class="kpi"><div class="label">Duration</div><div class="value" id="smoke-duration">—</div></div>
+      </div>
+      <table id="smokeTable">
+        <thead>
+          <tr>
+            <th style="width:40px">#</th>
+            <th>Test Case</th>
+            <th style="width:80px;text-align:center">Result</th>
+            <th style="width:80px;text-align:right">Time (s)</th>
+            <th>Error</th>
+          </tr>
+        </thead>
+        <tbody id="smokeTableBody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ── Panel 8: Credit Ops ────────────────────────────────────────────────── -->
+<div id="panel-creditops" class="panel">
+
+  <!-- C1: Case Queue -->
+  <div class="card">
+    <h3>&#128203; Case Queue</h3>
+    <p style="color:#6b7280;font-size:0.85rem;margin:0 0 12px">All assessed borrowers, most recent first. Click a row to load into the Override Workspace below.</p>
+    <div style="overflow-x:auto">
+      <table id="caseQueueTable">
+        <thead>
+          <tr>
+            <th>Report ID</th>
+            <th>Borrower</th>
+            <th style="text-align:center">Grade</th>
+            <th style="text-align:center">PD %</th>
+            <th style="text-align:center">Decision</th>
+            <th style="text-align:right">EL (&#8377;)</th>
+            <th>Timestamp</th>
+            <th style="text-align:center">Actions</th>
+          </tr>
+        </thead>
+        <tbody id="caseQueueBody">
+          <tr><td colspan="8" style="text-align:center;color:#9ca3af;padding:24px">Loading cases...</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <button onclick="loadCasesQueue()" style="margin-top:12px;background:#f3f4f6;color:#374151;border:1px solid #d1d5db;border-radius:6px;padding:6px 14px;cursor:pointer;font-size:0.85rem">&#8635; Refresh</button>
+  </div>
+
+  <!-- C2: Override Workspace -->
+  <div class="card" style="margin-top:20px">
+    <h3>&#9997;&#65039; Override Workspace</h3>
+    <p style="color:#6b7280;font-size:0.85rem;margin:0 0 16px">Record a manual credit officer override. Override is logged with timestamp and requires second-officer review before file submission.</p>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+      <div>
+        <label style="display:block;font-size:0.85rem;font-weight:600;margin-bottom:4px">Report ID</label>
+        <input id="ovr-report-id" type="text" placeholder="e.g. rpt_abc123..."
+               style="width:100%;box-sizing:border-box;padding:8px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:0.9rem"
+               oninput="clearOverrideSummary()">
+      </div>
+      <div>
+        <label style="display:block;font-size:0.85rem;font-weight:600;margin-bottom:4px">Override Decision</label>
+        <select id="ovr-decision"
+                style="width:100%;box-sizing:border-box;padding:8px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:0.9rem;background:#fff">
+          <option value="">-- select --</option>
+          <option value="APPROVE">APPROVE</option>
+          <option value="REFER">REFER</option>
+          <option value="DECLINE">DECLINE</option>
+        </select>
+      </div>
+    </div>
+    <div id="overrideCaseSummary" style="display:none;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:12px;margin-bottom:16px;font-size:0.85rem"></div>
+    <div style="margin-bottom:12px">
+      <label style="display:block;font-size:0.85rem;font-weight:600;margin-bottom:4px">Justification <span style="color:#6b7280;font-weight:400">(min 20 characters)</span></label>
+      <textarea id="ovr-justification" rows="3" placeholder="Describe the rationale for overriding the model recommendation..."
+                style="width:100%;box-sizing:border-box;padding:8px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:0.9rem;resize:vertical"></textarea>
+    </div>
+    <div id="overrideMsg" style="display:none;padding:8px 12px;border-radius:6px;margin-bottom:12px;font-size:0.85rem"></div>
+    <div style="display:flex;gap:10px">
+      <button onclick="loadCaseForOverride()" style="background:#f3f4f6;color:#374151;border:1px solid #d1d5db;border-radius:6px;padding:8px 16px;cursor:pointer;font-size:0.9rem">Load Case</button>
+      <button onclick="submitOverride()" style="background:#1e40af;color:#fff;border:none;border-radius:6px;padding:8px 16px;cursor:pointer;font-size:0.9rem">Submit Override</button>
+    </div>
+  </div>
+
+  <!-- C3: Audit Log -->
+  <div class="card" style="margin-top:20px">
+    <h3>&#128196; Audit Log</h3>
+    <p style="color:#6b7280;font-size:0.85rem;margin:0 0 12px">Most recent 50 events. Append-only — entries cannot be modified or deleted.</p>
+    <div style="overflow-x:auto">
+      <table id="auditLogTable">
+        <thead>
+          <tr>
+            <th>Timestamp</th>
+            <th style="text-align:center">Event</th>
+            <th>Report ID</th>
+            <th>Borrower</th>
+            <th>Actor</th>
+            <th>Note</th>
+          </tr>
+        </thead>
+        <tbody id="auditLogBody">
+          <tr><td colspan="6" style="text-align:center;color:#9ca3af;padding:24px">Loading audit log...</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <button onclick="loadAuditLog()" style="margin-top:12px;background:#f3f4f6;color:#374151;border:1px solid #d1d5db;border-radius:6px;padding:6px 14px;cursor:pointer;font-size:0.85rem">&#8635; Refresh</button>
+  </div>
+
+</div>
+
+</div><!-- /container -->
+</div><!-- /app -->
+
+<script>
+// ── Auth ────────────────────────────────────────────────────────────────────
+const ADMIN_PW = '1234';
+function checkPassword() {
+  const val = document.getElementById('authInput').value;
+  if (val === ADMIN_PW) {
+    sessionStorage.setItem('admin_auth', '1');
+    document.getElementById('authOverlay').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+    initDashboard();
+  } else {
+    document.getElementById('authError').textContent = 'Incorrect password. Try again.';
+    document.getElementById('authInput').value = '';
+    document.getElementById('authInput').focus();
+  }
+}
+document.getElementById('authInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') checkPassword();
+});
+if (sessionStorage.getItem('admin_auth') === '1') {
+  document.getElementById('authOverlay').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+}
+
+// ── API helper ──────────────────────────────────────────────────────────────
+async function api(endpoint, method = 'GET', body = null) {
+  const opts = {
+    method,
+    headers: { 'Content-Type': 'application/json', 'X-Admin-Password': ADMIN_PW }
+  };
+  if (body) opts.body = JSON.stringify(body);
+  const res = await fetch(endpoint, opts);
+  return res.json();
+}
+
+// ── Navigation ──────────────────────────────────────────────────────────────
+function showPanel(name) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+  document.getElementById('panel-' + name).classList.add('active');
+  event.target.classList.add('active');
+  if (name === 'datasources') loadDataSources();
+  if (name === 'hyperparams') loadHyperparameters();
+  if (name === 'schedule')    loadSchedule();
+  if (name === 'history')     loadHistory();
+  if (name === 'charts')      populateRunSelector();
+  if (name === 'creditops')  { loadCasesQueue(); loadAuditLog(); }
+}
+
+// ── Init ────────────────────────────────────────────────────────────────────
+function initDashboard() {
+  loadStatus();
+  setInterval(() => {
+    const indicator = document.getElementById('trainingIndicator');
+    if (indicator.style.display !== 'none') loadStatus();
+  }, 5000);
+}
+
+// ── Panel 1: Status ─────────────────────────────────────────────────────────
+async function loadStatus() {
+  const data = await api('/admin/api/status');
+  const meta = data.model_metadata || {};
+  const m    = meta.metrics || {};
+
+  const fmt = v => v !== undefined ? v.toFixed(4) : '—';
+  document.getElementById('kpi-r2').textContent     = fmt(m.r2);
+  document.getElementById('kpi-auc').textContent    = fmt(m.auc_roc);
+  document.getElementById('kpi-f1').textContent     = fmt(m.f1);
+  document.getElementById('kpi-prec').textContent   = fmt(m.precision);
+  document.getElementById('kpi-recall').textContent = fmt(m.recall);
+  document.getElementById('kpi-rmse').textContent   = m.rmse !== undefined ? m.rmse.toFixed(6) : '—';
+
+  document.getElementById('meta-version').textContent = meta.version || 'No model trained yet';
+  document.getElementById('meta-date').textContent    = meta.date_trained ? meta.date_trained.replace('T', ' ') : '—';
+  document.getElementById('meta-trigger').textContent = meta.triggered_by || '—';
+  document.getElementById('meta-rows').textContent    = meta.rows_trained ? meta.rows_trained.toLocaleString() : '—';
+
+  document.getElementById('kpi-files').textContent     = data.files_in_training ?? '—';
+  document.getElementById('kpi-totalrows').textContent = data.total_rows_available ? data.total_rows_available.toLocaleString() : '—';
+
+  const sched = data.schedule || {};
+  document.getElementById('kpi-next').textContent = sched.enabled
+    ? `${sched.frequency} @ ${String(sched.hour).padStart(2,'0')}:${String(sched.minute).padStart(2,'0')}`
+    : 'Disabled';
+
+  const running = data.training_running;
+  document.getElementById('trainingIndicator').style.display = running ? 'block' : 'none';
+  document.getElementById('trainBtn').disabled = running;
+  document.getElementById('headerStatus').textContent = running ? '⏳ Training in progress...' : '✅ Ready';
+
+  // Clear the "auto-refreshing" message once training finishes
+  const trainMsg = document.getElementById('trainMsg');
+  if (!running && trainMsg.textContent.includes('auto-refreshing')) {
+    const promoted = data.last_run?.model_promoted;
+    trainMsg.textContent = promoted
+      ? '✅ Training complete — model promoted'
+      : '✅ Training complete';
+    setTimeout(() => { trainMsg.textContent = ''; }, 5000);
+  }
+}
+
+async function triggerTrain() {
+  if (!confirm('Start a manual training run now?')) return;
+  document.getElementById('trainMsg').textContent = '';
+  const res = await api('/admin/api/train', 'POST');
+  if (res.status === 'started') {
+    document.getElementById('trainMsg').textContent = '✅ Training started — auto-refreshing...';
+    document.getElementById('trainingIndicator').style.display = 'block';
+    document.getElementById('trainBtn').disabled = true;
+  } else {
+    document.getElementById('trainMsg').textContent = '❌ ' + (res.error || 'Failed');
+  }
+}
+
+async function rollback() {
+  if (!confirm('Restore the previous model as the active model?')) return;
+  const res = await api('/admin/api/rollback', 'POST');
+  alert(res.message || res.error);
+  loadStatus();
+}
+
+// ── Panel 2: Data Sources ───────────────────────────────────────────────────
+async function loadDataSources() {
+  const data = await api('/admin/api/data-sources');
+  const files = data.files || [];
+  if (!files.length) {
+    document.getElementById('filesTable').innerHTML =
+      '<div class="alert alert-warning">No CSV files found in data/training/. Click "Generate" to create sample data.</div>';
+    return;
+  }
+  let html = `<table><thead><tr><th>Filename</th><th>Bank</th><th>Rows</th><th>Size (KB)</th><th>Last Modified</th></tr></thead><tbody>`;
+  files.forEach(f => {
+    const bank = f.filename.replace('.csv','').replace(/_/g,' ').replace(/\b\w/g, c => c.toUpperCase());
+    html += `<tr>
+      <td><code>${f.filename}</code></td>
+      <td>${bank}</td>
+      <td>${f.row_count > 0 ? f.row_count.toLocaleString() : '—'}</td>
+      <td>${f.size_kb}</td>
+      <td>${f.modified}</td>
+    </tr>`;
+  });
+  html += `</tbody></table>`;
+  html += `<p style="margin-top:12px;font-size:13px;color:var(--sub)">
+    Total: <b>${files.length} files</b> | <b>${data.total_rows?.toLocaleString()} rows</b>
+  </p>`;
+  document.getElementById('filesTable').innerHTML = html;
+}
+
+async function generateSynthetic() {
+  document.getElementById('synthMsg').textContent = 'Generating...';
+  const res = await api('/admin/api/generate-synthetic', 'POST');
+  if (res.status === 'success') {
+    document.getElementById('synthMsg').textContent = `✅ Generated data for ${res.banks.join(', ')}`;
+    loadDataSources();
+  } else {
+    document.getElementById('synthMsg').textContent = '❌ ' + res.error;
+  }
+}
+
+// ── Panel 3: Hyperparameters ────────────────────────────────────────────────
+async function loadHyperparameters() {
+  const hp = await api('/admin/api/hyperparameters');
+  const m  = hp.model || {};
+  const t  = hp.training || {};
+  document.getElementById('hp-n_estimators').value   = m.n_estimators ?? 100;
+  document.getElementById('hp-max_depth').value      = m.max_depth ?? '';
+  document.getElementById('hp-min_samples_split').value = m.min_samples_split ?? 2;
+  document.getElementById('hp-min_samples_leaf').value  = m.min_samples_leaf ?? 1;
+  document.getElementById('hp-max_features').value   = m.max_features ?? 'sqrt';
+  document.getElementById('hp-bootstrap').value      = m.bootstrap !== false ? 'true' : 'false';
+  document.getElementById('hp-random_state').value   = m.random_state ?? 42;
+  document.getElementById('hp-test_size').value      = t.test_size ?? 0.2;
+  document.getElementById('hp-cv_folds').value       = t.cv_folds ?? 5;
+  document.getElementById('hp-pd_threshold').value   = t.pd_classification_threshold ?? 0.05;
+  document.getElementById('hp-min_improv').value     = t.min_r2_improvement ?? 0.01;
+}
+
+async function saveHyperparameters() {
+  const hp = {
+    model: {
+      n_estimators:      parseInt(document.getElementById('hp-n_estimators').value),
+      max_depth:         document.getElementById('hp-max_depth').value === '' ? null : parseInt(document.getElementById('hp-max_depth').value),
+      min_samples_split: parseInt(document.getElementById('hp-min_samples_split').value),
+      min_samples_leaf:  parseInt(document.getElementById('hp-min_samples_leaf').value),
+      max_features:      document.getElementById('hp-max_features').value === 'null' ? null : document.getElementById('hp-max_features').value,
+      bootstrap:         document.getElementById('hp-bootstrap').value === 'true',
+      random_state:      parseInt(document.getElementById('hp-random_state').value),
+    },
+    training: {
+      test_size:                     parseFloat(document.getElementById('hp-test_size').value),
+      cv_folds:                      parseInt(document.getElementById('hp-cv_folds').value),
+      pd_classification_threshold:   parseFloat(document.getElementById('hp-pd_threshold').value),
+      min_r2_improvement:            parseFloat(document.getElementById('hp-min_improv').value),
+    },
+    schedule: (await api('/admin/api/schedule'))
+  };
+  const res = await api('/admin/api/hyperparameters', 'POST', hp);
+  document.getElementById('hpMsg').textContent = res.status === 'saved' ? '✅ Saved successfully' : '❌ ' + res.error;
+}
+
+// ── Panel 4: Schedule ───────────────────────────────────────────────────────
+async function loadSchedule() {
+  const s = await api('/admin/api/schedule');
+  document.getElementById('schedEnabled').checked = !!s.enabled;
+  document.getElementById('schedEnabledLabel').textContent = s.enabled ? 'Enabled' : 'Disabled';
+  document.getElementById('sched-frequency').value = s.frequency || 'weekly';
+  document.getElementById('sched-day_of_week').value = s.day_of_week || 'sunday';
+  document.getElementById('sched-day_of_month').value = s.day_of_month || 1;
+  const hh = String(s.hour ?? 2).padStart(2,'0');
+  const mm = String(s.minute ?? 0).padStart(2,'0');
+  document.getElementById('sched-time').value = `${hh}:${mm}`;
+  updateScheduleUI();
+  document.getElementById('schedEnabled').onchange = () => {
+    document.getElementById('schedEnabledLabel').textContent =
+      document.getElementById('schedEnabled').checked ? 'Enabled' : 'Disabled';
+  };
+}
+
+function updateScheduleUI() {
+  const freq = document.getElementById('sched-frequency').value;
+  document.getElementById('sched-dow-group').style.display = freq === 'weekly'  ? '' : 'none';
+  document.getElementById('sched-dom-group').style.display = freq === 'monthly' ? '' : 'none';
+}
+
+async function saveSchedule() {
+  const time = document.getElementById('sched-time').value.split(':');
+  const s = {
+    enabled:      document.getElementById('schedEnabled').checked,
+    frequency:    document.getElementById('sched-frequency').value,
+    day_of_week:  document.getElementById('sched-day_of_week').value,
+    day_of_month: parseInt(document.getElementById('sched-day_of_month').value),
+    hour:         parseInt(time[0]),
+    minute:       parseInt(time[1]),
+  };
+  const res = await api('/admin/api/schedule', 'POST', s);
+  document.getElementById('schedMsg').textContent = res.status === 'saved' ? '✅ Schedule saved' : '❌ ' + res.error;
+}
+
+// ── Panel 5: History ────────────────────────────────────────────────────────
+async function loadHistory() {
+  const data = await api('/admin/api/runs');
+  const runs = data.runs || [];
+  if (!runs.length) {
+    document.getElementById('historyTable').innerHTML =
+      '<div class="alert alert-info">No training runs yet. Go to Model Status and click Train Now.</div>';
+    return;
+  }
+  let html = `<table><thead><tr>
+    <th>Run ID</th><th>Timestamp</th><th>Triggered By</th><th>Status</th>
+    <th>Rows</th><th>R²</th><th>AUC-ROC</th><th>F1</th><th>Duration</th><th>Promoted</th><th></th>
+  </tr></thead><tbody>`;
+  runs.forEach(r => {
+    const m     = r.metrics || {};
+    const badge = r.status === 'success'
+      ? '<span class="badge badge-success">✅ Success</span>'
+      : '<span class="badge badge-fail">❌ Failed</span>';
+    html += `<tr>
+      <td><code style="font-size:11px">${r.run_id}</code></td>
+      <td>${r.timestamp?.replace('T',' ')}</td>
+      <td><span class="badge badge-info">${r.triggered_by}</span></td>
+      <td>${badge}</td>
+      <td>${r.total_rows?.toLocaleString() ?? '—'}</td>
+      <td>${m.r2?.toFixed(4) ?? '—'}</td>
+      <td>${m.auc_roc?.toFixed(4) ?? '—'}</td>
+      <td>${m.f1?.toFixed(4) ?? '—'}</td>
+      <td>${r.duration_seconds}s</td>
+      <td>${r.model_promoted ? '✅ Yes' : '—'}</td>
+      <td><button class="btn btn-primary btn-sm" onclick="showRunDetail('${r.run_id}')">Detail</button></td>
+    </tr>`;
+  });
+  html += '</tbody></table>';
+  document.getElementById('historyTable').innerHTML = html;
+}
+
+async function showRunDetail(runId) {
+  const r = await api(`/admin/api/runs/${runId}`);
+  document.getElementById('runDetailId').textContent = runId;
+  const m = r.metrics || {};
+  const cm = r.confusion_matrix || [];
+  let html = `
+    <div class="kpi-grid">
+      <div class="kpi"><div class="label">R²</div><div class="value">${m.r2 ?? '—'}</div></div>
+      <div class="kpi"><div class="label">AUC-ROC</div><div class="value">${m.auc_roc ?? '—'}</div></div>
+      <div class="kpi"><div class="label">Accuracy</div><div class="value">${m.accuracy ?? '—'}</div></div>
+      <div class="kpi"><div class="label">Precision</div><div class="value">${m.precision ?? '—'}</div></div>
+      <div class="kpi"><div class="label">Recall</div><div class="value">${m.recall ?? '—'}</div></div>
+      <div class="kpi"><div class="label">F1</div><div class="value">${m.f1 ?? '—'}</div></div>
+    </div>
+    <h4 style="margin:16px 0 10px;font-size:14px">Files Used</h4>
+    <table><thead><tr><th>Filename</th><th>Rows</th></tr></thead><tbody>
+    ${(r.files_used||[]).map(f=>`<tr><td>${f.filename}</td><td>${f.rows?.toLocaleString()}</td></tr>`).join('')}
+    </tbody></table>`;
+  if ((r.files_skipped||[]).length) {
+    html += `<h4 style="margin:16px 0 10px;font-size:14px;color:var(--red)">Files Skipped</h4>
+    <table><thead><tr><th>Filename</th><th>Reason</th></tr></thead><tbody>
+    ${r.files_skipped.map(f=>`<tr><td>${f.filename}</td><td style="color:var(--red)">${f.reason}</td></tr>`).join('')}
+    </tbody></table>`;
+  }
+  if (cm.length) {
+    html += `<h4 style="margin:16px 0 10px;font-size:14px">Confusion Matrix</h4>
+    <table><thead><tr><th></th><th>Predicted: No Default</th><th>Predicted: Default</th></tr></thead><tbody>
+    <tr><td><b>Actual: No Default</b></td><td style="color:var(--green)">${cm[0]?.[0] ?? '—'}</td><td style="color:var(--red)">${cm[0]?.[1] ?? '—'}</td></tr>
+    <tr><td><b>Actual: Default</b></td><td style="color:var(--red)">${cm[1]?.[0] ?? '—'}</td><td style="color:var(--green)">${cm[1]?.[1] ?? '—'}</td></tr>
+    </tbody></table>`;
+  }
+  if (r.error) {
+    html += `<h4 style="margin:16px 0 10px;color:var(--red)">Error</h4>
+    <pre style="background:var(--grey);padding:12px;border-radius:6px;font-size:11px;overflow:auto">${r.error}</pre>`;
+  }
+  document.getElementById('runDetailContent').innerHTML = html;
+  document.getElementById('runDetailCard').style.display = 'block';
+  document.getElementById('runDetailCard').scrollIntoView({behavior:'smooth'});
+}
+
+// ── Panel 6: Charts ─────────────────────────────────────────────────────────
+const CHART_LABELS = {
+  feature_importance:   'Feature Importance',
+  roc_curve:            'ROC Curve',
+  confusion_matrix:     'Confusion Matrix',
+  pd_distribution:      'PD Distribution',
+  actual_vs_predicted:  'Actual vs Predicted',
+  residual_distribution:'Residual Distribution',
+};
+
+async function populateRunSelector() {
+  const data = await api('/admin/api/runs');
+  const runs = (data.runs || []).filter(r => r.status === 'success');
+  const sel  = document.getElementById('chartRunSelector');
+  sel.innerHTML = '<option value="">— select a run —</option>' +
+    runs.map(r => `<option value="${r.run_id}">${r.run_id.replace('run_','').replace('_',' ')} (${r.triggered_by})</option>`).join('');
+  if (runs.length) {
+    sel.value = runs[0].run_id;
+    loadCharts();
+  }
+}
+
+async function loadCharts() {
+  const runId = document.getElementById('chartRunSelector').value;
+  if (!runId) return;
+  const grid = document.getElementById('chartsGrid');
+  grid.innerHTML = '<div class="chart-placeholder">Loading charts...</div>';
+
+  const { charts } = await api(`/admin/api/charts/${runId}`);
+  if (!charts || !charts.length) {
+    grid.innerHTML = '<div class="chart-placeholder">No charts available for this run.</div>';
+    return;
+  }
+
+  grid.innerHTML = '';
+  for (const name of charts) {
+    const { chart } = await api(`/admin/api/charts/${runId}/${name}`);
+    const card = document.createElement('div');
+    card.className = 'chart-card';
+    card.innerHTML = `<h4>${CHART_LABELS[name] || name}</h4>
+      <img src="data:image/png;base64,${chart}" alt="${name}">`;
+    grid.appendChild(card);
+  }
+}
+
+// ── Smoke Tests ─────────────────────────────────────────────────────────────
+let _smokePoller = null;
+
+async function runSmokeTests() {
+  const btn = document.getElementById('smokeRunBtn');
+  const statusEl = document.getElementById('smokeStatus');
+  btn.disabled = true;
+  btn.textContent = '⏳ Running…';
+  statusEl.textContent = 'Starting headless browser…';
+  document.getElementById('smokeResults').style.display = 'none';
+
+  try {
+    const resp = await fetch('/admin/api/smoke-tests', {
+      method: 'POST',
+      headers: { 'X-Admin-Password': ADMIN_PW }
+    });
+    if (resp.status === 409) {
+      statusEl.textContent = 'Tests already running — please wait.';
+      btn.disabled = false;
+      btn.textContent = '▶ Run Smoke Tests';
+      return;
+    }
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    _pollSmokeStatus();
+  } catch (e) {
+    statusEl.textContent = 'Error: ' + e.message;
+    btn.disabled = false;
+    btn.textContent = '▶ Run Smoke Tests';
+  }
+}
+
+function _pollSmokeStatus() {
+  const statusEl = document.getElementById('smokeStatus');
+  let dots = 0;
+  _smokePoller = setInterval(async () => {
+    dots = (dots + 1) % 4;
+    statusEl.textContent = 'Running' + '.'.repeat(dots + 1);
+    try {
+      const data = await api('/admin/api/smoke-tests/status');
+      if (!data.running && data.result) {
+        clearInterval(_smokePoller);
+        _renderSmokeResults(data.result);
+      }
+    } catch (_) {}
+  }, 3000);
+}
+
+function _renderSmokeResults(result) {
+  const btn = document.getElementById('smokeRunBtn');
+  const statusEl = document.getElementById('smokeStatus');
+  btn.disabled = false;
+  btn.textContent = '▶ Run Smoke Tests';
+
+  const s = result.summary || {};
+  const allPassed = s.failed === 0 && s.total > 0;
+  statusEl.textContent = allPassed
+    ? `✅ All ${s.total} tests passed in ${s.duration_seconds}s`
+    : `⚠️ ${s.failed} of ${s.total} tests failed`;
+  statusEl.style.color = allPassed ? '#22c55e' : '#ef4444';
+
+  document.getElementById('smoke-total').textContent = s.total ?? '—';
+  document.getElementById('smoke-passed').textContent = s.passed ?? '—';
+  document.getElementById('smoke-failed').textContent = s.failed ?? '—';
+  document.getElementById('smoke-duration').textContent =
+    s.duration_seconds != null ? s.duration_seconds + 's' : '—';
+
+  const tbody = document.getElementById('smokeTableBody');
+  tbody.innerHTML = '';
+  (result.tests || []).forEach((t, i) => {
+    const badge = t.passed
+      ? '<span style="color:#22c55e;font-weight:700">PASS</span>'
+      : '<span style="color:#ef4444;font-weight:700">FAIL</span>';
+    const err = t.error
+      ? `<span style="color:#ef4444;font-size:12px">${t.error}</span>`
+      : '<span style="color:var(--sub)">—</span>';
+    tbody.innerHTML += `<tr>
+      <td style="text-align:center">${i + 1}</td>
+      <td>${t.name}</td>
+      <td style="text-align:center">${badge}</td>
+      <td style="text-align:right">${t.duration_seconds ?? '—'}</td>
+      <td>${err}</td>
+    </tr>`;
+  });
+
+  if (result.error) {
+    tbody.innerHTML = `<tr><td colspan="5" style="color:#ef4444">${result.error}</td></tr>`;
+  }
+
+  document.getElementById('smokeResults').style.display = 'block';
+}
+
+// ── Panel 8: Credit Ops ─────────────────────────────────────────────────────
+function _decPill(dec) {
+  const colors = { APPROVE:'#22c55e', REFER:'#f59e0b', DECLINE:'#ef4444' };
+  const c = colors[dec] || '#6b7280';
+  return `<span style="display:inline-block;padding:2px 8px;border-radius:10px;background:${c}20;color:${c};font-weight:700;font-size:0.78rem">${dec || '—'}</span>`;
+}
+
+function _fmt(ts) {
+  if (!ts) return '—';
+  try { return new Date(ts).toLocaleString('en-IN', { dateStyle:'short', timeStyle:'short' }); }
+  catch (_) { return ts; }
+}
+
+async function loadCasesQueue() {
+  const tbody = document.getElementById('caseQueueBody');
+  tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:#9ca3af;padding:24px">Loading...</td></tr>';
+  try {
+    const data = await api('/admin/api/cases');
+    if (!data.cases || data.cases.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:#9ca3af;padding:24px">No cases found. Generate a report from the calculator first.</td></tr>';
+      return;
+    }
+    tbody.innerHTML = data.cases.map(c => {
+      const rid = c.report_id || '';
+      const shortId = rid.length > 16 ? rid.slice(0, 8) + '…' + rid.slice(-4) : rid;
+      const elFmt = c.el_inr != null ? '₹' + Number(c.el_inr).toLocaleString('en-IN', {maximumFractionDigits:0}) : '—';
+      return `<tr style="cursor:pointer" onclick="document.getElementById('ovr-report-id').value='${rid}';clearOverrideSummary()">
+        <td title="${rid}" style="font-family:monospace;font-size:0.8rem">${shortId}</td>
+        <td>${c.borrower_id || '—'}</td>
+        <td style="text-align:center;font-weight:700">${c.grade || '—'}</td>
+        <td style="text-align:center">${c.pd_pct != null ? c.pd_pct.toFixed(2)+'%' : '—'}</td>
+        <td style="text-align:center">${_decPill(c.decision)}</td>
+        <td style="text-align:right">${elFmt}</td>
+        <td style="font-size:0.8rem">${_fmt(c.timestamp)}</td>
+        <td style="text-align:center">
+          <a href="/report-underwriter.html?id=${rid}" target="_blank" style="color:#1e40af;font-size:0.8rem;margin-right:8px">UW</a>
+          <a href="/report-applicant.html?id=${rid}" target="_blank" style="color:#059669;font-size:0.8rem">Letter</a>
+        </td>
+      </tr>`;
+    }).join('');
+  } catch (e) {
+    tbody.innerHTML = `<tr><td colspan="8" style="color:#ef4444;padding:12px">Error loading cases: ${e.message}</td></tr>`;
+  }
+}
+
+async function loadCaseForOverride() {
+  const rid = document.getElementById('ovr-report-id').value.trim();
+  const summaryEl = document.getElementById('overrideCaseSummary');
+  const msgEl = document.getElementById('overrideMsg');
+  if (!rid) { _showOvrMsg('Enter a Report ID first.', '#ef4444'); return; }
+  summaryEl.style.display = 'none';
+  msgEl.style.display = 'none';
+  try {
+    const res = await fetch(`/api/get-report/${encodeURIComponent(rid)}`, {
+      headers: { 'X-Admin-Password': ADMIN_PW }
+    });
+    if (!res.ok) { _showOvrMsg('Report not found for ID: ' + rid, '#ef4444'); return; }
+    const f = await res.json();
+    const rec = f.recommendation || {};
+    const grade = f.masterscale?.grade || '—';
+    const pd = f.pd != null ? (f.pd * 100).toFixed(2) + '%' : '—';
+    const drivers = (rec.key_drivers || []).slice(0,3).join(', ') || '—';
+    summaryEl.innerHTML = `
+      <b>Borrower:</b> ${f.inputs?.borrower_id || '—'} &nbsp;|&nbsp;
+      <b>Grade:</b> ${grade} &nbsp;|&nbsp;
+      <b>PD:</b> ${pd} &nbsp;|&nbsp;
+      <b>Model Decision:</b> ${_decPill(rec.decision)}<br>
+      <b>Key Drivers:</b> ${drivers}
+      ${f._override ? `<br><span style="color:#f59e0b;font-weight:600">&#9888;&#65039; Previously overridden to ${f._override.decision} — ${_fmt(f._override.timestamp)}</span>` : ''}
+    `;
+    summaryEl.style.display = 'block';
+    _showOvrMsg('Case loaded. Select override decision and enter justification.', '#22c55e');
+  } catch (e) {
+    _showOvrMsg('Failed to load case: ' + e.message, '#ef4444');
+  }
+}
+
+function clearOverrideSummary() {
+  document.getElementById('overrideCaseSummary').style.display = 'none';
+  document.getElementById('overrideMsg').style.display = 'none';
+}
+
+function _showOvrMsg(text, color) {
+  const el = document.getElementById('overrideMsg');
+  el.textContent = text;
+  el.style.background = color + '15';
+  el.style.border = '1px solid ' + color + '40';
+  el.style.color = color;
+  el.style.display = 'block';
+}
+
+async function submitOverride() {
+  const rid = document.getElementById('ovr-report-id').value.trim();
+  const dec = document.getElementById('ovr-decision').value;
+  const just = document.getElementById('ovr-justification').value.trim();
+  if (!rid)  { _showOvrMsg('Report ID is required.', '#ef4444'); return; }
+  if (!dec)  { _showOvrMsg('Select an override decision.', '#ef4444'); return; }
+  if (just.length < 20) { _showOvrMsg('Justification must be at least 20 characters.', '#ef4444'); return; }
+  try {
+    const data = await api(`/admin/api/cases/${encodeURIComponent(rid)}/override`, 'POST', {
+      decision: dec, justification: just, actor: 'credit_officer'
+    });
+    if (data.error) { _showOvrMsg(data.error, '#ef4444'); return; }
+    _showOvrMsg('Override recorded successfully. Audit log updated.', '#22c55e');
+    document.getElementById('ovr-justification').value = '';
+    document.getElementById('ovr-decision').value = '';
+    loadAuditLog();
+    loadCasesQueue();
+  } catch (e) {
+    _showOvrMsg('Submit failed: ' + e.message, '#ef4444');
+  }
+}
+
+async function loadAuditLog() {
+  const tbody = document.getElementById('auditLogBody');
+  tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#9ca3af;padding:24px">Loading...</td></tr>';
+  try {
+    const data = await api('/admin/api/audit-log');
+    const events = (data.events || []).slice(0, 50);
+    if (events.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#9ca3af;padding:24px">No audit events yet.</td></tr>';
+      return;
+    }
+    const evtColors = { REPORT_GENERATED:'#2563eb', REPORT_VIEWED:'#6b7280', OVERRIDE_RECORDED:'#d97706' };
+    tbody.innerHTML = events.map(e => {
+      const c = evtColors[e.event] || '#374151';
+      const rid = e.report_id || '—';
+      const shortId = rid.length > 16 ? rid.slice(0,8)+'…'+rid.slice(-4) : rid;
+      return `<tr>
+        <td style="font-size:0.8rem;white-space:nowrap">${_fmt(e.timestamp)}</td>
+        <td style="text-align:center"><span style="color:${c};font-weight:600;font-size:0.8rem">${e.event}</span></td>
+        <td style="font-family:monospace;font-size:0.78rem" title="${rid}">${shortId}</td>
+        <td>${e.borrower_id || '—'}</td>
+        <td style="font-size:0.8rem">${e.actor || '—'}</td>
+        <td style="font-size:0.8rem;color:#6b7280">${e.note || '—'}</td>
+      </tr>`;
+    }).join('');
+  } catch (e) {
+    tbody.innerHTML = `<tr><td colspan="6" style="color:#ef4444;padding:12px">Error: ${e.message}</td></tr>`;
+  }
+}
+
+// ── Auto-init if already logged in ─────────────────────────────────────────
+if (sessionStorage.getItem('admin_auth') === '1') initDashboard();
+</script>
+</body>
+</html>

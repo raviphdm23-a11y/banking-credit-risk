@@ -234,7 +234,7 @@
         /* Reference cards grid */
         .cards-grid {
             display: grid;
-            grid-template-columns: repeat(3, 1fr);
+            grid-template-columns: repeat(4, 1fr);
             gap: 20px;
             margin-bottom: 40px;
         }
@@ -254,6 +254,7 @@
         .ref-card.airb { border-top-color: #667eea; }
         .ref-card.sa { border-top-color: #27ae60; }
         .ref-card.hub { border-top-color: #e74c3c; }
+        .ref-card.dict { border-top-color: #8e44ad; }
 
         .ref-card:hover {
             transform: translateY(-4px);
@@ -370,7 +371,7 @@
 
         @media (max-width: 900px) {
             .main-card { grid-template-columns: 1fr; }
-            .cards-grid { grid-template-columns: 1fr; }
+            .cards-grid { grid-template-columns: repeat(2, 1fr); }
             .phases { grid-template-columns: repeat(2, 1fr); }
             .hero h1 { font-size: 2em; }
             .hero-stats { gap: 25px; }
@@ -474,6 +475,11 @@
                 <div class="ref-card-icon">🗂️</div>
                 <h3>Methodology Hub</h3>
                 <p>Central navigation hub with methodology comparisons, implementation status, and links to all 5 planned risk frameworks.</p>
+            </a>
+            <a href="data-dictionary.html" class="ref-card dict">
+                <div class="ref-card-icon">📖</div>
+                <h3>Data Dictionary</h3>
+                <p>Complete variable reference — all model features, frontend fields, and calculated outputs mapped to the Five C's of credit risk assessment.</p>
             </a>
         </div>
 

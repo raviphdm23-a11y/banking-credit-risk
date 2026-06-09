@@ -786,7 +786,7 @@
         </div>
 
         <!-- Calculate Button -->
-        <button class="btn-calculate" onclick="calculateAllParameters()">
+        <button id="calculateBtn" class="btn-calculate" onclick="calculateAllParameters()">
             Calculate Risk Parameters
         </button>
     </div>
@@ -844,6 +844,11 @@
                         <tbody id="saComponentBody"></tbody>
                     </table>
                 </div>
+            </div>
+
+            <!-- Executive Assessment Band — populated by generateReport() -->
+            <div id="execBand" style="display:none; margin:24px 0 0;">
+                <div id="execBandInner"></div>
             </div>
 
             <div id="successBox" class="success-box">
@@ -975,6 +980,12 @@
         };
         const v = map[document.getElementById('loanType').value];
         if (v !== undefined) document.getElementById('maturityOverride').value = v.toFixed(2);
+    }
+
+    // ── Notification function for API errors ────────────────────────────────────
+    function showNotification(title, message) {
+        console.error(`${title}: ${message}`);
+        alert(`${title}\n${message}`);
     }
 
     // ── PD formula ────────────────────────────────────────────────────────────
@@ -1109,8 +1120,8 @@
         return ok;
     }
 
-    // ── Main calculation ──────────────────────────────────────────────────────
-    function calculateAllParameters() {
+    // ── Main calculation (PD via ML model, LGD via Flask API, fallback to local) ─
+    async function calculateAllParameters() {
         if (!validateInputs()) return;
 
         const mode           = getMode();
@@ -1123,7 +1134,19 @@
         const pm  = parseFloat(document.getElementById('profitabilityMargin').value);
         const lr  = parseFloat(document.getElementById('liquidityRatio').value);
 
-        const pdResult = calculatePD(de, ic, pm, lr);
+        // Show loading state
+        const calcBtn = document.getElementById('calculateBtn');
+        const originalText = 'Calculate Risk Parameters';
+        calcBtn.textContent = '⏳ Calculating...';
+        calcBtn.disabled = true;
+
+        try {
+        // PD via ML model (Flask /api/predict-pd-ml), falls back to local rule-based
+        let pdResult = await calculatePDFromAPI(de, ic, pm, lr, 'ml');
+        if (!pdResult) {
+            console.warn('ML API unavailable, using local rule-based PD calculation');
+            pdResult = calculatePD(de, ic, pm, lr);
+        }
         const pd = pdResult.pd;
 
         // PD card
@@ -1151,7 +1174,13 @@
             const collateralValue = parseFloat(document.getElementById('collateralValue').value) || 0;
             maturity = parseFloat(document.getElementById('maturityOverride').value) || 3;
 
-            lgdResult = calculateLGD(seniority, exposureAmount, collateralValue, collateralType, sector);
+            // Call Flask API for LGD calculation
+            lgdResult = await calculateLGDFromAPI(seniority, exposureAmount, collateralValue, collateralType, sector);
+            if (!lgdResult) {
+                // Fallback to local calculation if API fails
+                console.warn('API failed for LGD, using local calculation');
+                lgdResult = calculateLGD(seniority, exposureAmount, collateralValue, collateralType, sector);
+            }
 
             document.getElementById('lgdResultCard').style.display  = 'block';
             document.getElementById('maturityResultCard').style.display = 'block';
@@ -1232,6 +1261,26 @@
         // Show results
         document.getElementById('resultsSection').classList.add('active');
         document.getElementById('resultsSection').scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+        // Fire-and-forget — generate full assessment report in background
+        const reportInputs = {
+            de_ratio: de, interest_coverage: ic, profitability: pm, liquidity_ratio: lr,
+            exposure: exposureAmount,
+            seniority: (mode === 'airb' || mode === 'both') ? document.getElementById('seniority').value : 'senior_unsecured',
+            collateral_type: document.getElementById('collateralType').value || 'None',
+            collateral_value: parseFloat(document.getElementById('collateralValue').value) || 0,
+            maturity: (mode === 'airb' || mode === 'both') ? (parseFloat(document.getElementById('maturityOverride').value) || 3) : 3,
+            borrower_id: borrowerId,
+        };
+        generateAndShowExecBand(reportInputs);
+
+        } catch (err) {
+            console.error('Calculation error:', err);
+            alert('Calculation error: ' + err.message);
+        } finally {
+            calcBtn.textContent = originalText;
+            calcBtn.disabled = false;
+        }
     }
 
     // ── Confirm & Record ──────────────────────────────────────────────────────
@@ -1453,11 +1502,102 @@
         clearErrors();
         updateSectionVisibility();
 
-        // Hide results
+        // Hide results + exec band
         document.getElementById('resultsSection').classList.remove('active');
         document.getElementById('successBox').classList.remove('active');
+        document.getElementById('execBand').style.display = 'none';
+        document.getElementById('execBandInner').innerHTML = '';
 
         window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    // ── Executive Assessment Band ─────────────────────────────────────────────
+    async function generateAndShowExecBand(inputs) {
+        const band = document.getElementById('execBand');
+        const inner = document.getElementById('execBandInner');
+        band.style.display = 'block';
+        inner.innerHTML = `
+            <div style="background:#f1f5f9;border:1px solid #e2e8f0;border-radius:10px;padding:16px 20px;
+                        display:flex;align-items:center;gap:12px;font-family:system-ui;">
+                <span style="font-size:1.2em;">&#8987;</span>
+                <span style="color:#64748b;font-size:0.95em;">Generating full credit assessment report&hellip;</span>
+            </div>`;
+
+        try {
+            const resp = await fetch('/api/generate-report', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(inputs),
+            });
+            if (!resp.ok) throw new Error('API ' + resp.status);
+            const data = await resp.json();
+
+            const g = data.grade || '--';
+            const pd_pct = typeof data.pd_pct === 'number' ? data.pd_pct.toFixed(1) + '%' : '--';
+            const pd_low = typeof data.pd_low_pct === 'number' ? data.pd_low_pct.toFixed(1) : '?';
+            const pd_high = typeof data.pd_high_pct === 'number' ? data.pd_high_pct.toFixed(1) : '?';
+            const el = typeof data.el_amount_inr === 'number'
+                ? '₹' + (data.el_amount_inr / 1e5).toFixed(1) + 'L'
+                : '--';
+            const rate = typeof data.rate_pct === 'number' ? data.rate_pct.toFixed(2) + '%' : '--';
+            const decision = data.decision || '--';
+            const reportId = data.report_id;
+
+            // Grade → colour
+            const approveGrades = ['AAA','AA','A','BBB'];
+            const referGrades   = ['BB','B'];
+            const decColor = decision === 'APPROVE' ? '#16a34a'
+                           : decision === 'REFER'   ? '#d97706' : '#dc2626';
+            const gradeColor = approveGrades.includes(g) ? '#16a34a'
+                             : referGrades.includes(g)   ? '#d97706' : '#dc2626';
+
+            inner.innerHTML = `
+                <div style="background:#fff;border:2px solid ${gradeColor}33;border-radius:12px;
+                            padding:20px 24px;font-family:system-ui;">
+                    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+                        <div style="display:flex;align-items:center;gap:10px;">
+                            <span style="font-size:0.8em;font-weight:700;color:#64748b;text-transform:uppercase;
+                                         letter-spacing:.06em;">Credit Assessment</span>
+                        </div>
+                        ${reportId ? `<a href="/report-underwriter.html?id=${reportId}" target="_blank"
+                                style="background:#1a2e4a;color:#fff;padding:8px 18px;border-radius:8px;
+                                       text-decoration:none;font-size:0.88em;font-weight:600;
+                                       white-space:nowrap;">Full Assessment Report &#8594;</a>` : ''}
+                    </div>
+                    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));
+                                gap:16px;margin-top:16px;">
+                        <div style="text-align:center;">
+                            <div style="font-size:2em;font-weight:800;color:${gradeColor};">${g}</div>
+                            <div style="font-size:0.75em;color:#64748b;margin-top:2px;">Internal Grade</div>
+                        </div>
+                        <div style="text-align:center;">
+                            <div style="font-size:1.5em;font-weight:700;color:#1a2e4a;">${pd_pct}</div>
+                            <div style="font-size:0.75em;color:#64748b;margin-top:2px;">PD (${pd_low}–${pd_high}% band)</div>
+                        </div>
+                        <div style="text-align:center;">
+                            <div style="font-size:1.5em;font-weight:700;color:#1a2e4a;">${el}</div>
+                            <div style="font-size:0.75em;color:#64748b;margin-top:2px;">Expected Loss</div>
+                        </div>
+                        <div style="text-align:center;">
+                            <div style="font-size:1.5em;font-weight:700;color:#1a2e4a;">${rate}</div>
+                            <div style="font-size:0.75em;color:#64748b;margin-top:2px;">Indicative Rate</div>
+                        </div>
+                        <div style="text-align:center;">
+                            <div style="font-size:1.1em;font-weight:800;color:#fff;background:${decColor};
+                                        padding:6px 14px;border-radius:20px;display:inline-block;">
+                                ${decision}
+                            </div>
+                            <div style="font-size:0.75em;color:#64748b;margin-top:4px;">Decision</div>
+                        </div>
+                    </div>
+                </div>`;
+        } catch (e) {
+            inner.innerHTML = `
+                <div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:10px;
+                            padding:14px 18px;color:#92400e;font-size:0.9em;font-family:system-ui;">
+                    Assessment report unavailable (Flask server may be offline). Core risk parameters shown above.
+                </div>`;
+        }
     }
 
     // ── Init ──────────────────────────────────────────────────────────────────
@@ -1489,5 +1629,6 @@
         updateSectionVisibility();
     });
 </script>
+<script src="api-integration.js"></script>
 </body>
 </html>

@@ -1,0 +1,848 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Credit Assessment Report</title>
+  <link rel="stylesheet" href="report-styles.css">
+</head>
+<body>
+
+<div class="report-wrap" id="reportWrap">
+
+  <!-- Loading state -->
+  <div class="loading-state" id="loadingState">
+    <div class="spinner"></div>
+    <p>Loading assessment report...</p>
+  </div>
+
+  <!-- Error state -->
+  <div class="error-state" id="errorState" style="display:none">
+    <h2>Report Not Found</h2>
+    <p id="errorMsg">The report may have expired. Please re-generate it from the calculator.</p>
+    <br>
+    <a href="/borrower-info.html" class="btn btn-back">Back to Calculator</a>
+  </div>
+
+  <!-- Report content (hidden until loaded) -->
+  <div id="reportContent" style="display:none">
+
+    <!-- Confidential banner -->
+    <div class="report-banner">
+      <div><strong>CONFIDENTIAL</strong> &mdash; Credit Assessment Report &mdash; For Authorised Personnel Only</div>
+      <div class="report-meta">
+        <span>Borrower: <strong id="hdrBorrowerId">—</strong></span>
+        <span>Date: <strong id="hdrDate">—</strong></span>
+        <span>Report ID: <strong id="hdrReportId">—</strong></span>
+      </div>
+    </div>
+
+    <!-- Executive Decision Band -->
+    <div class="exec-band">
+      <div class="grade-badge" id="gradeBadge">
+        <span class="grade-letter" id="gradeLetter">—</span>
+        <span class="grade-sub" id="gradeLabel">—</span>
+      </div>
+      <div class="exec-pd">
+        <div class="pd-label">Probability of Default</div>
+        <div class="pd-value" id="pdValue">—</div>
+        <div class="pd-band" id="pdBand">—</div>
+      </div>
+      <div class="exec-col">
+        <div class="col-val" id="elValue">—</div>
+        <div class="col-label">Expected Loss</div>
+      </div>
+      <div class="exec-col">
+        <div class="col-val" id="rateValue">—</div>
+        <div class="col-label">Indicative Rate</div>
+      </div>
+      <div class="exec-col">
+        <div class="col-val" id="rwaValue">—</div>
+        <div class="col-label">RWA</div>
+      </div>
+      <div class="decision-pill" id="decisionPill">—</div>
+    </div>
+
+    <!-- 1. Risk Assessment -->
+    <div class="report-section">
+      <div class="section-title">1 &mdash; Risk Assessment</div>
+      <div class="charts-row">
+        <div class="chart-box">
+          <div class="chart-title">Default Probability Gauge</div>
+          <div class="chart-area" id="gaugeChart"></div>
+        </div>
+        <div class="chart-box">
+          <div class="chart-title">Feature Attribution (PD Drivers)</div>
+          <div class="chart-area" id="tornadoChart"></div>
+        </div>
+      </div>
+
+      <!-- Reason codes -->
+      <div class="reason-codes" id="reasonCodes"></div>
+
+      <!-- Attribution detail table -->
+      <table class="attr-table">
+        <thead>
+          <tr>
+            <th>Feature</th><th>Your Value</th><th>Baseline</th>
+            <th>PD Contribution</th><th>Driver</th>
+          </tr>
+        </thead>
+        <tbody id="attrTableBody"></tbody>
+      </table>
+    </div>
+
+    <!-- 2. Five C's Assessment -->
+    <div class="report-section">
+      <div class="section-title">2 &mdash; Five C's Credit Assessment</div>
+      <div class="five-cs-grid" id="fiveCsGrid"></div>
+      <div class="five-cs-tabs" id="fiveCsTabs"></div>
+      <div id="fiveCsDetail"></div>
+    </div>
+
+    <!-- 3. Peer Comparison -->
+    <div class="report-section">
+      <div class="section-title">3 &mdash; Your Metrics vs Approved Borrowers</div>
+      <div class="charts-row" style="grid-template-columns:1fr 1.2fr">
+        <div>
+          <div class="chart-title">Feature Health (vs Approved-Borrower Median)</div>
+          <div class="chart-area" id="healthChart"></div>
+        </div>
+        <div>
+          <div class="peer-health-row" id="peerHealthGrid"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 4. Improvement Pathways -->
+    <div class="report-section" id="cfSection">
+      <div class="section-title">4 &mdash; Improvement Pathways</div>
+      <p style="font-size:12.5px;color:#64748b;margin-bottom:14px;">
+        Each scenario shows the minimum change required in a single metric to move to the next
+        better rating grade. All values are model estimates; actual outcomes depend on business conditions.
+      </p>
+      <div class="cf-list" id="cfList"></div>
+    </div>
+
+    <!-- Pathway A: Restructure Scenario (live re-quote) -->
+    <div class="report-section" id="pathwayASection">
+      <div class="section-title">Pathway A &mdash; Restructure Scenario</div>
+      <p style="font-size:12.5px;color:#64748b;margin-bottom:18px;">
+        Adjust deal structure — reduce exposure, add or change collateral, shorten tenor, change seniority —
+        to see how grade, EL and pricing respond in real time.
+        Financial fundamentals (D/E, coverage, profitability, liquidity) remain as-assessed.
+      </p>
+
+      <!-- Input form -->
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(165px,1fr));gap:14px;
+                  background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;
+                  padding:18px 20px;margin-bottom:18px">
+
+        <div>
+          <label style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;
+                         letter-spacing:.05em;display:block;margin-bottom:5px">Exposure (₹)</label>
+          <input type="number" id="pwa-exposure" min="100000" step="100000"
+                 style="width:100%;padding:7px 10px;border:1px solid #cbd5e1;border-radius:6px;
+                         font-size:13px;color:#1a2e4a;background:#fff;box-sizing:border-box" />
+        </div>
+
+        <div>
+          <label style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;
+                         letter-spacing:.05em;display:block;margin-bottom:5px">Seniority</label>
+          <select id="pwa-seniority"
+                  style="width:100%;padding:7px 10px;border:1px solid #cbd5e1;border-radius:6px;
+                          font-size:13px;color:#1a2e4a;background:#fff;box-sizing:border-box">
+            <option value="senior_secured">Senior Secured</option>
+            <option value="senior_unsecured">Senior Unsecured</option>
+            <option value="subordinated">Subordinated</option>
+            <option value="junior">Junior</option>
+          </select>
+        </div>
+
+        <div>
+          <label style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;
+                         letter-spacing:.05em;display:block;margin-bottom:5px">Collateral Type</label>
+          <select id="pwa-collateral-type"
+                  style="width:100%;padding:7px 10px;border:1px solid #cbd5e1;border-radius:6px;
+                          font-size:13px;color:#1a2e4a;background:#fff;box-sizing:border-box">
+            <option value="None">None</option>
+            <option value="Cash">Cash</option>
+            <option value="Government Securities">Govt Securities</option>
+            <option value="Real Estate">Real Estate</option>
+            <option value="Corporate Bonds">Corporate Bonds</option>
+            <option value="Equities">Equities</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+
+        <div>
+          <label style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;
+                         letter-spacing:.05em;display:block;margin-bottom:5px">Collateral Value (₹)</label>
+          <input type="number" id="pwa-collateral-value" min="0" step="100000"
+                 style="width:100%;padding:7px 10px;border:1px solid #cbd5e1;border-radius:6px;
+                         font-size:13px;color:#1a2e4a;background:#fff;box-sizing:border-box" />
+        </div>
+
+        <div>
+          <label style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;
+                         letter-spacing:.05em;display:block;margin-bottom:5px">Maturity (years)</label>
+          <input type="number" id="pwa-maturity" min="0.5" max="30" step="0.5"
+                 style="width:100%;padding:7px 10px;border:1px solid #cbd5e1;border-radius:6px;
+                         font-size:13px;color:#1a2e4a;background:#fff;box-sizing:border-box" />
+        </div>
+
+        <div style="display:flex;align-items:flex-end">
+          <button onclick="runRestructureQuote()" id="pwaBtn"
+                  style="width:100%;padding:9px 14px;background:#1a2e4a;color:#fff;border:none;
+                          border-radius:7px;font-size:13px;font-weight:600;cursor:pointer;
+                          transition:background .15s">
+            Re-quote →
+          </button>
+        </div>
+      </div>
+
+      <!-- Comparison output -->
+      <div id="pwaResult" style="display:none"></div>
+    </div>
+
+    <!-- 5. AIRB Regulatory Details -->
+    <div class="report-section">
+      <div class="section-title">5 &mdash; AIRB Regulatory Details</div>
+      <div class="airb-grid" id="airbGrid"></div>
+    </div>
+
+    <!-- 6. Policy & Recommendation -->
+    <div class="report-section">
+      <div class="section-title">6 &mdash; Credit Decision</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px">
+        <div>
+          <p style="font-size:12px;color:#64748b;margin-bottom:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.05em">Recommendation</p>
+          <div class="decision-pill" id="decisionPillLarge" style="font-size:15px;padding:14px 24px;display:inline-block">—</div>
+          <p style="margin-top:10px;font-size:13px;color:#1a2e4a" id="decisionRationale"></p>
+          <p style="margin-top:8px;font-size:12px;color:#64748b" id="overrideNote"></p>
+        </div>
+        <div>
+          <p style="font-size:12px;color:#64748b;margin-bottom:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.05em">Policy Knockouts</p>
+          <div id="knockoutsList"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Technical Appendix -->
+    <div class="report-section">
+      <details>
+        <summary>Technical Appendix &mdash; Model Information &amp; Audit Trail</summary>
+        <div class="tech-grid" id="techGrid"></div>
+      </details>
+    </div>
+
+    <!-- Actions -->
+    <div class="report-actions">
+      <a href="/borrower-info.html" class="btn btn-back">Back to Calculator</a>
+      <a id="applicantLetterLink" href="#" class="btn btn-back"
+         style="background:#2563eb;color:#fff;border-color:#2563eb">
+        View Applicant Letter &#8594;
+      </a>
+      <button class="btn btn-print" onclick="window.print()">Print / Save PDF</button>
+    </div>
+
+  </div><!-- /reportContent -->
+</div><!-- /reportWrap -->
+
+<script src="report-charts.js"></script>
+<script>
+// ── Utilities ──────────────────────────────────────────────────────────────
+
+function fmtCurrency(v) {
+  if (v == null) return '—';
+  if (Math.abs(v) >= 1e7) return '₹' + (v/1e7).toFixed(2) + ' Cr';
+  if (Math.abs(v) >= 1e5) return '₹' + (v/1e5).toFixed(2) + ' L';
+  return '₹' + v.toLocaleString('en-IN', { maximumFractionDigits: 0 });
+}
+
+function fmtVal(v, unit) {
+  if (v == null) return '—';
+  return unit === 'percent' ? `${(+v).toFixed(1)}%` : `${(+v).toFixed(2)}x`;
+}
+
+function decisionClass(d) {
+  return d === 'APPROVE' ? 'APPROVE' : d === 'REFER' ? 'REFER' : 'DECLINE';
+}
+
+function gradeDecision(grade) {
+  const approve = ['AAA','AA','A','BBB'];
+  const refer   = ['BB','B'];
+  if (approve.includes(grade)) return 'APPROVE';
+  if (refer.includes(grade))   return 'REFER';
+  return 'DECLINE';
+}
+
+// ── Load report ────────────────────────────────────────────────────────────
+
+async function loadReport() {
+  const params   = new URLSearchParams(window.location.search);
+  const reportId = params.get('id');
+
+  if (!reportId) {
+    showError('No report ID in URL. Please generate a report from the calculator.');
+    return;
+  }
+
+  try {
+    const res = await fetch(`/api/get-report/${reportId}`);
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      showError(err.error || 'Report not found. It may have expired.');
+      return;
+    }
+    const findings = await res.json();
+    renderReport(findings);
+  } catch (e) {
+    showError('Network error loading report: ' + e.message);
+  }
+}
+
+function showError(msg) {
+  document.getElementById('loadingState').style.display = 'none';
+  document.getElementById('errorMsg').textContent = msg;
+  document.getElementById('errorState').style.display = 'block';
+}
+
+// ── Render ─────────────────────────────────────────────────────────────────
+
+function renderReport(f) {
+  document.getElementById('loadingState').style.display = 'none';
+  document.getElementById('reportContent').style.display = 'block';
+
+  document.title = `Credit Report — ${f.inputs?.borrower_id || f.report_id?.slice(0,8) || '—'}`;
+
+  // Banner
+  document.getElementById('hdrBorrowerId').textContent = f.inputs?.borrower_id || '(unnamed)';
+  document.getElementById('hdrDate').textContent = new Date(f.timestamp).toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' });
+  document.getElementById('hdrReportId').textContent = f.report_id?.slice(0, 12) + '…';
+
+  // Executive band
+  const grade = f.rating?.grade || '?';
+  const dec   = f.recommendation?.decision || 'REFER';
+  const decClass = decisionClass(dec);
+
+  const gradeBadge = document.getElementById('gradeBadge');
+  gradeBadge.className = `grade-badge grade-${decClass}`;
+  document.getElementById('gradeLetter').textContent = grade;
+  document.getElementById('gradeLabel').textContent  = f.rating?.label || '';
+
+  document.getElementById('pdValue').textContent = `${(f.pd?.point * 100).toFixed(1)}%`;
+  document.getElementById('pdBand').textContent  = `80% band: ${(f.pd?.low*100).toFixed(1)} – ${(f.pd?.high*100).toFixed(1)}%`;
+
+  document.getElementById('elValue').textContent   = fmtCurrency(f.el?.amount_inr);
+  document.getElementById('rateValue').textContent = f.pricing?.indicative_rate_pct != null ? `${f.pricing.indicative_rate_pct.toFixed(1)}%` : '—';
+  document.getElementById('rwaValue').textContent  = fmtCurrency(f.rwa?.rwa);
+
+  const pill = document.getElementById('decisionPill');
+  pill.textContent  = f.recommendation?.decision_label || dec;
+  pill.className    = `decision-pill decision-${decClass}`;
+
+  // Section 1: Charts
+  ReportCharts.drawGauge(
+    document.getElementById('gaugeChart'),
+    { pd: f.pd?.point || 0, pdLow: f.pd?.low || 0, pdHigh: f.pd?.high || 0, grade }
+  );
+  ReportCharts.drawTornado(document.getElementById('tornadoChart'), f.attribution);
+
+  // Reason codes
+  const rcDiv = document.getElementById('reasonCodes');
+  const codes = (f.attribution || []).filter(a => a.reason_code && a.contribution > 0.002);
+  if (codes.length > 0) {
+    rcDiv.innerHTML = codes.map(a =>
+      `<span class="reason-code">${a.reason_code.replace(/_/g,' ')}</span>`
+    ).join('');
+  } else {
+    rcDiv.innerHTML = '<span style="font-size:12px;color:#64748b">No adverse reason codes — metrics within acceptable range.</span>';
+  }
+
+  // Attribution table
+  const tbody = document.getElementById('attrTableBody');
+  (f.attribution || []).forEach(a => {
+    const isUp = a.contribution > 0.002;
+    const isDown = a.contribution < -0.002;
+    const cls = isUp ? 'contrib-up' : isDown ? 'contrib-down' : '';
+    const sign = isUp ? '+' : '';
+    const barColor = isUp ? '#dc2626' : '#16a34a';
+    const barPct   = Math.min(100, Math.abs(a.contribution) * 1000);
+    const unit = a.feature === 'profitability' ? 'percent' : 'ratio';
+    tbody.innerHTML += `
+      <tr>
+        <td><strong>${a.display_name}</strong></td>
+        <td>${fmtVal(a.value, unit)}</td>
+        <td style="color:#94a3b8">${fmtVal(a.baseline_value, unit)}</td>
+        <td class="contrib-bar-wrap">
+          <span class="${cls}">${sign}${(a.contribution * 100).toFixed(2)}pp</span>
+          <div class="contrib-bar" style="width:${barPct}px;background:${barColor};margin-left:6px;opacity:0.6"></div>
+        </td>
+        <td style="font-size:12px;color:#64748b">${a.reason_text || '—'}</td>
+      </tr>`;
+  });
+
+  // Section 2: Five C's
+  renderFiveCs(f.five_cs);
+
+  // Section 3: Peer health
+  ReportCharts.drawFeatureHealth(document.getElementById('healthChart'), f.peer_health || {});
+  renderPeerHealthGrid(f.peer_health || {});
+
+  // Section 4: Counterfactuals
+  renderCounterfactuals(f.counterfactuals || [], f.rating?.grade);
+
+  // Section 5: AIRB
+  renderAirb(f);
+
+  // Section 6: Decision
+  const dpLarge = document.getElementById('decisionPillLarge');
+  dpLarge.textContent = f.recommendation?.decision_label || dec;
+  dpLarge.className   = `decision-pill decision-${decClass}`;
+  document.getElementById('decisionRationale').textContent = f.recommendation?.rationale || '';
+  document.getElementById('overrideNote').textContent      = f.recommendation?.override_note || '';
+
+  const koList = document.getElementById('knockoutsList');
+  if ((f.policy_knockouts || []).length === 0) {
+    koList.innerHTML = '<p style="font-size:12.5px;color:#16a34a">No policy knockouts triggered.</p>';
+  } else {
+    koList.innerHTML = (f.policy_knockouts).map(k => `
+      <div style="padding:8px 12px;border-radius:6px;margin-bottom:8px;
+           background:${k.severity==='DECLINE'?'#fef2f2':'#fffbeb'};
+           border:1px solid ${k.severity==='DECLINE'?'#fca5a5':'#fcd34d'}">
+        <strong style="font-size:12px;color:${k.severity==='DECLINE'?'#dc2626':'#d97706'}">${k.rule.replace(/_/g,' ')}</strong>
+        <p style="font-size:11.5px;color:#64748b;margin-top:2px">${k.detail}</p>
+      </div>`).join('');
+  }
+
+  // Technical appendix
+  const techData = [
+    ['Model Type',      f.model_version?.includes('run') ? 'RandomForestRegressor' : 'ML Model'],
+    ['Model Version',   f.model_version || '—'],
+    ['Trees Used',      f.pd?.n_trees != null ? `${f.pd.n_trees} estimators` : '—'],
+    ['PD Method',       f.pd?.method || '—'],
+    ['Features',        (f.inputs ? ['de_ratio','interest_coverage','profitability','liquidity_ratio'] : []).join(', ')],
+    ['Report ID',       f.report_id || '—'],
+    ['Timestamp',       f.timestamp ? new Date(f.timestamp).toLocaleString('en-IN') : '—'],
+    ['Content Hash',    (f.content_hash || '').slice(0, 32) + '…'],
+    ['Pricing Basis',   f.pricing?.basis || '—'],
+    ['Masterscale',     '10-grade AAA–D aligned to Basel SA rating labels'],
+    ['Capital Ratio',   '8% (Basel III Pillar 1 minimum)'],
+    ['Disclaimer',      'Model-assisted assessment. Human credit officer accountability retained.'],
+  ];
+  const tg = document.getElementById('techGrid');
+  techData.forEach(([k, v]) => {
+    tg.innerHTML += `<div class="tech-row"><span class="tech-key">${k}</span><span class="tech-val">${v}</span></div>`;
+  });
+
+  // Pathway A: pre-populate restructure form with current deal structure
+  initPathwayA(f);
+
+  // Wire the Applicant Letter link
+  const alLink = document.getElementById('applicantLetterLink');
+  if (alLink && f.report_id) {
+    alLink.href = `/report-applicant.html?id=${f.report_id}`;
+  }
+}
+
+// ── Five C's ───────────────────────────────────────────────────────────────
+
+function renderFiveCs(fiveCs) {
+  if (!fiveCs) return;
+  const keys = ['capacity','capital','collateral','conditions','character'];
+  const labels = { capacity:'Capacity', capital:'Capital', collateral:'Collateral', conditions:'Conditions', character:'Character' };
+
+  const grid = document.getElementById('fiveCsGrid');
+  const tabs = document.getElementById('fiveCsTabs');
+  const det  = document.getElementById('fiveCsDetail');
+
+  keys.forEach((key, idx) => {
+    const c = fiveCs[key] || {};
+    const score = c.score || 'NOT_ASSESSED';
+
+    // Score card
+    grid.innerHTML += `
+      <div class="five-c-card" onclick="showFiveC('${key}')" style="cursor:pointer">
+        <div class="five-c-name">${labels[key]}</div>
+        <div class="five-c-score score-${score}">${score.replace('_',' ')}</div>
+      </div>`;
+
+    // Tab button
+    const btn = document.createElement('button');
+    btn.className = `five-c-tab-btn${idx === 0 ? ' active' : ''}`;
+    btn.id = `tab-${key}`;
+    btn.textContent = labels[key];
+    btn.onclick = () => showFiveC(key);
+    tabs.appendChild(btn);
+
+    // Detail panel
+    const panel = document.createElement('div');
+    panel.className = `five-c-tab${idx === 0 ? ' active' : ''}`;
+    panel.id = `panel-${key}`;
+    let rows = '';
+    (c.items || []).forEach(item => {
+      rows += `<tr><td>${item.label}</td><td><strong>${item.value}</strong>${item.benchmark ? ` <span style="color:#94a3b8;font-size:11px">(bench: ${item.benchmark})</span>` : ''}</td><td>${item.assessment || ''}</td></tr>`;
+    });
+    panel.innerHTML = `<table class="detail-table"><tbody>${rows}</tbody></table>`;
+    det.appendChild(panel);
+  });
+}
+
+window.showFiveC = function(key) {
+  document.querySelectorAll('.five-c-tab').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.five-c-tab-btn').forEach(b => b.classList.remove('active'));
+  const panel = document.getElementById(`panel-${key}`);
+  const btn   = document.getElementById(`tab-${key}`);
+  if (panel) panel.classList.add('active');
+  if (btn)   btn.classList.add('active');
+};
+
+// ── Peer Health Grid ───────────────────────────────────────────────────────
+
+function renderPeerHealthGrid(peerHealth) {
+  const grid = document.getElementById('peerHealthGrid');
+  if (!peerHealth) return;
+
+  Object.entries(peerHealth).forEach(([feat, h]) => {
+    const maxVal = Math.max(h.value, h.peer_p75) * 1.1 || 1;
+    const appPct = Math.min(100, (h.value / maxVal) * 100);
+    const medPct = Math.min(100, (h.peer_median / maxVal) * 100);
+    const barColor = h.status === 'STRONG' ? '#16a34a' : h.status === 'OK' ? '#d97706' : '#dc2626';
+
+    grid.innerHTML += `
+      <div class="peer-feature">
+        <div class="pf-header">
+          <span class="pf-name">${(h.display_name||feat).replace('(%)','').trim()}</span>
+          <span class="pf-badge pf-${h.status}">${h.status}</span>
+        </div>
+        <div class="pf-bar-row">
+          <span class="pf-bar-label">Yours</span>
+          <div class="pf-bar-track">
+            <div class="pf-bar-fill" style="width:${appPct.toFixed(0)}%;background:${barColor}"></div>
+          </div>
+          <span class="pf-val" style="color:${barColor}">${fmtVal(h.value, h.unit)}</span>
+        </div>
+        <div class="pf-bar-row">
+          <span class="pf-bar-label">Peers</span>
+          <div class="pf-bar-track">
+            <div class="pf-bar-fill" style="width:${medPct.toFixed(0)}%;background:#94a3b8"></div>
+          </div>
+          <span class="pf-val" style="color:#94a3b8">${fmtVal(h.peer_median, h.unit)}</span>
+        </div>
+        <p style="font-size:10.5px;color:#94a3b8;margin-top:6px">
+          Approved-borrower range: ${fmtVal(h.peer_p25, h.unit)} – ${fmtVal(h.peer_p75, h.unit)}
+        </p>
+      </div>`;
+  });
+}
+
+// ── Counterfactuals ────────────────────────────────────────────────────────
+
+function renderCounterfactuals(cfs, currentGrade) {
+  const list = document.getElementById('cfList');
+  if (!cfs || cfs.length === 0) {
+    list.innerHTML = '<p style="font-size:13px;color:#64748b">No improvement scenarios available.</p>';
+    return;
+  }
+
+  const difficulty = ['', 'Low', 'Moderate', 'Challenging', 'Significant'];
+  const timeline   = (tl) => tl ? `${tl[0]}–${tl[1]} months` : '—';
+
+  cfs.forEach((cf, idx) => {
+    const isCombined = cf.feature === '_combined';
+    const gradeChanged = cf.current_grade !== cf.target_grade;
+
+    const headline = isCombined
+      ? `Combined: all weak metrics to approved-borrower P75`
+      : `${cf.display_name}: ${cf.direction === 'decrease' ? 'reduce' : 'improve'} from ${cf.current_value?.toFixed(2)} to ${cf.target_value?.toFixed(2)}`;
+
+    const gradeLabel = gradeChanged
+      ? `Grade: <strong>${cf.current_grade}</strong> → <strong>${cf.target_grade}</strong>`
+      : `Grade unchanged at <strong>${cf.current_grade}</strong>`;
+
+    list.innerHTML += `
+      <div class="cf-card${isCombined ? ' combined' : ''}">
+        <div class="cf-rank${isCombined ? ' combined-icon' : ''}">${isCombined ? '★' : idx + 1}</div>
+        <div class="cf-body">
+          <div class="cf-headline">${headline}</div>
+          <div class="cf-action">${cf.action_text || ''}</div>
+          <div class="cf-difficulty" style="margin-top:6px">
+            <span>Difficulty: <strong>${difficulty[cf.difficulty] || '—'}</strong></span>
+            &nbsp;·&nbsp;
+            <span>Timeline: <strong>${timeline(cf.timeline_months)}</strong></span>
+          </div>
+        </div>
+        <div class="cf-impact">
+          <div class="cf-delta">-${cf.pd_reduction_pp?.toFixed(1)}pp</div>
+          <div class="cf-grade-change">${gradeLabel}</div>
+        </div>
+      </div>`;
+  });
+}
+
+// ── AIRB KPIs ──────────────────────────────────────────────────────────────
+
+function renderAirb(f) {
+  const grid = document.getElementById('airbGrid');
+  const kpis = [
+    { val: fmtCurrency(f.inputs?.exposure),        label: 'Exposure (EAD)',       sub: 'Loan amount at risk' },
+    { val: f.lgd?.lgd_percentage != null ? `${f.lgd.lgd_percentage.toFixed(1)}%` : '—', label: 'LGD',            sub: f.lgd?.seniority || '' },
+    { val: f.rwa?.correlation_r != null  ? f.rwa.correlation_r.toFixed(4) : '—',        label: 'Correlation (R)',  sub: 'Basel III AIRB' },
+    { val: f.rwa?.maturity_adj != null   ? f.rwa.maturity_adj.toFixed(3)  : '—',        label: 'Maturity Adj.',   sub: `M = ${f.inputs?.maturity?.toFixed(1) || '—'}y` },
+    { val: f.rwa?.risk_weight_pct != null ? `${f.rwa.risk_weight_pct.toFixed(1)}%` : '—', label: 'Risk Weight',   sub: 'AIRB formula' },
+    { val: fmtCurrency(f.rwa?.rwa),                label: 'Risk-Weighted Assets', sub: 'EAD × RW' },
+    { val: fmtCurrency(f.rwa?.capital_required),   label: 'Capital Required',     sub: '8% of RWA' },
+    { val: f.el?.percentage != null ? `${f.el.percentage.toFixed(3)}%` : '—',           label: 'Expected Loss %',  sub: 'PD × LGD' },
+  ];
+  kpis.forEach(k => {
+    grid.innerHTML += `
+      <div class="airb-kpi">
+        <div class="kpi-val">${k.val}</div>
+        <div class="kpi-label">${k.label}</div>
+        <div class="kpi-sub">${k.sub}</div>
+      </div>`;
+  });
+}
+
+// ── Pathway A: Restructure Scenario ───────────────────────────────────────
+
+let _currentFindings = null;
+
+function initPathwayA(f) {
+  _currentFindings = f;
+  const inp = f.inputs || {};
+
+  // Map Title Case seniority → select option value
+  const senMap = {
+    'Senior Secured':   'senior_secured',
+    'Senior Unsecured': 'senior_unsecured',
+    'Subordinated':     'subordinated',
+    'Junior':           'junior',
+  };
+
+  const expEl = document.getElementById('pwa-exposure');
+  const senEl = document.getElementById('pwa-seniority');
+  const ctEl  = document.getElementById('pwa-collateral-type');
+  const cvEl  = document.getElementById('pwa-collateral-value');
+  const matEl = document.getElementById('pwa-maturity');
+
+  if (expEl) expEl.value = inp.exposure || 1000000;
+  if (senEl) senEl.value = senMap[inp.seniority] || 'senior_unsecured';
+  if (ctEl)  ctEl.value  = inp.collateral_type  || 'None';
+  if (cvEl)  cvEl.value  = inp.collateral_value  || 0;
+  if (matEl) matEl.value = typeof inp.maturity === 'number' ? inp.maturity.toFixed(1) : 3;
+}
+
+window.runRestructureQuote = async function() {
+  if (!_currentFindings) return;
+
+  const btn     = document.getElementById('pwaBtn');
+  const origTxt = btn.textContent;
+  btn.textContent = '⏳ Calculating…';
+  btn.disabled = true;
+
+  const inp = _currentFindings.inputs;
+
+  const proposedInputs = {
+    // Financial ratios unchanged from original assessment
+    de_ratio:          inp.de_ratio,
+    interest_coverage: inp.interest_coverage,
+    profitability:     inp.profitability,
+    liquidity_ratio:   inp.liquidity_ratio,
+    // Deal structure from form
+    exposure:        parseFloat(document.getElementById('pwa-exposure').value)        || inp.exposure,
+    seniority:       document.getElementById('pwa-seniority').value,
+    collateral_type: document.getElementById('pwa-collateral-type').value,
+    collateral_value:parseFloat(document.getElementById('pwa-collateral-value').value)|| 0,
+    maturity:        parseFloat(document.getElementById('pwa-maturity').value)        || inp.maturity,
+    borrower_id:     inp.borrower_id || 'restructure',
+  };
+
+  const resultEl = document.getElementById('pwaResult');
+  resultEl.style.display = 'block';
+  resultEl.innerHTML = `<div style="padding:16px;text-align:center;color:#64748b;font-size:13px">
+      Calculating restructured scenario…</div>`;
+
+  try {
+    const sumRes = await fetch('/api/generate-report', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(proposedInputs),
+    });
+    if (!sumRes.ok) throw new Error('API ' + sumRes.status);
+    const summary = await sumRes.json();
+
+    // Fetch full findings for LGD / RWA detail
+    let proposed = null;
+    if (summary.report_id) {
+      const fullRes = await fetch(`/api/get-report/${summary.report_id}`);
+      if (fullRes.ok) proposed = await fullRes.json();
+    }
+
+    renderRestructureComparison(_currentFindings, summary, proposed);
+  } catch (e) {
+    resultEl.innerHTML = `<div style="padding:14px;background:#fef2f2;border-radius:8px;
+        color:#dc2626;font-size:13px">Re-quote failed: ${e.message}</div>`;
+  } finally {
+    btn.textContent = origTxt;
+    btn.disabled = false;
+  }
+};
+
+function _gradeColor(g) {
+  return ['AAA','AA','A','BBB'].includes(g) ? '#16a34a'
+       : ['BB','B'].includes(g)             ? '#d97706'
+       :                                      '#dc2626';
+}
+
+function _decColor(d) {
+  return d === 'APPROVE' ? '#16a34a' : d === 'REFER' ? '#d97706' : '#dc2626';
+}
+
+function _delta(orig, prop, lowerBetter) {
+  if (typeof orig !== 'number' || typeof prop !== 'number') return '';
+  const diff = prop - orig;
+  if (Math.abs(diff) < 0.005) return '<span style="color:#94a3b8;font-weight:600">—</span>';
+  const improved = lowerBetter ? diff < 0 : diff > 0;
+  const color = improved ? '#16a34a' : '#dc2626';
+  const arrow = diff > 0 ? '▲' : '▼';
+  return `<span style="color:${color};font-weight:700;font-size:11px">${arrow} ${Math.abs(diff).toFixed(2)}</span>`;
+}
+
+function _compRow(label, val, sub) {
+  return `<div style="margin-bottom:10px">
+    <span style="font-size:10.5px;color:#94a3b8;display:block;margin-bottom:1px">${label}</span>
+    <span style="font-size:13px;font-weight:600;color:#1a2e4a">${val}</span>
+    ${sub ? `<span style="font-size:10px;color:#94a3b8;margin-left:5px">${sub}</span>` : ''}
+  </div>`;
+}
+
+function _compRowD(label, val, sub, dHtml) {
+  return `<div style="margin-bottom:10px;display:flex;justify-content:space-between;align-items:flex-start">
+    <div>
+      <span style="font-size:10.5px;color:#94a3b8;display:block;margin-bottom:1px">${label}</span>
+      <span style="font-size:13px;font-weight:600;color:#1a2e4a">${val}</span>
+      ${sub ? `<span style="font-size:10px;color:#94a3b8;margin-left:5px">${sub}</span>` : ''}
+    </div>
+    <div style="padding-top:14px">${dHtml}</div>
+  </div>`;
+}
+
+function renderRestructureComparison(origFindings, proposedSummary, proposedFindings) {
+  const el = document.getElementById('pwaResult');
+
+  const O = {
+    grade:    origFindings.rating?.grade || '—',
+    label:    origFindings.rating?.label || '',
+    pd:       (origFindings.pd?.point || 0) * 100,
+    pdBand:   `${((origFindings.pd?.low  || 0)*100).toFixed(1)}–${((origFindings.pd?.high||0)*100).toFixed(1)}%`,
+    lgd:      origFindings.lgd?.lgd_percentage,
+    el:       origFindings.el?.amount_inr || 0,
+    rate:     origFindings.pricing?.indicative_rate_pct || 0,
+    rwa:      origFindings.rwa?.rwa || 0,
+    decision: origFindings.recommendation?.decision || '—',
+    decLabel: origFindings.recommendation?.decision_label || '—',
+  };
+
+  const P = {
+    grade:    proposedSummary.grade || '—',
+    label:    proposedSummary.grade_label || '',
+    pd:       proposedSummary.pd_pct || 0,
+    pdBand:   `${(proposedSummary.pd_low_pct||0).toFixed(1)}–${(proposedSummary.pd_high_pct||0).toFixed(1)}%`,
+    lgd:      proposedFindings?.lgd?.lgd_percentage,
+    el:       proposedSummary.el_amount_inr || 0,
+    rate:     proposedSummary.rate_pct || 0,
+    rwa:      proposedFindings?.rwa?.rwa || 0,
+    decision: proposedSummary.decision || '—',
+    decLabel: proposedSummary.decision_label || '—',
+  };
+
+  // Decision change banner
+  const decOrder = ['DECLINE','REFER','APPROVE'];
+  const oIdx = decOrder.indexOf(O.decision);
+  const pIdx = decOrder.indexOf(P.decision);
+  const decChanged  = O.decision !== P.decision;
+  const decImproved = pIdx > oIdx;
+
+  let banner = '';
+  if (decChanged) {
+    const c  = decImproved ? '#16a34a' : '#dc2626';
+    const bg = decImproved ? '#dcfce7' : '#fee2e2';
+    const icon = decImproved ? '⬆' : '⬇';
+    banner = `<div style="padding:12px 18px;border-radius:8px;margin-bottom:16px;
+         background:${bg};border:1px solid ${c}33;display:flex;align-items:center;gap:12px">
+      <span style="font-size:1.5em">${icon}</span>
+      <div>
+        <strong style="color:${c};font-size:13px">
+          Decision ${decImproved ? 'Upgrade' : 'Downgrade'}: ${O.decision} → ${P.decision}
+        </strong>
+        <p style="font-size:12px;color:#64748b;margin-top:2px">
+          ${decImproved
+            ? 'This restructuring is sufficient to improve the credit decision.'
+            : 'This restructuring worsens the credit outcome — review the changes carefully.'}
+        </p>
+      </div>
+    </div>`;
+  }
+
+  const lgdFmt = (v) => typeof v === 'number' ? v.toFixed(1) + '%' : '—';
+
+  el.innerHTML = banner + `
+  <div style="display:grid;grid-template-columns:1fr 36px 1fr;gap:0;align-items:start">
+
+    <!-- Original card -->
+    <div style="background:#f8fafc;border:1.5px solid ${_gradeColor(O.grade)}33;
+                border-radius:12px 0 0 12px;padding:18px 20px">
+      <p style="font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;
+                letter-spacing:.07em;margin-bottom:10px">Current Structure</p>
+      <div style="font-size:2.2em;font-weight:800;color:${_gradeColor(O.grade)};line-height:1">${O.grade}</div>
+      <div style="font-size:11px;color:#94a3b8;margin-bottom:14px">${O.label}</div>
+      ${_compRow('PD',       O.pd.toFixed(1)+'%',   O.pdBand)}
+      ${_compRow('LGD',      lgdFmt(O.lgd),          '')}
+      ${_compRow('Exp. Loss',fmtCurrency(O.el),       '')}
+      ${_compRow('Rate',     O.rate.toFixed(2)+'%',  '')}
+      ${_compRow('RWA',      fmtCurrency(O.rwa),      '')}
+      <div style="margin-top:14px">
+        <span style="background:${_decColor(O.decision)}22;color:${_decColor(O.decision)};
+                     padding:5px 14px;border-radius:20px;font-size:11.5px;font-weight:700">
+          ${O.decision}
+        </span>
+      </div>
+    </div>
+
+    <!-- Arrow divider -->
+    <div style="display:flex;align-items:center;justify-content:center;height:100%;
+                background:#f1f5f9;font-size:18px;color:#94a3b8;padding:0">→</div>
+
+    <!-- Proposed card -->
+    <div style="background:#f8fafc;
+                border:1.5px solid ${_gradeColor(P.grade)}55;
+                border-left:none;border-radius:0 12px 12px 0;padding:18px 20px;
+                ${decChanged && decImproved ? 'border-color:#16a34a;box-shadow:2px 0 0 0 #16a34a,0 -1px 0 0 #16a34a,0 1px 0 0 #16a34a;' : ''}">
+      <p style="font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;
+                letter-spacing:.07em;margin-bottom:10px">Proposed Structure</p>
+      <div style="font-size:2.2em;font-weight:800;color:${_gradeColor(P.grade)};line-height:1">${P.grade}</div>
+      <div style="font-size:11px;color:#94a3b8;margin-bottom:14px">${P.label}</div>
+      ${_compRowD('PD',       P.pd.toFixed(1)+'%',   P.pdBand,         _delta(O.pd,   P.pd,  true))}
+      ${_compRowD('LGD',      lgdFmt(P.lgd),          '',              typeof P.lgd==='number'&&typeof O.lgd==='number' ? _delta(O.lgd,P.lgd,true) : '')}
+      ${_compRowD('Exp. Loss',fmtCurrency(P.el),       '',              _delta(O.el,   P.el,  true))}
+      ${_compRowD('Rate',     P.rate.toFixed(2)+'%',  '',              _delta(O.rate, P.rate,true))}
+      ${_compRowD('RWA',      fmtCurrency(P.rwa),      '',              _delta(O.rwa,  P.rwa, true))}
+      <div style="margin-top:14px">
+        <span style="background:${_decColor(P.decision)}22;color:${_decColor(P.decision)};
+                     padding:5px 14px;border-radius:20px;font-size:11.5px;font-weight:700">
+          ${P.decision}
+        </span>
+      </div>
+    </div>
+  </div>
+  <p style="font-size:11px;color:#94a3b8;margin-top:10px;text-align:right">
+    ▲/▼ deltas relative to current structure. PD unchanged (driven by financial fundamentals).
+  </p>`;
+}
+
+// ── Init ───────────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', loadReport);
+</script>
+</body>
+</html>

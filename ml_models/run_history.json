@@ -1,0 +1,254 @@
+[
+  {
+    "run_id": "run_20260608_221023",
+    "timestamp": "2026-06-08T22:10:23",
+    "triggered_by": "manual",
+    "status": "success",
+    "files_used": [
+      {
+        "filename": "axis_bank_2024.csv",
+        "rows": 2000
+      },
+      {
+        "filename": "bank_of_baroda_2024.csv",
+        "rows": 1800
+      },
+      {
+        "filename": "hdfc_bank_2024.csv",
+        "rows": 2500
+      },
+      {
+        "filename": "icici_bank_2024.csv",
+        "rows": 2800
+      },
+      {
+        "filename": "pnb_2024.csv",
+        "rows": 2200
+      },
+      {
+        "filename": "sbi_2024.csv",
+        "rows": 3000
+      }
+    ],
+    "files_skipped": [],
+    "total_rows": 14300,
+    "train_rows": 11440,
+    "test_rows": 2860,
+    "metrics": {
+      "r2": 0.7013,
+      "rmse": 0.014818,
+      "mae": 0.011877,
+      "auc_roc": 0.9552,
+      "accuracy": 0.8024,
+      "precision": 0.3005,
+      "recall": 0.9558,
+      "f1": 0.4573
+    },
+    "confusion_matrix": [
+      [
+        2057,
+        554
+      ],
+      [
+        11,
+        238
+      ]
+    ],
+    "model_promoted": false,
+    "duration_seconds": 1.77,
+    "error": null
+  },
+  {
+    "run_id": "run_20260607_224357",
+    "timestamp": "2026-06-07T22:43:57",
+    "triggered_by": "manual",
+    "status": "success",
+    "files_used": [
+      {
+        "filename": "axis_bank_2024.csv",
+        "rows": 2000
+      },
+      {
+        "filename": "bank_of_baroda_2024.csv",
+        "rows": 1800
+      },
+      {
+        "filename": "hdfc_bank_2024.csv",
+        "rows": 2500
+      },
+      {
+        "filename": "icici_bank_2024.csv",
+        "rows": 2800
+      },
+      {
+        "filename": "pnb_2024.csv",
+        "rows": 2200
+      },
+      {
+        "filename": "sbi_2024.csv",
+        "rows": 3000
+      }
+    ],
+    "files_skipped": [],
+    "total_rows": 14300,
+    "train_rows": 11440,
+    "test_rows": 2860,
+    "metrics": {
+      "r2": 0.7013,
+      "rmse": 0.014818,
+      "mae": 0.011877,
+      "auc_roc": 0.9552,
+      "accuracy": 0.8024,
+      "precision": 0.3005,
+      "recall": 0.9558,
+      "f1": 0.4573
+    },
+    "confusion_matrix": [
+      [
+        2057,
+        554
+      ],
+      [
+        11,
+        238
+      ]
+    ],
+    "model_promoted": false,
+    "duration_seconds": 1.45,
+    "error": null
+  },
+  {
+    "run_id": "run_20260607_220106",
+    "timestamp": "2026-06-07T22:01:06",
+    "triggered_by": "manual",
+    "status": "success",
+    "files_used": [
+      {
+        "filename": "axis_bank_2024.csv",
+        "rows": 2000
+      },
+      {
+        "filename": "bank_of_baroda_2024.csv",
+        "rows": 1800
+      },
+      {
+        "filename": "hdfc_bank_2024.csv",
+        "rows": 2500
+      },
+      {
+        "filename": "icici_bank_2024.csv",
+        "rows": 2800
+      },
+      {
+        "filename": "pnb_2024.csv",
+        "rows": 2200
+      },
+      {
+        "filename": "sbi_2024.csv",
+        "rows": 3000
+      }
+    ],
+    "files_skipped": [],
+    "total_rows": 14300,
+    "train_rows": 11440,
+    "test_rows": 2860,
+    "metrics": {
+      "r2": 0.7013,
+      "rmse": 0.014818,
+      "mae": 0.011877,
+      "auc_roc": 0.9552,
+      "accuracy": 0.8024,
+      "precision": 0.3005,
+      "recall": 0.9558,
+      "f1": 0.4573
+    },
+    "confusion_matrix": [
+      [
+        2057,
+        554
+      ],
+      [
+        11,
+        238
+      ]
+    ],
+    "model_promoted": false,
+    "duration_seconds": 1.39,
+    "error": null
+  },
+  {
+    "run_id": "run_20260607_215839",
+    "timestamp": "2026-06-07T21:58:39",
+    "triggered_by": "manual",
+    "status": "failed",
+    "files_used": [],
+    "files_skipped": [],
+    "total_rows": 0,
+    "train_rows": 0,
+    "test_rows": 0,
+    "metrics": {},
+    "confusion_matrix": [],
+    "model_promoted": false,
+    "duration_seconds": 0.0,
+    "error": "Traceback (most recent call last):\n  File \"C:\\Users\\Arnav\\OneDrive\\Desktop\\Daily reading\\Banking_Credit_Risk\\ml_models\\trainer.py\", line 381, in run_training\n    merged, files_used, files_skip, dupes = load_and_merge()\n  File \"C:\\Users\\Arnav\\OneDrive\\Desktop\\Daily reading\\Banking_Credit_Risk\\ml_models\\trainer.py\", line 177, in load_and_merge\n    raise ValueError(\"No valid training files found in data/training/\")\nValueError: No valid training files found in data/training/\n"
+  },
+  {
+    "run_id": "run_20260607_215317",
+    "timestamp": "2026-06-07T21:53:17",
+    "triggered_by": "manual",
+    "status": "success",
+    "files_used": [
+      {
+        "filename": "axis_bank_2024.csv",
+        "rows": 2000
+      },
+      {
+        "filename": "bank_of_baroda_2024.csv",
+        "rows": 1800
+      },
+      {
+        "filename": "hdfc_bank_2024.csv",
+        "rows": 2500
+      },
+      {
+        "filename": "icici_bank_2024.csv",
+        "rows": 2800
+      },
+      {
+        "filename": "pnb_2024.csv",
+        "rows": 2200
+      },
+      {
+        "filename": "sbi_2024.csv",
+        "rows": 3000
+      }
+    ],
+    "files_skipped": [],
+    "total_rows": 14300,
+    "train_rows": 11440,
+    "test_rows": 2860,
+    "metrics": {
+      "r2": 0.7013,
+      "rmse": 0.014818,
+      "mae": 0.011877,
+      "auc_roc": 0.9552,
+      "accuracy": 0.8024,
+      "precision": 0.3005,
+      "recall": 0.9558,
+      "f1": 0.4573
+    },
+    "confusion_matrix": [
+      [
+        2057,
+        554
+      ],
+      [
+        11,
+        238
+      ]
+    ],
+    "model_promoted": true,
+    "duration_seconds": 1.36,
+    "error": null
+  }
+]

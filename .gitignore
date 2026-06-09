@@ -38,3 +38,37 @@ htmlcov/
 
 # Screenshots
 app-screenshot.png
+
+# Virtual environments
+venv/
+venv310/
+
+# Local dev launchers (Windows only)
+run_flask.ps1
+
+# Old standalone training script (superseded by ml_models/trainer.py)
+train_pd_model.py
+
+# Development & session documentation
+DEPLOYMENT_GUIDE.md
+ML_MODEL_GUIDE.md
+PROJECT_STRUCTURE.md
+README_DEPLOYMENT.md
+
+# Legacy / developer-only pages (kept locally for reference)
+public/api-test.html
+public/pd-calculator.html
+
+# Superseded test scripts (kept locally, use smoke_tests.py for CI)
+testing/direct_api_test.py
+testing/test_airb_with_delays.py
+testing/test_complete_flow.py
+testing/test_frontend_integration.py
+testing/test_mixed_method_scenarios.py
+testing/test_phase2_e2e.py
+testing/test_simple_workflow.py
+
+# Data runtime directories (regenerated at runtime, not committed)
+data/archive/
+data/synthetic/
+data/runs/

@@ -1,14 +1,35 @@
 {
   "model_type": "RandomForestRegressor",
+  "version": "run_20260607_215317",
+  "date_trained": "2026-06-07T21:53:17",
+  "triggered_by": "manual",
   "features": [
-    "D/E Ratio",
-    "Interest Coverage",
-    "Profitability",
-    "Liquidity Ratio"
+    "de_ratio",
+    "interest_coverage",
+    "profitability",
+    "liquidity_ratio"
   ],
-  "target": "PD (Probability of Default)",
-  "date_created": "2026-06-05",
-  "version": "1.0.0",
-  "data_type": "Synthetic (Demo)",
-  "note": "Replace with real data in production"
+  "target": "pd_observed",
+  "metrics": {
+    "r2": 0.7013,
+    "rmse": 0.014818,
+    "mae": 0.011877,
+    "auc_roc": 0.9552,
+    "accuracy": 0.8024,
+    "precision": 0.3005,
+    "recall": 0.9558,
+    "f1": 0.4573
+  },
+  "hyperparameters": {
+    "n_estimators": 100,
+    "max_depth": null,
+    "min_samples_split": 2,
+    "min_samples_leaf": 1,
+    "max_features": "sqrt",
+    "bootstrap": true,
+    "random_state": 42
+  },
+  "rows_trained": 11440,
+  "currency": "INR",
+  "note": "Trained on Indian bank synthetic data"
 }
