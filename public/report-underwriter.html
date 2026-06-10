@@ -96,8 +96,7 @@
     <div class="report-section">
       <div class="section-title">2 &mdash; Five C's Credit Assessment</div>
       <div class="five-cs-grid" id="fiveCsGrid"></div>
-      <div class="five-cs-tabs" id="fiveCsTabs"></div>
-      <div id="fiveCsDetail"></div>
+      <div id="fiveCsTable"></div>
     </div>
 
     <!-- 3. Peer Comparison -->
@@ -454,54 +453,47 @@ function renderFiveCs(fiveCs) {
   const labels = { capacity:'Capacity', capital:'Capital', collateral:'Collateral', conditions:'Conditions', character:'Character' };
 
   const grid = document.getElementById('fiveCsGrid');
-  const tabs = document.getElementById('fiveCsTabs');
-  const det  = document.getElementById('fiveCsDetail');
+  const tableWrap = document.getElementById('fiveCsTable');
 
-  keys.forEach((key, idx) => {
-    const c = fiveCs[key] || {};
-    const score = c.score || 'NOT_ASSESSED';
-
-    // Score card
+  // ── Summary score cards ──────────────────────────────────────
+  keys.forEach(key => {
+    const score = (fiveCs[key] || {}).score || 'NOT_ASSESSED';
     grid.innerHTML += `
-      <div class="five-c-card" onclick="showFiveC('${key}')" style="cursor:pointer">
+      <div class="five-c-card">
         <div class="five-c-name">${labels[key]}</div>
         <div class="five-c-score score-${score}">${score.replace('_',' ')}</div>
       </div>`;
-
-    // Tab button
-    const btn = document.createElement('button');
-    btn.className = `five-c-tab-btn${idx === 0 ? ' active' : ''}`;
-    btn.id = `tab-${key}`;
-    btn.textContent = labels[key];
-    btn.onclick = () => showFiveC(key);
-    tabs.appendChild(btn);
-
-    // Detail panel
-    const panel = document.createElement('div');
-    panel.className = `five-c-tab${idx === 0 ? ' active' : ''}`;
-    panel.id = `panel-${key}`;
-    let rows = '';
-    (c.items || []).forEach(item => {
-      rows += `<tr><td>${item.label}</td><td><strong>${item.value}</strong>${item.benchmark ? ` <span style="color:#94a3b8;font-size:11px">(bench: ${item.benchmark})</span>` : ''}</td><td>${item.assessment || ''}</td></tr>`;
-    });
-    panel.innerHTML = `
-      <div class="five-c-print-header">
-        <span class="five-c-print-name">${labels[key]}</span>
-        <span class="five-c-score score-${score}" style="font-size:11px;padding:2px 10px">${score.replace('_',' ')}</span>
-      </div>
-      <table class="detail-table"><tbody>${rows}</tbody></table>`;
-    det.appendChild(panel);
   });
-}
 
-window.showFiveC = function(key) {
-  document.querySelectorAll('.five-c-tab').forEach(p => p.classList.remove('active'));
-  document.querySelectorAll('.five-c-tab-btn').forEach(b => b.classList.remove('active'));
-  const panel = document.getElementById(`panel-${key}`);
-  const btn   = document.getElementById(`tab-${key}`);
-  if (panel) panel.classList.add('active');
-  if (btn)   btn.classList.add('active');
-};
+  // ── Commentary block ─────────────────────────────────────────
+  let commentaryItems = [];
+  keys.forEach(key => {
+    const c = fiveCs[key] || {};
+    const items = (c.items || []).filter(i => i.assessment);
+    if (items.length === 0) return;
+    const label = labels[key];
+    const score = c.score || 'NOT_ASSESSED';
+    const points = items.map(i =>
+      `<div class="fcs-commentary-point"><strong>${i.label}:</strong> ${i.assessment}</div>`
+    ).join('');
+    commentaryItems.push(`
+      <div class="fcs-commentary-row">
+        <div class="fcs-commentary-meta">
+          <span class="fcs-commentary-cat">${label}</span>
+          <span class="fcs-commentary-score five-c-score score-${score}" style="font-size:10px;padding:1px 8px">${score.replace('_',' ')}</span>
+        </div>
+        <div class="fcs-commentary-text">${points}</div>
+      </div>`);
+  });
+
+  const commentary = commentaryItems.length ? `
+    <div class="fcs-commentary">
+      <div class="fcs-commentary-title">Assessment Commentary</div>
+      ${commentaryItems.join('')}
+    </div>` : '';
+
+  tableWrap.innerHTML = commentary;
+}
 
 // ── Peer Health Grid ───────────────────────────────────────────────────────
 
