@@ -1,0 +1,14 @@
+{
+  "name": "rm-e2e",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Self-contained Playwright E2E tests for the Relationship Management cockpit. Delete this whole folder to clean up.",
+  "scripts": {
+    "test": "playwright test",
+    "test:headed": "playwright test --headed",
+    "report": "playwright show-report"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.49.0"
+  }
+}
