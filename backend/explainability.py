@@ -14,7 +14,7 @@ CounterfactualEngine
 import numpy as np
 import pandas as pd
 
-from backend.feature_meta import FEATURE_ORDER, FEATURE_META
+from backend.feature_meta import FEATURE_ORDER, FEATURE_META, model_feature_frame
 from backend.rating_masterscale import pd_to_grade
 
 # ---------------------------------------------------------------------------
@@ -330,9 +330,10 @@ class CounterfactualEngine:
             ),
         }
 
-    @staticmethod
-    def _to_df(inputs: dict) -> pd.DataFrame:
-        return pd.DataFrame([{f: float(inputs.get(f, FEATURE_META[f]["baseline"])) for f in FEATURE_ORDER}])
+    def _to_df(self, inputs: dict) -> pd.DataFrame:
+        # Align to the model's expected feature set (handles the 21-feature model;
+        # falls back to the 4 ratios when no model is loaded).
+        return model_feature_frame(inputs, self._model)
 
     @staticmethod
     def _action_guidance(feat: str, current_val: float, target_val: float,

@@ -1,0 +1,2246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Banking Operations — India Banking Intelligence Platform</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=IBM+Plex+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+:root{
+  --navy:#0D1B2A;
+  --navy2:#162233;
+  --navy3:#1E3048;
+  --red:#E31837;
+  --red-dk:#B01229;
+  --white:#FFFFFF;
+  --off:#F4F6FA;
+  --border:#E2E8F0;
+  --t1:#0D1B2A;
+  --t2:#4A5568;
+  --t3:#8A9AB0;
+  --green:#10B981;
+  --amber:#F59E0B;
+  --sidebar:290px;
+}
+
+body{
+  font-family:'IBM Plex Sans',sans-serif;
+  background:var(--off);
+  color:var(--t1);
+  display:flex;
+  height:100vh;
+  overflow:hidden;
+}
+
+/* ── SIDEBAR ── */
+.sidebar{
+  width:var(--sidebar);
+  min-width:var(--sidebar);
+  background:var(--navy);
+  display:flex;
+  flex-direction:column;
+  height:100vh;
+  overflow:hidden;
+  position:relative;
+  z-index:20;
+}
+
+.sidebar::after{
+  content:'';
+  position:absolute;
+  inset:0;
+  background:
+    radial-gradient(ellipse at 10% 20%,rgba(227,24,55,0.07) 0%,transparent 60%),
+    radial-gradient(ellipse at 90% 80%,rgba(26,107,255,0.05) 0%,transparent 60%);
+  pointer-events:none;
+}
+
+.sidebar-header{
+  padding:26px 22px 18px;
+  border-bottom:1px solid rgba(255,255,255,0.07);
+  position:relative;
+  z-index:1;
+}
+
+.logo-row{
+  display:flex;
+  align-items:center;
+  gap:12px;
+}
+
+.logo-mark{
+  width:38px;
+  height:38px;
+  background:var(--red);
+  border-radius:10px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-family:'Syne',sans-serif;
+  font-weight:800;
+  font-size:13px;
+  color:#fff;
+  letter-spacing:-0.5px;
+  flex-shrink:0;
+  box-shadow:0 4px 12px rgba(227,24,55,0.4);
+}
+
+.logo-text{
+  display:flex;
+  flex-direction:column;
+}
+
+.logo-name{
+  font-family:'Syne',sans-serif;
+  font-weight:700;
+  font-size:15px;
+  color:#fff;
+  letter-spacing:-0.3px;
+  line-height:1.2;
+}
+
+.logo-sub{
+  font-size:10px;
+  color:rgba(255,255,255,0.35);
+  letter-spacing:1.2px;
+  text-transform:uppercase;
+  margin-top:2px;
+}
+
+.sidebar-section-label{
+  padding:16px 22px 8px;
+  font-size:9.5px;
+  font-weight:600;
+  letter-spacing:2px;
+  text-transform:uppercase;
+  color:rgba(255,255,255,0.25);
+  position:relative;
+  z-index:1;
+}
+
+.customer-list{
+  flex:1;
+  overflow-y:auto;
+  padding:4px 10px 10px;
+  scrollbar-width:none;
+  position:relative;
+  z-index:1;
+}
+.customer-list::-webkit-scrollbar{display:none}
+
+.cust-card{
+  display:flex;
+  align-items:center;
+  gap:11px;
+  padding:11px 12px;
+  border-radius:11px;
+  cursor:pointer;
+  transition:background 0.18s,border 0.18s;
+  margin-bottom:3px;
+  border:1px solid transparent;
+  position:relative;
+}
+
+.cust-card:hover{background:rgba(255,255,255,0.05)}
+
+.cust-card.active{
+  background:rgba(227,24,55,0.13);
+  border-color:rgba(227,24,55,0.28);
+}
+
+.cust-card.active .cname{color:#fff}
+.cust-card.active .ccity{color:rgba(255,255,255,0.55)}
+.cust-card.active .c-avatar{background:var(--red);color:#fff;box-shadow:0 3px 10px rgba(227,24,55,0.4)}
+
+.c-avatar{
+  width:38px;
+  height:38px;
+  border-radius:50%;
+  background:rgba(255,255,255,0.08);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-family:'Syne',sans-serif;
+  font-weight:700;
+  font-size:13px;
+  color:rgba(255,255,255,0.6);
+  flex-shrink:0;
+  transition:all 0.2s;
+}
+
+.cinfo{flex:1;min-width:0}
+
+.cname{
+  font-size:13px;
+  font-weight:500;
+  color:rgba(255,255,255,0.75);
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  line-height:1.3;
+}
+
+.ccity{
+  font-size:11px;
+  color:rgba(255,255,255,0.3);
+  margin-top:1px;
+}
+
+.h-dot{
+  width:7px;
+  height:7px;
+  border-radius:50%;
+  flex-shrink:0;
+}
+.h-dot.good{background:var(--green);box-shadow:0 0 5px rgba(16,185,129,0.5)}
+.h-dot.watch{background:var(--amber);box-shadow:0 0 5px rgba(245,158,11,0.5)}
+.h-dot.def{background:var(--red);box-shadow:0 0 5px rgba(227,24,55,0.5)}
+
+.sidebar-footer{
+  padding:14px 22px;
+  border-top:1px solid rgba(255,255,255,0.06);
+  font-size:10px;
+  color:rgba(255,255,255,0.2);
+  position:relative;
+  z-index:1;
+}
+
+/* ── MAIN ── */
+.main{
+  flex:1;
+  overflow-y:auto;
+  display:flex;
+  flex-direction:column;
+  min-width:0;
+}
+
+.main::-webkit-scrollbar{width:4px}
+.main::-webkit-scrollbar-track{background:transparent}
+.main::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+
+.topbar{
+  background:#fff;
+  border-bottom:1px solid var(--border);
+  padding:0 32px;
+  height:58px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  position:sticky;
+  top:0;
+  z-index:10;
+  flex-shrink:0;
+}
+
+.topbar-left{
+  display:flex;
+  align-items:center;
+  gap:14px;
+}
+
+.topbar-title{
+  font-family:'Syne',sans-serif;
+  font-weight:700;
+  font-size:15px;
+  color:var(--t1);
+}
+
+.topbar-pill{
+  font-size:10.5px;
+  font-weight:600;
+  padding:3px 10px;
+  border-radius:100px;
+  letter-spacing:0.3px;
+}
+
+.topbar-date{
+  font-size:11.5px;
+  color:var(--t3);
+  font-family:'IBM Plex Mono',monospace;
+}
+
+.content{
+  padding:26px 32px 40px;
+  display:flex;
+  flex-direction:column;
+  gap:26px;
+}
+
+/* ── SECTION LABEL ── */
+.sl{
+  font-size:9.5px;
+  font-weight:600;
+  letter-spacing:2px;
+  text-transform:uppercase;
+  color:var(--t3);
+  margin-bottom:13px;
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
+.sl::after{content:'';flex:1;height:1px;background:var(--border)}
+
+/* ── PROFILE CARD ── */
+.profile-card{
+  background:#fff;
+  border-radius:16px;
+  padding:26px 30px;
+  display:flex;
+  align-items:center;
+  gap:24px;
+  border:1px solid var(--border);
+  position:relative;
+  overflow:hidden;
+}
+
+.profile-card::before{
+  content:'';
+  position:absolute;
+  top:0;left:0;right:0;
+  height:3px;
+  background:linear-gradient(90deg,var(--red),#FF6B6B);
+}
+
+.profile-card::after{
+  content:'';
+  position:absolute;
+  top:0;right:0;
+  width:200px;height:100%;
+  background:radial-gradient(ellipse at right center,rgba(227,24,55,0.03) 0%,transparent 70%);
+  pointer-events:none;
+}
+
+.p-avatar{
+  width:70px;
+  height:70px;
+  border-radius:50%;
+  background:linear-gradient(135deg,var(--navy),var(--navy3));
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-family:'Syne',sans-serif;
+  font-weight:800;
+  font-size:24px;
+  color:#fff;
+  flex-shrink:0;
+}
+
+.p-main{flex:1;min-width:0}
+
+.p-name{
+  font-family:'Syne',sans-serif;
+  font-weight:700;
+  font-size:22px;
+  color:var(--t1);
+  letter-spacing:-0.5px;
+  margin-bottom:10px;
+}
+
+.p-meta{
+  display:flex;
+  gap:22px;
+  flex-wrap:wrap;
+}
+
+.meta-item{display:flex;flex-direction:column;gap:2px}
+
+.meta-label{
+  font-size:9.5px;
+  font-weight:600;
+  text-transform:uppercase;
+  letter-spacing:0.8px;
+  color:var(--t3);
+}
+
+.meta-value{
+  font-size:13px;
+  color:var(--t2);
+  font-weight:500;
+}
+
+.meta-mono{
+  font-family:'IBM Plex Mono',monospace;
+  font-size:11.5px;
+}
+
+.p-right{
+  display:flex;
+  flex-direction:column;
+  align-items:flex-end;
+  gap:10px;
+  flex-shrink:0;
+}
+
+.h-badge{
+  padding:6px 16px;
+  border-radius:100px;
+  font-size:11.5px;
+  font-weight:600;
+  letter-spacing:0.3px;
+}
+.h-badge.good{background:#D1FAE5;color:#065F46}
+.h-badge.watch{background:#FEF3C7;color:#92400E}
+.h-badge.def{background:#FEE2E2;color:#991B1B}
+
+.p-email{
+  font-family:'IBM Plex Mono',monospace;
+  font-size:11px;
+  color:var(--t3);
+}
+
+/* ── ACCOUNTS ── */
+.acc-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(210px,1fr));
+  gap:14px;
+}
+
+.acc-card{
+  background:#fff;
+  border-radius:14px;
+  padding:20px 22px;
+  border:1px solid var(--border);
+  transition:transform 0.2s,box-shadow 0.2s;
+  cursor:default;
+}
+
+.acc-card:hover{
+  transform:translateY(-3px);
+  box-shadow:0 10px 28px rgba(13,27,42,0.08);
+}
+
+.acc-top{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  margin-bottom:14px;
+}
+
+.acc-type-label{
+  font-size:10.5px;
+  font-weight:600;
+  text-transform:uppercase;
+  letter-spacing:0.8px;
+  color:var(--t3);
+}
+
+.acc-icon-box{
+  width:30px;
+  height:30px;
+  border-radius:8px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:15px;
+}
+
+.acc-balance{
+  font-family:'Syne',sans-serif;
+  font-weight:700;
+  font-size:20px;
+  color:var(--t1);
+  letter-spacing:-0.5px;
+  margin-bottom:5px;
+}
+
+.acc-id{
+  font-family:'IBM Plex Mono',monospace;
+  font-size:10.5px;
+  color:var(--t3);
+}
+
+.acc-status-dot{
+  display:inline-block;
+  width:6px;height:6px;
+  border-radius:50%;
+  background:var(--green);
+  margin-right:4px;
+  vertical-align:middle;
+}
+
+/* ── LOANS ── */
+.loans-list{display:flex;flex-direction:column;gap:14px}
+
+.loan-card{
+  background:#fff;
+  border-radius:14px;
+  padding:22px 26px;
+  border:1px solid var(--border);
+  transition:box-shadow 0.2s;
+}
+.loan-card:hover{box-shadow:0 6px 20px rgba(13,27,42,0.07)}
+
+.loan-header{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  margin-bottom:18px;
+  flex-wrap:wrap;
+  gap:8px;
+}
+
+.loan-title-group{display:flex;flex-direction:column;gap:4px}
+
+.loan-type-name{
+  font-family:'Syne',sans-serif;
+  font-weight:700;
+  font-size:16px;
+  color:var(--t1);
+}
+
+.loan-id-label{
+  font-family:'IBM Plex Mono',monospace;
+  font-size:11px;
+  color:var(--t3);
+}
+
+.loan-badges{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+
+.rate-badge{
+  background:var(--off);
+  border:1px solid var(--border);
+  padding:4px 10px;
+  border-radius:6px;
+  font-family:'IBM Plex Mono',monospace;
+  font-size:11.5px;
+  color:var(--t2);
+  font-weight:500;
+}
+
+.status-badge{
+  padding:4px 12px;
+  border-radius:100px;
+  font-size:11px;
+  font-weight:600;
+}
+.status-badge.active{background:#D1FAE5;color:#065F46}
+.status-badge.npa{background:#FEF3C7;color:#92400E}
+.status-badge.defaulted{background:#FEE2E2;color:#991B1B}
+
+.loan-stats{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:14px;
+  margin-bottom:18px;
+}
+
+.ls-label{
+  font-size:9.5px;
+  font-weight:600;
+  text-transform:uppercase;
+  letter-spacing:0.8px;
+  color:var(--t3);
+  margin-bottom:4px;
+}
+
+.ls-value{
+  font-size:15px;
+  font-weight:600;
+  color:var(--t1);
+}
+
+.prog-meta{
+  display:flex;
+  justify-content:space-between;
+  font-size:11px;
+  color:var(--t3);
+  margin-bottom:7px;
+}
+
+.prog-bar{
+  height:7px;
+  background:var(--border);
+  border-radius:100px;
+  overflow:hidden;
+}
+
+.prog-fill{
+  height:100%;
+  border-radius:100px;
+  transition:width 0.7s cubic-bezier(.4,0,.2,1);
+}
+.prog-fill.active{background:linear-gradient(90deg,#10B981,#34D399)}
+.prog-fill.npa{background:linear-gradient(90deg,#F59E0B,#FCD34D)}
+.prog-fill.defaulted{background:linear-gradient(90deg,#E31837,#F87171)}
+
+/* ── TRANSACTIONS ── */
+.txn-table{
+  background:#fff;
+  border-radius:14px;
+  border:1px solid var(--border);
+  overflow:hidden;
+}
+
+.txn-row{
+  display:grid;
+  grid-template-columns:120px 1fr 110px 130px;
+  align-items:center;
+  padding:13px 24px;
+  border-bottom:1px solid var(--border);
+  transition:background 0.13s;
+}
+.txn-row:last-child{border-bottom:none}
+.txn-row:not(.hdr):hover{background:var(--off)}
+
+.txn-row.hdr{
+  background:#FAFBFD;
+  font-size:9.5px;
+  font-weight:600;
+  text-transform:uppercase;
+  letter-spacing:1.2px;
+  color:var(--t3);
+  padding:11px 24px;
+}
+
+.txn-date{
+  font-family:'IBM Plex Mono',monospace;
+  font-size:11.5px;
+  color:var(--t3);
+}
+
+.txn-type-name{
+  font-size:13.5px;
+  font-weight:500;
+  color:var(--t1);
+}
+
+.txn-acc{
+  font-family:'IBM Plex Mono',monospace;
+  font-size:11px;
+  color:var(--t3);
+}
+
+.txn-amt{
+  font-family:'IBM Plex Mono',monospace;
+  font-size:13px;
+  font-weight:600;
+  text-align:right;
+}
+.txn-amt.cr{color:var(--green)}
+.txn-amt.dr{color:var(--red)}
+
+/* ── RISK ── */
+.risk-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:18px;
+}
+
+.risk-card{
+  background:#fff;
+  border-radius:14px;
+  padding:22px 24px;
+  border:1px solid var(--border);
+}
+
+.risk-card-title{
+  font-family:'Syne',sans-serif;
+  font-weight:600;
+  font-size:14px;
+  color:var(--t1);
+  margin-bottom:16px;
+}
+
+.pd-list{display:flex;flex-direction:column;gap:14px}
+
+.pd-item{}
+
+.pd-hdr{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-bottom:6px;
+}
+
+.pd-loan-tag{
+  font-family:'IBM Plex Mono',monospace;
+  font-size:11px;
+  color:var(--t2);
+}
+
+.pd-pct{
+  font-family:'IBM Plex Mono',monospace;
+  font-size:12px;
+  font-weight:600;
+}
+
+.pd-bar-bg{
+  height:8px;
+  background:var(--border);
+  border-radius:100px;
+  overflow:hidden;
+}
+
+.pd-bar-fill{
+  height:100%;
+  border-radius:100px;
+  transition:width 0.7s cubic-bezier(.4,0,.2,1);
+}
+
+.pd-legend{
+  margin-top:10px;
+  display:flex;
+  gap:14px;
+  flex-wrap:wrap;
+}
+
+.pd-legend span{
+  font-size:10.5px;
+  color:var(--t3);
+}
+
+.ratio-grid{
+  margin-top:14px;
+  border-top:1px solid var(--border);
+  padding-top:14px;
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+}
+
+.ratio-title{
+  font-size:9.5px;
+  font-weight:600;
+  text-transform:uppercase;
+  letter-spacing:1.2px;
+  color:var(--t3);
+  margin-bottom:4px;
+}
+
+.ratio-row-cards{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:8px;
+}
+
+.ratio-mini-card{
+  background:var(--off);
+  border-radius:9px;
+  padding:10px 12px;
+}
+
+.ratio-mini-id{
+  font-family:'IBM Plex Mono',monospace;
+  font-size:9.5px;
+  color:var(--t3);
+  margin-bottom:6px;
+}
+
+.ratio-mini-grid{
+  display:grid;
+  grid-template-columns:auto 1fr;
+  gap:3px 10px;
+  font-size:11px;
+}
+
+.rk{color:var(--t3)}
+.rv{font-weight:500;color:var(--t1);font-family:'IBM Plex Mono',monospace;font-size:10.5px}
+.rv.neg{color:var(--red)}
+.rv.pos{color:var(--green)}
+
+/* ── EMPTY / ANIM ── */
+.empty{
+  text-align:center;
+  padding:36px;
+  color:var(--t3);
+  font-size:14px;
+}
+
+@keyframes fadeUp{
+  from{opacity:0;transform:translateY(10px)}
+  to{opacity:1;transform:translateY(0)}
+}
+
+.fade-up{animation:fadeUp 0.3s ease forwards}
+
+/* ── RESPONSIVE ── */
+@media(max-width:960px){
+  :root{--sidebar:240px}
+  .loan-stats{grid-template-columns:1fr 1fr}
+  .risk-grid{grid-template-columns:1fr}
+  .txn-row{grid-template-columns:110px 1fr 120px}
+  .txn-acc{display:none}
+}
+
+@media(max-width:640px){
+  body{flex-direction:column}
+  .sidebar{width:100%;min-width:100%;height:auto}
+  .customer-list{flex-direction:row;display:flex;overflow-x:auto;padding:6px 10px;gap:6px}
+  .customer-list::-webkit-scrollbar{display:none}
+  .cust-card{min-width:150px;margin-bottom:0}
+  .main{height:calc(100vh - 170px)}
+  .content{padding:16px}
+  .p-meta{gap:14px}
+  .risk-grid{grid-template-columns:1fr}
+}
+
+/* ── DASHBOARD STYLES ── */
+.dash-nav{
+  margin:0 10px 6px;
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding:11px 12px;
+  border-radius:11px;
+  cursor:pointer;
+  border:1px solid transparent;
+  transition:all 0.18s;
+  position:relative;
+  z-index:1;
+}
+.dash-nav:hover{background:rgba(255,255,255,0.05)}
+.dash-nav.active{background:rgba(227,24,55,0.13);border-color:rgba(227,24,55,0.28)}
+.dash-nav.active .dash-nav-label{color:#fff}
+.dash-nav-icon{
+  width:38px;height:38px;
+  border-radius:50%;
+  background:rgba(255,255,255,0.08);
+  display:flex;align-items:center;justify-content:center;
+  font-size:16px;flex-shrink:0;
+  transition:all 0.2s;
+}
+.dash-nav.active .dash-nav-icon{background:var(--red);box-shadow:0 3px 10px rgba(227,24,55,0.4)}
+.dash-nav-label{font-size:13px;font-weight:500;color:rgba(255,255,255,0.75)}
+.dash-nav-sub{font-size:11px;color:rgba(255,255,255,0.3);margin-top:1px}
+
+.kpi-grid{
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:16px;
+}
+@media(max-width:900px){.kpi-grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:500px){.kpi-grid{grid-template-columns:1fr}}
+
+.kpi-card{
+  background:#fff;
+  border-radius:14px;
+  padding:20px 22px;
+  border:1px solid var(--border);
+  position:relative;
+  overflow:hidden;
+  transition:transform 0.2s,box-shadow 0.2s;
+}
+.kpi-card:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(13,27,42,0.08)}
+.kpi-card::before{
+  content:'';
+  position:absolute;
+  bottom:0;right:0;
+  width:80px;height:80px;
+  border-radius:50%;
+  opacity:0.06;
+}
+.kpi-card.red::before{background:var(--red)}
+.kpi-card.green::before{background:var(--green)}
+.kpi-card.amber::before{background:var(--amber)}
+.kpi-card.blue::before{background:#3B82F6}
+
+.kpi-icon{
+  font-size:20px;
+  margin-bottom:12px;
+  display:block;
+}
+.kpi-label{
+  font-size:10px;
+  font-weight:600;
+  text-transform:uppercase;
+  letter-spacing:1.2px;
+  color:var(--t3);
+  margin-bottom:6px;
+}
+.kpi-value{
+  font-family:'Syne',sans-serif;
+  font-weight:700;
+  font-size:26px;
+  color:var(--t1);
+  letter-spacing:-0.5px;
+  line-height:1.1;
+}
+.kpi-sub{
+  font-size:11.5px;
+  color:var(--t3);
+  margin-top:5px;
+}
+.kpi-trend{
+  display:inline-flex;
+  align-items:center;
+  gap:3px;
+  font-size:11px;
+  font-weight:600;
+  margin-top:5px;
+}
+.kpi-trend.up{color:var(--green)}
+.kpi-trend.warn{color:var(--amber)}
+.kpi-trend.down{color:var(--red)}
+
+.dash-charts-row{
+  display:grid;
+  grid-template-columns:1.4fr 1fr;
+  gap:18px;
+}
+@media(max-width:900px){.dash-charts-row{grid-template-columns:1fr}}
+
+.dash-chart-card{
+  background:#fff;
+  border-radius:14px;
+  padding:22px 24px;
+  border:1px solid var(--border);
+}
+.dash-chart-title{
+  font-family:'Syne',sans-serif;
+  font-weight:600;
+  font-size:14px;
+  color:var(--t1);
+  margin-bottom:4px;
+}
+.dash-chart-sub{
+  font-size:11px;
+  color:var(--t3);
+  margin-bottom:18px;
+}
+
+.dash-charts-row2{
+  display:grid;
+  grid-template-columns:1fr 1fr 1fr;
+  gap:18px;
+}
+@media(max-width:900px){.dash-charts-row2{grid-template-columns:1fr 1fr}}
+@media(max-width:600px){.dash-charts-row2{grid-template-columns:1fr}}
+
+.health-summary{display:flex;flex-direction:column;gap:12px;margin-top:4px}
+.hs-item{display:flex;align-items:center;gap:12px}
+.hs-bar-bg{flex:1;height:8px;background:var(--border);border-radius:100px;overflow:hidden}
+.hs-bar-fill{height:100%;border-radius:100px}
+.hs-label{font-size:12px;font-weight:500;color:var(--t2);min-width:90px}
+.hs-count{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--t3);min-width:20px;text-align:right}
+
+.txn-date-table{
+  background:#fff;
+  border-radius:14px;
+  border:1px solid var(--border);
+  overflow:hidden;
+}
+.tdt-title{
+  padding:16px 24px 12px;
+  font-family:'Syne',sans-serif;
+  font-weight:600;
+  font-size:14px;
+  color:var(--t1);
+  border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;
+}
+.tdt-subtitle{font-size:11px;color:var(--t3);font-family:'IBM Plex Sans',sans-serif;font-weight:400}
+.tdt-row{
+  display:grid;
+  grid-template-columns:140px 80px 1fr 130px;
+  align-items:center;
+  padding:12px 24px;
+  border-bottom:1px solid var(--border);
+  transition:background 0.13s;
+}
+.tdt-row:last-child{border-bottom:none}
+.tdt-row:not(.tdt-hdr):hover{background:var(--off)}
+.tdt-row.tdt-hdr{
+  background:#FAFBFD;
+  font-size:9.5px;font-weight:600;
+  text-transform:uppercase;letter-spacing:1.2px;
+  color:var(--t3);padding:10px 24px;
+}
+.tdt-date{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--t2)}
+.tdt-count-badge{
+  display:inline-flex;align-items:center;justify-content:center;
+  width:26px;height:26px;
+  border-radius:50%;
+  background:rgba(227,24,55,0.08);
+  color:var(--red);
+  font-family:'IBM Plex Mono',monospace;
+  font-size:11.5px;font-weight:600;
+}
+.tdt-types{font-size:12px;color:var(--t2)}
+.tdt-vol{font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;color:var(--t1);text-align:right}
+
+/* ── UPLOAD ── */
+.upload-btn{
+  display:flex;align-items:center;gap:10px;
+  margin:8px 10px 4px;
+  padding:10px 12px;
+  border-radius:11px;
+  background:rgba(227,24,55,0.1);
+  border:1px dashed rgba(227,24,55,0.35);
+  cursor:pointer;
+  transition:all 0.18s;
+  position:relative;z-index:1;
+}
+.upload-btn:hover{background:rgba(227,24,55,0.18);border-color:rgba(227,24,55,0.6)}
+.upload-btn-icon{font-size:16px;flex-shrink:0}
+.upload-btn-text{font-size:12px;font-weight:500;color:rgba(255,255,255,0.8);line-height:1.3}
+.upload-btn-sub{font-size:10px;color:rgba(255,255,255,0.35);margin-top:1px}
+
+.upload-overlay{
+  position:fixed;inset:0;
+  background:rgba(13,27,42,0.6);
+  backdrop-filter:blur(4px);
+  z-index:1000;
+  display:flex;align-items:center;justify-content:center;
+  opacity:0;pointer-events:none;
+  transition:opacity 0.2s;
+}
+.upload-overlay.open{opacity:1;pointer-events:all}
+
+.upload-modal{
+  background:#fff;
+  border-radius:20px;
+  padding:32px 36px;
+  width:560px;
+  max-width:calc(100vw - 32px);
+  max-height:90vh;
+  overflow-y:auto;
+  box-shadow:0 24px 64px rgba(13,27,42,0.22);
+  transform:translateY(12px);
+  transition:transform 0.2s;
+}
+.upload-overlay.open .upload-modal{transform:translateY(0)}
+
+.um-title{
+  font-family:'Syne',sans-serif;font-weight:700;font-size:20px;
+  color:var(--t1);margin-bottom:4px;
+}
+.um-sub{font-size:12.5px;color:var(--t3);margin-bottom:24px;line-height:1.6}
+
+.drop-zone{
+  border:2px dashed var(--border);
+  border-radius:14px;
+  padding:36px 24px;
+  text-align:center;
+  cursor:pointer;
+  transition:all 0.2s;
+  background:var(--off);
+  position:relative;
+}
+.drop-zone:hover,.drop-zone.drag{border-color:var(--red);background:#FFF5F5}
+.drop-zone input[type=file]{
+  position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;
+}
+.dz-icon{font-size:36px;margin-bottom:10px}
+.dz-label{font-size:14px;font-weight:500;color:var(--t2);margin-bottom:4px}
+.dz-hint{font-size:11.5px;color:var(--t3)}
+
+.um-sheets{margin-top:20px;display:flex;flex-direction:column;gap:8px}
+
+.sheet-row{
+  display:flex;align-items:center;gap:10px;
+  padding:10px 14px;
+  border-radius:10px;
+  border:1px solid var(--border);
+  background:var(--off);
+  font-size:12.5px;
+}
+.sheet-row.ok{border-color:#A7F3D0;background:#F0FDF4}
+.sheet-row.warn{border-color:#FCD34D;background:#FFFBEB}
+.sheet-row.err{border-color:#FECACA;background:#FFF5F5}
+.sr-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.sr-dot.ok{background:#10B981}.sr-dot.warn{background:#F59E0B}.sr-dot.err{background:#E31837}
+.sr-name{font-weight:600;color:var(--t1);min-width:110px}
+.sr-info{color:var(--t3);flex:1}
+
+.um-actions{
+  display:flex;gap:10px;margin-top:24px;justify-content:flex-end;
+}
+.btn-cancel{
+  padding:9px 20px;border-radius:9px;
+  background:var(--off);border:1px solid var(--border);
+  font-size:13px;font-weight:500;color:var(--t2);cursor:pointer;
+  transition:background 0.15s;
+}
+.btn-cancel:hover{background:var(--border)}
+.btn-load{
+  padding:9px 24px;border-radius:9px;
+  background:var(--red);border:none;
+  font-size:13px;font-weight:600;color:#fff;cursor:pointer;
+  transition:background 0.15s;
+  opacity:0.4;pointer-events:none;
+}
+.btn-load.ready{opacity:1;pointer-events:all}
+.btn-load:hover.ready{background:var(--red-dk)}
+
+/* ── TOAST ── */
+.toast{
+  position:fixed;bottom:28px;right:28px;
+  background:var(--navy);color:#fff;
+  padding:12px 20px;border-radius:12px;
+  font-size:13px;font-weight:500;
+  box-shadow:0 8px 24px rgba(13,27,42,0.2);
+  z-index:2000;
+  display:flex;align-items:center;gap:10px;
+  transform:translateY(20px);opacity:0;
+  transition:all 0.25s;
+  pointer-events:none;
+}
+.toast.show{transform:translateY(0);opacity:1}
+.toast.success .t-dot{color:#10B981}
+.toast.error .t-dot{color:#E31837}
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="sidebar-header">
+    <a href="/" style="display:flex;align-items:center;gap:6px;text-decoration:none;color:rgba(255,255,255,0.5);font-size:0.75em;margin-bottom:12px;letter-spacing:0.5px;" title="Back to Platform Home">
+      ← Platform Home
+    </a>
+    <div class="logo-row">
+      <div class="logo-mark">IB</div>
+      <div class="logo-text">
+        <div class="logo-name">Banking Operations</div>
+        <div class="logo-sub">India Banking Intelligence</div>
+      </div>
+    </div>
+  </div>
+  <div class="sidebar-section-label">Views</div>
+  <a href="/operations/multibank" style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:9px;text-decoration:none;color:rgba(255,255,255,0.65);font-size:12px;margin:0 10px 8px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);" title="Multi-Bank View">
+    <span>🏦</span><span>Multi-Bank Dashboard</span>
+  </a>
+  <div class="sidebar-section-label">Overview</div>
+  <div class="dash-nav active" id="dashNav" onclick="showDashboard()">
+    <div class="dash-nav-icon">📊</div>
+    <div class="cinfo">
+      <div class="dash-nav-label">Consolidated View</div>
+      <div class="dash-nav-sub">All customers · summary</div>
+    </div>
+  </div>
+  <div class="sidebar-section-label">Customers</div>
+  <div class="customer-list" id="custList"></div>
+  <div class="upload-btn" onclick="openUpload()">
+    <div class="upload-btn-icon">📂</div>
+    <div>
+      <div class="upload-btn-text">Upload Excel / CSV</div>
+      <div class="upload-btn-sub">Replace dashboard data</div>
+    </div>
+  </div>
+  <div class="sidebar-footer">Banking Operations · India Intelligence Platform</div>
+</aside>
+
+<!-- UPLOAD MODAL -->
+<div class="upload-overlay" id="uploadOverlay" onclick="overlayClick(event)">
+  <div class="upload-modal">
+    <div class="um-title">Upload Bank Data</div>
+    <div class="um-sub">
+      Upload an <strong>Excel (.xlsx / .xls)</strong> or <strong>CSV</strong> file.<br>
+      For Excel, use sheets named: <code>Customers</code>, <code>Accounts</code>, <code>Loans</code>, <code>Transactions</code>, <code>Risk</code>.<br>
+      For CSV, the single sheet is matched by its column headers automatically.
+    </div>
+    <div class="drop-zone" id="dropZone">
+      <input type="file" id="fileInput" accept=".xlsx,.xls,.csv" onchange="handleFile(this.files[0])">
+      <div class="dz-icon">📊</div>
+      <div class="dz-label">Drop your file here, or click to browse</div>
+      <div class="dz-hint">.xlsx · .xls · .csv — max 10 MB</div>
+    </div>
+    <div class="um-sheets" id="sheetStatus"></div>
+    <div class="um-actions">
+      <button class="btn-cancel" onclick="closeUpload()">Cancel</button>
+      <button class="btn-load" id="btnLoad" onclick="loadData()">Load Data</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"><span class="t-dot">●</span><span id="toastMsg"></span></div>
+
+<!-- MAIN -->
+<main class="main">
+  <div class="topbar">
+    <div class="topbar-left">
+      <div class="topbar-title" id="topTitle">Select a customer</div>
+      <div id="topPill"></div>
+    </div>
+    <div class="topbar-date" id="topDate"></div>
+  </div>
+  <div class="content" id="mainContent">
+    <div class="empty" style="padding:80px 40px">
+      <div style="font-size:36px;margin-bottom:12px">👈</div>
+      <div style="font-weight:500;color:var(--t2);margin-bottom:4px">Select a customer from the sidebar</div>
+      <div style="font-size:12px">View profile, accounts, loans, transactions &amp; risk metrics</div>
+    </div>
+  </div>
+</main>
+
+<script>
+// ── DATA (live from Flask /operations/api) ─────────────────────────
+// The dashboard + build* functions all read these flat arrays. They used to be a
+// hardcoded mock; they are now populated from the live banking-operations API so
+// this page stays in sync with bank.db (same data the multi-bank view uses).
+let DB = { customers:[], accounts:[], loans:[], transactions:[], risk:[] };
+
+async function loadLiveData(){
+  const list = await fetch('/operations/api/customers').then(r=>r.json());
+  const details = await Promise.all(
+    list.map(c => fetch('/operations/api/customers/' + c.id).then(r=>r.json()).catch(()=>null))
+  );
+  DB = { customers:[], accounts:[], loans:[], transactions:[], risk:[] };
+  details.forEach(d=>{
+    if(!d || !d.customer) return;
+    DB.customers.push(d.customer);
+    (d.accounts||[]).forEach(a=>DB.accounts.push(a));
+    (d.loans||[]).forEach(l=>DB.loans.push(l));
+    (d.transactions||[]).forEach(t=>DB.transactions.push(t));
+    (d.risk||[]).forEach(r=>{ if(r.pd==null && r.pd_score!=null) r.pd = r.pd_score; DB.risk.push(r); });
+  });
+}
+
+// ── UTILS ─────────────────────────────────────────────────────────────────────
+const inr = n => '₹' + n.toLocaleString('en-IN',{maximumFractionDigits:0});
+const inrD = n => '₹' + n.toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});
+const initials = c => c.first[0] + c.last[0];
+const fmtDate = d => new Date(d).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'});
+const fmtMon = d => new Date(d).toLocaleDateString('en-IN',{month:'short',year:'numeric'});
+
+function age(dob){
+  const b=new Date(dob),n=new Date();
+  return n.getFullYear()-b.getFullYear()-(n<new Date(n.getFullYear(),b.getMonth(),b.getDate())?1:0);
+}
+
+// NPA is carried in loan_classification (loans.status stays 'Active' in bank.db),
+// so consider both — keeps this view coherent with the Regulatory module.
+const NPA_CLASSES = ['NPA','Doubtful','Loss'];
+function effStatus(l){
+  if(l.status==='Defaulted') return 'Defaulted';
+  if(l.status==='NPA' || NPA_CLASSES.includes(l.loan_classification)) return 'NPA';
+  return l.status || 'Active';
+}
+function creditHealth(cid){
+  const loans=DB.loans.filter(l=>l.cid===cid);
+  if(!loans.length) return 'good';
+  if(loans.some(l=>effStatus(l)==='Defaulted')) return 'def';
+  if(loans.some(l=>effStatus(l)==='NPA')) return 'watch';
+  return 'good';
+}
+
+const healthLabel = {'good':'Good Standing','watch':'Under Watch','def':'Defaulted'};
+
+function isCredit(type){return type==='Deposit'}
+
+const accColors = {
+  'Savings':['#EFF6FF','🏦'],
+  'Current':['#F0FDF4','💼'],
+  'Fixed Deposit':['#FFF7ED','🔒'],
+  'Recurring Deposit':['#F5F3FF','📅']
+};
+
+function pdColor(pd){
+  if(pd<0.03) return '#10B981';
+  if(pd<0.07) return '#F59E0B';
+  return '#E31837';
+}
+
+// ── STATE ─────────────────────────────────────────────────────────────────────
+let radarChart = null;
+
+// ── SIDEBAR ───────────────────────────────────────────────────────────────────
+function buildSidebar(){
+  document.getElementById('custList').innerHTML = DB.customers.map(c=>{
+    const h = creditHealth(c.id);
+    return `<div class="cust-card" id="cc-${c.id}" onclick="selectCustomer('${c.id}')">
+      <div class="c-avatar">${initials(c)}</div>
+      <div class="cinfo">
+        <div class="cname">${c.first} ${c.last}</div>
+        <div class="ccity">${c.city}</div>
+      </div>
+      <div class="h-dot ${h}"></div>
+    </div>`;
+  }).join('');
+}
+
+// ── SELECT ────────────────────────────────────────────────────────────────────
+function selectCustomer(id){
+  document.querySelectorAll('.cust-card').forEach(el=>el.classList.remove('active'));
+  document.getElementById('cc-'+id).classList.add('active');
+  document.getElementById('dashNav').classList.remove('active');
+
+  const c = DB.customers.find(x=>x.id===id);
+  const h = creditHealth(id);
+  document.getElementById('topTitle').textContent = `${c.first} ${c.last}`;
+  const pillEl = document.getElementById('topPill');
+  pillEl.innerHTML = `<span class="topbar-pill h-badge ${h}" style="font-size:10px">${healthLabel[h]}</span>`;
+
+  const content = document.getElementById('mainContent');
+  content.style.opacity='0';
+  content.style.transform='translateY(6px)';
+
+  setTimeout(()=>{
+    content.innerHTML='';
+    content.appendChild(buildProfile(c,h));
+    content.appendChild(buildAccounts(id));
+    content.appendChild(buildLoans(id));
+    content.appendChild(buildTransactions(id));
+    content.appendChild(buildRiskMetrics(id));
+    content.style.transition='opacity 0.25s ease,transform 0.25s ease';
+    content.style.opacity='1';
+    content.style.transform='translateY(0)';
+    setTimeout(()=>buildRadar(id),80);
+  },80);
+}
+
+// ── PROFILE ───────────────────────────────────────────────────────────────────
+function buildProfile(c,h){
+  const wrap=document.createElement('div');
+  wrap.innerHTML=`
+  <div class="sl">Customer Profile</div>
+  <div class="profile-card">
+    <div class="p-avatar">${initials(c)}</div>
+    <div class="p-main">
+      <div class="p-name">${c.first} ${c.last}</div>
+      <div class="p-meta">
+        <div class="meta-item">
+          <div class="meta-label">Customer ID</div>
+          <div class="meta-value meta-mono">${c.id}</div>
+        </div>
+        <div class="meta-item">
+          <div class="meta-label">Age / Gender</div>
+          <div class="meta-value">${age(c.dob)} yrs · ${c.gender}</div>
+        </div>
+        <div class="meta-item">
+          <div class="meta-label">Date of Birth</div>
+          <div class="meta-value">${fmtDate(c.dob)}</div>
+        </div>
+        <div class="meta-item">
+          <div class="meta-label">Location</div>
+          <div class="meta-value">${c.city}, ${c.state}</div>
+        </div>
+        <div class="meta-item">
+          <div class="meta-label">Member Since</div>
+          <div class="meta-value">${fmtMon(c.joined)}</div>
+        </div>
+        <div class="meta-item">
+          <div class="meta-label">Phone</div>
+          <div class="meta-value meta-mono">${c.phone}</div>
+        </div>
+      </div>
+    </div>
+    <div class="p-right">
+      <span class="h-badge ${h}">${healthLabel[h]}</span>
+      <div class="p-email">${c.email}</div>
+    </div>
+  </div>`;
+  return wrap;
+}
+
+// ── ACCOUNTS ──────────────────────────────────────────────────────────────────
+function buildAccounts(cid){
+  const accs = DB.accounts.filter(a=>a.cid===cid);
+  const wrap = document.createElement('div');
+  if(!accs.length){
+    wrap.innerHTML=`<div class="sl">Accounts</div><div class="empty">No accounts found</div>`;
+    return wrap;
+  }
+  const total = accs.reduce((s,a)=>s+a.balance,0);
+  wrap.innerHTML=`
+  <div class="sl">Accounts <span style="margin-left:8px;font-family:'IBM Plex Mono',monospace;font-weight:600;font-size:10.5px;color:var(--t2);letter-spacing:0;text-transform:none">Total: ${inr(total)}</span></div>
+  <div class="acc-grid">
+    ${accs.map(a=>{
+      const [bg,icon] = accColors[a.type]||['#F4F6FA','💳'];
+      return `<div class="acc-card">
+        <div class="acc-top">
+          <div class="acc-type-label">${a.type}</div>
+          <div class="acc-icon-box" style="background:${bg}">${icon}</div>
+        </div>
+        <div class="acc-balance">${inr(a.balance)}</div>
+        <div class="acc-id"><span class="acc-status-dot"></span>${a.id} · Active</div>
+      </div>`;
+    }).join('')}
+  </div>`;
+  return wrap;
+}
+
+// ── LOANS ─────────────────────────────────────────────────────────────────────
+function buildLoans(cid){
+  const loans = DB.loans.filter(l=>l.cid===cid);
+  const wrap = document.createElement('div');
+  if(!loans.length){
+    wrap.innerHTML=`<div class="sl">Loans</div><div class="empty">No loans found</div>`;
+    return wrap;
+  }
+  wrap.innerHTML=`
+  <div class="sl">Loans</div>
+  <div class="loans-list">
+    ${loans.map(l=>{
+      const repaid = l.principal - l.outstanding;
+      const pct = ((repaid/l.principal)*100).toFixed(1);
+      const eff = effStatus(l);
+      const sc = eff.toLowerCase();
+      return `<div class="loan-card">
+        <div class="loan-header">
+          <div class="loan-title-group">
+            <div class="loan-type-name">${l.type}</div>
+            <div class="loan-id-label">${l.id}</div>
+          </div>
+          <div class="loan-badges">
+            <span class="rate-badge">${l.rate}% p.a.</span>
+            <span class="status-badge ${sc}">${eff}</span>
+          </div>
+        </div>
+        <div class="loan-stats">
+          <div>
+            <div class="ls-label">Principal</div>
+            <div class="ls-value">${inr(l.principal)}</div>
+          </div>
+          <div>
+            <div class="ls-label">Outstanding</div>
+            <div class="ls-value">${inr(l.outstanding)}</div>
+          </div>
+          <div>
+            <div class="ls-label">Monthly EMI</div>
+            <div class="ls-value">${inr(l.emi)}</div>
+          </div>
+        </div>
+        <div class="prog-meta">
+          <span>Repaid: ${inr(repaid)} &nbsp;(${pct}%)</span>
+          <span>Tenure: ${l.tenure} months</span>
+        </div>
+        <div class="prog-bar"><div class="prog-fill ${sc}" style="width:${pct}%"></div></div>
+      </div>`;
+    }).join('')}
+  </div>`;
+  return wrap;
+}
+
+// ── TRANSACTIONS ──────────────────────────────────────────────────────────────
+function buildTransactions(cid){
+  const accIds = DB.accounts.filter(a=>a.cid===cid).map(a=>a.id);
+  const txns = DB.transactions.filter(t=>accIds.includes(t.aid)).sort((a,b)=>new Date(b.date)-new Date(a.date));
+  const wrap = document.createElement('div');
+  if(!txns.length){
+    wrap.innerHTML=`<div class="sl">Transactions</div><div class="empty">No transactions found</div>`;
+    return wrap;
+  }
+  wrap.innerHTML=`
+  <div class="sl">Recent Transactions</div>
+  <div class="txn-table">
+    <div class="txn-row hdr" style="grid-template-columns:110px 52px 110px 1fr 120px">
+      <span>Date</span><span>Time</span><span>Type</span><span>Description</span><span style="text-align:right">Amount</span>
+    </div>
+    ${txns.map(t=>{
+      const cr = isCredit(t.type);
+      return `<div class="txn-row" style="grid-template-columns:110px 52px 110px 1fr 120px">
+        <span class="txn-date">${fmtDate(t.date)}</span>
+        <span style="font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:var(--red);font-weight:500">${t.time}</span>
+        <span class="txn-type-name" style="font-size:12px">${t.type}</span>
+        <span style="font-size:12.5px;color:var(--t2)">${t.desc||'—'} <span style="color:var(--t3);font-size:10.5px">· ${t.aid}</span></span>
+        <span class="txn-amt ${cr?'cr':'dr'}">${cr?'+':'-'}${inr(t.amount)}</span>
+      </div>`;
+    }).join('')}
+  </div>`;
+  return wrap;
+}
+
+// ── RISK METRICS ──────────────────────────────────────────────────────────────
+function buildRiskMetrics(cid){
+  const lids = DB.loans.filter(l=>l.cid===cid).map(l=>l.id);
+  const metrics = DB.risk.filter(r=>lids.includes(r.lid));
+  const wrap = document.createElement('div');
+  if(!metrics.length){
+    wrap.innerHTML=`<div class="sl">Risk Metrics</div><div class="empty">No risk data available</div>`;
+    return wrap;
+  }
+
+  const pdRows = metrics.map(m=>{
+    const short = m.lid.split('-').slice(0,3).join('-');
+    const pct = (m.pd*100).toFixed(2);
+    const barW = Math.min(100,m.pd*500);
+    const col = pdColor(m.pd);
+    return `<div class="pd-item">
+      <div class="pd-hdr">
+        <span class="pd-loan-tag">${short}…</span>
+        <span class="pd-pct" style="color:${col}">${pct}%</span>
+      </div>
+      <div class="pd-bar-bg"><div class="pd-bar-fill" style="width:${barW}%;background:${col}"></div></div>
+    </div>`;
+  }).join('');
+
+  const ratioCards = metrics.map(m=>`
+    <div class="ratio-mini-card">
+      <div class="ratio-mini-id">${m.lid.split('-').slice(0,3).join('-')}</div>
+      <div class="ratio-mini-grid">
+        <span class="rk">D/E</span><span class="rv">${m.de}</span>
+        <span class="rk">IntCov</span><span class="rv">${m.intcov}</span>
+        <span class="rk">Profit</span><span class="rv ${m.profit<0?'neg':'pos'}">${m.profit}%</span>
+        <span class="rk">Liq</span><span class="rv">${m.liq}</span>
+      </div>
+    </div>`).join('');
+
+  wrap.innerHTML=`
+  <div class="sl">Risk Metrics</div>
+  <div class="risk-grid">
+    <div class="risk-card">
+      <div class="risk-card-title">Financial Ratios — Radar View</div>
+      <canvas id="radarCanvas" height="240"></canvas>
+    </div>
+    <div class="risk-card">
+      <div class="risk-card-title">Probability of Default (PD)</div>
+      <div class="pd-list">${pdRows}</div>
+      <div class="pd-legend">
+        <span style="color:#10B981">● &lt;3% Low</span>
+        <span style="color:#F59E0B">● 3–7% Moderate</span>
+        <span style="color:#E31837">● &gt;7% High</span>
+      </div>
+      <div class="ratio-grid">
+        <div class="ratio-title">Ratio Breakdown</div>
+        <div class="ratio-row-cards">${ratioCards}</div>
+      </div>
+    </div>
+  </div>`;
+  return wrap;
+}
+
+// ── RADAR ─────────────────────────────────────────────────────────────────────
+function buildRadar(cid){
+  const canvas = document.getElementById('radarCanvas');
+  if(!canvas) return;
+  if(radarChart){radarChart.destroy();radarChart=null;}
+
+  const lids = DB.loans.filter(l=>l.cid===cid).map(l=>l.id);
+  const metrics = DB.risk.filter(r=>lids.includes(r.lid));
+
+  // Normalize each metric to 0-10 scale (higher = healthier for all dimensions)
+  function norm(m){
+    return [
+      Math.max(0, Math.min(10, 10 - m.de*2)),               // D/E: inverted, lower is better
+      Math.max(0, Math.min(10, m.intcov/1.5)),               // Interest Coverage
+      Math.max(0, Math.min(10, (m.profit+15)/5.5)),          // Profitability
+      Math.max(0, Math.min(10, m.liq*2.5))                   // Liquidity
+    ];
+  }
+
+  const palette = [
+    {border:'rgba(227,24,55,0.85)',bg:'rgba(227,24,55,0.07)'},
+    {border:'rgba(16,185,129,0.85)',bg:'rgba(16,185,129,0.07)'},
+    {border:'rgba(245,158,11,0.85)',bg:'rgba(245,158,11,0.07)'},
+    {border:'rgba(59,130,246,0.85)',bg:'rgba(59,130,246,0.07)'}
+  ];
+
+  radarChart = new Chart(canvas,{
+    type:'radar',
+    data:{
+      labels:['D/E Health','Interest\nCoverage','Profitability','Liquidity'],
+      datasets: metrics.map((m,i)=>({
+        label: m.lid.split('-').slice(0,3).join('-'),
+        data: norm(m),
+        borderColor: palette[i%4].border,
+        backgroundColor: palette[i%4].bg,
+        borderWidth:2,
+        pointBackgroundColor: palette[i%4].border,
+        pointRadius:4,
+        pointHoverRadius:6
+      }))
+    },
+    options:{
+      responsive:true,
+      animation:{duration:500},
+      plugins:{
+        legend:{
+          position:'bottom',
+          labels:{font:{family:'IBM Plex Mono',size:10},boxWidth:10,padding:14}
+        },
+        tooltip:{
+          callbacks:{
+            label:ctx=>`${ctx.dataset.label}: ${ctx.raw.toFixed(1)} / 10`
+          }
+        }
+      },
+      scales:{
+        r:{
+          min:0,max:10,
+          ticks:{stepSize:2,font:{size:9},backdropColor:'transparent',color:'#8A9AB0'},
+          grid:{color:'rgba(0,0,0,0.05)'},
+          angleLines:{color:'rgba(0,0,0,0.07)'},
+          pointLabels:{font:{family:'IBM Plex Sans',size:10.5,weight:'500'},color:'#4A5568'}
+        }
+      }
+    }
+  });
+}
+
+// ── DASHBOARD CHARTS REGISTRY ────────────────────────────────────────────────
+const dashCharts = {};
+
+function destroyDashCharts(){
+  Object.values(dashCharts).forEach(c=>{try{c.destroy()}catch(e){}});
+  Object.keys(dashCharts).forEach(k=>delete dashCharts[k]);
+}
+
+// ── SHOW DASHBOARD ────────────────────────────────────────────────────────────
+function showDashboard(){
+  // Deselect customer cards
+  document.querySelectorAll('.cust-card').forEach(el=>el.classList.remove('active'));
+  document.getElementById('dashNav').classList.add('active');
+
+  document.getElementById('topTitle').textContent = 'Consolidated Dashboard';
+  document.getElementById('topPill').innerHTML =
+    `<span class="topbar-pill h-badge good" style="font-size:10px">All Customers</span>`;
+
+  const content = document.getElementById('mainContent');
+  content.style.opacity='0';
+  content.style.transform='translateY(6px)';
+  destroyDashCharts();
+  if(radarChart){radarChart.destroy();radarChart=null;}
+
+  setTimeout(()=>{
+    content.innerHTML='';
+    content.appendChild(buildKPIs());
+    content.appendChild(buildDashCharts());
+    content.appendChild(buildBreakdownRow());
+    content.appendChild(buildTxnDateTable());
+    content.style.transition='opacity 0.25s ease,transform 0.25s ease';
+    content.style.opacity='1';
+    content.style.transform='translateY(0)';
+    setTimeout(buildDashChartInstances, 80);
+  },80);
+}
+
+// ── KPI CARDS ─────────────────────────────────────────────────────────────────
+function buildKPIs(){
+  const totalDeposits = DB.accounts.reduce((s,a)=>s+a.balance,0);
+  const totalLoans    = DB.loans.reduce((s,l)=>s+l.outstanding,0);
+  const totalPrincipal= DB.loans.reduce((s,l)=>s+l.principal,0);
+  const nDefault      = DB.loans.filter(l=>effStatus(l)==='Defaulted'||effStatus(l)==='NPA').length;
+  const totalTxns     = DB.transactions.length;
+  const totalTxnVol   = DB.transactions.reduce((s,t)=>s+t.amount,0);
+  const activeLoans   = DB.loans.filter(l=>l.status==='Active').length;
+
+  const wrap = document.createElement('div');
+  wrap.innerHTML=`
+  <div class="sl">Key Metrics</div>
+  <div class="kpi-grid">
+    <div class="kpi-card red">
+      <span class="kpi-icon">👥</span>
+      <div class="kpi-label">Total Customers</div>
+      <div class="kpi-value">${DB.customers.length}</div>
+      <div class="kpi-sub">${DB.accounts.length} accounts opened</div>
+      <div class="kpi-trend up">↑ All Active</div>
+    </div>
+    <div class="kpi-card green">
+      <span class="kpi-icon">🏦</span>
+      <div class="kpi-label">Total Deposits</div>
+      <div class="kpi-value">${inr(totalDeposits)}</div>
+      <div class="kpi-sub">${DB.accounts.length} accounts · avg ${inr(Math.round(totalDeposits/DB.accounts.length))}</div>
+      <div class="kpi-trend up">↑ Across all account types</div>
+    </div>
+    <div class="kpi-card amber">
+      <span class="kpi-icon">💳</span>
+      <div class="kpi-label">Loan Book Outstanding</div>
+      <div class="kpi-value">${inr(totalLoans)}</div>
+      <div class="kpi-sub">${DB.loans.length} loans · ${activeLoans} active</div>
+      <div class="kpi-trend warn">⚠ ${nDefault} stressed ${nDefault===1?'loan':'loans'}</div>
+    </div>
+    <div class="kpi-card blue">
+      <span class="kpi-icon">🔄</span>
+      <div class="kpi-label">Total Transactions</div>
+      <div class="kpi-value">${totalTxns}</div>
+      <div class="kpi-sub">Volume: ${inr(totalTxnVol)}</div>
+      <div class="kpi-trend up">↑ Jan–Mar 2024</div>
+    </div>
+  </div>`;
+  return wrap;
+}
+
+// ── CHART CONTAINERS ──────────────────────────────────────────────────────────
+function buildDashCharts(){
+  const wrap = document.createElement('div');
+  wrap.innerHTML=`
+  <div class="sl">Transaction Activity</div>
+  <div class="dash-charts-row">
+    <div class="dash-chart-card">
+      <div class="dash-chart-title">Transactions by Hour of Day</div>
+      <div class="dash-chart-sub">Count of transactions at each hour · banking hours 08:00–18:00</div>
+      <canvas id="txnHourChart" height="180"></canvas>
+    </div>
+    <div class="dash-chart-card">
+      <div class="dash-chart-title">Transaction Volume by Type</div>
+      <div class="dash-chart-sub">Total ₹ amount per transaction category</div>
+      <canvas id="txnTypeChart" height="180"></canvas>
+    </div>
+  </div>
+  <div style="margin-top:18px">
+    <div class="dash-chart-card">
+      <div class="dash-chart-title">Transactions by Date — Count &amp; Volume</div>
+      <div class="dash-chart-sub">Daily transaction count (bars) vs cumulative volume (line) · Jan–Mar 2024</div>
+      <canvas id="txnDateChart" height="110"></canvas>
+    </div>
+  </div>`;
+  return wrap;
+}
+
+function buildBreakdownRow(){
+  // Customer credit health counts
+  const healthCounts = {good:0,watch:0,def:0};
+  DB.customers.forEach(c=>{const h=creditHealth(c.id);healthCounts[h]++});
+  const maxH = Math.max(...Object.values(healthCounts));
+
+  const wrap = document.createElement('div');
+  wrap.innerHTML=`
+  <div class="sl">Portfolio Breakdown</div>
+  <div class="dash-charts-row2">
+    <div class="dash-chart-card">
+      <div class="dash-chart-title">Loan Portfolio by Status</div>
+      <div class="dash-chart-sub">Outstanding balance distribution</div>
+      <canvas id="loanStatusChart" height="190"></canvas>
+    </div>
+    <div class="dash-chart-card">
+      <div class="dash-chart-title">Account Type Mix</div>
+      <div class="dash-chart-sub">Deposits by account category</div>
+      <canvas id="accTypeChart" height="190"></canvas>
+    </div>
+    <div class="dash-chart-card">
+      <div class="dash-chart-title">Customer Credit Health</div>
+      <div class="dash-chart-sub">Portfolio risk distribution</div>
+      <div class="health-summary" style="margin-top:20px">
+        <div class="hs-item">
+          <div class="hs-label">Good Standing</div>
+          <div class="hs-bar-bg"><div class="hs-bar-fill" style="width:${(healthCounts.good/DB.customers.length)*100}%;background:var(--green)"></div></div>
+          <div class="hs-count">${healthCounts.good}</div>
+        </div>
+        <div class="hs-item">
+          <div class="hs-label">Under Watch</div>
+          <div class="hs-bar-bg"><div class="hs-bar-fill" style="width:${(healthCounts.watch/DB.customers.length)*100}%;background:var(--amber)"></div></div>
+          <div class="hs-count">${healthCounts.watch}</div>
+        </div>
+        <div class="hs-item">
+          <div class="hs-label">Defaulted</div>
+          <div class="hs-bar-bg"><div class="hs-bar-fill" style="width:${(healthCounts.def/DB.customers.length)*100}%;background:var(--red)"></div></div>
+          <div class="hs-count">${healthCounts.def}</div>
+        </div>
+      </div>
+      <div style="margin-top:20px;border-top:1px solid var(--border);padding-top:14px">
+        <div class="dash-chart-sub" style="margin-bottom:10px">Loan book: ${inr(DB.loans.reduce((s,l)=>s+l.outstanding,0))} total</div>
+        ${DB.loans.map(l=>{
+          const pct=((l.outstanding/DB.loans.reduce((s,x)=>s+x.outstanding,0))*100).toFixed(1);
+          const col=effStatus(l)==='Active'?'var(--green)':effStatus(l)==='NPA'?'var(--amber)':'var(--red)';
+          return `<div style="margin-bottom:7px">
+            <div style="display:flex;justify-content:space-between;font-size:10.5px;margin-bottom:3px">
+              <span style="color:var(--t2);font-family:'IBM Plex Mono',monospace">${l.id.split('-').slice(0,3).join('-')}</span>
+              <span style="color:var(--t3)">${pct}%</span>
+            </div>
+            <div class="hs-bar-bg"><div class="hs-bar-fill" style="width:${pct}%;background:${col}"></div></div>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>
+  </div>`;
+  return wrap;
+}
+
+// ── TXN DATE TABLE ────────────────────────────────────────────────────────────
+function buildTxnDateTable(){
+  const sorted = [...DB.transactions].sort((a,b)=>{
+    const da=new Date(a.date+'T'+a.time), db=new Date(b.date+'T'+b.time);
+    return db-da;
+  });
+
+  const wrap = document.createElement('div');
+  wrap.innerHTML=`
+  <div class="sl">Full Transaction Log — Date &amp; Time</div>
+  <div class="txn-date-table">
+    <div class="tdt-title">
+      All Transactions
+      <span class="tdt-subtitle">${DB.transactions.length} transactions · ${[...new Set(DB.transactions.map(t=>t.date))].length} unique dates</span>
+    </div>
+    <div class="tdt-row tdt-hdr" style="grid-template-columns:100px 52px 90px 100px 1fr 120px">
+      <span>Date</span><span>Time</span><span>Hour</span><span>Type</span><span>Description</span><span style="text-align:right">Amount</span>
+    </div>
+    ${sorted.map(t=>{
+      const h=parseInt(t.time.split(':')[0]);
+      const slot=`${String(h).padStart(2,'0')}:00`;
+      const cr=isCredit(t.type);
+      return `<div class="tdt-row" style="grid-template-columns:100px 52px 90px 100px 1fr 120px">
+        <span class="tdt-date">${fmtDate(t.date)}</span>
+        <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--red);font-weight:500">${t.time}</span>
+        <span style="font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:var(--t3)">${slot} hr</span>
+        <span class="tdt-types">${t.type}</span>
+        <span style="font-size:12px;color:var(--t2)">${t.desc||'—'} <span style="color:var(--t3);font-size:10px">· ${t.aid}</span></span>
+        <span class="tdt-vol" style="color:${cr?'var(--green)':'var(--red)'}">${cr?'+':'-'}${inr(t.amount)}</span>
+      </div>`;
+    }).join('')}
+    <div style="padding:12px 24px;background:#FAFBFD;border-top:1px solid var(--border);display:grid;grid-template-columns:90px 60px 110px 1fr 130px;font-size:11.5px;align-items:center">
+      <span></span><span></span><span></span>
+      <span style="color:var(--t3)">Total volume</span>
+      <span style="font-family:'IBM Plex Mono',monospace;font-weight:700;color:var(--t1);text-align:right">${inr(DB.transactions.reduce((s,t)=>s+t.amount,0))}</span>
+    </div>
+  </div>`;
+  return wrap;
+}
+
+// ── BUILD CHART INSTANCES ─────────────────────────────────────────────────────
+function buildDashChartInstances(){
+  // 1. Transactions by Hour of Day (bar)
+  const hourBuckets=Array(24).fill(0);
+  DB.transactions.forEach(t=>{
+    const h=parseInt(t.time.split(':')[0]);
+    hourBuckets[h]++;
+  });
+  // Show hours 8–18 only (banking hours)
+  const bankHours=Array.from({length:11},(_,i)=>i+8);
+  const hourLabels=bankHours.map(h=>`${String(h).padStart(2,'0')}:00`);
+  const hourData=bankHours.map(h=>hourBuckets[h]);
+
+  const c1h=document.getElementById('txnHourChart');
+  if(c1h){
+    dashCharts.txnHour=new Chart(c1h,{
+      type:'bar',
+      data:{
+        labels:hourLabels,
+        datasets:[{
+          label:'Transactions',
+          data:hourData,
+          backgroundColor:hourData.map(v=>v===Math.max(...hourData)
+            ?'rgba(227,24,55,0.9)':'rgba(227,24,55,0.35)'),
+          borderRadius:6,
+          borderSkipped:false,
+          borderWidth:0
+        }]
+      },
+      options:{
+        responsive:true,
+        plugins:{
+          legend:{display:false},
+          tooltip:{callbacks:{
+            title:ctx=>`Hour: ${ctx[0].label}`,
+            label:c=>`${c.raw} transaction${c.raw!==1?'s':''}`
+          }}
+        },
+        scales:{
+          x:{grid:{display:false},ticks:{font:{family:'IBM Plex Mono',size:10},color:'#8A9AB0'}},
+          y:{grid:{color:'rgba(0,0,0,0.04)'},ticks:{stepSize:1,font:{size:10},color:'#8A9AB0'},beginAtZero:true,max:Math.max(...hourData)+1}
+        }
+      }
+    });
+  }
+
+  // 2. Transactions by Date — dual axis (bar count + line cumulative volume)
+  const byDate={};
+  DB.transactions.forEach(t=>{
+    if(!byDate[t.date]) byDate[t.date]={count:0,volume:0};
+    byDate[t.date].count++;
+    byDate[t.date].volume+=t.amount;
+  });
+  const datesSorted=Object.keys(byDate).sort();
+  let cumVol=0;
+  const cumVolData=datesSorted.map(d=>{cumVol+=byDate[d].volume;return Math.round(cumVol)});
+
+  const c1=document.getElementById('txnDateChart');
+  if(c1){
+    dashCharts.txnDate=new Chart(c1,{
+      type:'bar',
+      data:{
+        labels:datesSorted.map(d=>new Date(d).toLocaleDateString('en-IN',{day:'numeric',month:'short'})),
+        datasets:[
+          {
+            type:'bar',
+            label:'Count',
+            data:datesSorted.map(d=>byDate[d].count),
+            backgroundColor:'rgba(59,130,246,0.7)',
+            borderRadius:4,borderSkipped:false,borderWidth:0,
+            yAxisID:'yCount'
+          },
+          {
+            type:'line',
+            label:'Cumulative Volume (₹)',
+            data:cumVolData,
+            borderColor:'rgba(227,24,55,0.9)',
+            backgroundColor:'rgba(227,24,55,0.05)',
+            borderWidth:2,pointRadius:3,pointBackgroundColor:'rgba(227,24,55,0.9)',
+            fill:true,tension:0.3,
+            yAxisID:'yVol'
+          }
+        ]
+      },
+      options:{
+        responsive:true,
+        interaction:{mode:'index',intersect:false},
+        plugins:{
+          legend:{position:'bottom',labels:{font:{family:'IBM Plex Sans',size:10},boxWidth:10,padding:12}},
+          tooltip:{callbacks:{label:ctx=>ctx.datasetIndex===0
+            ?`${ctx.raw} txn${ctx.raw!==1?'s':''}`
+            :`Vol: ₹${ctx.raw.toLocaleString('en-IN',{maximumFractionDigits:0})}`
+          }}
+        },
+        scales:{
+          x:{grid:{display:false},ticks:{font:{family:'IBM Plex Mono',size:9.5},color:'#8A9AB0'}},
+          yCount:{position:'left',grid:{color:'rgba(0,0,0,0.04)'},ticks:{stepSize:1,font:{size:9},color:'#3B82F6'},title:{display:true,text:'Count',font:{size:9},color:'#3B82F6'}},
+          yVol:{position:'right',grid:{display:false},ticks:{font:{family:'IBM Plex Mono',size:9},color:'#E31837',callback:v=>'₹'+Number(v).toLocaleString('en-IN',{notation:'compact',maximumFractionDigits:0})},title:{display:true,text:'Cumul. Volume',font:{size:9},color:'#E31837'}}
+        }
+      }
+    });
+  }
+
+  // 2. Txn Volume by Type (horizontal bar)
+  const byType={};
+  DB.transactions.forEach(t=>{
+    if(!byType[t.type]) byType[t.type]=0;
+    byType[t.type]+=t.amount;
+  });
+  const types=Object.keys(byType);
+  const typeColors=['rgba(227,24,55,0.75)','rgba(16,185,129,0.75)','rgba(245,158,11,0.75)','rgba(59,130,246,0.75)','rgba(139,92,246,0.75)'];
+  const c2=document.getElementById('txnTypeChart');
+  if(c2){
+    dashCharts.txnType=new Chart(c2,{
+      type:'bar',
+      data:{
+        labels:types,
+        datasets:[{
+          label:'Volume (₹)',
+          data:types.map(t=>byType[t]),
+          backgroundColor:types.map((_,i)=>typeColors[i%typeColors.length]),
+          borderRadius:5,borderSkipped:false,borderWidth:0
+        }]
+      },
+      options:{
+        indexAxis:'y',
+        responsive:true,
+        plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>`₹${c.raw.toLocaleString('en-IN',{maximumFractionDigits:0})}`}}},
+        scales:{
+          x:{grid:{color:'rgba(0,0,0,0.04)'},ticks:{font:{family:'IBM Plex Mono',size:9},color:'#8A9AB0',callback:v=>'₹'+Number(v).toLocaleString('en-IN',{notation:'compact',maximumFractionDigits:0})}},
+          y:{grid:{display:false},ticks:{font:{family:'IBM Plex Sans',size:11},color:'#4A5568'}}
+        }
+      }
+    });
+  }
+
+  // 3. Loan Status Doughnut
+  const loanByStatus={Active:0,NPA:0,Defaulted:0};
+  DB.loans.forEach(l=>{const s=effStatus(l);loanByStatus[s]=(loanByStatus[s]||0)+l.outstanding});
+  const c3=document.getElementById('loanStatusChart');
+  if(c3){
+    dashCharts.loanStatus=new Chart(c3,{
+      type:'doughnut',
+      data:{
+        labels:Object.keys(loanByStatus),
+        datasets:[{
+          data:Object.values(loanByStatus),
+          backgroundColor:['rgba(16,185,129,0.8)','rgba(245,158,11,0.8)','rgba(227,24,55,0.8)'],
+          borderWidth:2,borderColor:'#fff',hoverOffset:6
+        }]
+      },
+      options:{
+        responsive:true,cutout:'65%',
+        plugins:{
+          legend:{position:'bottom',labels:{font:{family:'IBM Plex Sans',size:11},padding:12,boxWidth:10}},
+          tooltip:{callbacks:{label:c=>`${c.label}: ₹${c.raw.toLocaleString('en-IN',{maximumFractionDigits:0})}`}}
+        }
+      }
+    });
+  }
+
+  // 4. Account Type Doughnut
+  const accByType={};
+  DB.accounts.forEach(a=>{accByType[a.type]=(accByType[a.type]||0)+a.balance});
+  const accColors2=['rgba(59,130,246,0.8)','rgba(16,185,129,0.8)','rgba(245,158,11,0.8)','rgba(139,92,246,0.8)'];
+  const c4=document.getElementById('accTypeChart');
+  if(c4){
+    dashCharts.accType=new Chart(c4,{
+      type:'doughnut',
+      data:{
+        labels:Object.keys(accByType),
+        datasets:[{
+          data:Object.values(accByType),
+          backgroundColor:accColors2,
+          borderWidth:2,borderColor:'#fff',hoverOffset:6
+        }]
+      },
+      options:{
+        responsive:true,cutout:'65%',
+        plugins:{
+          legend:{position:'bottom',labels:{font:{family:'IBM Plex Sans',size:11},padding:12,boxWidth:10}},
+          tooltip:{callbacks:{label:c=>`${c.label}: ₹${c.raw.toLocaleString('en-IN',{maximumFractionDigits:0})}`}}
+        }
+      }
+    });
+  }
+}
+
+// ── UPLOAD ────────────────────────────────────────────────────────────────────
+let parsedImport = null; // holds {customers,accounts,loans,transactions,risk} after parse
+
+function openUpload(){
+  parsedImport = null;
+  document.getElementById('sheetStatus').innerHTML = '';
+  document.getElementById('fileInput').value = '';
+  document.getElementById('btnLoad').classList.remove('ready');
+  document.getElementById('uploadOverlay').classList.add('open');
+}
+function closeUpload(){ document.getElementById('uploadOverlay').classList.remove('open'); }
+function overlayClick(e){ if(e.target===document.getElementById('uploadOverlay')) closeUpload(); }
+
+// Drag-over styling
+const dz = document.getElementById('dropZone');
+dz.addEventListener('dragover',e=>{e.preventDefault();dz.classList.add('drag')});
+dz.addEventListener('dragleave',()=>dz.classList.remove('drag'));
+dz.addEventListener('drop',e=>{
+  e.preventDefault();dz.classList.remove('drag');
+  const f=e.dataTransfer.files[0];
+  if(f) handleFile(f);
+});
+
+function showToast(msg, type='success'){
+  const t=document.getElementById('toast');
+  t.className='toast '+type;
+  document.getElementById('toastMsg').textContent=msg;
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),3500);
+}
+
+// ── COLUMN KEY NORMALISER ──────────────────────────────────────────────────────
+function nk(s){ return String(s).toLowerCase().replace(/[^a-z0-9]/g,''); }
+
+// Map a row object (keys = raw header names) to a normalised key→value map
+function normRow(row){ const out={}; Object.keys(row).forEach(k=>{out[nk(k)]=row[k]}); return out; }
+
+// Pick the first matching normalised key from a list of candidates
+function pick(r, ...keys){ for(const k of keys){ if(r[nk(k)]!==undefined) return r[nk(k)]; } return ''; }
+
+// ── SHEET PARSERS ─────────────────────────────────────────────────────────────
+function parseDate(v){
+  if(!v) return '';
+  // SheetJS may give a serial number for dates
+  if(typeof v==='number'){ const d=XLSX.SSF.parse_date_code(v); return `${d.y}-${String(d.m).padStart(2,'0')}-${String(d.d).padStart(2,'0')}`; }
+  const s=String(v).trim();
+  // Try to normalise dd-mm-yyyy, dd/mm/yyyy → yyyy-mm-dd
+  const m=s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+  if(m) return `${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`;
+  return s;
+}
+
+function parseTime(v){
+  if(!v) return '00:00';
+  if(typeof v==='number'){ // fractional day
+    const totalMin=Math.round(v*1440);
+    const h=Math.floor(totalMin/60), m=totalMin%60;
+    return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
+  }
+  return String(v).trim().substring(0,5);
+}
+
+function parseNum(v){ const n=parseFloat(String(v).replace(/[₹,\s]/g,'')); return isNaN(n)?0:n; }
+
+function parseCustomers(rows){
+  return rows.map((raw,i)=>{
+    const r=normRow(raw);
+    return {
+      id:   String(pick(r,'Customer ID','CustID','CustomerID','ID','id') || `CUST${String(i+1).padStart(3,'0')}`),
+      first:String(pick(r,'First Name','FirstName','First','firstname') || ''),
+      last: String(pick(r,'Last Name','LastName','Last','lastname') || ''),
+      gender:String(pick(r,'Gender','gender') || ''),
+      dob:  parseDate(pick(r,'DOB','Date of Birth','DateofBirth','dob','dateofbirth')),
+      city: String(pick(r,'City','city') || ''),
+      state:String(pick(r,'State','state') || ''),
+      joined:parseDate(pick(r,'Joined','Join Date','JoinDate','DateJoined','joined')),
+      email:String(pick(r,'Email','email') || ''),
+      phone:String(pick(r,'Phone','Mobile','PhoneNumber','phone','mobile') || '')
+    };
+  }).filter(c=>c.first||c.last||c.id);
+}
+
+function parseAccounts(rows){
+  return rows.map((raw,i)=>{
+    const r=normRow(raw);
+    return {
+      id:     String(pick(r,'Account ID','AccountID','AccID','ID','id') || `ACC${String(i+1).padStart(3,'0')}`),
+      cid:    String(pick(r,'Customer ID','CustID','CustomerID','custid') || ''),
+      type:   String(pick(r,'Type','Account Type','AccountType','type') || 'Savings'),
+      balance:parseNum(pick(r,'Balance','balance','Amount'))
+    };
+  }).filter(a=>a.cid);
+}
+
+function parseLoans(rows){
+  return rows.map((raw,i)=>{
+    const r=normRow(raw);
+    const status=String(pick(r,'Status','LoanStatus','status') || 'Active');
+    return {
+      id:         String(pick(r,'Loan ID','LoanID','ID','id') || `LOAN${String(i+1).padStart(3,'0')}`),
+      cid:        String(pick(r,'Customer ID','CustID','CustomerID','custid') || ''),
+      type:       String(pick(r,'Type','Loan Type','LoanType','type') || ''),
+      principal:  parseNum(pick(r,'Principal','principal')),
+      rate:       parseNum(pick(r,'Rate','Interest Rate','InterestRate','rate')),
+      tenure:     parseNum(pick(r,'Tenure','tenure')),
+      emi:        parseNum(pick(r,'EMI','emi','MonthlyEMI')),
+      outstanding:parseNum(pick(r,'Outstanding','outstanding','OutstandingBalance')),
+      status:     status.charAt(0).toUpperCase()+status.slice(1).toLowerCase()
+    };
+  }).filter(l=>l.cid);
+}
+
+function parseTransactions(rows){
+  return rows.map((raw,i)=>{
+    const r=normRow(raw);
+    const rawTime=pick(r,'Time','TransactionTime','time');
+    return {
+      id:    String(pick(r,'Transaction ID','TransactionID','TxnID','ID','id') || `TXN${String(i+1).padStart(3,'0')}`),
+      aid:   String(pick(r,'Account ID','AccountID','AccID','aid') || ''),
+      date:  parseDate(pick(r,'Date','TransactionDate','date')),
+      time:  parseTime(rawTime),
+      type:  String(pick(r,'Type','Transaction Type','TransactionType','type') || ''),
+      amount:parseNum(pick(r,'Amount','amount')),
+      desc:  String(pick(r,'Description','Desc','desc','description','Narration','narration') || '')
+    };
+  }).filter(t=>t.aid||t.date);
+}
+
+function parseRisk(rows){
+  return rows.map((raw,i)=>{
+    const r=normRow(raw);
+    return {
+      lid:    String(pick(r,'Loan ID','LoanID','LID','lid') || ''),
+      de:     parseNum(pick(r,'D/E','DE','DebtEquity','de')),
+      intcov: parseNum(pick(r,'IntCov','Interest Coverage','InterestCoverage','intcov')),
+      profit: parseNum(pick(r,'Profit','Profitability','profit')),
+      liq:    parseNum(pick(r,'Liq','Liquidity','liq')),
+      df:     parseNum(pick(r,'DF','Default Flag','DefaultFlag','df')),
+      pd:     parseNum(pick(r,'PD','Probability of Default','ProbabilityofDefault','pd')),
+      obs:    parseDate(pick(r,'Obs','Observation Date','ObservationDate','obs'))
+    };
+  }).filter(r=>r.lid);
+}
+
+// ── SHEET NAME MATCHER ────────────────────────────────────────────────────────
+const SHEET_MAP = [
+  {key:'customers',  aliases:['customer','customers'],       parser:parseCustomers},
+  {key:'accounts',   aliases:['account','accounts'],         parser:parseAccounts},
+  {key:'loans',      aliases:['loan','loans'],               parser:parseLoans},
+  {key:'transactions',aliases:['transaction','transactions','txn','txns'], parser:parseTransactions},
+  {key:'risk',       aliases:['risk','riskmetric','riskmetrics','riskdata'], parser:parseRisk}
+];
+
+function matchSheet(name){
+  const n=nk(name);
+  return SHEET_MAP.find(m=>m.aliases.some(a=>n===a||n.startsWith(a)));
+}
+
+// Auto-detect which parser to use for a CSV by inspecting headers
+function detectParser(headers){
+  const hs=headers.map(nk);
+  if(hs.some(h=>h==='customerid'||h==='custid'||h==='firstname')) return SHEET_MAP[0];
+  if(hs.some(h=>h==='accountid'||h==='accid'||h==='balance')) return SHEET_MAP[1];
+  if(hs.some(h=>h==='loanid'||h==='principal'||h==='emi')) return SHEET_MAP[2];
+  if(hs.some(h=>h==='transactionid'||h==='txnid'||h==='amount'&&hs.includes('aid'))) return SHEET_MAP[3];
+  if(hs.some(h=>h==='pd'||h==='de'||h==='intcov')) return SHEET_MAP[4];
+  return null;
+}
+
+// ── MAIN FILE HANDLER ─────────────────────────────────────────────────────────
+function handleFile(file){
+  if(!file) return;
+  if(file.size > 10*1024*1024){ showToast('File too large (max 10 MB)','error'); return; }
+
+  const reader = new FileReader();
+  reader.onload = e => {
+    try{
+      const data = new Uint8Array(e.target.result);
+      const wb   = XLSX.read(data, {type:'array', cellDates:false});
+
+      const result = {customers:[],accounts:[],loans:[],transactions:[],risk:[]};
+      const statusRows = [];
+      const isCSV = file.name.toLowerCase().endsWith('.csv');
+
+      if(isCSV){
+        // Single sheet CSV — auto-detect type
+        const ws   = wb.Sheets[wb.SheetNames[0]];
+        const rows = XLSX.utils.sheet_to_json(ws,{defval:''});
+        if(rows.length===0){ statusRows.push({name:'CSV',state:'err',info:'Empty file'}); }
+        else{
+          const headers = Object.keys(rows[0]);
+          const match   = detectParser(headers);
+          if(!match){ statusRows.push({name:'CSV',state:'warn',info:'Could not detect data type from column headers'}); }
+          else{
+            const parsed = match.parser(rows);
+            result[match.key] = parsed;
+            statusRows.push({name:`CSV → ${match.key}`,state:'ok',info:`${parsed.length} rows loaded`});
+          }
+        }
+      } else {
+        // Excel — iterate sheets
+        wb.SheetNames.forEach(sName=>{
+          const match = matchSheet(sName);
+          if(!match){
+            statusRows.push({name:sName,state:'warn',info:'Sheet name not recognised — skipped'});
+            return;
+          }
+          const ws   = wb.Sheets[sName];
+          const rows = XLSX.utils.sheet_to_json(ws,{defval:''});
+          if(rows.length===0){
+            statusRows.push({name:sName,state:'warn',info:'Sheet is empty — skipped'});
+            return;
+          }
+          const parsed = match.parser(rows);
+          result[match.key] = parsed;
+          statusRows.push({name:sName,state:'ok',info:`${parsed.length} rows → ${match.key}`});
+        });
+      }
+
+      // Show sheet status in modal
+      document.getElementById('sheetStatus').innerHTML = statusRows.map(s=>`
+        <div class="sheet-row ${s.state}">
+          <div class="sr-dot ${s.state}"></div>
+          <div class="sr-name">${s.name}</div>
+          <div class="sr-info">${s.info}</div>
+        </div>`).join('');
+
+      const hasAny = Object.values(result).some(arr=>arr.length>0);
+      parsedImport = hasAny ? result : null;
+      document.getElementById('btnLoad').classList.toggle('ready', hasAny);
+
+    } catch(err){
+      document.getElementById('sheetStatus').innerHTML =
+        `<div class="sheet-row err"><div class="sr-dot err"></div><div class="sr-name">Error</div><div class="sr-info">${err.message}</div></div>`;
+      parsedImport = null;
+      document.getElementById('btnLoad').classList.remove('ready');
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+// ── APPLY IMPORTED DATA ───────────────────────────────────────────────────────
+function loadData(){
+  if(!parsedImport) return;
+
+  // Merge: replace only the arrays that have data; keep existing for empty ones
+  ['customers','accounts','loans','transactions','risk'].forEach(k=>{
+    if(parsedImport[k] && parsedImport[k].length > 0) DB[k] = parsedImport[k];
+  });
+
+  closeUpload();
+  buildSidebar();
+  destroyDashCharts();
+  if(radarChart){radarChart.destroy();radarChart=null;}
+  showDashboard();
+
+  const counts = Object.entries(parsedImport)
+    .filter(([,v])=>v.length>0)
+    .map(([k,v])=>`${v.length} ${k}`)
+    .join(' · ');
+  showToast(`Loaded: ${counts}`, 'success');
+}
+
+// ── INIT ──────────────────────────────────────────────────────────────────────
+document.getElementById('topDate').textContent = new Date().toLocaleDateString('en-IN',{
+  weekday:'short',day:'numeric',month:'long',year:'numeric'
+});
+
+// Load live data from the backend, then render. (Upload modal can still
+// override DB at runtime via loadData().)
+loadLiveData()
+  .then(()=>{ buildSidebar(); showDashboard(); })
+  .catch(err=>{
+    document.getElementById('mainContent').innerHTML =
+      '<div class="empty" style="padding:70px 40px"><div style="font-size:34px;margin-bottom:12px">⚠</div>'+
+      '<div style="font-weight:600;color:var(--t2);margin-bottom:6px">Could not load live banking data</div>'+
+      '<div style="font-size:12px">'+((err&&err.message)||err)+' — is the Flask server running?</div></div>';
+    document.getElementById('custList').innerHTML = '';
+  });
+</script>
+</body>
+</html>

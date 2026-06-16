@@ -99,12 +99,13 @@ async function checkAPIHealth() {
  * @param {string} pdMethod - Calculation method ('ml' for ML model, 'rule-based' for formulas)
  * @returns {Promise<object>} PD result with components and method info
  */
-async function calculatePDFromAPI(debtToEquity, interestCoverage, profitabilityMargin, liquidityRatio, pdMethod = 'ml') {
+async function calculatePDFromAPI(debtToEquity, interestCoverage, profitabilityMargin, liquidityRatio, pdMethod = 'ml', kyc = {}) {
     const requestData = {
         de_ratio: debtToEquity,
         interest_coverage: interestCoverage,
         profitability: profitabilityMargin,
-        liquidity_ratio: liquidityRatio
+        liquidity_ratio: liquidityRatio,
+        ...kyc
     };
 
     const endpoint = pdMethod === 'ml' ? '/predict-pd-ml' : '/calculate-pd';

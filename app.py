@@ -23,7 +23,18 @@ config_name = os.environ.get('FLASK_ENV', 'development')
 app.config.from_object(config[config_name])
 
 # Enable CORS for all routes
-CORS(app, resources={r"/api/*": {"origins": "*"}})
+CORS(app, resources={r"/api/*": {"origins": "*"}, r"/operations/api/*": {"origins": "*"}})
+
+# ── Banking Operations (bank.db — direct sqlite3, read-only) ─────────────────
+import sqlite3 as _sqlite3
+
+_OPS_DB_PATH = os.path.join(os.path.dirname(__file__), 'bank.db')
+
+def _ops_conn():
+    """Return a read-only sqlite3 connection to bank.db with dict-like rows."""
+    conn = _sqlite3.connect(_OPS_DB_PATH)
+    conn.row_factory = _sqlite3.Row
+    return conn
 
 # Load ML model once at startup (not on every request)
 import joblib as _joblib
@@ -366,42 +377,50 @@ def portfolio_summary():
 
 @app.route('/api/predict-pd-ml', methods=['POST'])
 def predict_pd_ml():
-    """Predict Probability of Default using ML model
+    """Predict Probability of Default using ML model.
 
-    Expected request body:
-    {
-        "de_ratio": float,
-        "interest_coverage": float,
-        "profitability": float,
-        "liquidity_ratio": float
-    }
+    Core financial ratios are required. KYC fields are optional and default
+    to representative median values when omitted (backward-compatible).
     """
     try:
         data = request.get_json()
 
-        # Check if model was loaded at startup
         if _pd_model is None:
             return jsonify({
                 'error': 'ML model not available',
                 'message': 'Model could not be loaded at startup'
             }), 503
 
-        # Prepare features
+        # Build feature vector matching trainer.py FEATURE_COLS order.
+        # KYC defaults are population medians so callers that only supply the
+        # four financial ratios still get a sensible prediction.
         features = [[
             float(data.get('de_ratio', 0)),
             float(data.get('interest_coverage', 0)),
             float(data.get('profitability', 0)),
-            float(data.get('liquidity_ratio', 0))
+            float(data.get('liquidity_ratio', 0)),
+            float(data.get('age', 35)),
+            float(data.get('employment_type_enc', 2)),
+            float(data.get('years_employed', 5)),
+            float(data.get('annual_income', 500000)),
+            float(data.get('foir', 0.4)),
+            float(data.get('num_dependents', 2)),
+            float(data.get('city_tier_enc', 2)),
+            float(data.get('education_enc', 3)),
+            float(data.get('residence_type_enc', 2)),
+            float(data.get('loan_purpose_enc', 1)),
+            float(data.get('cibil_score', 700)),
+            float(data.get('previous_default_flag', 0)),
+            float(data.get('months_as_customer', 24)),
+            float(data.get('num_late_payments_past_12m', 0)),
+            float(data.get('existing_loans_count', 1)),
+            float(data.get('num_existing_products', 2)),
+            float(data.get('is_rural', 0)),
         ]]
 
-        # Make prediction
         pd_decimal = float(_pd_model.predict(features)[0])
-
-        # Ensure PD is within valid range
         pd_decimal = max(0.0001, min(1.0, pd_decimal))
 
-        # Create breakdown based on feature importance (estimated from RF model)
-        # This provides transparency for the ML-based PD calculation
         breakdown = {
             'base_rate': 0.5,
             'de_ratio_adjustment': round(float(data.get('de_ratio', 0)) * 0.8, 4),
@@ -687,16 +706,6 @@ def admin_data_sources():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-@app.route('/admin/api/generate-synthetic', methods=['POST'])
-def admin_generate_synthetic():
-    if not _check_admin_auth(): return _admin_auth_error()
-    try:
-        from ml_models.synthetic_data import generate_all
-        results = generate_all(copy_to_training=True)
-        return jsonify({'status': 'success', 'files_generated': len(results),
-                        'banks': list(results.keys())}), 200
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
 
 # ============================================================================
 # ADMIN API — HYPERPARAMETERS
@@ -798,9 +807,13 @@ def admin_trigger_train():
         def _run():
             global _pd_model
             result = run_training(triggered_by='manual')
-            if result['status'] == 'success' and result['model_promoted']:
-                import joblib
-                _pd_model = joblib.load(_MODEL_PATH)
+            if result['status'] == 'success' and (result['model_promoted'] or _pd_model is None):
+                try:
+                    import joblib
+                    _pd_model = joblib.load(_MODEL_PATH)
+                    print(f"Model reloaded in-process after training run {result['run_id']}")
+                except Exception as reload_err:
+                    print(f"WARNING: Could not reload model after training: {reload_err}")
 
         t = threading.Thread(target=_run, daemon=True)
         t.start()
@@ -998,13 +1011,13 @@ def admin_audit_log():
 _scheduler = None
 
 def _scheduled_training():
-    """Called by APScheduler — runs training and reloads model if promoted."""
+    """Called by APScheduler — runs training and reloads model if promoted or previously unavailable."""
+    global _pd_model
     try:
         from ml_models.trainer import run_training
         import joblib
         result = run_training(triggered_by='schedule')
-        if result.get('model_promoted'):
-            global _pd_model
+        if result.get('model_promoted') or _pd_model is None:
             _pd_model = joblib.load(_MODEL_PATH)
     except Exception as e:
         print(f"Scheduled training error: {e}")
@@ -1053,8 +1066,703 @@ def _start_scheduler():
         with open(_HPARAM_PATH) as f:
             hp = json.load(f)
         _reconfigure_scheduler(hp.get('schedule', {}))
+    # Daily Regulatory Reporting batch — recompute Basel III / RBI returns at 01:00.
+    try:
+        _scheduler.add_job(_run_regulatory_batch_job, 'cron', hour=1, minute=0,
+                           id='regulatory_batch', replace_existing=True)
+    except Exception as e:
+        print(f'[regulatory] could not schedule daily batch: {e}')
+    # Ensure today's reports exist on startup (App Engine instances are ephemeral).
+    _ensure_regulatory_reports()
 
-# Start scheduler only in the main process (not Flask reloader watcher)
+# NOTE: scheduler is started at the bottom of this module (after all job
+# functions — including the regulatory batch — are defined). See _bootstrap.
+
+# ============================================================================
+# BANKING OPERATIONS DEPARTMENT
+# ============================================================================
+
+@app.route('/operations/')
+@app.route('/operations')
+def operations_home():
+    return send_from_directory('public/operations', 'index.html')
+
+
+@app.route('/operations/multibank')
+def operations_multibank():
+    return send_from_directory('public/operations', 'multibank.html')
+
+
+@app.route('/operations/db-admin')
+def operations_db_admin():
+    """Database schema viewer — renders Jinja2 template with live schema info."""
+    schema        = {}
+    foreign_keys  = {}
+    total_records = 0
+    tables        = []
+    try:
+        import sqlite3 as _sa
+        conn = _sa.connect(_OPS_DB_PATH)
+        cur  = conn.cursor()
+        cur.execute("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name")
+        tables = [row[0] for row in cur.fetchall()]
+        for table in tables:
+            cur.execute(f"PRAGMA table_info({table})")
+            columns = cur.fetchall()
+            cur.execute(f"SELECT COUNT(*) FROM {table}")
+            count = cur.fetchone()[0]
+            total_records += count
+            cur.execute(f"PRAGMA foreign_key_list({table})")
+            fks = cur.fetchall()
+            foreign_keys[table] = [{'from': fk[3], 'to_table': fk[2], 'to_col': fk[4]} for fk in fks]
+            schema[table] = {
+                'count': count,
+                'columns': [{'name': col[1], 'type': col[2], 'notnull': col[3],
+                              'default': col[4], 'pk': col[5]} for col in columns]
+            }
+        conn.close()
+    except Exception as e:
+        print(f'[ops_db_admin] error: {e}')
+
+    def _mermaid(schema, foreign_keys):
+        lines = ['erDiagram']
+        seen  = set()
+        for table, fks in foreign_keys.items():
+            for fk in fks:
+                key = tuple(sorted([table, fk['to_table']]))
+                if key not in seen:
+                    lines.append(f'    {table} ||--o| {fk["to_table"]} : "{fk["from"]}"')
+                    seen.add(key)
+        for table in sorted(schema.keys()):
+            cols = schema[table]['columns']
+            if cols:
+                lines.append(f'    {table} {{')
+                for col in cols:
+                    t  = col['type'].split('(')[0].upper()[:8]
+                    n  = col['name'].replace('-', '_')
+                    pk = ' PK' if col['pk'] else ''
+                    lines.append(f'        {t} {n}{pk}')
+                lines.append('    }')
+        return '\n'.join(lines)
+
+    mermaid_diagram = _mermaid(schema, foreign_keys)
+    return render_template('ops_admin.html', schema=schema, tables=sorted(tables),
+                           total_records=total_records, mermaid_diagram=mermaid_diagram)
+
+
+def _row_to_dict(row):
+    return dict(row) if row else None
+
+def _rows_to_list(rows):
+    return [dict(r) for r in rows]
+
+def _ops_loan_health(loans):
+    statuses = [l['status'] for l in loans]
+    if 'Defaulted' in statuses:
+        return 'def'
+    if 'NPA' in statuses:
+        return 'watch'
+    return 'good'
+
+
+@app.route('/operations/api/banks')
+def ops_list_banks():
+    with _ops_conn() as conn:
+        banks = _rows_to_list(conn.execute('SELECT * FROM banks').fetchall())
+        for b in banks:
+            bid = b['bank_id']
+            b['branch_count']   = conn.execute(
+                'SELECT COUNT(*) FROM branches WHERE bank_id=?', (bid,)).fetchone()[0]
+            b['customer_count'] = conn.execute(
+                'SELECT COUNT(*) FROM customers WHERE bank_id=?', (bid,)).fetchone()[0]
+    return jsonify(banks)
+
+
+@app.route('/operations/api/banks/<bank_id>')
+def ops_get_bank(bank_id):
+    with _ops_conn() as conn:
+        b = _row_to_dict(conn.execute(
+            'SELECT * FROM banks WHERE bank_id=?', (bank_id,)).fetchone())
+        if b is None:
+            return jsonify({'error': 'Bank not found'}), 404
+        branches   = _rows_to_list(conn.execute(
+            'SELECT * FROM branches WHERE bank_id=?', (bank_id,)).fetchall())
+        compliance = _rows_to_list(conn.execute(
+            'SELECT * FROM regulatory_compliance WHERE bank_id=?', (bank_id,)).fetchall())
+        reqs = []
+        for c in compliance:
+            req = _row_to_dict(conn.execute(
+                'SELECT * FROM regulatory_requirements WHERE requirement_id=?',
+                (c['requirement_id'],)).fetchone())
+            if req:
+                reqs.append({'requirement': req,
+                             'compliance_status': c['compliance_status'],
+                             'last_audit_date': c['last_audit_date']})
+    return jsonify({'bank': b, 'branches': branches, 'compliance': reqs})
+
+
+@app.route('/operations/api/banks/<bank_id>/customers')
+def ops_get_bank_customers(bank_id):
+    with _ops_conn() as conn:
+        if not conn.execute('SELECT 1 FROM banks WHERE bank_id=?', (bank_id,)).fetchone():
+            return jsonify({'error': 'Bank not found'}), 404
+        customers = _rows_to_list(conn.execute(
+            'SELECT id, first, last, city, bank_id FROM customers WHERE bank_id=?',
+            (bank_id,)).fetchall())
+        loans = _rows_to_list(conn.execute(
+            'SELECT cid, status FROM loans WHERE bank_id=?', (bank_id,)).fetchall())
+    loan_map = {}
+    for l in loans:
+        loan_map.setdefault(l['cid'], []).append(l)
+    for c in customers:
+        c['health'] = _ops_loan_health(loan_map.get(c['id'], []))
+    return jsonify(customers)
+
+
+@app.route('/operations/api/banks/<bank_id>/dashboard')
+def ops_bank_dashboard(bank_id):
+    with _ops_conn() as conn:
+        b = _row_to_dict(conn.execute(
+            'SELECT * FROM banks WHERE bank_id=?', (bank_id,)).fetchone())
+        if b is None:
+            return jsonify({'error': 'Bank not found'}), 404
+        customers    = _rows_to_list(conn.execute(
+            'SELECT * FROM customers WHERE bank_id=?', (bank_id,)).fetchall())
+        accounts     = _rows_to_list(conn.execute(
+            'SELECT * FROM accounts WHERE bank_id=?', (bank_id,)).fetchall())
+        loans        = _rows_to_list(conn.execute(
+            'SELECT * FROM loans WHERE bank_id=?', (bank_id,)).fetchall())
+        transactions = _rows_to_list(conn.execute(
+            'SELECT * FROM transactions WHERE bank_id=?', (bank_id,)).fetchall())
+    return jsonify(_ops_build_payload(b, customers, accounts, loans, transactions))
+
+
+@app.route('/operations/api/customers')
+def ops_list_customers():
+    with _ops_conn() as conn:
+        customers = _rows_to_list(conn.execute(
+            'SELECT id, first, last, city, bank_id FROM customers').fetchall())
+        loans = _rows_to_list(conn.execute(
+            'SELECT cid, status FROM loans').fetchall())
+    loan_map = {}
+    for l in loans:
+        loan_map.setdefault(l['cid'], []).append(l)
+    for c in customers:
+        c['health'] = _ops_loan_health(loan_map.get(c['id'], []))
+    return jsonify(customers)
+
+
+@app.route('/operations/api/customers/<cid>')
+def ops_get_customer(cid):
+    with _ops_conn() as conn:
+        c = _row_to_dict(conn.execute(
+            'SELECT * FROM customers WHERE id=?', (cid,)).fetchone())
+        if c is None:
+            return jsonify({'error': 'Customer not found'}), 404
+        accounts     = _rows_to_list(conn.execute(
+            'SELECT * FROM accounts WHERE cid=?', (cid,)).fetchall())
+        loans        = _rows_to_list(conn.execute(
+            'SELECT * FROM loans WHERE cid=?', (cid,)).fetchall())
+        acc_ids      = [a['id'] for a in accounts]
+        transactions = []
+        if acc_ids:
+            placeholders = ','.join('?' * len(acc_ids))
+            transactions = _rows_to_list(conn.execute(
+                f'SELECT * FROM transactions WHERE aid IN ({placeholders})'
+                ' ORDER BY date DESC, time DESC', acc_ids).fetchall())
+        loan_ids     = [l['id'] for l in loans]
+        risk_metrics = []
+        if loan_ids:
+            placeholders = ','.join('?' * len(loan_ids))
+            risk_metrics = _rows_to_list(conn.execute(
+                f'SELECT * FROM credit_risk_metrics WHERE lid IN ({placeholders})',
+                loan_ids).fetchall())
+    c['health'] = _ops_loan_health(loans)
+    return jsonify({'customer': c, 'accounts': accounts, 'loans': loans,
+                    'transactions': transactions, 'risk': risk_metrics})
+
+
+@app.route('/operations/api/system-dashboard')
+def ops_system_dashboard():
+    with _ops_conn() as conn:
+        banks        = _rows_to_list(conn.execute('SELECT * FROM banks').fetchall())
+        customers    = _rows_to_list(conn.execute('SELECT * FROM customers').fetchall())
+        accounts     = _rows_to_list(conn.execute('SELECT * FROM accounts').fetchall())
+        loans        = _rows_to_list(conn.execute('SELECT * FROM loans').fetchall())
+        transactions = _rows_to_list(conn.execute('SELECT * FROM transactions').fetchall())
+    bank_summary = []
+    for b in banks:
+        bid = b['bank_id']
+        b_accs = [a for a in accounts if a['bank_id'] == bid]
+        bank_summary.append({
+            'bank_id':   bid,
+            'bank_name': b['bank_name'],
+            'customers': sum(1 for c in customers if c['bank_id'] == bid),
+            'accounts':  len(b_accs),
+            'deposits':  sum(a['balance'] for a in b_accs),
+        })
+    payload = _ops_build_payload(None, customers, accounts, loans, transactions)
+    payload['title'] = 'India Banking System — All Banks Combined'
+    payload['banks'] = bank_summary
+    return jsonify(payload)
+
+
+def _ops_build_payload(bank_dict, customers, accounts, loans, transactions):
+    loan_map = {}
+    for l in loans:
+        loan_map.setdefault(l['cid'], []).append(l)
+
+    total_deposits    = sum(a['balance'] for a in accounts)
+    total_outstanding = sum(l['outstanding'] for l in loans)
+    total_txn_vol     = sum(t['amount'] for t in transactions)
+    active_loans      = sum(1 for l in loans if l['status'] == 'Active')
+    stressed_loans    = sum(1 for l in loans if l['status'] in ('Defaulted', 'NPA'))
+
+    health_dist = {'good': 0, 'watch': 0, 'def': 0}
+    for c in customers:
+        h = _ops_loan_health(loan_map.get(c['id'], []))
+        health_dist[h] += 1
+
+    hour_buckets = [0] * 24
+    for t in transactions:
+        try:
+            h = int(str(t.get('time') or '0').split(':')[0])
+            if 0 <= h < 24:
+                hour_buckets[h] += 1
+        except (ValueError, AttributeError):
+            pass
+
+    by_type = {}
+    by_date = {}
+    for t in transactions:
+        by_type[t['type']] = by_type.get(t['type'], 0) + t['amount']
+        d = str(t.get('date') or 'Unknown')
+        if d not in by_date:
+            by_date[d] = {'count': 0, 'volume': 0}
+        by_date[d]['count']  += 1
+        by_date[d]['volume'] += t['amount']
+
+    loan_by_status = {}
+    acc_by_type    = {}
+    for l in loans:
+        loan_by_status[l['status']] = loan_by_status.get(l['status'], 0) + l['outstanding']
+    for a in accounts:
+        acc_by_type[a['type']] = acc_by_type.get(a['type'], 0) + a['balance']
+
+    total_out = total_outstanding or 1
+    loan_book = [{'id': l['id'], 'cid': l['cid'], 'type': l['type'],
+                  'status': l['status'], 'outstanding': l['outstanding'],
+                  'pct': round((l['outstanding'] / total_out) * 100, 1)} for l in loans]
+
+    txn_log = sorted(transactions,
+                     key=lambda x: (str(x.get('date') or ''), str(x.get('time') or '')),
+                     reverse=True)
+
+    payload = {
+        'kpis': {
+            'customers':        len(customers),
+            'accounts':         len(accounts),
+            'totalDeposits':    total_deposits,
+            'totalOutstanding': total_outstanding,
+            'totalTxns':        len(transactions),
+            'totalTxnVol':      total_txn_vol,
+            'activeLoans':      active_loans,
+            'stressedLoans':    stressed_loans,
+        },
+        'health':       health_dist,
+        'txnByHour':    hour_buckets,
+        'txnByType':    by_type,
+        'txnByDate':    by_date,
+        'loanByStatus': loan_by_status,
+        'accByType':    acc_by_type,
+        'loanBook':     loan_book,
+        'txnLog':       txn_log,
+    }
+    if bank_dict:
+        payload['bank'] = bank_dict
+    return payload
+
+# ============================================================================
+# REGULATORY REPORTING DEPARTMENT
+# Basel III / RBI capital, liquidity & client-exposure returns, read from the
+# reg_* tables produced by the daily batch (operations/scripts/run_regulatory_batch.py).
+# ============================================================================
+from backend.regulatory_engine import RBI_THRESHOLDS as _RBI_THRESHOLDS
+
+
+@app.route('/regulatory/')
+@app.route('/regulatory')
+def regulatory_home():
+    return send_from_directory('public/regulatory', 'index.html')
+
+
+def _reg_tables_exist(conn):
+    row = conn.execute(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name='reg_capital_reports'"
+    ).fetchone()
+    return row is not None
+
+
+def _reg_latest_date(conn):
+    if not _reg_tables_exist(conn):
+        return None
+    row = conn.execute("SELECT MAX(report_date) FROM reg_capital_reports").fetchone()
+    return row[0] if row else None
+
+
+@app.route('/regulatory/api/system')
+def reg_system():
+    """System-wide (all-banks) regulatory snapshot for the latest report date."""
+    with _ops_conn() as conn:
+        d = _reg_latest_date(conn)
+        if not d:
+            return jsonify({'available': False,
+                            'message': 'No regulatory reports yet — run the batch.'})
+        caps = _rows_to_list(conn.execute(
+            "SELECT * FROM reg_capital_reports WHERE report_date=?", (d,)).fetchall())
+        liqs = {r['bank_id']: dict(r) for r in conn.execute(
+            "SELECT * FROM reg_liquidity_reports WHERE report_date=?", (d,)).fetchall()}
+        banks = {b['bank_id']: dict(b) for b in conn.execute("SELECT * FROM banks").fetchall()}
+        dates = [r[0] for r in conn.execute(
+            "SELECT DISTINCT report_date FROM reg_capital_reports ORDER BY report_date").fetchall()]
+
+    agg = lambda key: sum(c[key] for c in caps)
+    tot_rwa     = agg('total_rwa')      or 1.0
+    tot_assets  = agg('total_assets')   or 1.0
+    tot_cap     = agg('total_capital')
+    tot_t1      = agg('tier1_capital')
+    tot_hqla    = sum(l['hqla'] for l in liqs.values())
+    tot_out     = sum(l['net_outflows_30d'] for l in liqs.values()) or 1.0
+    tot_asf     = sum(l['asf'] for l in liqs.values())
+    tot_rsf     = sum(l['rsf'] for l in liqs.values()) or 1.0
+
+    bank_rows = []
+    breaches = watches = 0
+    for c in caps:
+        l = liqs.get(c['bank_id'], {})
+        for st in (c['car_status'], l.get('lcr_status'), l.get('nsfr_status'), c['cet1_status']):
+            if st == 'Breach':
+                breaches += 1
+            elif st == 'Watch':
+                watches += 1
+        bank_rows.append({
+            'bank_id': c['bank_id'],
+            'bank_name': banks.get(c['bank_id'], {}).get('bank_name', c['bank_id']),
+            'car': c['car'], 'car_status': c['car_status'],
+            'cet1_ratio': c['cet1_ratio'], 'tier1_ratio': c['tier1_ratio'],
+            'leverage_ratio': c['leverage_ratio'],
+            'lcr': l.get('lcr'), 'lcr_status': l.get('lcr_status'),
+            'nsfr': l.get('nsfr'), 'nsfr_status': l.get('nsfr_status'),
+            'crr_ratio': l.get('crr_ratio'), 'slr_ratio': l.get('slr_ratio'),
+            'total_rwa': c['total_rwa'], 'loan_book': c['loan_book'],
+            'deposits': c['deposits'], 'num_loans': c['num_loans'], 'num_npa': c['num_npa'],
+            'total_provisions': c['total_provisions'],
+        })
+
+    return jsonify({
+        'available': True,
+        'report_date': d,
+        'history_dates': dates,
+        'thresholds': _RBI_THRESHOLDS,
+        'system': {
+            'total_rwa': round(tot_rwa, 2),
+            'credit_rwa': round(agg('credit_rwa'), 2),
+            'operational_rwa': round(agg('operational_rwa'), 2),
+            'total_capital': round(tot_cap, 2),
+            'tier1_capital': round(tot_t1, 2),
+            'total_assets': round(tot_assets, 2),
+            'loan_book': round(agg('loan_book'), 2),
+            'deposits': round(agg('deposits'), 2),
+            'total_provisions': round(agg('total_provisions'), 2),
+            'num_loans': agg('num_loans'),
+            'num_npa': agg('num_npa'),
+            'car': round(tot_cap / tot_rwa * 100, 2),
+            'cet1_ratio': round(tot_t1 / tot_rwa * 100, 2),
+            'leverage_ratio': round(tot_t1 / tot_assets * 100, 2),
+            'lcr': round(tot_hqla / tot_out * 100, 2),
+            'nsfr': round(tot_asf / tot_rsf * 100, 2),
+            'hqla': round(tot_hqla, 2),
+            'num_banks': len(caps),
+            'breaches': breaches,
+            'watches': watches,
+        },
+        'banks': bank_rows,
+    })
+
+
+@app.route('/regulatory/api/banks/<bank_id>')
+def reg_bank(bank_id):
+    """Full capital + liquidity + compliance + trend for one bank."""
+    with _ops_conn() as conn:
+        d = _reg_latest_date(conn)
+        if not d:
+            return jsonify({'available': False,
+                            'message': 'No regulatory reports yet — run the batch.'})
+        cap = _row_to_dict(conn.execute(
+            "SELECT * FROM reg_capital_reports WHERE bank_id=? AND report_date=?",
+            (bank_id, d)).fetchone())
+        if cap is None:
+            return jsonify({'error': 'No report for this bank'}), 404
+        liq = _row_to_dict(conn.execute(
+            "SELECT * FROM reg_liquidity_reports WHERE bank_id=? AND report_date=?",
+            (bank_id, d)).fetchone())
+        bank = _row_to_dict(conn.execute(
+            "SELECT * FROM banks WHERE bank_id=?", (bank_id,)).fetchone())
+        compliance = []
+        for c in conn.execute(
+                "SELECT * FROM regulatory_compliance WHERE bank_id=?", (bank_id,)).fetchall():
+            req = _row_to_dict(conn.execute(
+                "SELECT * FROM regulatory_requirements WHERE requirement_id=?",
+                (c['requirement_id'],)).fetchone())
+            compliance.append({'compliance': dict(c), 'requirement': req})
+        # exposure mix by loan type + classification
+        mix = _rows_to_list(conn.execute(
+            "SELECT loan_type, classification, COUNT(*) n, SUM(rwa) rwa, SUM(ead) ead, "
+            "SUM(provision) provision FROM reg_client_exposures "
+            "WHERE bank_id=? AND report_date=? GROUP BY loan_type, classification",
+            (bank_id, d)).fetchall())
+        # trend across dates
+        trend = _rows_to_list(conn.execute(
+            "SELECT cr.report_date, cr.car, cr.cet1_ratio, lr.lcr, lr.nsfr "
+            "FROM reg_capital_reports cr LEFT JOIN reg_liquidity_reports lr "
+            "ON cr.bank_id=lr.bank_id AND cr.report_date=lr.report_date "
+            "WHERE cr.bank_id=? ORDER BY cr.report_date", (bank_id,)).fetchall())
+
+    for r in (cap, liq):
+        if r and r.get('detail'):
+            try:
+                r['assumptions'] = json.loads(r['detail'])
+            except Exception:
+                pass
+    return jsonify({'available': True, 'report_date': d, 'thresholds': _RBI_THRESHOLDS,
+                    'bank': bank, 'capital': cap, 'liquidity': liq,
+                    'compliance': compliance, 'exposure_mix': mix, 'trend': trend})
+
+
+@app.route('/regulatory/api/banks/<bank_id>/exposures')
+def reg_bank_exposures(bank_id):
+    """Client-level exposure register for one bank (latest report date)."""
+    with _ops_conn() as conn:
+        d = _reg_latest_date(conn)
+        if not d:
+            return jsonify({'available': False, 'exposures': []})
+        rows = _rows_to_list(conn.execute(
+            "SELECT * FROM reg_client_exposures WHERE bank_id=? AND report_date=? "
+            "ORDER BY rwa DESC", (bank_id, d)).fetchall())
+    return jsonify({'available': True, 'report_date': d, 'bank_id': bank_id, 'exposures': rows})
+
+
+@app.route('/regulatory/api/clients/<cid>')
+def reg_client(cid):
+    """Client-level regulatory report — exposures + RWA/provision contribution."""
+    with _ops_conn() as conn:
+        d = _reg_latest_date(conn)
+        cust = _row_to_dict(conn.execute(
+            "SELECT * FROM customers WHERE id=?", (cid,)).fetchone())
+        if cust is None:
+            return jsonify({'error': 'Customer not found'}), 404
+        bank = _row_to_dict(conn.execute(
+            "SELECT * FROM banks WHERE bank_id=?", (cust['bank_id'],)).fetchone())
+        exposures = []
+        if d:
+            exposures = _rows_to_list(conn.execute(
+                "SELECT * FROM reg_client_exposures WHERE cid=? AND report_date=? "
+                "ORDER BY rwa DESC", (cid, d)).fetchall())
+    totals = {
+        'ead': round(sum(e['ead'] for e in exposures), 2),
+        'rwa': round(sum(e['rwa'] for e in exposures), 2),
+        'capital_charge': round(sum(e['capital_charge'] for e in exposures), 2),
+        'expected_loss': round(sum(e['expected_loss'] for e in exposures), 2),
+        'provision': round(sum(e['provision'] for e in exposures), 2),
+        'num_loans': len(exposures),
+        'num_npa': sum(1 for e in exposures if e['classification'] not in ('Standard', 'Performing')),
+    }
+    return jsonify({'available': bool(d), 'report_date': d, 'thresholds': _RBI_THRESHOLDS,
+                    'customer': cust, 'bank': bank, 'exposures': exposures, 'totals': totals})
+
+
+@app.route('/regulatory/api/run-batch', methods=['POST'])
+def reg_run_batch():
+    """Manually trigger the regulatory batch (also runs daily via APScheduler)."""
+    try:
+        from operations.scripts.run_regulatory_batch import run_batch
+        results = run_batch(verbose=False)
+        return jsonify({'success': True, 'banks_processed': len(results),
+                        'report_date': __import__('datetime').date.today().isoformat()})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+def _run_regulatory_batch_job():
+    """APScheduler entry point for the daily regulatory batch."""
+    try:
+        from operations.scripts.run_regulatory_batch import run_batch
+        run_batch(verbose=False)
+        print('[regulatory] daily batch completed')
+    except Exception as e:
+        print(f'[regulatory] batch error: {e}')
+
+
+def _ensure_regulatory_reports():
+    """Run the batch once at startup if today's reports are missing (GCP is ephemeral)."""
+    try:
+        with _ops_conn() as conn:
+            if _reg_latest_date(conn) == __import__('datetime').date.today().isoformat():
+                return
+        _run_regulatory_batch_job()
+    except Exception as e:
+        print(f'[regulatory] startup batch skipped: {e}')
+
+# ============================================================================
+# RELATIONSHIP MANAGEMENT & DECISION SUPPORT DEPARTMENT
+# Front-line RM workflow that sits between the customer and the automated
+# decisioning core: machine recommendation (M) + human judgment (H) +
+# organisational decision (O), joined by a hash-chained provenance ledger.
+# Reuses _assessment_engine (model) + backend.policy_engine + decision_orchestrator.
+# ============================================================================
+from backend import rm_case_store as _rm
+from backend.decision_orchestrator import orchestrate as _orchestrate
+
+_rm_schema_ready = False
+
+def _rm_conn():
+    """bank.db connection with the RM case-ledger schema ensured once."""
+    global _rm_schema_ready
+    conn = _ops_conn()
+    if not _rm_schema_ready:
+        _rm.init_schema(conn)
+        _rm_schema_ready = True
+    return conn
+
+
+@app.route('/relationship/')
+@app.route('/relationship')
+def relationship_home():
+    return send_from_directory('public/relationship', 'index.html')
+
+
+@app.route('/relationship/api/cases', methods=['GET', 'POST'])
+def rm_cases():
+    if request.method == 'POST':
+        application = request.get_json(force=True) or {}
+        rm_id = application.pop('rm_id', 'RM-DEMO')
+        try:
+            M = _orchestrate(application, _assessment_engine)
+        except Exception as e:
+            return jsonify({'error': f'Assessment failed: {e}'}), 500
+        with _rm_conn() as conn:
+            case_id = _rm.create_case(conn, M, rm_id=rm_id)
+        return jsonify({'success': True, 'case_id': case_id,
+                        'recommendation': M['composed'], 'routing': M['routing']}), 201
+    # GET — queue list
+    with _rm_conn() as conn:
+        cases = _rm.list_cases(conn, state=request.args.get('state'),
+                               control=request.args.get('control'))
+    return jsonify({'cases': cases})
+
+
+@app.route('/relationship/api/cases/<case_id>')
+def rm_get_case(case_id):
+    with _rm_conn() as conn:
+        c = _rm.get_case(conn, case_id)
+    if not c:
+        return jsonify({'error': 'Case not found'}), 404
+    return jsonify(c)
+
+
+@app.route('/relationship/api/cases/<case_id>/action', methods=['POST'])
+def rm_case_action(case_id):
+    """RM action: accept | reject. The RM is the final authority; each action
+    finalises the case (reject requires a >=20-char rationale)."""
+    body = request.get_json(force=True) or {}
+    with _rm_conn() as conn:
+        result, code = _rm.rm_action(
+            conn, case_id,
+            action=body.get('action'),
+            actor_id=body.get('actor_id', 'RM-DEMO'),
+            rationale_code=body.get('rationale_code'),
+            rationale_text=body.get('rationale_text'),
+            modified_recommendation=body.get('modified_recommendation'),
+            extra=body)
+    return jsonify(result), code
+
+
+@app.route('/relationship/api/cases/<case_id>/approve', methods=['POST'])
+def rm_case_approve(case_id):
+    """Four-eyes / committee: approve | return an RM proposal."""
+    body = request.get_json(force=True) or {}
+    with _rm_conn() as conn:
+        result, code = _rm.four_eyes(
+            conn, case_id, decision=body.get('decision'),
+            actor_id=body.get('actor_id', 'CO-DEMO'),
+            rationale_text=body.get('rationale_text'))
+    return jsonify(result), code
+
+
+@app.route('/relationship/api/cases/<case_id>/outcome', methods=['POST'])
+def rm_case_outcome(case_id):
+    """Record post-decision performance (closes the human-in-the-loop learning loop)."""
+    body = request.get_json(force=True) or {}
+    with _rm_conn() as conn:
+        result, code = _rm.record_outcome(
+            conn, case_id,
+            performance_status=body.get('performance_status', 'performing'),
+            booked=body.get('booked', True),
+            dpd=int(body.get('dpd', 0) or 0),
+            default_flag=int(body.get('default_flag', 0) or 0),
+            notes=body.get('notes'))
+    return jsonify(result), code
+
+
+@app.route('/relationship/api/insights')
+def rm_insights():
+    with _rm_conn() as conn:
+        return jsonify(_rm.insights(conn))
+
+
+# ── PDF case reports (LaTeX → PDF, versioned per borrower) ───────────────────
+from backend import report_generator as _reportgen
+from flask import send_file as _send_file
+
+
+@app.route('/relationship/api/cases/<case_id>/report', methods=['POST'])
+def rm_generate_report(case_id):
+    """Generate a NEW PDF report version for a case (regeneration keeps history)."""
+    with _rm_conn() as conn:
+        case = _rm.get_case(conn, case_id)
+    if not case:
+        return jsonify({'error': 'Case not found'}), 404
+    try:
+        meta = _reportgen.generate_report(case)
+    except Exception as e:
+        return jsonify({'error': f'Report generation failed: {e}'}), 500
+    code = 201 if meta.get('pdf_exists') else 500
+    return jsonify({'success': meta.get('pdf_exists', False),
+                    'report': meta,
+                    'versions': _reportgen.list_versions(case_id)}), code
+
+
+@app.route('/relationship/api/cases/<case_id>/reports', methods=['GET'])
+def rm_list_reports(case_id):
+    """List all past report versions (newest first) for a case."""
+    return jsonify({'case_id': case_id,
+                    'latex_available': _reportgen.latex_available(),
+                    'versions': _reportgen.list_versions(case_id)})
+
+
+@app.route('/relationship/api/reports/<case_id>/<version>/pdf', methods=['GET'])
+def rm_report_pdf(case_id, version):
+    """Serve a report PDF inline (open) or as an attachment (?dl=1 to download)."""
+    path = _reportgen.pdf_path(case_id, version)
+    if not path:
+        return jsonify({'error': 'PDF not found'}), 404
+    download = request.args.get('dl') in ('1', 'true', 'yes')
+    return _send_file(path, mimetype='application/pdf', as_attachment=download,
+                      download_name=f'{case_id}_{version}.pdf')
+
+
+# Start scheduler only in the main process (not the Flask reloader watcher).
+# Placed here, after all scheduled-job functions are defined.
 if not app.debug or os.environ.get('WERKZEUG_RUN_MAIN') == 'true':
     _start_scheduler()
 

@@ -25,7 +25,7 @@ import pandas as pd
 from backend.calculations import AIRBCalculations, StandardizedApproachCalculations
 from backend.rating_masterscale import pd_to_grade, grade_description
 from backend.pricing import full_pricing
-from backend.feature_meta import FEATURE_ORDER, FEATURE_META
+from backend.feature_meta import FEATURE_ORDER, FEATURE_META, model_feature_frame
 from backend.explainability import PeerComparison, CounterfactualEngine
 
 # Policy knockout thresholds (hard referral/decline triggers, pre-model)
@@ -157,8 +157,10 @@ class AssessmentEngine:
             return {"point": pd_val, "low": pd_val, "high": pd_val,
                     "method": "rule_based_fallback", "n_trees": 0}
 
-        # Per-tree predictions give genuine uncertainty (no hardcoding)
-        per_tree = np.array([t.predict(X)[0] for t in self._model.estimators_])
+        # Per-tree predictions give genuine uncertainty (no hardcoding).
+        # Pass the raw array — individual trees were fitted without feature names.
+        X_arr = X.values
+        per_tree = np.array([t.predict(X_arr)[0] for t in self._model.estimators_])
         point = float(np.clip(per_tree.mean(), 0.0001, 1.0))
         low   = float(np.clip(np.percentile(per_tree, 10), 0.0001, 1.0))
         high  = float(np.clip(np.percentile(per_tree, 90), 0.0001, 1.0))
@@ -196,10 +198,10 @@ class AssessmentEngine:
             meta  = FEATURE_META[feat]
             value = inputs.get(feat, meta["baseline"])
 
-            # Substitute this feature with its baseline, predict
-            sub_inputs = {f: inputs.get(f, FEATURE_META[f]["baseline"]) for f in FEATURE_ORDER}
+            # Substitute this feature with its baseline, predict (full model vector)
+            sub_inputs = dict(inputs)
             sub_inputs[feat] = meta["baseline"]
-            X_sub = pd.DataFrame([sub_inputs])
+            X_sub = model_feature_frame(sub_inputs, self._model)
             pd_sub   = (
                 float(np.clip(self._model.predict(X_sub)[0], 0.0001, 1.0))
                 if self._model else pd_full
@@ -406,18 +408,7 @@ class AssessmentEngine:
             ],
         }
 
-        character = {
-            "score": "NOT_ASSESSED",
-            "items": [{
-                "label": "Qualitative Due Diligence",
-                "value": "Pending",
-                "assessment": (
-                    "Character assessment requires: management track record, "
-                    "CIBIL/Equifax bureau check, litigation / regulatory history, "
-                    "and relationship officer judgment. Not captured by quantitative model."
-                ),
-            }],
-        }
+        character = self._character(inputs)
 
         return {
             "capacity":   capacity,
@@ -426,6 +417,81 @@ class AssessmentEngine:
             "conditions": conditions,
             "character":  character,
         }
+
+    # -----------------------------------------------------------------------
+    # Character C — derived from bureau / credit-history inputs when supplied,
+    # else flagged NOT_ASSESSED (the quantitative ratios carry no character info).
+    # -----------------------------------------------------------------------
+
+    @staticmethod
+    def _character(inputs: dict) -> dict:
+        def _num(key):
+            v = inputs.get(key)
+            if v in (None, ""):
+                return None
+            try:
+                return float(v)
+            except (TypeError, ValueError):
+                return None
+
+        cibil  = _num("cibil_score")
+        prev   = _num("previous_default_flag")
+        late   = _num("num_late_payments_past_12m")
+        loans  = _num("existing_loans_count")
+
+        # No bureau signal at all → preserve the honest "not assessed" stance.
+        if cibil is None and prev is None and late is None:
+            return {
+                "score": "NOT_ASSESSED",
+                "items": [{
+                    "label": "Qualitative Due Diligence",
+                    "value": "Pending",
+                    "assessment": (
+                        "Character assessment requires bureau data (CIBIL/Equifax), "
+                        "litigation / regulatory history and relationship-officer judgment. "
+                        "No bureau inputs were supplied for this assessment."
+                    ),
+                }],
+            }
+
+        items = []
+        if cibil is not None:
+            if cibil >= 750:
+                c_assess = "Strong bureau score — consistent, disciplined repayment history"
+            elif cibil >= 650:
+                c_assess = "Moderate bureau score — generally satisfactory credit conduct"
+            else:
+                c_assess = "Sub-prime bureau score — elevated character / willingness-to-pay risk"
+            items.append({"label": "CIBIL Score", "value": f"{cibil:.0f}",
+                          "benchmark": ">= 750", "assessment": c_assess})
+
+        if prev is not None:
+            items.append({"label": "Previous Default",
+                          "value": "Yes" if prev else "No",
+                          "assessment": ("Prior default on record — significant adverse indicator"
+                                         if prev else "No prior defaults on record")})
+
+        if late is not None:
+            if late == 0:
+                l_assess = "Clean recent repayment record (no delinquencies in 12m)"
+            elif late <= 2:
+                l_assess = "Occasional recent delinquency — monitor repayment discipline"
+            else:
+                l_assess = "Frequent recent delinquency — weak repayment discipline"
+            items.append({"label": "Late Payments (12m)", "value": f"{late:.0f}",
+                          "benchmark": "0", "assessment": l_assess})
+
+        if loans is not None:
+            items.append({"label": "Existing Loan Relationships", "value": f"{loans:.0f}",
+                          "assessment": ("No existing leverage on file" if loans == 0
+                                         else "Established borrowing track record"
+                                         if loans <= 3 else "High number of active facilities — monitor")})
+
+        # Composite score: any hard adverse signal → WEAK; clean across the board → STRONG.
+        adverse = bool(prev) or (cibil is not None and cibil < 650) or (late is not None and late >= 3)
+        pristine = (cibil is not None and cibil >= 750) and not prev and (late == 0 if late is not None else True)
+        score = "WEAK" if adverse else "STRONG" if pristine else "MODERATE"
+        return {"score": score, "items": items}
 
     # -----------------------------------------------------------------------
     # Recommendation
@@ -496,11 +562,9 @@ class AssessmentEngine:
     # -----------------------------------------------------------------------
 
     def _feature_vector(self, inputs: dict) -> pd.DataFrame:
-        """Return a single-row DataFrame matching the model's training feature names."""
-        return pd.DataFrame([{
-            f: float(inputs.get(f, FEATURE_META[f]["baseline"]))
-            for f in FEATURE_ORDER
-        }])
+        """Return a single-row DataFrame aligned to the model's expected feature
+        set (4-ratio fallback when no model is loaded)."""
+        return model_feature_frame(inputs, self._model)
 
     @staticmethod
     def _coerce(inputs: dict) -> dict:

@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Relationship Management & Decision Support — India Banking Intelligence</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=IBM+Plex+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --navy:#0D1B2A;--navy3:#1E3048;--red:#E31837;--red-dk:#B01229;
+  --off:#F4F6FA;--border:#E2E8F0;--t1:#0D1B2A;--t2:#4A5568;--t3:#8A9AB0;
+  --green:#10B981;--amber:#F59E0B;--blue:#3B82F6;--purple:#8B5CF6;--sidebar:300px;
+}
+body{font-family:'IBM Plex Sans',sans-serif;background:var(--off);color:var(--t1);display:flex;flex-direction:column;height:100vh;overflow:hidden}
+.topnav{background:#fff;border-bottom:1px solid var(--border);padding:0 28px;height:54px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;z-index:15}
+.topnav-title{font-family:'Syne',sans-serif;font-weight:700;font-size:15px}
+.btn{padding:8px 15px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;border:1px solid var(--border);background:#fff;color:var(--t2);transition:all .18s;display:inline-flex;align-items:center;gap:7px}
+.btn:hover{border-color:var(--red);color:var(--red)}
+.btn-primary{background:var(--red);color:#fff;border-color:var(--red)}.btn-primary:hover{background:var(--red-dk);color:#fff}
+.btn-ok{background:var(--green);color:#fff;border-color:var(--green)}.btn-ok:hover{filter:brightness(.94);color:#fff}
+.btn-warn{background:var(--amber);color:#fff;border-color:var(--amber)}.btn-warn:hover{filter:brightness(.94);color:#fff}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn-sm{padding:6px 11px;font-size:11px}
+.layout{display:flex;flex:1;overflow:hidden}
+.sidebar{width:var(--sidebar);min-width:var(--sidebar);background:var(--navy);display:flex;flex-direction:column;overflow:hidden;position:relative}
+.sidebar::after{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 10% 10%,rgba(227,24,55,.07),transparent 60%);pointer-events:none}
+.sb-head{padding:16px 20px 12px;border-bottom:1px solid rgba(255,255,255,.07);position:relative;z-index:1}
+.home-link{display:flex;gap:6px;color:rgba(255,255,255,.5);font-size:11px;text-decoration:none;margin-bottom:10px}.home-link:hover{color:#fff}
+.logo-row{display:flex;align-items:center;gap:11px}
+.logo-mark{width:34px;height:34px;background:var(--red);border-radius:9px;display:flex;align-items:center;justify-content:center;font-family:'Syne';font-weight:800;font-size:11px;color:#fff;box-shadow:0 4px 12px rgba(227,24,55,.4)}
+.logo-name{font-family:'Syne';font-weight:700;font-size:12.5px;color:#fff}
+.logo-sub{font-size:9px;color:rgba(255,255,255,.35);letter-spacing:.8px;text-transform:uppercase;margin-top:1px}
+.queue-tabs{padding:10px;display:flex;flex-wrap:wrap;gap:5px;position:relative;z-index:1}
+.qtab{font-size:10.5px;padding:5px 9px;border-radius:7px;cursor:pointer;color:rgba(255,255,255,.6);background:rgba(255,255,255,.05);border:1px solid transparent;transition:all .15s}
+.qtab:hover{background:rgba(255,255,255,.1)}
+.qtab.active{background:rgba(227,24,55,.18);border-color:rgba(227,24,55,.3);color:#fff}
+.qtab b{font-family:'IBM Plex Mono';margin-left:3px}
+.case-list{flex:1;overflow-y:auto;padding:6px 10px 10px;scrollbar-width:none;position:relative;z-index:1}
+.case-list::-webkit-scrollbar{display:none}
+.case-card{padding:11px 12px;border-radius:9px;cursor:pointer;margin-bottom:5px;border:1px solid transparent;transition:background .15s}
+.case-card:hover{background:rgba(255,255,255,.05)}
+.case-card.active{background:rgba(227,24,55,.13);border-color:rgba(227,24,55,.28)}
+.cc-top{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.cc-name{font-size:12.5px;font-weight:600;color:rgba(255,255,255,.85);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cc-meta{font-size:10px;color:rgba(255,255,255,.4);margin-top:3px;display:flex;justify-content:space-between}
+.cc-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.sb-foot{padding:10px 20px;border-top:1px solid rgba(255,255,255,.06);font-size:9px;color:rgba(255,255,255,.25);position:relative;z-index:1}
+.main{flex:1;overflow-y:auto;min-width:0}
+.main::-webkit-scrollbar{width:5px}.main::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+.content{padding:24px 30px 60px;max-width:1180px;display:flex;flex-direction:column;gap:22px}
+.sl{font-size:9.5px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:var(--t3);margin-bottom:12px;display:flex;align-items:center;gap:10px}
+.sl::after{content:'';flex:1;height:1px;background:var(--border)}
+.page-title{font-family:'Syne';font-weight:800;font-size:24px;letter-spacing:-.4px}
+.page-desc{font-size:12.5px;color:var(--t3);margin-top:4px;line-height:1.55;max-width:680px}
+.card{background:#fff;border-radius:13px;padding:20px 22px;border:1px solid var(--border)}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.card-title{font-family:'Syne';font-weight:700;font-size:14px;margin-bottom:3px}
+.card-sub{font-size:11px;color:var(--t3);margin-bottom:16px}
+.badge{font-size:9.5px;font-weight:700;padding:3px 10px;border-radius:100px;display:inline-block;letter-spacing:.3px}
+.badge.green,.badge.APPROVE,.badge.Compliant{background:#D1FAE5;color:#065F46}
+.badge.amber,.badge.REFER,.badge.APPROVE_WITH_CONDITIONS,.badge.COUNTER_OFFER{background:#FEF3C7;color:#92400E}
+.badge.red,.badge.DECLINE{background:#FEE2E2;color:#991B1B}
+.badge.blue{background:#DBEAFE;color:#1E40AF}.badge.gray{background:#E5E7EB;color:#374151}.badge.purple{background:#EDE9FE;color:#5B21B6}
+/* recommendation hero */
+.reco-hero{display:flex;gap:22px;flex-wrap:wrap;align-items:stretch}
+.reco-main{flex:2;min-width:280px}
+.reco-decision{font-family:'Syne';font-weight:800;font-size:30px;line-height:1.1;margin:6px 0 4px}
+.reco-side{flex:1;min-width:200px;display:flex;flex-direction:column;gap:12px}
+.metric-tile{background:var(--off);border-radius:10px;padding:12px 14px}
+.mt-label{font-size:9.5px;text-transform:uppercase;letter-spacing:.6px;color:var(--t3);font-weight:600}
+.mt-value{font-family:'Syne';font-weight:700;font-size:19px;margin-top:4px}
+.conf{display:flex;align-items:center;gap:8px;margin-top:5px}
+.conf-dot{width:9px;height:9px;border-radius:50%}
+.conf.HIGH .conf-dot{background:var(--green)}.conf.MODERATE .conf-dot{background:var(--amber)}.conf.LOW .conf-dot{background:var(--red)}
+.routing-banner{padding:12px 16px;border-radius:10px;font-size:12.5px;display:flex;align-items:center;gap:10px;font-weight:500}
+.routing-banner.RM_SINGLE{background:#ECFDF5;color:#065F46;border:1px solid #A7F3D0}
+.routing-banner.FOUR_EYES{background:#FFFBEB;color:#92400E;border:1px solid #FDE68A}
+.routing-banner.COMMITTEE,.routing-banner.AUTO_DECLINE{background:#FEF2F2;color:#991B1B;border:1px solid #FECACA}
+/* factor rows */
+.factor{display:flex;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);font-size:12.5px}
+.factor:last-child{border:none}
+.f-tag{font-size:9px;font-weight:700;padding:2px 7px;border-radius:5px;height:fit-content;white-space:nowrap}
+.f-up{background:#FEE2E2;color:#991B1B}.f-down{background:#D1FAE5;color:#065F46}
+.lever{font-size:12px;color:var(--t2);padding:8px 0;border-bottom:1px dashed var(--border);display:flex;gap:8px}
+.lever:last-child{border:none}.lever::before{content:'→';color:var(--green);font-weight:700}
+.watch{font-size:12px;color:var(--t2);padding:7px 0;border-bottom:1px dashed var(--border);display:flex;gap:8px}
+.watch:last-child{border:none}.watch::before{content:'⚠';color:var(--amber)}
+/* provenance timeline */
+.prov{position:relative;padding-left:26px}
+.prov::before{content:'';position:absolute;left:8px;top:4px;bottom:4px;width:2px;background:var(--border)}
+.prov-node{position:relative;padding:0 0 16px 6px}
+.prov-node::before{content:'';position:absolute;left:-22px;top:2px;width:13px;height:13px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 1px var(--border)}
+.prov-node.machine::before{background:var(--blue)}.prov-node.human::before{background:var(--red)}
+.prov-node.org::before{background:var(--purple)}.prov-node.system::before{background:var(--t3)}
+.prov-head{display:flex;align-items:center;gap:8px;font-size:12.5px;font-weight:600}
+.prov-meta{font-size:10.5px;color:var(--t3);font-family:'IBM Plex Mono';margin-top:2px}
+.prov-body{font-size:11.5px;color:var(--t2);margin-top:4px}
+.prov-hash{font-size:9px;color:var(--t3);font-family:'IBM Plex Mono';margin-top:3px;opacity:.7;word-break:break-all}
+.mho-tag{font-size:8.5px;font-weight:800;padding:1px 6px;border-radius:4px}
+.mho-M{background:#DBEAFE;color:#1E40AF}.mho-H{background:#FEE2E2;color:#991B1B}.mho-O{background:#EDE9FE;color:#5B21B6}
+/* action panel */
+.action-row{display:flex;flex-wrap:wrap;gap:9px;margin-bottom:14px}
+.rationale-box{display:none;margin-top:10px}
+.rationale-box.show{display:block}
+textarea,select,input{font-family:'IBM Plex Sans';font-size:12.5px;border:1px solid var(--border);border-radius:8px;padding:9px 11px;width:100%;color:var(--t1)}
+textarea:focus,select:focus,input:focus{outline:none;border-color:var(--red)}
+.field{margin-bottom:13px}
+.field label{display:block;font-size:11px;font-weight:600;color:var(--t2);margin-bottom:5px}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.hint{font-size:10.5px;color:var(--t3);margin-top:3px}
+.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+.kpi{background:#fff;border:1px solid var(--border);border-radius:12px;padding:16px 18px}
+.kpi .v{font-family:'Syne';font-weight:800;font-size:26px;margin-top:6px}
+.kpi .l{font-size:10px;text-transform:uppercase;letter-spacing:.6px;color:var(--t3);font-weight:600}
+.empty{padding:70px 30px;text-align:center;color:var(--t3)}
+.spinner{display:inline-block;width:24px;height:24px;border:3px solid var(--border);border-top-color:var(--red);border-radius:50%;animation:spin .8s linear infinite;margin-bottom:12px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.toast{position:fixed;bottom:22px;right:22px;background:var(--navy);color:#fff;padding:12px 18px;border-radius:10px;font-size:12.5px;box-shadow:0 10px 30px rgba(0,0,0,.25);opacity:0;transform:translateY(10px);transition:all .3s;z-index:100}
+.toast.show{opacity:1;transform:translateY(0)}
+.toast.error{border-left:3px solid var(--red)}.toast.success{border-left:3px solid var(--green)}
+.statline{display:flex;flex-wrap:wrap;gap:22px}
+.stat .sv{font-family:'Syne';font-weight:700;font-size:17px;margin-top:4px}
+.stat .sk{font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:var(--t3);font-weight:600}
+@media(max-width:980px){.grid-2,.form-grid{grid-template-columns:1fr}.kpi-grid{grid-template-columns:1fr 1fr}}
+</style>
+</head>
+<body>
+<div class="topnav">
+  <span class="topnav-title">🤝 Relationship Management & Decision Support</span>
+  <div style="display:flex;gap:9px">
+    <button class="btn" onclick="showInsights()">📊 Governance Insights</button>
+    <button class="btn btn-primary" onclick="showNewCase()">+ New Assessment</button>
+  </div>
+</div>
+<div class="layout">
+  <aside class="sidebar">
+    <div class="sb-head">
+      <a href="/" class="home-link">← Platform Home</a>
+      <div class="logo-row"><div class="logo-mark">RM</div>
+        <div><div class="logo-name">Decision Support</div><div class="logo-sub">RM Workspace · Accept / Reject</div></div></div>
+    </div>
+    <div class="queue-tabs" id="queueTabs"></div>
+    <div class="case-list" id="caseList"></div>
+    <div class="sb-foot" id="sbFoot">Machine ▸ Human ▸ Organisational decision</div>
+  </aside>
+  <main class="main"><div class="content" id="content">
+    <div class="empty"><div class="spinner"></div><div>Loading…</div></div>
+  </div></main>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const QUEUES = [
+  {key:'ALL',label:'All'},
+  {key:'INTERIM_ASSESSED',label:'Pending'},
+  {key:'DECISION_FINAL',label:'Decided'},
+];
+let activeQueue='ALL', cases=[], current=null;
+
+const inr=n=>n==null?'—':'₹'+Number(n).toLocaleString('en-IN',{maximumFractionDigits:0});
+const esc=s=>(s==null?'':String(s)).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+const recoClass=r=>r||'gray';
+const stateColor=s=>({INTERIM_ASSESSED:'blue',UNDER_RM_REVIEW:'blue',PENDING_APPROVAL:'amber',INFO_REQUESTED:'gray',DEFERRED:'gray',ESCALATED:'red',DECISION_FINAL:'purple'}[s]||'gray');
+const dotColor=c=>({APPROVE:'#10B981',APPROVE_WITH_CONDITIONS:'#F59E0B',COUNTER_OFFER:'#F59E0B',REFER:'#F59E0B',DECLINE:'#E31837'}[c]||'#8A9AB0');
+function toast(m,t='success'){const e=document.getElementById('toast');e.className='toast '+t;e.textContent=m;e.classList.add('show');setTimeout(()=>e.classList.remove('show'),3200);}
+
+async function loadCases(keepCurrent){
+  const res=await fetch('/relationship/api/cases'); cases=(await res.json()).cases||[];
+  renderQueues(); renderList();
+  if(keepCurrent && current) openCase(current,true);
+}
+function renderQueues(){
+  document.getElementById('queueTabs').innerHTML=QUEUES.map(q=>{
+    const n=q.key==='ALL'?cases.length:cases.filter(c=>c.state===q.key).length;
+    return `<div class="qtab ${activeQueue===q.key?'active':''}" onclick="setQueue('${q.key}')">${q.label}<b>${n}</b></div>`;
+  }).join('');
+}
+function setQueue(k){activeQueue=k;renderQueues();renderList();}
+function renderList(){
+  const list=activeQueue==='ALL'?cases:cases.filter(c=>c.state===activeQueue);
+  document.getElementById('caseList').innerHTML = list.length?list.map(c=>`
+    <div class="case-card ${current===c.case_id?'active':''}" onclick="openCase('${c.case_id}')">
+      <div class="cc-top"><span class="cc-name">${esc(c.customer_name)}</span>
+        <span class="cc-dot" style="background:${dotColor(c.final_decision||c.machine_reco)}"></span></div>
+      <div class="cc-meta"><span>${esc(c.product)} · ${inr(c.requested_amount)}</span>
+        <span>${esc((c.state||'').replace('_',' ').toLowerCase())}</span></div>
+    </div>`).join('') : '<div style="padding:24px;color:rgba(255,255,255,.4);font-size:12px;text-align:center">No cases in this queue</div>';
+}
+
+// ── NEW CASE ──────────────────────────────────────────────────────────────
+function showNewCase(){
+  current=null; renderList();
+  document.getElementById('content').innerHTML=`
+  <div><div class="page-title">New Customer Assessment</div>
+  <div class="page-desc">Capture onboarding & KYC inputs. The decisioning core returns a recommendation with confidence, reasoning and the required approval control — it does not auto-decide.</div></div>
+  <div class="card">
+    <div class="card-title">Applicant & Facility</div><div class="card-sub">Relationship-manager intake</div>
+    <div class="form-grid">
+      <div class="field"><label>Customer name</label><input id="f_name" value="Meera Krishnan"></div>
+      <div class="field"><label>Product</label><select id="f_product">
+        <option>Personal Loan</option><option>Home Loan</option><option>Vehicle Loan</option><option>Education Loan</option><option>Business Loan</option></select></div>
+      <div class="field"><label>Requested amount (₹)</label><input id="f_amount" type="number" value="1500000"></div>
+      <div class="field"><label>Annual income (₹)</label><input id="f_income" type="number" value="1800000"></div>
+      <div class="field"><label>Existing exposure (₹)</label><input id="f_existing" type="number" value="0"></div>
+      <div class="field"><label>Collateral value (₹)</label><input id="f_coll" type="number" value="0"></div>
+      <div class="field"><label>Applicant age</label><input id="f_age" type="number" value="38"></div>
+      <div class="field"><label>Tenure (years)</label><input id="f_tenure" type="number" value="5"></div>
+      <div class="field"><label>Existing monthly obligations (₹)</label><input id="f_oblig" type="number" value="20000"></div>
+      <div class="field"><label>Proposed EMI (₹)</label><input id="f_emi" type="number" value="32000"></div>
+      <div class="field"><label>KYC status</label><select id="f_kyc"><option>Verified</option><option>Pending</option></select></div>
+      <div class="field"><label>Screening</label><select id="f_screen"><option value="clean">Clean</option><option value="pep">PEP match</option><option value="sanctions">Sanctions hit</option></select></div>
+    </div>
+    <div class="sl" style="margin-top:8px">Bureau &amp; credit profile</div>
+    <div class="form-grid">
+      <div class="field"><label>CIBIL score</label><input id="f_cibil" type="number" value="760"><div class="hint">300–900</div></div>
+      <div class="field"><label>Late payments (last 12m)</label><input id="f_late" type="number" value="0"></div>
+      <div class="field"><label>Previous default</label><select id="f_prevdef"><option value="0">No</option><option value="1">Yes</option></select></div>
+      <div class="field"><label>Existing loans</label><input id="f_exloans" type="number" value="1"></div>
+    </div>
+    <div class="sl" style="margin-top:8px">Financials fed to the predictive model</div>
+    <div class="form-grid">
+      <div class="field"><label>Debt-to-Equity ratio</label><input id="f_de" type="number" step="0.01" value="1.3"><div class="hint">benchmark ≤ 2.0x</div></div>
+      <div class="field"><label>Interest coverage ratio</label><input id="f_ic" type="number" step="0.01" value="4.5"><div class="hint">benchmark ≥ 3.0x</div></div>
+      <div class="field"><label>Net profit margin (%)</label><input id="f_pm" type="number" step="0.1" value="9"><div class="hint">benchmark ≥ 8%</div></div>
+      <div class="field"><label>Current ratio (liquidity)</label><input id="f_lq" type="number" step="0.01" value="1.5"><div class="hint">benchmark ≥ 1.5x</div></div>
+    </div>
+    <button class="btn btn-primary" id="submitBtn" onclick="submitCase()">Run Interim Assessment →</button>
+  </div>`;
+}
+async function submitCase(){
+  const v=id=>document.getElementById(id).value;
+  const screen=v('f_screen');
+  const app={
+    customer_name:v('f_name'),product:v('f_product'),
+    requested_amount:+v('f_amount'),exposure:+v('f_amount'),annual_income:+v('f_income'),
+    existing_exposure:+v('f_existing'),collateral_value:+v('f_coll'),
+    applicant_age:+v('f_age'),tenure_years:+v('f_tenure'),maturity:Math.min(5,Math.max(1,+v('f_tenure'))),
+    existing_monthly_obligations:+v('f_oblig'),proposed_emi:+v('f_emi'),
+    kyc_status:v('f_kyc'),pep_flag:screen==='pep',sanctions_hit:screen==='sanctions',
+    de_ratio:+v('f_de'),interest_coverage:+v('f_ic'),profitability:+v('f_pm'),liquidity_ratio:+v('f_lq'),
+    seniority:(+v('f_coll')>0?'Senior Secured':'Senior Unsecured'),
+    // bureau/profile features consumed directly by the 21-feature model (names match)
+    cibil_score:+v('f_cibil'),num_late_payments_past_12m:+v('f_late'),
+    previous_default_flag:+v('f_prevdef'),existing_loans_count:+v('f_exloans')
+  };
+  const btn=document.getElementById('submitBtn');btn.disabled=true;btn.textContent='Assessing…';
+  try{
+    const res=await fetch('/relationship/api/cases',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(app)});
+    const j=await res.json();
+    if(j.success){toast('Interim assessment created');await loadCases();openCase(j.case_id);}
+    else toast(j.error||'Failed','error');
+  }catch(e){toast(e.message,'error');}
+  finally{btn.disabled=false;btn.textContent='Run Interim Assessment →';}
+}
+
+// ── CASE COCKPIT ──────────────────────────────────────────────────────────
+async function openCase(id,silent){
+  current=id; renderList();
+  if(!silent) document.getElementById('content').innerHTML='<div class="empty"><div class="spinner"></div><div>Loading case…</div></div>';
+  const c=await fetch('/relationship/api/cases/'+id).then(r=>r.json());
+  if(c.error){document.getElementById('content').innerHTML=`<div class="empty">${esc(c.error)}</div>`;return;}
+  const M=c.machine||{}, comp=M.composed||{}, conf=M.confidence||{}, route=M.routing||{}, be=M.business_explanation||{}, sens=M.sensitivity||{}, pol=M.policy||{};
+  const finalOrProp=c.final_decision||comp.recommendation;
+
+  document.getElementById('content').innerHTML=`
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px">
+    <div><div class="page-title">${esc(c.customer_name)}</div>
+      <div class="page-desc">${esc(c.product)} · requested ${inr(c.requested_amount)} · case ${esc(c.case_id)}</div></div>
+    <span class="badge ${stateColor(c.state)}" style="font-size:11px;padding:5px 13px">${esc((c.state||'').replace(/_/g,' '))}</span>
+  </div>
+
+  <div class="routing-banner RM_SINGLE">
+    🛡️ <b>Relationship Manager is the final authority</b> — review the recommendation below and either accept or reject it.
+  </div>
+
+  <div class="card">
+    <div class="sl">Machine Recommendation (M)</div>
+    <div class="reco-hero">
+      <div class="reco-main">
+        <span class="badge ${recoClass(comp.recommendation)}">${esc(comp.label||comp.recommendation||'')}</span>
+        <div class="reco-decision">${esc(comp.label||'')}</div>
+        <div style="font-size:12.5px;color:var(--t2);line-height:1.55">${esc(be.headline||'')}</div>
+        ${comp.conditions&&comp.conditions.length?`<div style="margin-top:10px"><b style="font-size:11px;color:var(--t2)">Conditions:</b>
+          ${comp.conditions.map(x=>`<div class="lever">${esc(x)}</div>`).join('')}</div>`:''}
+        <div style="margin-top:12px;font-size:11px;color:var(--t3)">
+          Model says <b>${esc(comp.model_component)}</b> · Policy says <b>${esc(comp.policy_component)}</b>
+          · model v${esc(M.model_version)} · ${esc(M.policy_version||'')}</div>
+      </div>
+      <div class="reco-side">
+        <div class="metric-tile"><div class="mt-label">Confidence</div>
+          <div class="conf ${conf.class}"><span class="conf-dot"></span><span class="mt-value" style="font-size:16px">${esc(conf.class||'')}</span></div>
+          <div class="hint">PD band ${((conf.pd_low||0)*100).toFixed(1)}–${((conf.pd_high||0)*100).toFixed(1)}% ${conf.mandatory_review?'· review required':''}</div></div>
+        <div class="metric-tile"><div class="mt-label">Risk grade</div><div class="mt-value">${esc(comp.risk_grade||'')}</div>
+          <div class="hint">EL ${comp.expected_loss_pct!=null?comp.expected_loss_pct+'%':'—'}</div></div>
+        <div class="metric-tile"><div class="mt-label">Suggested terms</div>
+          <div class="mt-value" style="font-size:16px">${inr(comp.suggested_limit)}</div>
+          <div class="hint">indicative rate ${comp.suggested_rate!=null?comp.suggested_rate+'%':'—'}</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid-2">
+    <div class="card"><div class="card-title">Why — most influential factors</div>
+      <div class="card-sub">Plain-language drivers (feature-level reasoning)</div>
+      ${(be.top_factors||[]).map(f=>`<div class="factor">
+        <span class="f-tag ${f.effect==='raises risk'?'f-up':'f-down'}">${f.effect==='raises risk'?'▲ RISK':'▼ MITIGANT'}</span>
+        <div><b>${esc(f.factor)}</b><div style="color:var(--t3);font-size:11.5px;margin-top:2px">${esc(f.plain)}</div></div>
+      </div>`).join('')||'<div class="hint">No material drivers.</div>'}
+    </div>
+    <div class="card"><div class="card-title">What could change the outcome</div>
+      <div class="card-sub">Counterfactual recourse & decision sensitivity</div>
+      ${sens.is_knife_edge?`<div class="watch" style="font-weight:600;color:var(--amber)">${esc(sens.note)}</div>`:''}
+      ${(be.what_could_change||[]).map(x=>`<div class="lever">${esc(x)}</div>`).join('')||'<div class="hint">Outcome is robust to small input changes.</div>'}
+      ${(be.watch_items||[]).length?`<div style="margin-top:12px"><b style="font-size:11px;color:var(--t2)">Watch items / policy flags</b>
+        ${be.watch_items.map(w=>`<div class="watch">${esc(w)}</div>`).join('')}</div>`:''}
+      <div style="margin-top:12px;font-size:11px;color:var(--t3)">🗓 ${esc(be.reassessment||'')}</div>
+    </div>
+  </div>
+
+  ${renderActionArea(c,route)}
+
+  <div class="card" id="reportCard">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px">
+      <div><div class="card-title">📄 Case Report (PDF)</div>
+        <div class="card-sub">LaTeX-generated report with charts. Each generation is kept as a versioned record.</div></div>
+      <button class="btn btn-primary btn-sm" id="genReportBtn" onclick="genReport()">Generate PDF report</button>
+    </div>
+    <div id="reportList"><div class="hint">Loading report history…</div></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Decision Provenance</div>
+    <div class="card-sub">Every machine (M), human (H) and organisational (O) contribution — hash-chained &amp; tamper-evident</div>
+    <div class="prov">${(c.provenance||[]).map(renderProvNode).join('')}</div>
+  </div>`;
+  loadReports(c.case_id);
+}
+
+function mho(ev){
+  if(ev.event_type==='MACHINE_RECOMMENDATION')return['M','machine'];
+  if(ev.event_type==='DECISION_FINAL')return['O','org'];
+  if(['RM_PROPOSAL','INFO_REQUESTED','DEFERRED','ESCALATED','FOUR_EYES_RETURNED'].includes(ev.event_type))return['H','human'];
+  if(ev.event_type==='OUTCOME_RECORDED')return['','system'];
+  return['','system'];
+}
+function renderProvNode(ev){
+  const [tag,cls]=mho(ev);
+  return `<div class="prov-node ${cls}">
+    <div class="prov-head">${tag?`<span class="mho-tag mho-${tag}">${tag}</span>`:''}${esc(ev.event_type.replace(/_/g,' '))}
+      ${ev.action?`<span class="badge ${recoClass(ev.action)}" style="font-size:8.5px">${esc(ev.action)}</span>`:''}</div>
+    <div class="prov-meta">${esc(ev.actor_role)} · ${esc(ev.actor_id)} · ${esc((ev.ts||'').replace('T',' ').replace('+00:00','Z'))}</div>
+    ${ev.rationale_text?`<div class="prov-body">“${esc(ev.rationale_text)}”</div>`:''}
+    <div class="prov-hash">#${esc((ev.hash||'').slice(0,16))}…</div>
+  </div>`;
+}
+
+// ── ACTION AREA (Accept / Reject — RM is the final authority) ──────────────
+function renderActionArea(c,route){
+  if(c.state==='DECISION_FINAL'){
+    const dev=c.deviation?'<span class="badge amber" style="margin-left:8px">RM overrode the recommendation</span>':'<span class="badge green" style="margin-left:8px">Accepted the recommendation</span>';
+    return `<div class="card">
+      <div class="sl">Final Decision</div>
+      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+        <span class="badge ${recoClass(c.final_decision)}" style="font-size:13px;padding:6px 16px">${esc(c.final_decision)}</span>
+        <span style="font-size:12px;color:var(--t3)">by ${esc(c.final_by||'')}</span>${dev}
+      </div>
+      ${c.outcome?`<div style="margin-top:14px" class="statline">
+        <div class="stat"><div class="sk">Outcome</div><div class="sv">${esc(c.outcome.performance_status)}</div></div>
+        <div class="stat"><div class="sk">DPD</div><div class="sv">${c.outcome.dpd}</div></div>
+        <div class="stat"><div class="sk">Default</div><div class="sv">${c.outcome.default_flag?'Yes':'No'}</div></div></div>`
+      :`<div style="margin-top:14px"><div class="sl">Record outcome (learning loop)</div>
+        <div class="action-row">
+          <button class="btn btn-ok btn-sm" onclick="outcome('performing',0,0)">Performing</button>
+          <button class="btn btn-warn btn-sm" onclick="outcome('watch',45,0)">Watch (45 DPD)</button>
+          <button class="btn btn-sm" style="background:var(--red);color:#fff;border-color:var(--red)" onclick="outcome('default',120,1)">Defaulted</button>
+        </div><div class="hint">Outcomes feed override hit-rate &amp; model monitoring — overrides are not assumed correct.</div></div>`}
+    </div>`;
+  }
+  // INTERIM_ASSESSED → RM accept / reject (final authority, two options only)
+  return `<div class="card">
+    <div class="sl">Relationship Manager Decision</div>
+    <div style="font-size:12.5px;color:var(--t2);margin-bottom:12px">As the final approving authority, accept the recommendation to finalise it, or reject the application.</div>
+    <div class="action-row">
+      <button class="btn btn-ok" onclick="rmAct('accept')">✓ Accept &amp; finalise</button>
+      <button class="btn" style="background:var(--red);color:#fff;border-color:var(--red)" onclick="toggleReject()">✕ Reject application</button>
+    </div>
+    <div class="rationale-box" id="ratBox">
+      <div class="field"><label>Reason for rejection <span class="hint" style="display:inline">(required, min 20 characters)</span></label>
+        <textarea id="ratText" rows="3" placeholder="Document why the application is being rejected…"></textarea></div>
+      <button class="btn btn-primary btn-sm" onclick="submitReject()">Confirm rejection</button>
+    </div>
+  </div>`;
+}
+function toggleReject(){
+  document.getElementById('ratBox').classList.add('show');
+  document.getElementById('ratText').focus();
+}
+async function rmAct(action){
+  const res=await fetch(`/relationship/api/cases/${current}/action`,{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({action})});
+  const j=await res.json(); handleActionResp(res,j);
+}
+async function submitReject(){
+  const rationale_text=document.getElementById('ratText').value;
+  if((rationale_text||'').trim().length<20){toast('A rejection needs at least 20 characters of rationale.','error');return;}
+  const res=await fetch(`/relationship/api/cases/${current}/action`,{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({action:'reject',rationale_text})});
+  const j=await res.json(); handleActionResp(res,j);
+}
+function handleActionResp(res,j){
+  if(res.ok){toast(j.final_decision?('Decision finalised → '+j.final_decision):'Updated');loadCases(true);}
+  else toast((j.message||j.error||'Action failed'),'error');
+}
+
+// ── CASE REPORTS (PDF) ─────────────────────────────────────────────────────
+async function loadReports(caseId){
+  const el=document.getElementById('reportList'); if(!el)return;
+  try{
+    const d=await fetch(`/relationship/api/cases/${caseId}/reports`).then(r=>r.json());
+    renderReportList(caseId,d.versions||[],d.latex_available);
+  }catch(e){el.innerHTML='<div class="hint">Could not load report history.</div>';}
+}
+function renderReportList(caseId,versions,latexOk){
+  const el=document.getElementById('reportList'); if(!el)return;
+  if(latexOk===false){el.innerHTML='<div class="watch" style="color:var(--amber)">PDF engine (LaTeX) is not available in this environment — generate reports locally.</div>';return;}
+  if(!versions.length){el.innerHTML='<div class="hint">No reports generated yet. Click “Generate PDF report”.</div>';return;}
+  el.innerHTML=versions.map(v=>{
+    const when=esc((v.generated_at||'').replace('T',' ').replace('+00:00',' UTC'));
+    const ok=v.pdf_exists;
+    const links=ok?`<a class="btn btn-sm" href="/relationship/api/reports/${caseId}/${v.version}/pdf" target="_blank">Open</a>
+        <a class="btn btn-sm" href="/relationship/api/reports/${caseId}/${v.version}/pdf?dl=1">Download</a>`
+      :`<span class="badge red">build failed</span>`;
+    return `<div class="factor" style="align-items:center">
+      <div><b>${when}</b> ${v.latest?'<span class="badge blue" style="margin-left:6px">latest</span>':''}
+        <div style="color:var(--t3);font-size:11px;margin-top:2px">${esc(v.decision||'')} · ${esc(v.version)}</div></div>
+      <div style="margin-left:auto;display:flex;gap:7px">${links}</div>
+    </div>`;
+  }).join('');
+}
+async function genReport(){
+  const btn=document.getElementById('genReportBtn'); const caseId=current;
+  btn.disabled=true; btn.textContent='Generating…';
+  try{
+    const res=await fetch(`/relationship/api/cases/${caseId}/report`,{method:'POST'});
+    const j=await res.json();
+    if(j.success){toast('PDF report generated');renderReportList(caseId,j.versions||[],true);}
+    else toast((j.report&&j.report.error)||j.error||'Generation failed','error');
+  }catch(e){toast(e.message,'error');}
+  finally{btn.disabled=false;btn.textContent='Generate PDF report';}
+}
+async function outcome(status,dpd,df){
+  const res=await fetch(`/relationship/api/cases/${current}/outcome`,{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({performance_status:status,dpd,default_flag:df})});
+  const j=await res.json(); handleActionResp(res,j);
+}
+
+// ── INSIGHTS ──────────────────────────────────────────────────────────────
+async function showInsights(){
+  current=null;renderList();
+  document.getElementById('content').innerHTML='<div class="empty"><div class="spinner"></div></div>';
+  const d=await fetch('/relationship/api/insights').then(r=>r.json());
+  document.getElementById('content').innerHTML=`
+  <div><div class="page-title">Governance & Learning Insights</div>
+  <div class="page-desc">Human-in-the-loop monitoring. Overrides are captured with rationale and tracked against outcomes — they are not assumed correct.</div></div>
+  <div class="kpi-grid">
+    <div class="kpi"><div class="l">Final decisions</div><div class="v">${d.decisions_final}</div></div>
+    <div class="kpi"><div class="l">Override rate</div><div class="v">${d.override_rate_pct}%</div></div>
+    <div class="kpi"><div class="l">Model agreement</div><div class="v">${d.agreement_rate_pct}%</div></div>
+    <div class="kpi"><div class="l">Outcomes tracked</div><div class="v">${d.outcomes_tracked}</div></div>
+  </div>
+  <div class="grid-2">
+    <div class="card"><div class="card-title">Override hit-rate</div><div class="card-sub">Default rate: human-overridden vs model-aligned decisions (matured outcomes)</div>
+      <div class="statline">
+        <div class="stat"><div class="sk">Overridden → default</div><div class="sv">${d.override_default_rate_pct==null?'—':d.override_default_rate_pct+'%'}</div></div>
+        <div class="stat"><div class="sk">Aligned → default</div><div class="sv">${d.aligned_default_rate_pct==null?'—':d.aligned_default_rate_pct+'%'}</div></div>
+      </div><div class="hint" style="margin-top:12px">${esc(d.note)}</div></div>
+    <div class="card"><div class="card-title">Pipeline by control level</div><div class="card-sub">Delegation-of-Authority distribution</div>
+      ${Object.entries(d.by_control||{}).map(([k,v])=>`<div class="factor"><b>${esc(k.replace(/_/g,' '))}</b><div style="margin-left:auto;font-family:'IBM Plex Mono'">${v}</div></div>`).join('')||'<div class="hint">No cases yet.</div>'}
+    </div>
+  </div>
+  <div class="card"><div class="card-title">Cases by state</div>
+    ${Object.entries(d.by_state||{}).map(([k,v])=>`<div class="factor"><span class="badge ${stateColor(k)}">${esc(k.replace(/_/g,' '))}</span><div style="margin-left:auto;font-family:'IBM Plex Mono'">${v}</div></div>`).join('')||'<div class="hint">No cases yet.</div>'}
+  </div>`;
+}
+
+// ── INIT ──────────────────────────────────────────────────────────────────
+(async function(){
+  await loadCases();
+  if(cases.length) openCase(cases[0].case_id); else showNewCase();
+})();
+</script>
+</body>
+</html>

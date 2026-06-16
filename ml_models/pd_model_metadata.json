@@ -1,24 +1,41 @@
 {
   "model_type": "RandomForestRegressor",
-  "version": "run_20260607_215317",
-  "date_trained": "2026-06-07T21:53:17",
-  "triggered_by": "manual",
+  "version": "run_20260616_175955",
+  "date_trained": "2026-06-16T17:59:55",
+  "triggered_by": "manual-expanded-dataset",
   "features": [
     "de_ratio",
     "interest_coverage",
     "profitability",
-    "liquidity_ratio"
+    "liquidity_ratio",
+    "age",
+    "employment_type_enc",
+    "years_employed",
+    "annual_income",
+    "foir",
+    "num_dependents",
+    "city_tier_enc",
+    "education_enc",
+    "residence_type_enc",
+    "loan_purpose_enc",
+    "cibil_score",
+    "previous_default_flag",
+    "months_as_customer",
+    "num_late_payments_past_12m",
+    "existing_loans_count",
+    "num_existing_products",
+    "is_rural"
   ],
   "target": "pd_observed",
   "metrics": {
-    "r2": 0.7013,
-    "rmse": 0.014818,
-    "mae": 0.011877,
-    "auc_roc": 0.9552,
-    "accuracy": 0.8024,
-    "precision": 0.3005,
-    "recall": 0.9558,
-    "f1": 0.4573
+    "r2": 0.7463,
+    "rmse": 0.021051,
+    "mae": 0.013488,
+    "auc_roc": 0.9791,
+    "accuracy": 0.6129,
+    "precision": 0.1726,
+    "recall": 1.0,
+    "f1": 0.2944
   },
   "hyperparameters": {
     "n_estimators": 100,
@@ -29,7 +46,7 @@
     "bootstrap": true,
     "random_state": 42
   },
-  "rows_trained": 11440,
+  "rows_trained": 11491,
   "currency": "INR",
   "note": "Trained on Indian bank synthetic data"
 }

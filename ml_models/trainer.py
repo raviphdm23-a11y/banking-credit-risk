@@ -6,6 +6,7 @@ Orchestrates data ingestion, validation, training, evaluation, and model promoti
 import os
 import json
 import shutil
+import sqlite3
 import time
 import traceback
 import io
@@ -37,6 +38,9 @@ ARCHIVE_DIR   = os.path.join(_ROOT, 'data', 'archive')
 RUNS_DIR      = os.path.join(_ROOT, 'data', 'runs')
 ML_DIR        = os.path.join(_ROOT, 'ml_models')
 
+# Path to bank.db (override with BANK_DB_PATH env var)
+BANK_DB_PATH  = os.environ.get('BANK_DB_PATH', os.path.join(_ROOT, 'bank.db'))
+
 MODEL_PATH    = os.path.join(ML_DIR, 'pd_model.pkl')
 BACKUP_PATH   = os.path.join(ML_DIR, 'pd_model_backup.pkl')
 META_PATH     = os.path.join(ML_DIR, 'pd_model_metadata.json')
@@ -45,14 +49,136 @@ HPARAM_PATH   = os.path.join(ML_DIR, 'hyperparameters.json')
 
 REQUIRED_COLUMNS = {
     'bank_id', 'loan_id', 'de_ratio', 'interest_coverage',
-    'profitability', 'liquidity_ratio', 'default_flag', 'pd_observed', 'observation_date'
+    'profitability', 'liquidity_ratio', 'default_flag', 'pd_observed', 'observation_date',
+    # KYC — character & capacity
+    'age', 'employment_type_enc', 'years_employed', 'annual_income',
+    'foir', 'num_dependents', 'city_tier_enc', 'education_enc', 'residence_type_enc',
+    # KYC — context
+    'loan_purpose_enc', 'cibil_score', 'previous_default_flag',
+    'months_as_customer', 'num_late_payments_past_12m',
+    'existing_loans_count', 'num_existing_products', 'is_rural',
 }
-FEATURE_COLS  = ['de_ratio', 'interest_coverage', 'profitability', 'liquidity_ratio']
+FEATURE_COLS  = [
+    # Financial ratios
+    'de_ratio', 'interest_coverage', 'profitability', 'liquidity_ratio',
+    # KYC — character & capacity (9)
+    'age', 'employment_type_enc', 'years_employed', 'annual_income',
+    'foir', 'num_dependents', 'city_tier_enc', 'education_enc', 'residence_type_enc',
+    # KYC — context (8)
+    'loan_purpose_enc', 'cibil_score', 'previous_default_flag',
+    'months_as_customer', 'num_late_payments_past_12m',
+    'existing_loans_count', 'num_existing_products', 'is_rural',
+]
 TARGET_COL    = 'pd_observed'
 
 # Lock to prevent concurrent training runs
 _training_lock = threading.Lock()
 _training_running = False
+
+
+# ── Database source helpers ───────────────────────────────────────────────────
+
+def scan_db_source():
+    """Return info dict for the bank_loan_metrics table, or None if unavailable."""
+    if not os.path.exists(BANK_DB_PATH):
+        return None
+    try:
+        conn = sqlite3.connect(BANK_DB_PATH)
+        c = conn.cursor()
+        c.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='bank_loan_metrics'")
+        if not c.fetchone():
+            conn.close()
+            return None
+        c.execute("SELECT COUNT(*) FROM bank_loan_metrics")
+        row_count = c.fetchone()[0]
+        c.execute("SELECT MAX(loaded_at) FROM bank_loan_metrics")
+        last_loaded = c.fetchone()[0] or 'unknown'
+        conn.close()
+        stat = os.stat(BANK_DB_PATH)
+        return {
+            'filename':  'bank_loan_metrics (bank.db)',
+            'filepath':  BANK_DB_PATH,
+            'size_kb':   round(stat.st_size / 1024, 1),
+            'modified':  last_loaded[:16] if last_loaded and last_loaded != 'unknown' else 'unknown',
+            'row_count': row_count,
+            'source':    'database',
+        }
+    except Exception:
+        return None
+
+
+def load_from_db():
+    """
+    Load all rows from bank_loan_metrics in bank.db.
+    Returns a DataFrame or None if the table is missing or empty.
+    """
+    if not os.path.exists(BANK_DB_PATH):
+        return None
+    try:
+        conn = sqlite3.connect(BANK_DB_PATH)
+        df = pd.read_sql_query(
+            "SELECT bank_id, loan_id, de_ratio, interest_coverage, profitability, "
+            "       liquidity_ratio, default_flag, pd_observed, observation_date, "
+            "       age, employment_type_enc, years_employed, annual_income, "
+            "       foir, num_dependents, city_tier_enc, education_enc, residence_type_enc, "
+            "       loan_purpose_enc, cibil_score, previous_default_flag, "
+            "       months_as_customer, num_late_payments_past_12m, "
+            "       existing_loans_count, num_existing_products, is_rural "
+            "FROM bank_loan_metrics",
+            conn
+        )
+        conn.close()
+        return df if len(df) > 0 else None
+    except Exception as e:
+        print('[WARN] Could not load from bank.db: {}'.format(e))
+        return None
+
+
+def _validate_dataframe(df, name='data'):
+    """
+    Run the same validation checks as validate_file() on an already-loaded DataFrame.
+    Returns (ok: bool, error_message: str | None).
+    """
+    missing = REQUIRED_COLUMNS - set(df.columns)
+    if missing:
+        return False, 'Missing columns: {}'.format(sorted(missing))
+    # Drop rows with nulls in feature/target columns rather than rejecting the dataset.
+    feature_cols_present = [c for c in list(REQUIRED_COLUMNS) if c in df.columns]
+    df.dropna(subset=feature_cols_present, inplace=True)
+    if not df['default_flag'].isin([0, 1]).all():
+        return False, 'default_flag must be 0 or 1 only'
+    if not ((df['pd_observed'] >= 0.0001) & (df['pd_observed'] <= 1.0)).all():
+        return False, 'pd_observed values must be between 0.0001 and 1.0'
+    for col, lo, hi in [
+        ('de_ratio',                    0.0,       10.0),
+        ('interest_coverage',           0.0,       20.0),
+        ('profitability',             -50.0,      100.0),
+        ('liquidity_ratio',             0.1,        5.0),
+        ('age',                        18.0,      100.0),
+        ('employment_type_enc',         1.0,        7.0),
+        ('years_employed',              0.0,       60.0),
+        ('annual_income',          100000.0, 99999999.0),
+        ('foir',                        0.0,        0.9),
+        ('num_dependents',              0.0,       20.0),
+        ('city_tier_enc',               1.0,        3.0),
+        ('education_enc',               1.0,        6.0),
+        ('residence_type_enc',          1.0,        4.0),
+        ('loan_purpose_enc',            1.0,       10.0),
+        ('cibil_score',               300.0,      900.0),
+        ('previous_default_flag',       0.0,        1.0),
+        ('months_as_customer',          0.0,      600.0),
+        ('num_late_payments_past_12m',  0.0,       12.0),
+        ('existing_loans_count',        0.0,       10.0),
+        ('num_existing_products',       0.0,       20.0),
+        ('is_rural',                    0.0,        1.0),
+    ]:
+        if col not in df.columns:
+            return False, 'Missing column: {}'.format(col)
+        if not ((df[col] >= lo) & (df[col] <= hi)).all():
+            return False, '{} has values outside valid range [{}, {}]'.format(col, lo, hi)
+    if len(df) < 50:
+        return False, 'Too few rows ({}); minimum 50 required'.format(len(df))
+    return True, None
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -91,24 +217,36 @@ def is_training_running():
 # ── Step 1: Scan ──────────────────────────────────────────────────────────────
 
 def scan_training_folder():
-    """Return list of CSV file info dicts from data/training/."""
+    """
+    Return list of data source info dicts for the training UI.
+    Includes the bank_loan_metrics DB table (primary) plus any CSV files
+    in data/training/ (supplementary drop-folder).
+    """
+    sources = []
+
+    # DB source — always checked first
+    db_info = scan_db_source()
+    if db_info:
+        sources.append(db_info)
+
+    # CSV files in the training drop-folder
     os.makedirs(TRAINING_DIR, exist_ok=True)
-    files = []
     for path in glob.glob(os.path.join(TRAINING_DIR, '*.csv')):
         stat = os.stat(path)
         try:
-            df = pd.read_csv(path, nrows=1)
             row_count = sum(1 for _ in open(path)) - 1
         except Exception:
             row_count = -1
-        files.append({
+        sources.append({
             'filename':  os.path.basename(path),
             'filepath':  path,
             'size_kb':   round(stat.st_size / 1024, 1),
             'modified':  datetime.fromtimestamp(stat.st_mtime).strftime('%Y-%m-%d %H:%M'),
             'row_count': row_count,
+            'source':    'csv',
         })
-    return sorted(files, key=lambda x: x['filename'])
+
+    return sorted(sources, key=lambda x: x['filename'])
 
 
 # ── Step 2: Validate ──────────────────────────────────────────────────────────
@@ -138,11 +276,30 @@ def validate_file(filepath):
         return False, "pd_observed values must be between 0.0001 and 1.0", len(df)
 
     for col, lo, hi in [
-        ('de_ratio',          0.0, 10.0),
-        ('interest_coverage', 0.0, 20.0),
-        ('profitability',   -50.0, 100.0),
-        ('liquidity_ratio',   0.1,  5.0),
+        ('de_ratio',                    0.0,       10.0),
+        ('interest_coverage',           0.0,       20.0),
+        ('profitability',             -50.0,      100.0),
+        ('liquidity_ratio',             0.1,        5.0),
+        ('age',                        18.0,      100.0),
+        ('employment_type_enc',         1.0,        7.0),
+        ('years_employed',              0.0,       60.0),
+        ('annual_income',          100000.0, 99999999.0),
+        ('foir',                        0.0,        0.9),
+        ('num_dependents',              0.0,       20.0),
+        ('city_tier_enc',               1.0,        3.0),
+        ('education_enc',               1.0,        6.0),
+        ('residence_type_enc',          1.0,        4.0),
+        ('loan_purpose_enc',            1.0,       10.0),
+        ('cibil_score',               300.0,      900.0),
+        ('previous_default_flag',       0.0,        1.0),
+        ('months_as_customer',          0.0,      600.0),
+        ('num_late_payments_past_12m',  0.0,       12.0),
+        ('existing_loans_count',        0.0,       10.0),
+        ('num_existing_products',       0.0,       20.0),
+        ('is_rural',                    0.0,        1.0),
     ]:
+        if col not in df.columns:
+            return False, f"Missing column: {col}", len(df)
         if not ((df[col] >= lo) & (df[col] <= hi)).all():
             return False, f"{col} has values outside valid range [{lo}, {hi}]", len(df)
 
@@ -156,15 +313,28 @@ def validate_file(filepath):
 
 def load_and_merge():
     """
-    Load all valid CSVs from data/training/, merge, deduplicate.
-    Returns (DataFrame, files_used, files_skipped).
+    Load training data from two sources and merge them:
+      1. bank_loan_metrics table in bank.db  (primary, always checked)
+      2. CSV files dropped into data/training/ (supplementary)
+    Returns (DataFrame, files_used, files_skipped, dupes).
     """
-    files       = scan_training_folder()
-    frames      = []
-    files_used  = []
-    files_skip  = []
+    frames     = []
+    files_used = []
+    files_skip = []
 
-    for f in files:
+    # --- Primary source: SQLite bank_loan_metrics table ---
+    db_df = load_from_db()
+    if db_df is not None:
+        ok, err = _validate_dataframe(db_df, 'bank_loan_metrics')
+        if ok:
+            frames.append(db_df)
+            files_used.append({'filename': 'bank_loan_metrics (bank.db)', 'rows': len(db_df)})
+        else:
+            files_skip.append({'filename': 'bank_loan_metrics (bank.db)', 'reason': err})
+
+    # --- Supplementary source: CSV files in data/training/ ---
+    csv_sources = [s for s in scan_training_folder() if s.get('source') == 'csv']
+    for f in csv_sources:
         ok, err, rows = validate_file(f['filepath'])
         if ok:
             df = pd.read_csv(f['filepath'])
@@ -174,17 +344,21 @@ def load_and_merge():
             files_skip.append({'filename': f['filename'], 'reason': err})
 
     if not frames:
-        raise ValueError("No valid training files found in data/training/")
+        raise ValueError(
+            'No valid training data found. '
+            'bank_loan_metrics table is empty or unavailable, '
+            'and no CSV files exist in data/training/.'
+        )
 
     merged = pd.concat(frames, ignore_index=True)
 
-    # Deduplicate on loan_id (keep first occurrence)
+    # Deduplicate on loan_id (keep first occurrence — DB takes priority)
     before = len(merged)
     merged = merged.drop_duplicates(subset='loan_id', keep='first')
     dupes  = before - len(merged)
 
     if len(merged) < 50:
-        raise ValueError(f"Only {len(merged)} rows after deduplication; minimum 50 required")
+        raise ValueError('Only {} rows after deduplication; minimum 50 required'.format(len(merged)))
 
     return merged, files_used, files_skip, dupes
 
@@ -248,7 +422,12 @@ def generate_charts(model, X_test, y_test, y_pred, df_test, threshold):
     """Generate 6 evaluation charts, return dict of base64 PNG strings."""
     charts = {}
     y_true_bin = df_test['default_flag'].values
-    plt.style.use('seaborn-v0_8-whitegrid')
+    for _style in ('seaborn-v0_8-whitegrid', 'seaborn-whitegrid', 'ggplot', 'default'):
+        try:
+            plt.style.use(_style)
+            break
+        except OSError:
+            continue
 
     # 1. Feature Importance
     fig, ax = plt.subplots(figsize=(7, 4))

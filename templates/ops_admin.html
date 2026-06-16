@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Database Admin Panel - Bank System</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+    <style>
+        .mermaid {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            overflow-x: auto;
+        }
+    </style>
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .admin-container {
+            padding: 30px 20px;
+        }
+        .admin-header {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .admin-header h1 {
+            color: #667eea;
+            margin: 0;
+            font-weight: 700;
+        }
+        .admin-header .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+        .stat-card {
+            text-align: center;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+        .stat-card .number {
+            font-size: 28px;
+            font-weight: bold;
+            color: #667eea;
+        }
+        .stat-card .label {
+            font-size: 12px;
+            color: #666;
+            text-transform: uppercase;
+            margin-top: 5px;
+        }
+        .table-card {
+            background: white;
+            border-radius: 10px;
+            padding: 25px;
+            margin-bottom: 25px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .table-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+        }
+        .table-name {
+            font-size: 20px;
+            font-weight: 700;
+            color: #667eea;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        .table-count {
+            background: #e7f3ff;
+            color: #667eea;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 600;
+        }
+        .columns-table {
+            margin-top: 15px;
+            font-size: 13px;
+        }
+        .columns-table thead {
+            background: #f8f9fa;
+        }
+        .columns-table th {
+            border-top: none;
+            color: #667eea;
+            font-weight: 600;
+            padding: 12px;
+            text-transform: uppercase;
+            font-size: 11px;
+            letter-spacing: 0.5px;
+        }
+        .columns-table td {
+            padding: 10px 12px;
+            border-color: #e9ecef;
+        }
+        .column-name {
+            font-weight: 600;
+            color: #333;
+        }
+        .column-type {
+            background: #f0f2f5;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            color: #764ba2;
+            font-size: 12px;
+        }
+        .badge-pk {
+            background: #ffc107;
+            color: #333;
+            font-size: 11px;
+            padding: 3px 6px;
+        }
+        .badge-nn {
+            background: #dc3545;
+            color: white;
+            font-size: 11px;
+            padding: 3px 6px;
+        }
+        .badge-default {
+            background: #28a745;
+            color: white;
+            font-size: 11px;
+            padding: 3px 6px;
+        }
+        .schema-diagram {
+            background: white;
+            border-radius: 10px;
+            padding: 25px;
+            margin-bottom: 25px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .schema-diagram h3 {
+            color: #667eea;
+            margin-bottom: 20px;
+            font-weight: 700;
+        }
+        .table-group {
+            margin-bottom: 20px;
+        }
+        .group-title {
+            font-weight: 700;
+            color: #667eea;
+            padding: 10px;
+            background: #f0f2f5;
+            border-radius: 5px;
+            margin-bottom: 10px;
+        }
+        .table-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        .table-list li {
+            padding: 8px 12px;
+            background: #f8f9fa;
+            margin-bottom: 5px;
+            border-radius: 4px;
+            border-left: 3px solid #667eea;
+        }
+        .back-link {
+            color: white;
+            text-decoration: none;
+            font-weight: 600;
+            margin-bottom: 20px;
+            display: inline-block;
+        }
+        .back-link:hover {
+            color: #f0f0f0;
+        }
+        .diagram-toggle {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+            user-select: none;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            transition: background 0.2s;
+        }
+        .diagram-toggle:hover {
+            background: #e9ecef;
+        }
+        .diagram-toggle-icon {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            font-size: 16px;
+            transition: transform 0.3s;
+        }
+        .diagram-toggle-icon.collapsed {
+            transform: rotate(-90deg);
+        }
+        .diagram-content {
+            max-height: 2000px;
+            overflow-y: auto;
+            overflow-x: auto;
+            transition: max-height 0.3s ease;
+            border-top: 1px solid #e9ecef;
+            padding-top: 15px;
+        }
+        .diagram-content.collapsed {
+            max-height: 0;
+            overflow: hidden;
+            padding-top: 0;
+            border-top: none;
+        }
+        .diagram-container {
+            min-height: 600px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+        .fullscreen-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            padding: 8px 12px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 12px;
+            z-index: 10;
+            transition: background 0.2s;
+        }
+        .fullscreen-btn:hover {
+            background: #764ba2;
+        }
+        /* Fullscreen Modal */
+        .modal-fullscreen {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: white;
+            z-index: 9999;
+            overflow: auto;
+            padding: 20px;
+        }
+        .modal-fullscreen.show {
+            display: block;
+        }
+        .modal-header {
+            position: sticky;
+            top: 0;
+            background: white;
+            padding: 15px;
+            border-bottom: 2px solid #667eea;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: -20px -20px 20px -20px;
+            padding: 15px 20px;
+            z-index: 10001;
+        }
+        .close-btn {
+            background: #dc3545;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.2s;
+        }
+        .close-btn:hover {
+            background: #c82333;
+        }
+        @media (max-width: 768px) {
+            .table-card {
+                padding: 15px;
+            }
+            .columns-table {
+                font-size: 12px;
+            }
+            .admin-header .stats {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="admin-container">
+        <a href="/" class="back-link">← Back to Dashboard</a>
+
+        <div class="admin-header">
+            <h1>🔧 Database Administration Panel</h1>
+            <p style="color: #666; margin-top: 5px;">Bank System Architecture & Schema</p>
+
+            <div class="stats">
+                <div class="stat-card">
+                    <div class="number">{{ tables|length }}</div>
+                    <div class="label">Total Tables</div>
+                </div>
+                <div class="stat-card">
+                    <div class="number">{{ total_records }}</div>
+                    <div class="label">Total Records</div>
+                </div>
+                <div class="stat-card">
+                    <div class="number">5</div>
+                    <div class="label">Regulatory Tables</div>
+                </div>
+                <div class="stat-card">
+                    <div class="number">5</div>
+                    <div class="label">Core Banking Tables</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Database Architecture Diagram (Collapsible) -->
+        <div class="schema-diagram">
+            <div class="diagram-toggle" onclick="toggleDiagram()">
+                <span class="diagram-toggle-icon">▶</span>
+                <h3 style="margin: 0; color: #667eea; font-weight: 700;">🏗️ Database Architecture Diagram</h3>
+            </div>
+            <div class="diagram-content" id="diagramContent">
+                <p style="color: #666; font-size: 14px; margin: 0 0 15px 0; padding: 0 15px;">Dynamic ERD (Entity Relationship Diagram) reflecting actual database structure:</p>
+                <div class="diagram-container" style="position: relative;">
+                    <button class="fullscreen-btn" onclick="openDiagramFullscreen()">🗖 Fullscreen</button>
+                    <div class="mermaid" style="width: 100%; display: flex; justify-content: center;">
+{{ mermaid_diagram }}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Fullscreen Diagram Modal -->
+        <div class="modal-fullscreen" id="diagramModal">
+            <div class="modal-header">
+                <h2 style="margin: 0; color: #667eea;">Database Architecture - Full View</h2>
+                <button class="close-btn" onclick="closeDiagramFullscreen()">✕ Close</button>
+            </div>
+            <div style="padding: 20px; overflow: auto;">
+                <div class="mermaid">
+{{ mermaid_diagram }}
+                </div>
+            </div>
+        </div>
+
+        <!-- Schema Organization -->
+        <div class="schema-diagram">
+            <h3>📊 Schema Organization</h3>
+
+            <div class="table-group">
+                <div class="group-title">Regulatory & Bank Management (5 tables)</div>
+                <ul class="table-list">
+                    <li><strong>banks</strong> — Bank master data (ID, name, code, HQ, year established)</li>
+                    <li><strong>branches</strong> — Bank branches (IFSC code, city, contact, parent bank)</li>
+                    <li><strong>regulatory_bodies</strong> — Regulators (RBI, SEBI, IRDAI, FEMA)</li>
+                    <li><strong>regulatory_requirements</strong> — Requirements per regulator & bank (NPA, Basel III, KYC, etc.)</li>
+                    <li><strong>regulatory_compliance</strong> — Compliance status tracking for each requirement</li>
+                </ul>
+            </div>
+
+            <div class="table-group">
+                <div class="group-title">Core Banking (5 tables)</div>
+                <ul class="table-list">
+                    <li><strong>customers</strong> — Customer profiles (personal info, address, joined date)</li>
+                    <li><strong>accounts</strong> — Bank accounts (savings/current, balance, IFSC code)</li>
+                    <li><strong>loans</strong> — Loan records (amount, rate, classification: Standard/NPA/Doubtful/Loss)</li>
+                    <li><strong>transactions</strong> — Transaction history (deposits, withdrawals, EMI payments, transfers)</li>
+                    <li><strong>credit_risk_metrics</strong> — Customer credit risk indicators (NPA flag, DE ratio, interest coverage, etc.)</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Table Details -->
+        <div style="margin-bottom: 20px;">
+            <h4 style="color: white; margin-bottom: 20px; font-weight: 700;">📑 Table Details</h4>
+        </div>
+
+        {% for table in tables %}
+        <div class="table-card">
+            <div class="table-name">
+                {{ table }}
+                <span class="table-count">{{ schema[table].count }} rows</span>
+            </div>
+
+            <table class="table table-sm columns-table">
+                <thead>
+                    <tr>
+                        <th>Column Name</th>
+                        <th>Data Type</th>
+                        <th>Constraints</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for col in schema[table].columns %}
+                    <tr>
+                        <td><span class="column-name">{{ col.name }}</span></td>
+                        <td><span class="column-type">{{ col.type }}</span></td>
+                        <td>
+                            {% if col.pk %}
+                                <span class="badge badge-pk">PRIMARY KEY</span>
+                            {% endif %}
+                            {% if col.notnull %}
+                                <span class="badge badge-nn">NOT NULL</span>
+                            {% endif %}
+                            {% if col.default %}
+                                <span class="badge badge-default">DEFAULT: {{ col.default }}</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% endfor %}
+
+        <!-- Foreign Key Relationships -->
+        <div class="schema-diagram">
+            <h3>🔗 Key Relationships</h3>
+            <ul style="line-height: 1.8;">
+                <li><strong>customers</strong> → <strong>banks</strong> (via bank_id)</li>
+                <li><strong>accounts</strong> → <strong>customers</strong> (via cid) & <strong>banks</strong> (via bank_id)</li>
+                <li><strong>loans</strong> → <strong>customers</strong> (via cid) & <strong>banks</strong> (via bank_id)</li>
+                <li><strong>transactions</strong> → <strong>accounts</strong> (via aid) & <strong>banks</strong> (via bank_id)</li>
+                <li><strong>credit_risk_metrics</strong> → <strong>customers</strong> (via cid) & <strong>banks</strong> (via bank_id)</li>
+                <li><strong>branches</strong> → <strong>banks</strong> (via bank_id)</li>
+                <li><strong>regulatory_requirements</strong> → <strong>regulatory_bodies</strong> (via regulatory_body_id) & <strong>banks</strong> (via bank_id)</li>
+                <li><strong>regulatory_compliance</strong> → <strong>regulatory_requirements</strong> (via requirement_id) & <strong>banks</strong> (via bank_id)</li>
+            </ul>
+        </div>
+
+        <div style="text-align: center; color: white; padding: 30px 0;">
+            <p style="font-size: 12px; opacity: 0.8;">Bank System Database Administration • Multi-bank India-wide Model</p>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Initialize Mermaid diagrams
+        mermaid.initialize({ startOnLoad: true, theme: 'default', securityLevel: 'loose' });
+        mermaid.contentLoaded();
+
+        // Toggle diagram visibility
+        function toggleDiagram() {
+            const content = document.getElementById('diagramContent');
+            const icon = document.querySelector('.diagram-toggle-icon');
+
+            content.classList.toggle('collapsed');
+            icon.classList.toggle('collapsed');
+        }
+
+        // Open fullscreen diagram
+        function openDiagramFullscreen() {
+            document.getElementById('diagramModal').classList.add('show');
+            document.body.style.overflow = 'hidden';
+        }
+
+        // Close fullscreen diagram
+        function closeDiagramFullscreen() {
+            document.getElementById('diagramModal').classList.remove('show');
+            document.body.style.overflow = 'auto';
+        }
+
+        // Close modal when clicking outside
+        document.addEventListener('click', function(event) {
+            const modal = document.getElementById('diagramModal');
+            if (event.target === modal) {
+                closeDiagramFullscreen();
+            }
+        });
+
+        // Start with diagram collapsed
+        document.addEventListener('DOMContentLoaded', function() {
+            const content = document.getElementById('diagramContent');
+            const icon = document.querySelector('.diagram-toggle-icon');
+            content.classList.add('collapsed');
+            icon.classList.add('collapsed');
+        });
+    </script>
+</body>
+</html>

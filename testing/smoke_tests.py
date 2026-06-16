@@ -42,6 +42,14 @@ def run_smoke_tests(base_url='http://127.0.0.1:5000'):
             record(name, False, error=str(e), duration=time.time() - t0)
             return False
 
+    def fill(field_id, value):
+        el = driver.find_element(By.ID, field_id)
+        el.clear()
+        el.send_keys(str(value))
+
+    def choose(select_id, value):
+        Select(driver.find_element(By.ID, select_id)).select_by_value(str(value))
+
     # ── Setup headless Chrome ────────────────────────────────────────────────
     opts = Options()
     opts.add_argument('--headless')
@@ -78,38 +86,61 @@ def run_smoke_tests(base_url='http://127.0.0.1:5000'):
             driver.get(f'{base_url}/borrower-info.html')
             wait.until(EC.presence_of_element_located((By.ID, 'borrowerId')))
             wait.until(EC.presence_of_element_located((By.ID, 'calculateBtn')))
-        step('TC-02: Calculator page loads', tc02)
+            # Confirm new KYC section is present
+            assert driver.find_element(By.ID, 'kycAge'), 'KYC section not found'
+            assert driver.find_element(By.ID, 'kycCibilScore'), 'CIBIL field not found'
+        step('TC-02: Calculator page loads with KYC section', tc02)
 
-        # ── TC-03: AIRB form accepts valid input ─────────────────────────────
+        # ── TC-03: Full form accepts valid input (Step 1 + 2 KYC + 3 Financial + 4a AIRB) ──
         def tc03():
-            driver.find_element(By.ID, 'borrowerId').send_keys('SMOKE001')
-            driver.find_element(By.ID, 'borrowerName').send_keys('Tata Steel Ltd')
-            Select(driver.find_element(By.ID, 'sector')).select_by_value('Manufacturing')
-            driver.find_element(By.ID, 'exposureAmount').send_keys('10000000')
-            # Select AIRB mode
-            airb_radio = driver.find_element(By.ID, 'modeAIRB')
-            driver.execute_script('arguments[0].click()', airb_radio)
-            time.sleep(0.5)
-            # Financial metrics
-            driver.find_element(By.ID, 'debtToEquity').send_keys('1.5')
-            driver.find_element(By.ID, 'interestCoverage').send_keys('3.5')
-            driver.find_element(By.ID, 'profitabilityMargin').send_keys('12')
-            driver.find_element(By.ID, 'liquidityRatio').send_keys('1.8')
-            # Seniority & loan type (use actual option values from the HTML)
-            Select(driver.find_element(By.ID, 'seniority')).select_by_value('Senior Secured (Other)')
-            Select(driver.find_element(By.ID, 'loanType')).select_by_value('Term Loan Long')
-        step('TC-03: AIRB form accepts valid input', tc03)
+            # Step 1 — Borrower Info
+            fill('borrowerId', 'SMOKE001')
+            fill('borrowerName', 'Tata Steel Ltd')
+            choose('sector', 'Manufacturing')
+            fill('exposureAmount', '10000000')
+            driver.execute_script(
+                'arguments[0].click()',
+                driver.find_element(By.ID, 'modeAIRB')
+            )
+            time.sleep(0.3)
+
+            # Step 2 — Borrower Profile (KYC)
+            fill('kycAge', '38')
+            choose('kycEmploymentType', '4')       # Business Owner
+            fill('kycYearsEmployed', '10')
+            fill('kycAnnualIncome', '1200000')
+            fill('kycFoir', '0.35')
+            fill('kycNumDependents', '2')
+            choose('kycCityTier', '1')             # Tier 1
+            choose('kycEducation', '4')            # Graduate
+            choose('kycResidenceType', '1')        # Owned
+            choose('kycLoanPurpose', '5')          # Business Expansion
+            fill('kycCibilScore', '760')
+            choose('kycPreviousDefault', '0')      # No
+            fill('kycMonthsAsCustomer', '48')
+            fill('kycLatePayments', '0')
+            fill('kycExistingLoans', '1')
+            fill('kycExistingProducts', '3')
+            choose('kycIsRural', '0')              # Urban
+
+            # Step 3 — Financial Metrics
+            fill('debtToEquity', '1.5')
+            fill('interestCoverage', '3.5')
+            fill('profitabilityMargin', '12')
+            fill('liquidityRatio', '1.8')
+
+            # Step 4a — AIRB Collateral & Loan
+            choose('seniority', 'Senior Secured (Other)')
+            choose('loanType', 'Term Loan Long')
+        step('TC-03: Full form (KYC + Financial + AIRB) accepts valid input', tc03)
 
         # ── TC-04: ML PD calculation completes ──────────────────────────────
-        # The app always uses ML with automatic rule-based fallback — no method toggle needed
         def tc04():
             driver.find_element(By.ID, 'calculateBtn').click()
-            # Wait for results section to become visible (up to 15s)
             wait.until(EC.visibility_of_element_located((By.ID, 'resultsSection')))
             pd_text = driver.find_element(By.ID, 'pdValue').text
             assert pd_text and pd_text not in ('--', '—', ''), \
                 f'PD value is empty or placeholder: {pd_text!r}'
-            # Button must be re-enabled (not stuck in calculating)
             btn = driver.find_element(By.ID, 'calculateBtn')
             assert btn.is_enabled(), 'Calculate button still disabled after completion'
         step('TC-04: ML PD calculation completes', tc04)
@@ -130,13 +161,12 @@ def run_smoke_tests(base_url='http://127.0.0.1:5000'):
         # ── TC-06: Portfolio summary shows non-zero values ───────────────────
         def tc06():
             loan_count = driver.find_element(By.ID, 'summaryLoanCount').text.strip()
-            total_rwa = driver.find_element(By.ID, 'summaryTotalRWA').text.strip()
+            total_rwa  = driver.find_element(By.ID, 'summaryTotalRWA').text.strip()
             assert loan_count not in ('', '0', '—'), f'Loan count unexpected: {loan_count!r}'
-            assert total_rwa not in ('', '₹0', '0', '—'), f'Total RWA unexpected: {total_rwa!r}'
+            assert total_rwa  not in ('', '₹0', '0', '—'), f'Total RWA unexpected: {total_rwa!r}'
         step('TC-06: Portfolio summary updates correctly', tc06)
 
     except Exception as e:
-        # Catch anything outside the individual steps
         results.append({
             'name': 'Unexpected suite error',
             'passed': False,
@@ -147,7 +177,7 @@ def run_smoke_tests(base_url='http://127.0.0.1:5000'):
         if driver:
             driver.quit()
 
-    total = len(results)
+    total  = len(results)
     passed = sum(1 for r in results if r['passed'])
     failed = total - passed
 

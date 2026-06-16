@@ -72,6 +72,19 @@ testing/test_simple_workflow.py
 data/archive/
 data/synthetic/
 data/runs/
+data/reports/
+data/case_reports/
+data/training/
+data/audit_log.json
+
+# Flask default instance folder (orphaned/unused SQLAlchemy artifacts)
+instance/
+
+# Banking operations database (runtime data, not committed)
+bank.db
+
+# Manual test artifacts
+test_report.pdf
 
 # ML model binaries — too large for GitHub (>50 MB); deploy separately or use LFS
 ml_models/*.pkl

@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Regulatory Reporting — India Banking Intelligence</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=IBM+Plex+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --navy:#0D1B2A;--navy2:#162233;--navy3:#1E3048;
+  --red:#E31837;--red-dk:#B01229;
+  --white:#FFFFFF;--off:#F4F6FA;--border:#E2E8F0;
+  --t1:#0D1B2A;--t2:#4A5568;--t3:#8A9AB0;
+  --green:#10B981;--amber:#F59E0B;--blue:#3B82F6;--sidebar:290px;
+}
+body{font-family:'IBM Plex Sans',sans-serif;background:var(--off);color:var(--t1);display:flex;flex-direction:column;height:100vh;overflow:hidden}
+
+/* TOP BAR */
+.topnav{background:#fff;border-bottom:1px solid var(--border);padding:0 32px;height:54px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;z-index:15}
+.topnav-left{display:flex;align-items:center;gap:16px}
+.topnav-title{font-family:'Syne',sans-serif;font-weight:700;font-size:15px;color:var(--t1)}
+.topnav-date{font-size:11px;color:var(--t3);font-family:'IBM Plex Mono',monospace}
+.btn{padding:8px 16px;border-radius:8px;font-family:'IBM Plex Sans',sans-serif;font-size:12px;font-weight:600;cursor:pointer;border:1px solid var(--border);background:#fff;color:var(--t2);transition:all 0.18s;display:inline-flex;align-items:center;gap:7px}
+.btn:hover{border-color:var(--red);color:var(--red)}
+.btn-primary{background:var(--red);color:#fff;border-color:var(--red)}
+.btn-primary:hover{background:var(--red-dk);color:#fff;border-color:var(--red-dk)}
+.btn:disabled{opacity:0.5;cursor:not-allowed}
+
+/* LAYOUT */
+.layout{display:flex;flex:1;overflow:hidden}
+.sidebar{width:var(--sidebar);min-width:var(--sidebar);background:var(--navy);display:flex;flex-direction:column;height:100%;overflow:hidden;position:relative;z-index:20}
+.sidebar::after{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 10% 20%,rgba(227,24,55,0.07) 0%,transparent 60%),radial-gradient(ellipse at 90% 80%,rgba(26,107,255,0.05) 0%,transparent 60%);pointer-events:none}
+.sidebar-header{padding:18px 22px 14px;border-bottom:1px solid rgba(255,255,255,0.07);position:relative;z-index:1}
+.home-link{display:flex;align-items:center;gap:6px;text-decoration:none;color:rgba(255,255,255,0.5);font-size:11px;margin-bottom:12px;letter-spacing:0.5px}
+.home-link:hover{color:rgba(255,255,255,0.8)}
+.logo-row{display:flex;align-items:center;gap:12px}
+.logo-mark{width:36px;height:36px;background:var(--red);border-radius:10px;display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:800;font-size:12px;color:#fff;flex-shrink:0;box-shadow:0 4px 12px rgba(227,24,55,0.4)}
+.logo-name{font-family:'Syne',sans-serif;font-weight:700;font-size:13px;color:#fff;line-height:1.2}
+.logo-sub{font-size:9px;color:rgba(255,255,255,0.35);letter-spacing:0.8px;text-transform:uppercase;margin-top:1px}
+.sidebar-scroll{flex:1;overflow-y:auto;scrollbar-width:none;position:relative;z-index:1}
+.sidebar-scroll::-webkit-scrollbar{display:none}
+.sec-label{padding:14px 22px 6px;font-size:9px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:rgba(255,255,255,0.25)}
+.nav-item{display:flex;align-items:center;gap:11px;padding:11px 14px;margin:2px 10px;border-radius:9px;cursor:pointer;transition:background 0.15s;border:1px solid transparent}
+.nav-item:hover{background:rgba(255,255,255,0.05)}
+.nav-item.active{background:rgba(227,24,55,0.13);border-color:rgba(227,24,55,0.28)}
+.nav-item.active .ni-label{color:#fff}
+.ni-icon{width:30px;height:30px;border-radius:8px;background:rgba(255,255,255,0.06);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
+.nav-item.active .ni-icon{background:var(--red);box-shadow:0 2px 8px rgba(227,24,55,0.4)}
+.ni-text{flex:1;min-width:0}
+.ni-label{font-size:12.5px;font-weight:500;color:rgba(255,255,255,0.75);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ni-sub{font-size:10px;color:rgba(255,255,255,0.3);margin-top:1px}
+.ni-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.ni-dot.Compliant{background:var(--green);box-shadow:0 0 5px rgba(16,185,129,0.6)}
+.ni-dot.Watch{background:var(--amber);box-shadow:0 0 5px rgba(245,158,11,0.6)}
+.ni-dot.Breach{background:var(--red);box-shadow:0 0 5px rgba(227,24,55,0.6)}
+.client-box{padding:10px 14px 4px;position:relative;z-index:1}
+.client-input{width:100%;padding:9px 12px;border-radius:8px;border:1px solid rgba(255,255,255,0.12);background:rgba(255,255,255,0.06);color:#fff;font-family:'IBM Plex Sans',sans-serif;font-size:12px}
+.client-input::placeholder{color:rgba(255,255,255,0.35)}
+.client-input:focus{outline:none;border-color:var(--red)}
+.sidebar-footer{padding:12px 22px;border-top:1px solid rgba(255,255,255,0.06);font-size:9px;color:rgba(255,255,255,0.22);position:relative;z-index:1}
+
+/* MAIN */
+.main{flex:1;overflow-y:auto;min-width:0}
+.main::-webkit-scrollbar{width:5px}
+.main::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+.content{padding:26px 34px 50px;display:flex;flex-direction:column;gap:26px;max-width:1300px}
+.sl{font-size:9.5px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:var(--t3);margin-bottom:14px;display:flex;align-items:center;gap:10px}
+.sl::after{content:'';flex:1;height:1px;background:var(--border)}
+.page-head{display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:12px}
+.page-title{font-family:'Syne',sans-serif;font-weight:800;font-size:26px;color:var(--t1);letter-spacing:-0.5px}
+.page-desc{font-size:13px;color:var(--t3);margin-top:4px;max-width:640px;line-height:1.55}
+
+/* KPI CARDS */
+.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+.kpi-card{background:#fff;border-radius:14px;padding:18px 20px;border:1px solid var(--border);position:relative;overflow:hidden}
+.kpi-card::before{content:'';position:absolute;top:0;left:0;width:4px;height:100%}
+.kpi-card.green::before{background:var(--green)}.kpi-card.amber::before{background:var(--amber)}
+.kpi-card.red::before{background:var(--red)}.kpi-card.blue::before{background:var(--blue)}
+.kpi-label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.8px;color:var(--t3)}
+.kpi-value{font-family:'Syne',sans-serif;font-weight:700;font-size:30px;color:var(--t1);margin-top:8px;line-height:1}
+.kpi-sub{font-size:11px;color:var(--t3);margin-top:7px}
+.kpi-badge{position:absolute;top:16px;right:16px;font-size:9px;font-weight:700;padding:3px 9px;border-radius:100px;letter-spacing:0.4px}
+
+/* STATUS BADGE */
+.badge{font-size:9.5px;font-weight:700;padding:3px 10px;border-radius:100px;letter-spacing:0.3px;display:inline-block}
+.badge.Compliant{background:#D1FAE5;color:#065F46}
+.badge.Watch{background:#FEF3C7;color:#92400E}
+.badge.Breach{background:#FEE2E2;color:#991B1B}
+.badge.Monitored{background:#DBEAFE;color:#1E40AF}
+
+/* CARD + GRID */
+.card{background:#fff;border-radius:14px;padding:22px 24px;border:1px solid var(--border)}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.card-title{font-family:'Syne',sans-serif;font-weight:700;font-size:15px;color:var(--t1);margin-bottom:4px;display:flex;align-items:center;justify-content:space-between}
+.card-sub{font-size:11px;color:var(--t3);margin-bottom:18px}
+
+/* RATIO BAR */
+.ratio{margin-bottom:18px}
+.ratio:last-child{margin-bottom:0}
+.ratio-head{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:7px}
+.ratio-name{font-size:12px;font-weight:600;color:var(--t2)}
+.ratio-val{font-family:'IBM Plex Mono',monospace;font-weight:600;font-size:15px}
+.ratio-track{position:relative;height:9px;background:var(--off);border-radius:6px;overflow:visible}
+.ratio-fill{height:100%;border-radius:6px;transition:width 0.5s ease}
+.ratio-fill.Compliant{background:linear-gradient(90deg,#34D399,#10B981)}
+.ratio-fill.Watch{background:linear-gradient(90deg,#FBBF24,#F59E0B)}
+.ratio-fill.Breach{background:linear-gradient(90deg,#F87171,#E31837)}
+.ratio-marker{position:absolute;top:-3px;width:2px;height:15px;background:var(--t1);opacity:0.55}
+.ratio-marker::after{content:attr(data-label);position:absolute;top:16px;left:50%;transform:translateX(-50%);font-size:8.5px;color:var(--t3);white-space:nowrap;font-family:'IBM Plex Mono',monospace}
+.ratio-foot{display:flex;justify-content:space-between;margin-top:18px;font-size:10px;color:var(--t3)}
+
+/* TABLE */
+.tbl{width:100%;border-collapse:collapse;font-size:12px}
+.tbl th{text-align:left;padding:9px 12px;font-size:9.5px;font-weight:600;text-transform:uppercase;letter-spacing:0.6px;color:var(--t3);border-bottom:2px solid var(--border);white-space:nowrap}
+.tbl td{padding:10px 12px;border-bottom:1px solid var(--border);color:var(--t2)}
+.tbl tr:last-child td{border-bottom:none}
+.tbl .num{font-family:'IBM Plex Mono',monospace;text-align:right;color:var(--t1)}
+.tbl .th-num{text-align:right}
+.tbl-clickable tr{cursor:pointer;transition:background 0.12s}
+.tbl-clickable tbody tr:hover{background:var(--off)}
+.bank-name-cell{font-weight:600;color:var(--t1)}
+
+/* STAT ROW */
+.statline{display:flex;flex-wrap:wrap;gap:26px}
+.stat{min-width:120px}
+.stat-label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.6px;color:var(--t3)}
+.stat-value{font-family:'Syne',sans-serif;font-weight:700;font-size:18px;color:var(--t1);margin-top:5px}
+.stat-value small{font-size:11px;color:var(--t3);font-weight:400}
+
+/* ASSUMPTIONS */
+.assume{background:#FFFBEB;border:1px solid #FDE68A;border-radius:10px;padding:14px 16px;font-size:11px;color:#92400E;line-height:1.6}
+.assume strong{font-weight:700}
+.assume-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;margin-bottom:6px;display:flex;align-items:center;gap:6px}
+
+/* CHART */
+.chart-box{position:relative;height:230px}
+.empty{padding:60px 20px;text-align:center;color:var(--t3)}
+.loading{padding:80px;text-align:center;color:var(--t3);font-size:13px}
+.spinner{display:inline-block;width:26px;height:26px;border:3px solid var(--border);border-top-color:var(--red);border-radius:50%;animation:spin 0.8s linear infinite;margin-bottom:14px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.toast{position:fixed;bottom:24px;right:24px;background:var(--navy);color:#fff;padding:13px 20px;border-radius:10px;font-size:12.5px;box-shadow:0 10px 30px rgba(0,0,0,0.25);opacity:0;transform:translateY(10px);transition:all 0.3s;z-index:100;display:flex;align-items:center;gap:9px}
+.toast.show{opacity:1;transform:translateY(0)}
+.toast.success{border-left:3px solid var(--green)}.toast.error{border-left:3px solid var(--red)}
+@media(max-width:1000px){.kpi-grid{grid-template-columns:1fr 1fr}.grid-2{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<!-- TOP NAV -->
+<div class="topnav">
+  <div class="topnav-left">
+    <span class="topnav-title">📋 Regulatory Reporting</span>
+    <span class="topnav-date" id="reportDate"></span>
+  </div>
+  <div style="display:flex;gap:10px;align-items:center">
+    <a href="/operations/multibank" class="btn">🏦 Operations</a>
+    <button class="btn btn-primary" id="runBtn" onclick="runBatch()">↻ Run Batch</button>
+  </div>
+</div>
+
+<div class="layout">
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <a href="/" class="home-link">← Platform Home</a>
+      <div class="logo-row">
+        <div class="logo-mark">RR</div>
+        <div>
+          <div class="logo-name">Regulatory Reporting</div>
+          <div class="logo-sub">Basel III · RBI Returns</div>
+        </div>
+      </div>
+    </div>
+    <div class="sidebar-scroll">
+      <div class="sec-label">Supervisory View</div>
+      <div class="nav-item active" id="nav-system" onclick="showSystem()">
+        <div class="ni-icon">🌐</div>
+        <div class="ni-text"><div class="ni-label">India System</div><div class="ni-sub">All banks consolidated</div></div>
+      </div>
+      <div class="sec-label">Banks</div>
+      <div id="bankNav"></div>
+      <div class="sec-label">Client Regulatory Report</div>
+      <div class="client-box">
+        <input class="client-input" id="clientSearch" list="clientList" placeholder="Search customer name / ID…" onchange="lookupClient(this.value)">
+        <datalist id="clientList"></datalist>
+      </div>
+    </div>
+    <div class="sidebar-footer" id="sidebarFoot">Regulatory Reporting · India Intelligence Platform</div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main">
+    <div class="content" id="content">
+      <div class="loading"><div class="spinner"></div><div>Loading regulatory reports…</div></div>
+    </div>
+  </main>
+</div>
+
+<div class="toast" id="toast"><span id="toastMsg"></span></div>
+
+<script>
+// ── STATE ───────────────────────────────────────────────────────────────────
+let SYS = null;          // system snapshot
+let CUSTOMERS = [];      // for client lookup
+const charts = {};
+function destroyCharts(){ Object.values(charts).forEach(c=>{try{c.destroy()}catch(e){}}); Object.keys(charts).forEach(k=>delete charts[k]); }
+
+// ── UTILS ───────────────────────────────────────────────────────────────────
+const C = '#0D1B2A';
+function inr(n){ if(n==null) return '—'; const a=Math.abs(n);
+  if(a>=1e7) return '₹'+(n/1e7).toFixed(2)+' Cr';
+  if(a>=1e5) return '₹'+(n/1e5).toFixed(2)+' L';
+  return '₹'+Number(n).toLocaleString('en-IN',{maximumFractionDigits:0}); }
+const pct = n => n==null ? '—' : Number(n).toFixed(2)+'%';
+const esc = s => (s==null?'':String(s)).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+const statusColor = s => ({Compliant:'green',Watch:'amber',Breach:'red',Monitored:'blue'}[s]||'blue');
+
+// horizontal ratio bar: actual vs regulatory minimum (minimum sits at 50% of track)
+function ratioBar(name, actual, min, status){
+  const scaleMax = min*2;
+  const fillPct = Math.max(2, Math.min(100, (actual/scaleMax)*100));
+  const valColor = status==='Breach'?'var(--red)':status==='Watch'?'var(--amber)':'var(--green)';
+  return `<div class="ratio">
+    <div class="ratio-head">
+      <span class="ratio-name">${name}</span>
+      <span><span class="ratio-val" style="color:${valColor}">${pct(actual)}</span> <span class="badge ${status}" style="margin-left:8px">${status}</span></span>
+    </div>
+    <div class="ratio-track">
+      <div class="ratio-fill ${status}" style="width:${fillPct}%"></div>
+      <div class="ratio-marker" style="left:50%" data-label="min ${min}%"></div>
+    </div>
+  </div>`;
+}
+
+function showToast(msg, type='success'){
+  const t=document.getElementById('toast');
+  t.className='toast '+type; document.getElementById('toastMsg').textContent=msg;
+  t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),3200);
+}
+
+// ── INIT ────────────────────────────────────────────────────────────────────
+async function init(){
+  await loadSystem();
+  loadCustomers();
+}
+
+async function loadSystem(){
+  try{
+    const res = await fetch('/regulatory/api/system');
+    SYS = await res.json();
+    if(!SYS.available){
+      document.getElementById('content').innerHTML =
+        `<div class="empty"><div style="font-size:34px;margin-bottom:12px">📋</div>
+         <div style="font-weight:600;color:var(--t2);margin-bottom:6px">No regulatory reports yet</div>
+         <div style="font-size:12px;margin-bottom:18px">${esc(SYS.message||'')}</div>
+         <button class="btn btn-primary" onclick="runBatch()">↻ Run the Regulatory Batch</button></div>`;
+      return;
+    }
+    document.getElementById('reportDate').textContent = 'Report date: '+SYS.report_date;
+    buildBankNav();
+    showSystem();
+  }catch(e){
+    document.getElementById('content').innerHTML = `<div class="empty">Failed to load: ${esc(e.message)}</div>`;
+  }
+}
+
+async function loadCustomers(){
+  try{
+    const res = await fetch('/operations/api/customers');
+    CUSTOMERS = await res.json();
+    document.getElementById('clientList').innerHTML =
+      CUSTOMERS.map(c=>`<option value="${c.first} ${c.last} — ${c.id}">`).join('');
+  }catch(e){ /* non-fatal */ }
+}
+
+function buildBankNav(){
+  document.getElementById('bankNav').innerHTML = SYS.banks.map(b=>{
+    const worst = [b.car_status,b.lcr_status,b.nsfr_status].includes('Breach') ? 'Breach'
+                : [b.car_status,b.lcr_status,b.nsfr_status].includes('Watch') ? 'Watch' : 'Compliant';
+    return `<div class="nav-item" id="nav-${b.bank_id}" onclick="showBank('${b.bank_id}')">
+      <div class="ni-icon">${esc((b.bank_name||'').substring(0,2).toUpperCase())}</div>
+      <div class="ni-text"><div class="ni-label">${esc(b.bank_name)}</div>
+        <div class="ni-sub">CAR ${pct(b.car)} · LCR ${pct(b.lcr)}</div></div>
+      <div class="ni-dot ${worst}"></div>
+    </div>`;
+  }).join('');
+}
+
+function setActive(id){
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  const el=document.getElementById('nav-'+id); if(el) el.classList.add('active');
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// SYSTEM VIEW
+// ════════════════════════════════════════════════════════════════════════════
+function showSystem(){
+  setActive('system');
+  destroyCharts();
+  const s = SYS.system, th = SYS.thresholds;
+  const carStatus = s.car>=th.car_min?(s.car<th.car_min+1?'Watch':'Compliant'):'Breach';
+  const lcrStatus = s.lcr>=th.lcr_min?(s.lcr<th.lcr_min+10?'Watch':'Compliant'):'Breach';
+  const nsfrStatus= s.nsfr>=th.nsfr_min?(s.nsfr<th.nsfr_min+10?'Watch':'Compliant'):'Breach';
+
+  document.getElementById('content').innerHTML = `
+  <div class="page-head">
+    <div>
+      <div class="page-title">India Banking System</div>
+      <div class="page-desc">Consolidated Basel III capital adequacy, liquidity and RBI compliance across all supervised banks. Computed daily from the live loan book, deposit base and risk metrics.</div>
+    </div>
+    <div style="text-align:right">
+      <div style="font-size:10px;text-transform:uppercase;letter-spacing:0.8px;color:var(--t3)">Supervised banks</div>
+      <div style="font-family:'Syne';font-weight:800;font-size:30px;color:var(--red)">${s.num_banks}</div>
+    </div>
+  </div>
+
+  <div class="kpi-grid">
+    <div class="kpi-card ${statusColor(carStatus)}">
+      <div class="kpi-badge badge ${carStatus}">${carStatus}</div>
+      <div class="kpi-label">System CRAR (CAR)</div>
+      <div class="kpi-value">${pct(s.car)}</div>
+      <div class="kpi-sub">RBI min ${th.car_min}% · CET1 ${pct(s.cet1_ratio)}</div>
+    </div>
+    <div class="kpi-card ${statusColor(lcrStatus)}">
+      <div class="kpi-badge badge ${lcrStatus}">${lcrStatus}</div>
+      <div class="kpi-label">Liquidity Coverage (LCR)</div>
+      <div class="kpi-value">${pct(s.lcr)}</div>
+      <div class="kpi-sub">RBI min ${th.lcr_min}% · HQLA ${inr(s.hqla)}</div>
+    </div>
+    <div class="kpi-card ${statusColor(nsfrStatus)}">
+      <div class="kpi-badge badge ${nsfrStatus}">${nsfrStatus}</div>
+      <div class="kpi-label">Net Stable Funding (NSFR)</div>
+      <div class="kpi-value">${pct(s.nsfr)}</div>
+      <div class="kpi-sub">RBI min ${th.nsfr_min}% · Leverage ${pct(s.leverage_ratio)}</div>
+    </div>
+    <div class="kpi-card blue">
+      <div class="kpi-label">Total Risk-Weighted Assets</div>
+      <div class="kpi-value" style="font-size:24px">${inr(s.total_rwa)}</div>
+      <div class="kpi-sub">Capital ${inr(s.total_capital)} · ${s.breaches} breaches · ${s.watches} watch</div>
+    </div>
+  </div>
+
+  <div>
+    <div class="sl">Banking System Aggregates</div>
+    <div class="card">
+      <div class="statline">
+        <div class="stat"><div class="stat-label">Total Assets</div><div class="stat-value">${inr(s.total_assets)}</div></div>
+        <div class="stat"><div class="stat-label">Loan Book</div><div class="stat-value">${inr(s.loan_book)}</div></div>
+        <div class="stat"><div class="stat-label">Customer Deposits</div><div class="stat-value">${inr(s.deposits)}</div></div>
+        <div class="stat"><div class="stat-label">Tier-1 Capital</div><div class="stat-value">${inr(s.tier1_capital)}</div></div>
+        <div class="stat"><div class="stat-label">Credit RWA</div><div class="stat-value">${inr(s.credit_rwa)}</div></div>
+        <div class="stat"><div class="stat-label">Operational RWA</div><div class="stat-value">${inr(s.operational_rwa)}</div></div>
+        <div class="stat"><div class="stat-label">Provisions Held</div><div class="stat-value">${inr(s.total_provisions)}</div></div>
+        <div class="stat"><div class="stat-label">NPA Loans</div><div class="stat-value">${s.num_npa}<small> / ${s.num_loans}</small></div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-title">RWA Composition</div>
+      <div class="card-sub">Credit vs operational risk-weighted assets (system)</div>
+      <div class="chart-box"><canvas id="rwaChart"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Capital vs RWA by Bank</div>
+      <div class="card-sub">Total regulatory capital against total RWA (₹ Cr)</div>
+      <div class="chart-box"><canvas id="capChart"></canvas></div>
+    </div>
+  </div>
+
+  <div>
+    <div class="sl">Bank-by-Bank Supervisory Scorecard</div>
+    <div class="card">
+      <table class="tbl tbl-clickable">
+        <thead><tr>
+          <th>Bank</th><th class="th-num">CAR</th><th class="th-num">CET1</th>
+          <th class="th-num">Leverage</th><th class="th-num">LCR</th><th class="th-num">NSFR</th>
+          <th class="th-num">Total RWA</th><th class="th-num">NPAs</th><th>Status</th>
+        </tr></thead>
+        <tbody>
+          ${SYS.banks.map(b=>{
+            const worst=[b.car_status,b.lcr_status,b.nsfr_status].includes('Breach')?'Breach'
+              :[b.car_status,b.lcr_status,b.nsfr_status].includes('Watch')?'Watch':'Compliant';
+            return `<tr onclick="showBank('${b.bank_id}')">
+              <td class="bank-name-cell">${esc(b.bank_name)}</td>
+              <td class="num">${pct(b.car)}</td><td class="num">${pct(b.cet1_ratio)}</td>
+              <td class="num">${pct(b.leverage_ratio)}</td>
+              <td class="num">${pct(b.lcr)}</td><td class="num">${pct(b.nsfr)}</td>
+              <td class="num">${inr(b.total_rwa)}</td>
+              <td class="num">${b.num_npa}/${b.num_loans}</td>
+              <td><span class="badge ${worst}">${worst}</span></td>
+            </tr>`;}).join('')}
+        </tbody>
+      </table>
+    </div>
+  </div>`;
+
+  setTimeout(()=>{
+    charts.rwa = new Chart(document.getElementById('rwaChart'),{
+      type:'doughnut',
+      data:{labels:['Credit RWA','Operational RWA'],
+        datasets:[{data:[s.credit_rwa,s.operational_rwa],
+          backgroundColor:['rgba(227,24,55,0.85)','rgba(59,130,246,0.8)'],borderColor:'#fff',borderWidth:3,hoverOffset:6}]},
+      options:{responsive:true,maintainAspectRatio:false,cutout:'62%',
+        plugins:{legend:{position:'bottom',labels:{font:{family:'IBM Plex Sans',size:11},padding:14,boxWidth:11}},
+          tooltip:{callbacks:{label:c=>`${c.label}: ${inr(c.raw)}`}}}}
+    });
+    charts.cap = new Chart(document.getElementById('capChart'),{
+      type:'bar',
+      data:{labels:SYS.banks.map(b=>b.bank_name.replace(' Bank Limited','').replace(' Limited','')),
+        datasets:[
+          {label:'Total RWA',data:SYS.banks.map(b=>b.total_rwa/1e7),backgroundColor:'rgba(227,24,55,0.75)',borderRadius:5},
+          {label:'Total Capital',data:SYS.banks.map(b=>{const c=SYS.system;return null;}),backgroundColor:'rgba(16,185,129,0.8)',borderRadius:5}
+        ]},
+      options:{responsive:true,maintainAspectRatio:false,
+        plugins:{legend:{position:'bottom',labels:{font:{size:11},padding:12,boxWidth:11}},
+          tooltip:{callbacks:{label:c=>`${c.dataset.label}: ₹${c.raw.toFixed(2)} Cr`}}},
+        scales:{x:{grid:{display:false},ticks:{font:{size:11}}},y:{grid:{color:'rgba(0,0,0,0.04)'},ticks:{callback:v=>'₹'+v+' Cr',font:{size:10}}}}}
+    });
+  },60);
+
+  // fill capital series (need per-bank capital — fetch lazily not required; derive from bank rows is unavailable, so query each)
+  fillCapitalSeries();
+}
+
+// per-bank total capital isn't in the system summary rows; pull from bank reports
+async function fillCapitalSeries(){
+  try{
+    const caps = await Promise.all(SYS.banks.map(b=>fetch(`/regulatory/api/banks/${b.bank_id}`).then(r=>r.json())));
+    if(charts.cap){
+      charts.cap.data.datasets[1].data = caps.map(c=>c.capital ? c.capital.total_capital/1e7 : 0);
+      charts.cap.update();
+    }
+  }catch(e){}
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// BANK VIEW
+// ════════════════════════════════════════════════════════════════════════════
+async function showBank(bankId){
+  setActive(bankId);
+  destroyCharts();
+  document.getElementById('content').innerHTML = `<div class="loading"><div class="spinner"></div><div>Loading bank report…</div></div>`;
+  const [data, expData] = await Promise.all([
+    fetch(`/regulatory/api/banks/${bankId}`).then(r=>r.json()),
+    fetch(`/regulatory/api/banks/${bankId}/exposures`).then(r=>r.json())
+  ]);
+  if(!data.available || !data.capital){ document.getElementById('content').innerHTML=`<div class="empty">No report for this bank.</div>`; return; }
+  const c=data.capital, l=data.liquidity, b=data.bank, th=data.thresholds;
+  const capAssume = c.assumptions||{}, liqAssume=(l&&l.assumptions)||{};
+
+  document.getElementById('content').innerHTML = `
+  <div class="page-head">
+    <div>
+      <div class="page-title">${esc(b.bank_name)}</div>
+      <div class="page-desc">RBI code ${esc(b.bank_code)} · ${esc(b.headquarters_city)}, ${esc(b.headquarters_state)} · Est. ${esc(b.year_established)}. Basel III regulatory return as at ${esc(data.report_date)}.</div>
+    </div>
+  </div>
+
+  <div class="kpi-grid">
+    <div class="kpi-card ${statusColor(c.car_status)}"><div class="kpi-badge badge ${c.car_status}">${c.car_status}</div>
+      <div class="kpi-label">CRAR (CAR)</div><div class="kpi-value">${pct(c.car)}</div><div class="kpi-sub">min ${th.car_min}%</div></div>
+    <div class="kpi-card ${statusColor(c.cet1_status)}"><div class="kpi-badge badge ${c.cet1_status}">${c.cet1_status}</div>
+      <div class="kpi-label">CET1 Ratio</div><div class="kpi-value">${pct(c.cet1_ratio)}</div><div class="kpi-sub">min ${th.cet1_min}%</div></div>
+    <div class="kpi-card ${statusColor(l?l.lcr_status:'Monitored')}"><div class="kpi-badge badge ${l?l.lcr_status:''}">${l?l.lcr_status:''}</div>
+      <div class="kpi-label">LCR</div><div class="kpi-value">${pct(l&&l.lcr)}</div><div class="kpi-sub">min ${th.lcr_min}%</div></div>
+    <div class="kpi-card ${statusColor(l?l.nsfr_status:'Monitored')}"><div class="kpi-badge badge ${l?l.nsfr_status:''}">${l?l.nsfr_status:''}</div>
+      <div class="kpi-label">NSFR</div><div class="kpi-value">${pct(l&&l.nsfr)}</div><div class="kpi-sub">min ${th.nsfr_min}%</div></div>
+  </div>
+
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-title">Capital Adequacy <span class="badge ${c.car_status}">${c.car_status}</span></div>
+      <div class="card-sub">Basel III risk-based capital ratios vs RBI minimums</div>
+      ${ratioBar('CRAR (Total Capital)', c.car, th.car_min, c.car_status)}
+      ${ratioBar('Tier-1 Ratio', c.tier1_ratio, th.tier1_min, c.tier1_status)}
+      ${ratioBar('CET1 Ratio', c.cet1_ratio, th.cet1_min, c.cet1_status)}
+      ${ratioBar('Leverage Ratio', c.leverage_ratio, th.leverage_min, c.leverage_status)}
+      <div class="ratio-foot">
+        <span>Tier-1 ${inr(c.tier1_capital)} · Tier-2 ${inr(c.tier2_capital)}</span>
+        <span>Total capital ${inr(c.total_capital)}</span>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Liquidity & Reserves <span class="badge ${l?l.lcr_status:''}">${l?l.lcr_status:''}</span></div>
+      <div class="card-sub">Basel III liquidity + RBI CRR / SLR</div>
+      ${l?ratioBar('Liquidity Coverage (LCR)', l.lcr, th.lcr_min, l.lcr_status):''}
+      ${l?ratioBar('Net Stable Funding (NSFR)', l.nsfr, th.nsfr_min, l.nsfr_status):''}
+      ${l?ratioBar('Cash Reserve Ratio (CRR)', l.crr_ratio, th.crr_min, l.crr_status):''}
+      ${l?ratioBar('Statutory Liquidity Ratio (SLR)', l.slr_ratio, th.slr_min, l.slr_status):''}
+      <div class="ratio-foot">
+        <span>HQLA ${inr(l&&l.hqla)} · Net 30-day outflow ${inr(l&&l.net_outflows_30d)}</span>
+        <span>Retail dep. ${inr(l&&l.retail_deposits)}</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-title">Risk-Weighted Assets</div>
+      <div class="card-sub">Composition by risk type · density ${pct(c.rwa_density)} of assets</div>
+      <div class="chart-box" style="height:200px"><canvas id="bankRwaChart"></canvas></div>
+      <div class="ratio-foot"><span>Credit ${inr(c.credit_rwa)} · Operational ${inr(c.operational_rwa)} · Market ${inr(c.market_rwa)}</span><span>Total ${inr(c.total_rwa)}</span></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Exposure Mix</div>
+      <div class="card-sub">RWA contribution by loan product &amp; asset classification</div>
+      <table class="tbl">
+        <thead><tr><th>Product</th><th>Class</th><th class="th-num">#</th><th class="th-num">EAD</th><th class="th-num">RWA</th><th class="th-num">Provision</th></tr></thead>
+        <tbody>${(data.exposure_mix||[]).map(m=>`<tr>
+          <td>${esc(m.loan_type)}</td>
+          <td><span class="badge ${m.classification==='Standard'?'Compliant':'Breach'}" style="font-size:8.5px">${esc(m.classification)}</span></td>
+          <td class="num">${m.n}</td><td class="num">${inr(m.ead)}</td><td class="num">${inr(m.rwa)}</td><td class="num">${inr(m.provision)}</td>
+        </tr>`).join('')}</tbody>
+      </table>
+    </div>
+  </div>
+
+  <div>
+    <div class="sl">RBI Compliance Register</div>
+    <div class="card">
+      <table class="tbl">
+        <thead><tr><th>Requirement</th><th>Code</th><th>Metric / Note</th><th>Next Audit</th><th>Status</th></tr></thead>
+        <tbody>${(data.compliance||[]).map(x=>`<tr>
+          <td class="bank-name-cell">${esc(x.requirement?x.requirement.requirement_name:x.compliance.requirement_id)}</td>
+          <td style="font-family:'IBM Plex Mono';font-size:11px">${esc(x.requirement?x.requirement.requirement_code:'—')}</td>
+          <td style="font-size:11px">${esc(x.compliance.notes||'')}</td>
+          <td style="font-family:'IBM Plex Mono';font-size:11px">${esc(x.compliance.next_audit_date||'')}</td>
+          <td><span class="badge ${x.compliance.compliance_status}">${esc(x.compliance.compliance_status)}</span></td>
+        </tr>`).join('')||'<tr><td colspan="5" class="empty">No compliance records</td></tr>'}</tbody>
+      </table>
+    </div>
+  </div>
+
+  ${(data.trend&&data.trend.length>1)?`<div class="card">
+    <div class="card-title">Ratio Trend</div><div class="card-sub">CAR &amp; LCR across report dates</div>
+    <div class="chart-box" style="height:200px"><canvas id="trendChart"></canvas></div></div>`:''}
+
+  <div>
+    <div class="sl">Top Client Exposures — Risk-Weighted Assets</div>
+    <div class="card">
+      <table class="tbl tbl-clickable">
+        <thead><tr><th>Customer</th><th>Loan</th><th>Class</th><th class="th-num">EAD</th><th class="th-num">PD</th><th class="th-num">RW</th><th class="th-num">RWA</th><th class="th-num">Capital</th><th class="th-num">Provision</th></tr></thead>
+        <tbody>${(expData.exposures||[]).slice(0,15).map(e=>`<tr onclick="lookupClientById('${e.cid}')">
+          <td class="bank-name-cell">${esc(e.customer_name)}</td>
+          <td style="font-size:11px">${esc(e.loan_type)}</td>
+          <td><span class="badge ${e.classification==='Standard'?'Compliant':'Breach'}" style="font-size:8.5px">${esc(e.classification)}</span></td>
+          <td class="num">${inr(e.ead)}</td><td class="num">${(e.pd*100).toFixed(2)}%</td>
+          <td class="num">${e.risk_weight}%</td><td class="num">${inr(e.rwa)}</td>
+          <td class="num">${inr(e.capital_charge)}</td><td class="num">${inr(e.provision)}</td>
+        </tr>`).join('')}</tbody>
+      </table>
+      <div style="font-size:10.5px;color:var(--t3);margin-top:12px">Showing top 15 of ${(expData.exposures||[]).length} exposures by RWA. Click a row for the full client regulatory report.</div>
+    </div>
+  </div>
+
+  <div class="assume">
+    <div class="assume-title">⚠ Methodology &amp; Synthetic-Data Assumptions</div>
+    Capital base proxy: Tier-1 ≈ ${(capAssume.capital_to_assets_proxy!=null?(capAssume.capital_to_assets_proxy*100).toFixed(1)+'% of banking-book assets':'n/a')}. Operational RWA via ${esc(capAssume.op_risk_method||'Basel BIA')}. Market RWA ${esc(capAssume.market_rwa||'nil')}. Liquidity: ${esc(liqAssume.funding_model||'')} (HQLA ≈ ${(liqAssume.hqla_to_funding_proxy!=null?(liqAssume.hqla_to_funding_proxy*100).toFixed(0)+'% of funding':'n/a')}). <strong>RWA, deposits, loan book and provisions are computed from live data; the capital/HQLA anchors are clearly-labelled proxies because the synthetic dataset has no equity ledger.</strong>
+  </div>`;
+
+  setTimeout(()=>{
+    charts.bankRwa = new Chart(document.getElementById('bankRwaChart'),{
+      type:'doughnut',
+      data:{labels:['Credit','Operational','Market'],
+        datasets:[{data:[c.credit_rwa,c.operational_rwa,c.market_rwa],
+          backgroundColor:['rgba(227,24,55,0.85)','rgba(59,130,246,0.8)','rgba(245,158,11,0.8)'],borderColor:'#fff',borderWidth:3,hoverOffset:6}]},
+      options:{responsive:true,maintainAspectRatio:false,cutout:'62%',
+        plugins:{legend:{position:'bottom',labels:{font:{size:11},padding:12,boxWidth:11}},
+          tooltip:{callbacks:{label:x=>`${x.label}: ${inr(x.raw)}`}}}}
+    });
+    if(data.trend && data.trend.length>1){
+      charts.trend = new Chart(document.getElementById('trendChart'),{
+        type:'line',
+        data:{labels:data.trend.map(t=>t.report_date),
+          datasets:[
+            {label:'CAR %',data:data.trend.map(t=>t.car),borderColor:'rgba(227,24,55,0.9)',backgroundColor:'rgba(227,24,55,0.06)',fill:true,tension:0.3,pointRadius:3},
+            {label:'LCR %',data:data.trend.map(t=>t.lcr),borderColor:'rgba(59,130,246,0.9)',backgroundColor:'transparent',tension:0.3,pointRadius:3}
+          ]},
+        options:{responsive:true,maintainAspectRatio:false,
+          plugins:{legend:{position:'bottom',labels:{font:{size:11},boxWidth:11}}},
+          scales:{x:{grid:{display:false},ticks:{font:{size:10}}},y:{grid:{color:'rgba(0,0,0,0.04)'}}}}
+      });
+    }
+  },60);
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// CLIENT VIEW
+// ════════════════════════════════════════════════════════════════════════════
+function lookupClient(val){
+  if(!val) return;
+  const m = val.match(/—\s*(\S+)\s*$/);
+  const cid = m ? m[1] : (CUSTOMERS.find(c=>`${c.first} ${c.last}`.toLowerCase()===val.toLowerCase())||{}).id;
+  if(cid) lookupClientById(cid);
+  else showToast('Customer not found — pick from the list','error');
+}
+
+async function lookupClientById(cid){
+  setActive('');
+  destroyCharts();
+  document.getElementById('content').innerHTML = `<div class="loading"><div class="spinner"></div><div>Loading client regulatory report…</div></div>`;
+  const data = await fetch(`/regulatory/api/clients/${cid}`).then(r=>r.json());
+  if(data.error){ document.getElementById('content').innerHTML=`<div class="empty">${esc(data.error)}</div>`; return; }
+  const cu=data.customer, b=data.bank, t=data.totals, th=data.thresholds;
+  const npaFlag = t.num_npa>0;
+
+  document.getElementById('content').innerHTML = `
+  <div class="page-head">
+    <div>
+      <div class="page-title">${esc(cu.first)} ${esc(cu.last)}</div>
+      <div class="page-desc">Client-level regulatory exposure report · ${esc(cu.id)} · ${esc(b?b.bank_name:'')} · ${esc(cu.city)}, ${esc(cu.state)}. Regulatory capital &amp; provisioning attributable to this borrower as at ${esc(data.report_date||'—')}.</div>
+    </div>
+    <div><span class="badge ${npaFlag?'Breach':'Compliant'}" style="font-size:11px;padding:5px 14px">${npaFlag?'NPA Exposure':'Standard Exposure'}</span></div>
+  </div>
+
+  <div class="kpi-grid">
+    <div class="kpi-card blue"><div class="kpi-label">Exposure at Default</div><div class="kpi-value" style="font-size:24px">${inr(t.ead)}</div><div class="kpi-sub">${t.num_loans} loan${t.num_loans!==1?'s':''}</div></div>
+    <div class="kpi-card red"><div class="kpi-label">Risk-Weighted Assets</div><div class="kpi-value" style="font-size:24px">${inr(t.rwa)}</div><div class="kpi-sub">Capital charge ${inr(t.capital_charge)}</div></div>
+    <div class="kpi-card amber"><div class="kpi-label">Expected Loss</div><div class="kpi-value" style="font-size:24px">${inr(t.expected_loss)}</div><div class="kpi-sub">PD × LGD × EAD</div></div>
+    <div class="kpi-card ${npaFlag?'red':'green'}"><div class="kpi-label">Provision Held</div><div class="kpi-value" style="font-size:24px">${inr(t.provision)}</div><div class="kpi-sub">${t.num_npa} NPA loan${t.num_npa!==1?'s':''} (IRAC)</div></div>
+  </div>
+
+  <div>
+    <div class="sl">Exposure Register</div>
+    <div class="card">
+      ${(data.exposures&&data.exposures.length)?`<table class="tbl">
+        <thead><tr><th>Loan ID</th><th>Product</th><th>Class</th><th class="th-num">EAD</th><th class="th-num">PD</th><th class="th-num">LGD</th><th class="th-num">Risk Wt</th><th class="th-num">RWA</th><th class="th-num">Capital</th><th class="th-num">Exp. Loss</th><th class="th-num">Provision</th></tr></thead>
+        <tbody>${data.exposures.map(e=>`<tr>
+          <td style="font-family:'IBM Plex Mono';font-size:11px">${esc(e.loan_id)}</td>
+          <td>${esc(e.loan_type)}</td>
+          <td><span class="badge ${e.classification==='Standard'?'Compliant':'Breach'}" style="font-size:8.5px">${esc(e.classification)}</span></td>
+          <td class="num">${inr(e.ead)}</td>
+          <td class="num">${(e.pd*100).toFixed(2)}%</td>
+          <td class="num">${(e.lgd*100).toFixed(0)}%</td>
+          <td class="num">${e.risk_weight}%</td>
+          <td class="num">${inr(e.rwa)}</td>
+          <td class="num">${inr(e.capital_charge)}</td>
+          <td class="num">${inr(e.expected_loss)}</td>
+          <td class="num">${inr(e.provision)}</td>
+        </tr>`).join('')}</tbody>
+      </table>`:'<div class="empty">No loan exposures on record for this customer.</div>'}
+    </div>
+  </div>
+
+  <div class="assume">
+    <div class="assume-title">📐 How these figures are derived</div>
+    <strong>RWA</strong> = EAD × RBI Standardised-Approach risk weight (by product; 150% for NPAs). <strong>Capital charge</strong> = RWA × ${th?th.car_min:11.5}% (CRAR floor incl. capital conservation buffer). <strong>Expected Loss</strong> = PD × LGD × EAD. <strong>Provision</strong> follows RBI IRAC norms (0.40% standard assets, 15%+ for NPAs). PD is the model-observed probability of default; LGD is the downturn loss-given-default by collateral type.
+  </div>`;
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// RUN BATCH
+// ════════════════════════════════════════════════════════════════════════════
+async function runBatch(){
+  const btn=document.getElementById('runBtn');
+  btn.disabled=true; btn.textContent='Running…';
+  try{
+    const res = await fetch('/regulatory/api/run-batch',{method:'POST'});
+    const j = await res.json();
+    if(j.success){ showToast(`Batch complete — ${j.banks_processed} banks recomputed`,'success'); await loadSystem(); }
+    else showToast('Batch failed: '+(j.error||'unknown'),'error');
+  }catch(e){ showToast('Batch failed: '+e.message,'error'); }
+  finally{ btn.disabled=false; btn.textContent='↻ Run Batch'; }
+}
+
+init();
+</script>
+</body>
+</html>

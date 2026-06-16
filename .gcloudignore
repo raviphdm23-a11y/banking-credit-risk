@@ -48,7 +48,14 @@ testing/
 data/archive/
 data/synthetic/
 data/runs/
+data/reports/
+data/case_reports/
+data/audit_log.json
 
-# Node / legacy artefacts
-node_modules/
-airb-calculator/
+# Flask default instance folder (orphaned/unused SQLAlchemy artifacts)
+instance/
+
+# Superseded report-generation design docs / artifacts
+REPORT_GENERATION_INTEGRATION_PLAN.md
+REPORT_GENERATION_INTEGRATION_PLAN_v2.md
+test_report.pdf

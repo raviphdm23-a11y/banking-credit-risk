@@ -14,10 +14,10 @@ Write-Host "Project Root: $ProjectRoot" -ForegroundColor Yellow
 Write-Host ""
 
 # Check if venv exists
-$venvPath = Join-Path $ProjectRoot "venv"
+$venvPath = Join-Path $ProjectRoot "venv310"
 if (-not (Test-Path $venvPath)) {
     Write-Host "[1/3] Creating virtual environment..." -ForegroundColor Yellow
-    python -m venv venv
+    py -3.10 -m venv venv310
     if ($LASTEXITCODE -ne 0) {
         Write-Host "ERROR: Failed to create virtual environment" -ForegroundColor Red
         exit 1

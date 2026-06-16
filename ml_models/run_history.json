@@ -1,5 +1,433 @@
 [
   {
+    "run_id": "run_20260616_175955",
+    "timestamp": "2026-06-16T17:59:55",
+    "triggered_by": "manual-expanded-dataset",
+    "status": "success",
+    "files_used": [
+      {
+        "filename": "bank_loan_metrics (bank.db)",
+        "rows": 64
+      },
+      {
+        "filename": "indian_banks_synthetic_2024.csv",
+        "rows": 14300
+      }
+    ],
+    "files_skipped": [],
+    "total_rows": 14364,
+    "train_rows": 11491,
+    "test_rows": 2873,
+    "metrics": {
+      "r2": 0.7463,
+      "rmse": 0.021051,
+      "mae": 0.013488,
+      "auc_roc": 0.9791,
+      "accuracy": 0.6129,
+      "precision": 0.1726,
+      "recall": 1.0,
+      "f1": 0.2944
+    },
+    "confusion_matrix": [
+      [
+        1529,
+        1112
+      ],
+      [
+        0,
+        232
+      ]
+    ],
+    "model_promoted": true,
+    "duration_seconds": 1.22,
+    "error": null
+  },
+  {
+    "run_id": "run_20260616_175850",
+    "timestamp": "2026-06-16T17:58:50",
+    "triggered_by": "manual-expanded-dataset",
+    "status": "success",
+    "files_used": [
+      {
+        "filename": "bank_loan_metrics (bank.db)",
+        "rows": 64
+      }
+    ],
+    "files_skipped": [
+      {
+        "filename": "indian_banks_synthetic_2024.csv",
+        "reason": "Missing columns: ['age', 'annual_income', 'cibil_score', 'city_tier_enc', 'education_enc', 'employment_type_enc', 'existing_loans_count', 'foir', 'is_rural', 'loan_purpose_enc', 'months_as_customer', 'num_dependents', 'num_existing_products', 'num_late_payments_past_12m', 'previous_default_flag', 'residence_type_enc', 'years_employed']"
+      }
+    ],
+    "total_rows": 64,
+    "train_rows": 51,
+    "test_rows": 13,
+    "metrics": {
+      "r2": 0.8778,
+      "rmse": 0.098447,
+      "mae": 0.086579,
+      "auc_roc": 0.9545,
+      "accuracy": 0.1538,
+      "precision": 0.1538,
+      "recall": 1.0,
+      "f1": 0.2667
+    },
+    "confusion_matrix": [
+      [
+        0,
+        11
+      ],
+      [
+        0,
+        2
+      ]
+    ],
+    "model_promoted": true,
+    "duration_seconds": 0.86,
+    "error": null
+  },
+  {
+    "run_id": "run_20260616_002536",
+    "timestamp": "2026-06-16T00:25:36",
+    "triggered_by": "cli_retrain",
+    "status": "success",
+    "files_used": [
+      {
+        "filename": "bank_loan_metrics (bank.db)",
+        "rows": 50
+      }
+    ],
+    "files_skipped": [
+      {
+        "filename": "indian_banks_synthetic_2024.csv",
+        "reason": "Missing columns: ['age', 'annual_income', 'cibil_score', 'city_tier_enc', 'education_enc', 'employment_type_enc', 'existing_loans_count', 'foir', 'is_rural', 'loan_purpose_enc', 'months_as_customer', 'num_dependents', 'num_existing_products', 'num_late_payments_past_12m', 'previous_default_flag', 'residence_type_enc', 'years_employed']"
+      }
+    ],
+    "total_rows": 50,
+    "train_rows": 40,
+    "test_rows": 10,
+    "metrics": {
+      "r2": 0.9142,
+      "rmse": 0.043701,
+      "mae": 0.035947,
+      "auc_roc": 1.0,
+      "accuracy": 0.1,
+      "precision": 0.1,
+      "recall": 1.0,
+      "f1": 0.1818
+    },
+    "confusion_matrix": [
+      [
+        0,
+        9
+      ],
+      [
+        0,
+        1
+      ]
+    ],
+    "model_promoted": true,
+    "duration_seconds": 0.75,
+    "error": null
+  },
+  {
+    "run_id": "run_20260616_002520",
+    "timestamp": "2026-06-16T00:25:20",
+    "triggered_by": "cli_retrain",
+    "status": "success",
+    "files_used": [
+      {
+        "filename": "bank_loan_metrics (bank.db)",
+        "rows": 50
+      }
+    ],
+    "files_skipped": [
+      {
+        "filename": "indian_banks_synthetic_2024.csv",
+        "reason": "Missing columns: ['age', 'annual_income', 'cibil_score', 'city_tier_enc', 'education_enc', 'employment_type_enc', 'existing_loans_count', 'foir', 'is_rural', 'loan_purpose_enc', 'months_as_customer', 'num_dependents', 'num_existing_products', 'num_late_payments_past_12m', 'previous_default_flag', 'residence_type_enc', 'years_employed']"
+      }
+    ],
+    "total_rows": 50,
+    "train_rows": 40,
+    "test_rows": 10,
+    "metrics": {
+      "r2": 0.9142,
+      "rmse": 0.043701,
+      "mae": 0.035947,
+      "auc_roc": 1.0,
+      "accuracy": 0.1,
+      "precision": 0.1,
+      "recall": 1.0,
+      "f1": 0.1818
+    },
+    "confusion_matrix": [
+      [
+        0,
+        9
+      ],
+      [
+        0,
+        1
+      ]
+    ],
+    "model_promoted": false,
+    "duration_seconds": 0.72,
+    "error": null
+  },
+  {
+    "run_id": "run_20260615_232929",
+    "timestamp": "2026-06-15T23:29:29",
+    "triggered_by": "manual",
+    "status": "success",
+    "files_used": [
+      {
+        "filename": "bank_loan_metrics (bank.db)",
+        "rows": 50
+      }
+    ],
+    "files_skipped": [
+      {
+        "filename": "indian_banks_synthetic_2024.csv",
+        "reason": "Missing columns: ['age', 'annual_income', 'cibil_score', 'city_tier_enc', 'education_enc', 'employment_type_enc', 'existing_loans_count', 'foir', 'is_rural', 'loan_purpose_enc', 'months_as_customer', 'num_dependents', 'num_existing_products', 'num_late_payments_past_12m', 'previous_default_flag', 'residence_type_enc', 'years_employed']"
+      }
+    ],
+    "total_rows": 50,
+    "train_rows": 40,
+    "test_rows": 10,
+    "metrics": {
+      "r2": 0.9142,
+      "rmse": 0.043701,
+      "mae": 0.035947,
+      "auc_roc": 1.0,
+      "accuracy": 0.1,
+      "precision": 0.1,
+      "recall": 1.0,
+      "f1": 0.1818
+    },
+    "confusion_matrix": [
+      [
+        0,
+        9
+      ],
+      [
+        0,
+        1
+      ]
+    ],
+    "model_promoted": false,
+    "duration_seconds": 0.83,
+    "error": null
+  },
+  {
+    "run_id": "run_20260615_232334",
+    "timestamp": "2026-06-15T23:23:34",
+    "triggered_by": "manual",
+    "status": "success",
+    "files_used": [
+      {
+        "filename": "bank_loan_metrics (bank.db)",
+        "rows": 50
+      }
+    ],
+    "files_skipped": [
+      {
+        "filename": "indian_banks_synthetic_2024.csv",
+        "reason": "Missing columns: ['age', 'annual_income', 'cibil_score', 'city_tier_enc', 'education_enc', 'employment_type_enc', 'existing_loans_count', 'foir', 'is_rural', 'loan_purpose_enc', 'months_as_customer', 'num_dependents', 'num_existing_products', 'num_late_payments_past_12m', 'previous_default_flag', 'residence_type_enc', 'years_employed']"
+      }
+    ],
+    "total_rows": 50,
+    "train_rows": 40,
+    "test_rows": 10,
+    "metrics": {
+      "r2": 0.9142,
+      "rmse": 0.043701,
+      "mae": 0.035947,
+      "auc_roc": 1.0,
+      "accuracy": 0.1,
+      "precision": 0.1,
+      "recall": 1.0,
+      "f1": 0.1818
+    },
+    "confusion_matrix": [
+      [
+        0,
+        9
+      ],
+      [
+        0,
+        1
+      ]
+    ],
+    "model_promoted": false,
+    "duration_seconds": 0.91,
+    "error": null
+  },
+  {
+    "run_id": "run_20260615_230820",
+    "timestamp": "2026-06-15T23:08:20",
+    "triggered_by": "50_customer_dataset",
+    "status": "success",
+    "files_used": [
+      {
+        "filename": "bank_loan_metrics (bank.db)",
+        "rows": 50
+      }
+    ],
+    "files_skipped": [],
+    "total_rows": 50,
+    "train_rows": 40,
+    "test_rows": 10,
+    "metrics": {
+      "r2": 0.9142,
+      "rmse": 0.043701,
+      "mae": 0.035947,
+      "auc_roc": 1.0,
+      "accuracy": 0.1,
+      "precision": 0.1,
+      "recall": 1.0,
+      "f1": 0.1818
+    },
+    "confusion_matrix": [
+      [
+        0,
+        9
+      ],
+      [
+        0,
+        1
+      ]
+    ],
+    "model_promoted": true,
+    "duration_seconds": 1.33,
+    "error": null
+  },
+  {
+    "run_id": "run_20260615_230740",
+    "timestamp": "2026-06-15T23:07:40",
+    "triggered_by": "50_customer_dataset",
+    "status": "failed",
+    "files_used": [],
+    "files_skipped": [],
+    "total_rows": 0,
+    "train_rows": 0,
+    "test_rows": 0,
+    "metrics": {},
+    "confusion_matrix": [],
+    "model_promoted": false,
+    "duration_seconds": 0.17,
+    "error": "Traceback (most recent call last):\n  File \"C:\\Users\\Arnav\\OneDrive\\Desktop\\Daily reading\\Banking_Credit_Risk\\ml_models\\trainer.py\", line 563, in run_training\n    merged, files_used, files_skip, dupes = load_and_merge()\n  File \"C:\\Users\\Arnav\\OneDrive\\Desktop\\Daily reading\\Banking_Credit_Risk\\ml_models\\trainer.py\", line 351, in load_and_merge\n    'No valid training data found. '\nValueError: No valid training data found. bank_loan_metrics table is empty or unavailable, and no CSV files exist in data/training/.\n"
+  },
+  {
+    "run_id": "run_20260615_230652",
+    "timestamp": "2026-06-15T23:06:52",
+    "triggered_by": "50_customer_dataset",
+    "status": "failed",
+    "files_used": [],
+    "files_skipped": [],
+    "total_rows": 0,
+    "train_rows": 0,
+    "test_rows": 0,
+    "metrics": {},
+    "confusion_matrix": [],
+    "model_promoted": false,
+    "duration_seconds": 0.17,
+    "error": "Traceback (most recent call last):\n  File \"C:\\Users\\Arnav\\OneDrive\\Desktop\\Daily reading\\Banking_Credit_Risk\\ml_models\\trainer.py\", line 563, in run_training\n    merged, files_used, files_skip, dupes = load_and_merge()\n  File \"C:\\Users\\Arnav\\OneDrive\\Desktop\\Daily reading\\Banking_Credit_Risk\\ml_models\\trainer.py\", line 351, in load_and_merge\n    'No valid training data found. '\nValueError: No valid training data found. bank_loan_metrics table is empty or unavailable, and no CSV files exist in data/training/.\n"
+  },
+  {
+    "run_id": "run_20260615_230606",
+    "timestamp": "2026-06-15T23:06:06",
+    "triggered_by": "context_feature_expansion",
+    "status": "failed",
+    "files_used": [],
+    "files_skipped": [],
+    "total_rows": 0,
+    "train_rows": 0,
+    "test_rows": 0,
+    "metrics": {},
+    "confusion_matrix": [],
+    "model_promoted": false,
+    "duration_seconds": 0.18,
+    "error": "Traceback (most recent call last):\n  File \"C:\\Users\\Arnav\\OneDrive\\Desktop\\Daily reading\\Banking_Credit_Risk\\ml_models\\trainer.py\", line 563, in run_training\n    merged, files_used, files_skip, dupes = load_and_merge()\n  File \"C:\\Users\\Arnav\\OneDrive\\Desktop\\Daily reading\\Banking_Credit_Risk\\ml_models\\trainer.py\", line 351, in load_and_merge\n    'No valid training data found. '\nValueError: No valid training data found. bank_loan_metrics table is empty or unavailable, and no CSV files exist in data/training/.\n"
+  },
+  {
+    "run_id": "run_20260615_174115",
+    "timestamp": "2026-06-15T17:41:15",
+    "triggered_by": "db_source_final",
+    "status": "success",
+    "files_used": [
+      {
+        "filename": "bank_loan_metrics (bank.db)",
+        "rows": 2800
+      }
+    ],
+    "files_skipped": [],
+    "total_rows": 2800,
+    "train_rows": 2240,
+    "test_rows": 560,
+    "metrics": {
+      "r2": 0.6236,
+      "rmse": 0.015511,
+      "mae": 0.01245,
+      "auc_roc": 0.9488,
+      "accuracy": 0.7964,
+      "precision": 0.2292,
+      "recall": 0.9167,
+      "f1": 0.3667
+    },
+    "confusion_matrix": [
+      [
+        413,
+        111
+      ],
+      [
+        3,
+        33
+      ]
+    ],
+    "model_promoted": false,
+    "duration_seconds": 1.09,
+    "error": null
+  },
+  {
+    "run_id": "run_20260615_174043",
+    "timestamp": "2026-06-15T17:40:43",
+    "triggered_by": "db_source_test",
+    "status": "failed",
+    "files_used": [
+      {
+        "filename": "bank_loan_metrics (bank.db)",
+        "rows": 2800
+      }
+    ],
+    "files_skipped": [],
+    "total_rows": 2800,
+    "train_rows": 2240,
+    "test_rows": 560,
+    "metrics": {
+      "r2": 0.6236,
+      "rmse": 0.015511,
+      "mae": 0.01245,
+      "auc_roc": 0.9488,
+      "accuracy": 0.7964,
+      "precision": 0.2292,
+      "recall": 0.9167,
+      "f1": 0.3667
+    },
+    "confusion_matrix": [
+      [
+        413,
+        111
+      ],
+      [
+        3,
+        33
+      ]
+    ],
+    "model_promoted": false,
+    "duration_seconds": 0.33,
+    "error": "Traceback (most recent call last):\n  File \"C:\\Users\\Arnav\\AppData\\Local\\Programs\\Python\\Python37\\lib\\site-packages\\matplotlib\\style\\core.py\", line 127, in use\n    rc = rc_params_from_file(style, use_default_template=False)\n  File \"C:\\Users\\Arnav\\AppData\\Local\\Programs\\Python\\Python37\\lib\\site-packages\\matplotlib\\__init__.py\", line 854, in rc_params_from_file\n    config_from_file = _rc_params_in_file(fname, fail_on_error=fail_on_error)\n  File \"C:\\Users\\Arnav\\AppData\\Local\\Programs\\Python\\Python37\\lib\\site-packages\\matplotlib\\__init__.py\", line 780, in _rc_params_in_file\n    with _open_file_or_url(fname) as fd:\n  File \"C:\\Users\\Arnav\\AppData\\Local\\Programs\\Python\\Python37\\lib\\contextlib.py\", line 112, in __enter__\n    return next(self.gen)\n  File \"C:\\Users\\Arnav\\AppData\\Local\\Programs\\Python\\Python37\\lib\\site-packages\\matplotlib\\__init__.py\", line 757, in _open_file_or_url\n    with open(fname, encoding=encoding) as f:\nFileNotFoundError: [Errno 2] No such file or directory: 'seaborn-v0_8-whitegrid'\n\nThe above exception was the direct cause of the following exception:\n\nTraceback (most recent call last):\n  File \".\\ml_models\\trainer.py\", line 523, in run_training\n    charts = generate_charts(model, X_test, y_test, y_pred, df_test, threshold)\n  File \".\\ml_models\\trainer.py\", line 368, in generate_charts\n    plt.style.use('seaborn-v0_8-whitegrid')\n  File \"C:\\Users\\Arnav\\AppData\\Local\\Programs\\Python\\Python37\\lib\\site-packages\\matplotlib\\style\\core.py\", line 133, in use\n    \"available styles\".format(style)) from err\nOSError: 'seaborn-v0_8-whitegrid' not found in the style library and input is not a valid URL or path; see `style.available` for list of available styles\n"
+  },
+  {
     "run_id": "run_20260608_221023",
     "timestamp": "2026-06-08T22:10:23",
     "triggered_by": "manual",

@@ -3,527 +3,507 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Basel III Credit Risk Calculator</title>
+    <title>India Banking Intelligence Platform</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
-            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            background: linear-gradient(135deg, #0a0e1a 0%, #0d1b2e 50%, #0a1628 100%);
             min-height: 100vh;
             color: #333;
         }
 
-        .hero {
-            background: linear-gradient(135deg, #1f4e78 0%, #2980b9 100%);
-            padding: 60px 20px 50px;
-            text-align: center;
+        /* ── HEADER ── */
+        .platform-header {
+            background: rgba(255,255,255,0.04);
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+            padding: 18px 40px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .platform-logo {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .platform-mark {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, #2563eb, #7c3aed);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            font-size: 1em;
             color: white;
+            letter-spacing: -0.5px;
+        }
+
+        .platform-name {
+            font-size: 1.1em;
+            font-weight: 700;
+            color: white;
+        }
+
+        .platform-sub {
+            font-size: 0.78em;
+            color: rgba(255,255,255,0.45);
+            margin-top: 1px;
+        }
+
+        .header-badge {
+            background: rgba(16,185,129,0.15);
+            border: 1px solid rgba(16,185,129,0.3);
+            color: #10b981;
+            padding: 5px 14px;
+            border-radius: 20px;
+            font-size: 0.78em;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+
+        /* ── HERO ── */
+        .hero {
+            text-align: center;
+            padding: 72px 20px 56px;
+        }
+
+        .hero-eyebrow {
+            display: inline-block;
+            background: rgba(37,99,235,0.15);
+            border: 1px solid rgba(37,99,235,0.35);
+            color: #60a5fa;
+            padding: 6px 18px;
+            border-radius: 20px;
+            font-size: 0.82em;
+            font-weight: 600;
+            letter-spacing: 1px;
+            margin-bottom: 24px;
+        }
+
+        .hero h1 {
+            font-size: 3em;
+            font-weight: 800;
+            color: white;
+            letter-spacing: -1px;
+            line-height: 1.1;
+            margin-bottom: 18px;
+        }
+
+        .hero h1 span {
+            background: linear-gradient(135deg, #60a5fa, #a78bfa);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .hero p {
+            font-size: 1.12em;
+            color: rgba(255,255,255,0.55);
+            max-width: 560px;
+            margin: 0 auto;
+            line-height: 1.7;
+        }
+
+        /* ── DEPARTMENTS ── */
+        .departments {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 0 24px 80px;
+        }
+
+        .dept-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(290px, 1fr));
+            gap: 28px;
+        }
+
+        .dept-card {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 20px;
+            padding: 40px;
+            text-decoration: none;
+            color: inherit;
+            display: block;
+            transition: all 0.3s ease;
             position: relative;
             overflow: hidden;
         }
 
-        .hero::before {
+        .dept-card::before {
             content: '';
             position: absolute;
-            top: -50%;
-            left: -50%;
-            width: 200%;
-            height: 200%;
-            background: radial-gradient(circle, rgba(255,255,255,0.05) 0%, transparent 60%);
-            pointer-events: none;
-        }
-
-        .hero-badge {
-            display: inline-block;
-            background: rgba(255,255,255,0.15);
-            border: 1px solid rgba(255,255,255,0.3);
-            padding: 6px 16px;
+            inset: 0;
             border-radius: 20px;
-            font-size: 0.85em;
-            margin-bottom: 20px;
-            letter-spacing: 1px;
+            opacity: 0;
+            transition: opacity 0.3s;
         }
 
-        .hero h1 {
-            font-size: 2.8em;
-            font-weight: 700;
-            margin-bottom: 15px;
-            letter-spacing: -0.5px;
+        .dept-card.risk::before {
+            background: linear-gradient(135deg, rgba(37,99,235,0.12), rgba(124,58,237,0.12));
         }
 
-        .hero p {
-            font-size: 1.15em;
-            opacity: 0.85;
-            max-width: 600px;
-            margin: 0 auto 30px;
-            line-height: 1.6;
+        .dept-card.ops::before {
+            background: linear-gradient(135deg, rgba(5,150,105,0.12), rgba(2,132,199,0.12));
         }
 
-        .hero-cta {
-            display: inline-block;
-            background: white;
-            color: #1f4e78;
-            padding: 16px 40px;
-            border-radius: 8px;
-            font-weight: 700;
-            font-size: 1.05em;
-            text-decoration: none;
-            transition: all 0.3s;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+        .dept-card.reg::before {
+            background: linear-gradient(135deg, rgba(227,24,55,0.12), rgba(245,158,11,0.12));
         }
 
-        .hero-cta:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 8px 30px rgba(0,0,0,0.3);
-            background: #f0f4ff;
+        .dept-card.reg .dept-icon {
+            background: linear-gradient(135deg, rgba(227,24,55,0.25), rgba(245,158,11,0.25));
+            border: 1px solid rgba(227,24,55,0.3);
         }
 
-        .hero-stats {
-            display: flex;
-            justify-content: center;
-            gap: 50px;
-            margin-top: 40px;
-            padding-top: 30px;
-            border-top: 1px solid rgba(255,255,255,0.2);
+        .dept-card.reg .dept-tag {
+            background: rgba(227,24,55,0.18);
+            color: #fca5a5;
         }
 
-        .hero-stat-value {
-            font-size: 1.8em;
-            font-weight: 700;
-        }
-
-        .hero-stat-label {
-            font-size: 0.8em;
-            opacity: 0.7;
-            margin-top: 4px;
-        }
-
-        .main-content {
-            max-width: 1100px;
-            margin: 0 auto;
-            padding: 50px 20px;
-        }
-
-        .section-title {
-            color: white;
-            font-size: 1.4em;
-            font-weight: 600;
-            margin-bottom: 25px;
-            padding-left: 5px;
-        }
-
-        .section-title span {
-            display: block;
-            font-size: 0.7em;
-            opacity: 0.6;
-            font-weight: 400;
-            margin-top: 4px;
-        }
-
-        /* Main calculator card */
-        .main-card {
-            background: white;
-            border-radius: 16px;
-            padding: 40px;
-            margin-bottom: 40px;
-            box-shadow: 0 8px 40px rgba(0,0,0,0.3);
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 40px;
-            align-items: center;
-        }
-
-        .main-card-left h2 {
-            color: #1f4e78;
-            font-size: 1.8em;
-            margin-bottom: 12px;
-        }
-
-        .main-card-left p {
-            color: #555;
-            line-height: 1.7;
-            margin-bottom: 25px;
-        }
-
-        .feature-list {
-            list-style: none;
-            margin-bottom: 30px;
-        }
-
-        .feature-list li {
-            padding: 8px 0;
-            color: #444;
-            font-size: 0.95em;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .feature-list li::before {
+        .dept-card.reg .dept-features li::before {
             content: '';
-            width: 8px;
-            height: 8px;
-            background: #27ae60;
+            width: 6px;
+            height: 6px;
+            background: #f87171;
             border-radius: 50%;
             flex-shrink: 0;
         }
 
-        .btn-launch {
-            display: inline-block;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        .dept-card.reg .dept-cta {
+            background: linear-gradient(135deg, #E31837, #F59E0B);
             color: white;
-            padding: 15px 35px;
-            border-radius: 8px;
-            font-weight: 700;
-            font-size: 1em;
-            text-decoration: none;
-            transition: all 0.3s;
-            box-shadow: 0 4px 15px rgba(102,126,234,0.4);
+            box-shadow: 0 4px 18px rgba(227,24,55,0.4);
         }
 
-        .btn-launch:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(102,126,234,0.5);
+        .dept-card.rm::before {
+            background: linear-gradient(135deg, rgba(6,182,212,0.12), rgba(99,102,241,0.12));
         }
 
-        .main-card-right {
-            background: linear-gradient(135deg, #f8f9ff 0%, #eef1ff 100%);
-            border-radius: 12px;
-            padding: 30px;
+        .dept-card.rm .dept-icon {
+            background: linear-gradient(135deg, rgba(6,182,212,0.25), rgba(99,102,241,0.25));
+            border: 1px solid rgba(6,182,212,0.3);
         }
 
-        .method-cards {
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
+        .dept-card.rm .dept-tag {
+            background: rgba(6,182,212,0.18);
+            color: #67e8f9;
         }
 
-        .method-card {
-            background: white;
-            border-radius: 10px;
-            padding: 18px 20px;
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-            border-left: 4px solid;
-        }
-
-        .method-card.airb { border-left-color: #667eea; }
-        .method-card.sa { border-left-color: #27ae60; }
-        .method-card.both { border-left-color: #f39c12; }
-
-        .method-icon {
-            font-size: 1.8em;
+        .dept-card.rm .dept-features li::before {
+            content: '';
+            width: 6px;
+            height: 6px;
+            background: #22d3ee;
+            border-radius: 50%;
             flex-shrink: 0;
         }
 
-        .method-card h4 {
-            color: #1f4e78;
-            font-size: 0.95em;
-            margin-bottom: 3px;
+        .dept-card.rm .dept-cta {
+            background: linear-gradient(135deg, #06b6d4, #6366f1);
+            color: white;
+            box-shadow: 0 4px 18px rgba(6,182,212,0.4);
         }
 
-        .method-card p {
-            color: #777;
-            font-size: 0.82em;
-            line-height: 1.4;
-        }
-
-        /* Reference cards grid */
-        .cards-grid {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 20px;
-            margin-bottom: 40px;
-        }
-
-        .ref-card {
-            background: white;
-            border-radius: 12px;
-            padding: 28px;
-            text-decoration: none;
-            color: inherit;
-            transition: all 0.3s;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
-            border-top: 4px solid;
-            display: block;
-        }
-
-        .ref-card.airb { border-top-color: #667eea; }
-        .ref-card.sa { border-top-color: #27ae60; }
-        .ref-card.hub { border-top-color: #e74c3c; }
-        .ref-card.dict { border-top-color: #8e44ad; }
-
-        .ref-card:hover {
+        .dept-card:hover {
+            border-color: rgba(255,255,255,0.22);
             transform: translateY(-4px);
-            box-shadow: 0 10px 35px rgba(0,0,0,0.25);
+            box-shadow: 0 20px 60px rgba(0,0,0,0.4);
         }
 
-        .ref-card-icon {
-            font-size: 2.2em;
-            margin-bottom: 15px;
+        .dept-card:hover::before {
+            opacity: 1;
         }
 
-        .ref-card h3 {
-            color: #1f4e78;
-            font-size: 1.05em;
-            margin-bottom: 8px;
-        }
-
-        .ref-card p {
-            color: #666;
-            font-size: 0.88em;
-            line-height: 1.5;
-        }
-
-        /* Roadmap */
-        .roadmap {
-            background: rgba(255,255,255,0.08);
-            border-radius: 16px;
-            padding: 35px;
-            margin-bottom: 40px;
-        }
-
-        .roadmap-title {
-            color: white;
-            font-size: 1.15em;
-            font-weight: 600;
-            margin-bottom: 25px;
-        }
-
-        .phases {
-            display: grid;
-            grid-template-columns: repeat(5, 1fr);
-            gap: 15px;
-        }
-
-        .phase {
-            background: rgba(255,255,255,0.08);
-            border-radius: 10px;
-            padding: 20px 15px;
-            text-align: center;
+        .dept-icon {
+            width: 58px;
+            height: 58px;
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.6em;
+            margin-bottom: 24px;
             position: relative;
+            z-index: 1;
         }
 
-        .phase.complete {
-            background: rgba(39,174,96,0.2);
-            border: 1px solid rgba(39,174,96,0.4);
+        .dept-card.risk .dept-icon {
+            background: linear-gradient(135deg, rgba(37,99,235,0.25), rgba(124,58,237,0.25));
+            border: 1px solid rgba(99,102,241,0.3);
         }
 
-        .phase.planned {
-            background: rgba(255,255,255,0.05);
-            border: 1px dashed rgba(255,255,255,0.2);
+        .dept-card.ops .dept-icon {
+            background: linear-gradient(135deg, rgba(5,150,105,0.25), rgba(2,132,199,0.25));
+            border: 1px solid rgba(16,185,129,0.3);
         }
 
-        .phase-number {
-            font-size: 1.8em;
-            font-weight: 700;
-            color: rgba(255,255,255,0.3);
-            margin-bottom: 8px;
-        }
-
-        .phase.complete .phase-number {
-            color: #27ae60;
-        }
-
-        .phase-name {
-            color: white;
-            font-size: 0.88em;
-            font-weight: 600;
-            margin-bottom: 5px;
-        }
-
-        .phase-desc {
-            color: rgba(255,255,255,0.5);
-            font-size: 0.75em;
-            line-height: 1.4;
-        }
-
-        .phase-badge {
+        .dept-tag {
             display: inline-block;
             padding: 3px 10px;
-            border-radius: 12px;
+            border-radius: 8px;
             font-size: 0.72em;
+            font-weight: 700;
+            letter-spacing: 0.8px;
+            text-transform: uppercase;
+            margin-bottom: 12px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .dept-card.risk .dept-tag {
+            background: rgba(99,102,241,0.18);
+            color: #a5b4fc;
+        }
+
+        .dept-card.ops .dept-tag {
+            background: rgba(16,185,129,0.18);
+            color: #6ee7b7;
+        }
+
+        .dept-title {
+            font-size: 1.55em;
+            font-weight: 700;
+            color: white;
+            margin-bottom: 10px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .dept-desc {
+            font-size: 0.9em;
+            color: rgba(255,255,255,0.5);
+            line-height: 1.65;
+            margin-bottom: 28px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .dept-features {
+            list-style: none;
+            margin-bottom: 32px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .dept-features li {
+            font-size: 0.85em;
+            color: rgba(255,255,255,0.55);
+            padding: 5px 0;
+            display: flex;
+            align-items: center;
+            gap: 9px;
+        }
+
+        .dept-card.risk .dept-features li::before {
+            content: '';
+            width: 6px;
+            height: 6px;
+            background: #818cf8;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .dept-card.ops .dept-features li::before {
+            content: '';
+            width: 6px;
+            height: 6px;
+            background: #34d399;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .dept-cta {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 22px;
+            border-radius: 10px;
+            font-weight: 700;
+            font-size: 0.9em;
+            position: relative;
+            z-index: 1;
+            transition: all 0.2s;
+        }
+
+        .dept-card.risk .dept-cta {
+            background: linear-gradient(135deg, #2563eb, #7c3aed);
+            color: white;
+            box-shadow: 0 4px 18px rgba(99,102,241,0.4);
+        }
+
+        .dept-card.ops .dept-cta {
+            background: linear-gradient(135deg, #059669, #0284c7);
+            color: white;
+            box-shadow: 0 4px 18px rgba(16,185,129,0.4);
+        }
+
+        .dept-card:hover .dept-cta {
+            transform: translateX(3px);
+        }
+
+        /* ── BOTTOM LINKS ── */
+        .bottom-links {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 0 24px 60px;
+        }
+
+        .bottom-links-label {
+            color: rgba(255,255,255,0.3);
+            font-size: 0.78em;
             font-weight: 600;
-            margin-top: 10px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            margin-bottom: 16px;
         }
 
-        .badge-complete {
-            background: rgba(39,174,96,0.3);
-            color: #2ecc71;
+        .link-row {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
         }
 
-        .badge-planned {
+        .link-pill {
+            background: rgba(255,255,255,0.06);
+            border: 1px solid rgba(255,255,255,0.1);
+            color: rgba(255,255,255,0.55);
+            padding: 8px 18px;
+            border-radius: 30px;
+            font-size: 0.83em;
+            text-decoration: none;
+            transition: all 0.2s;
+        }
+
+        .link-pill:hover {
             background: rgba(255,255,255,0.1);
-            color: rgba(255,255,255,0.4);
+            color: white;
+            border-color: rgba(255,255,255,0.2);
         }
 
-        /* Footer */
+        /* ── FOOTER ── */
         .footer {
             text-align: center;
-            padding: 25px;
-            color: rgba(255,255,255,0.4);
-            font-size: 0.85em;
-            border-top: 1px solid rgba(255,255,255,0.1);
+            padding: 24px;
+            color: rgba(255,255,255,0.2);
+            font-size: 0.82em;
+            border-top: 1px solid rgba(255,255,255,0.06);
         }
 
-        @media (max-width: 900px) {
-            .main-card { grid-template-columns: 1fr; }
-            .cards-grid { grid-template-columns: repeat(2, 1fr); }
-            .phases { grid-template-columns: repeat(2, 1fr); }
-            .hero h1 { font-size: 2em; }
-            .hero-stats { gap: 25px; }
+        @media (max-width: 720px) {
+            .dept-grid { grid-template-columns: 1fr; }
+            .hero h1 { font-size: 2.2em; }
+            .platform-header { padding: 16px 20px; }
         }
     </style>
 </head>
 <body>
 
+    <header class="platform-header">
+        <div class="platform-logo">
+            <div class="platform-mark">IB</div>
+            <div>
+                <div class="platform-name">India Banking Intelligence</div>
+                <div class="platform-sub">Unified Banking Platform</div>
+            </div>
+        </div>
+        <div class="header-badge">Basel III Compliant</div>
+    </header>
+
     <div class="hero">
-        <div class="hero-badge">Basel III Compliant</div>
-        <h1>Banking Credit Risk Calculator</h1>
-        <p>Professional credit risk assessment platform supporting AIRB and Standardized Approach methodologies with full capital requirement calculations.</p>
-        <a href="borrower-info.html" class="hero-cta">Open Calculator</a>
-        <div class="hero-stats">
-            <div>
-                <div class="hero-stat-value">2</div>
-                <div class="hero-stat-label">Methodologies</div>
-            </div>
-            <div>
-                <div class="hero-stat-value">21</div>
-                <div class="hero-stat-label">Rating Grades</div>
-            </div>
-            <div>
-                <div class="hero-stat-value">5</div>
-                <div class="hero-stat-label">Collateral Types</div>
-            </div>
-            <div>
-                <div class="hero-stat-value">Basel III</div>
-                <div class="hero-stat-label">Standard</div>
-            </div>
+        <div class="hero-eyebrow">Unified Banking Platform</div>
+        <h1>One Platform,<br><span>Four Departments</span></h1>
+        <p>Full-stack Indian banking intelligence — from front-line relationship management and AI-assisted decisioning to customer operations, Basel III credit risk with ML-powered PD prediction, and supervisory regulatory reporting.</p>
+    </div>
+
+    <div class="departments">
+        <div class="dept-grid">
+
+            <!-- Credit Risk Department -->
+            <a href="/static/borrower-info.html" class="dept-card risk">
+                <div class="dept-icon">📊</div>
+                <div class="dept-tag">Credit Risk</div>
+                <div class="dept-title">Credit Risk Analysis</div>
+                <div class="dept-desc">Basel III compliant risk assessment with ML-powered probability of default prediction using 21 borrower features.</div>
+                <ul class="dept-features">
+                    <li>AIRB — Internal Ratings Based Approach</li>
+                    <li>Standardized Approach (SA) risk weights</li>
+                    <li>RandomForest PD prediction (21 features)</li>
+                    <li>RWA, LGD, EAD, Capital calculations</li>
+                    <li>Portfolio management with export</li>
+                </ul>
+                <span class="dept-cta">Open Calculator →</span>
+            </a>
+
+            <!-- Banking Operations Department -->
+            <a href="/operations/" class="dept-card ops">
+                <div class="dept-icon">🏦</div>
+                <div class="dept-tag">Operations</div>
+                <div class="dept-title">Banking Operations</div>
+                <div class="dept-desc">Multi-bank customer intelligence dashboard with real-time portfolio analytics, transaction monitoring, and loan health tracking.</div>
+                <ul class="dept-features">
+                    <li>Multi-bank consolidated view</li>
+                    <li>Customer 360° profiles with loan health</li>
+                    <li>Transaction analytics by hour and type</li>
+                    <li>NPA and stress portfolio monitoring</li>
+                    <li>Upload Excel / CSV to refresh data</li>
+                </ul>
+                <span class="dept-cta">Open Dashboard →</span>
+            </a>
+
+            <!-- Regulatory Reporting Department -->
+            <a href="/regulatory/" class="dept-card reg">
+                <div class="dept-icon">📋</div>
+                <div class="dept-tag">Regulatory</div>
+                <div class="dept-title">Regulatory Reporting</div>
+                <div class="dept-desc">Daily Basel III &amp; RBI supervisory returns — capital adequacy and liquidity at the system, bank and individual client level.</div>
+                <ul class="dept-features">
+                    <li>CRAR, CET1, Tier-1 &amp; leverage ratios</li>
+                    <li>LCR, NSFR, CRR &amp; SLR liquidity returns</li>
+                    <li>Client-level RWA, capital charge &amp; IRAC provisioning</li>
+                    <li>RBI compliance register per requirement</li>
+                    <li>Automated daily reporting batch</li>
+                </ul>
+                <span class="dept-cta">Open Reporting →</span>
+            </a>
+
+            <!-- Relationship Management & Decision Support Department -->
+            <a href="/relationship/" class="dept-card rm">
+                <div class="dept-icon">🤝</div>
+                <div class="dept-tag">Decisioning</div>
+                <div class="dept-title">Relationship Mgmt &amp; Decision Support</div>
+                <div class="dept-desc">Front-line RM workspace between the customer and the AI core — machine recommendation, human judgment and the final organisational decision, fully governed.</div>
+                <ul class="dept-features">
+                    <li>AI-assisted decisioning with confidence &amp; reasoning</li>
+                    <li>Counterfactual recourse &amp; decision sensitivity</li>
+                    <li>Four-eyes, escalation &amp; delegated authority</li>
+                    <li>M / H / O decision provenance ledger</li>
+                    <li>Override capture &amp; outcome learning loop</li>
+                </ul>
+                <span class="dept-cta">Open Workspace →</span>
+            </a>
+
         </div>
     </div>
 
-    <div class="main-content">
-
-        <!-- Main Calculator -->
-        <div class="section-title">
-            Credit Risk Calculator
-            <span>Full single-page application — no redirects, no page reloads</span>
+    <div class="bottom-links">
+        <div class="bottom-links-label">References &amp; Tools</div>
+        <div class="link-row">
+            <a href="/static/formula-reference.html" class="link-pill">AIRB Formula Reference</a>
+            <a href="/static/standardized-approach-reference.html" class="link-pill">SA Reference</a>
+            <a href="/static/formula-references.html" class="link-pill">Methodology Hub</a>
+            <a href="/static/data-dictionary.html" class="link-pill">Data Dictionary</a>
         </div>
-
-        <div class="main-card">
-            <div class="main-card-left">
-                <h2>Borrower Risk Assessment</h2>
-                <p>Enter borrower financials and get auto-calculated PD, LGD, RWA, and capital requirements. Record loans into a persistent portfolio and export your results.</p>
-                <ul class="feature-list">
-                    <li>Rule-based PD from 4 financial metrics (D/E, Interest Coverage, Profitability, Liquidity)</li>
-                    <li>Auto LGD from seniority, collateral type, and sector</li>
-                    <li>Collateral haircut calculation per Basel III (5 types)</li>
-                    <li>SA risk weights from 21-grade rating table (4 exposure categories)</li>
-                    <li>Portfolio management with CSV/JSON export</li>
-                    <li>Data persists across browser sessions via localStorage</li>
-                </ul>
-                <a href="borrower-info.html" class="btn-launch">Launch Calculator</a>
-            </div>
-            <div class="main-card-right">
-                <div class="method-cards">
-                    <div class="method-card airb">
-                        <div class="method-icon">📊</div>
-                        <div>
-                            <h4>AIRB Approach</h4>
-                            <p>Internal ratings-based. Auto-calculates PD, LGD, EAD, maturity. Correlation-adjusted risk weights under Basel III.</p>
-                        </div>
-                    </div>
-                    <div class="method-card sa">
-                        <div class="method-icon">📋</div>
-                        <div>
-                            <h4>Standardized Approach</h4>
-                            <p>External rating-driven risk weights. Supports Corporate, Sovereign, Bank, and Financial Institution exposures.</p>
-                        </div>
-                    </div>
-                    <div class="method-card both">
-                        <div class="method-icon">⚖️</div>
-                        <div>
-                            <h4>Side-by-Side Comparison</h4>
-                            <p>Calculate both methods simultaneously to compare capital requirements and choose the optimal approach.</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Documentation -->
-        <div class="section-title">
-            Methodology References
-            <span>Detailed formula documentation, worked examples, and regulatory notes</span>
-        </div>
-
-        <div class="cards-grid">
-            <a href="formula-reference.html" class="ref-card airb">
-                <div class="ref-card-icon">📐</div>
-                <h3>AIRB Formula Reference</h3>
-                <p>Complete AIRB methodology documentation: PD/LGD/EAD/Maturity formulas, correlation calculations, risk weight derivation, and 3 worked examples.</p>
-            </a>
-            <a href="standardized-approach-reference.html" class="ref-card sa">
-                <div class="ref-card-icon">📊</div>
-                <h3>Standardized Approach Reference</h3>
-                <p>Full SA risk weight tables for all 4 exposure categories × 21 rating grades, collateral haircut schedules, and worked examples.</p>
-            </a>
-            <a href="formula-references.html" class="ref-card hub">
-                <div class="ref-card-icon">🗂️</div>
-                <h3>Methodology Hub</h3>
-                <p>Central navigation hub with methodology comparisons, implementation status, and links to all 5 planned risk frameworks.</p>
-            </a>
-            <a href="data-dictionary.html" class="ref-card dict">
-                <div class="ref-card-icon">📖</div>
-                <h3>Data Dictionary</h3>
-                <p>Complete variable reference — all model features, frontend fields, and calculated outputs mapped to the Five C's of credit risk assessment.</p>
-            </a>
-        </div>
-
-        <!-- Roadmap -->
-        <div class="roadmap">
-            <div class="roadmap-title">Development Roadmap — 5-Phase Basel III Platform</div>
-            <div class="phases">
-                <div class="phase complete">
-                    <div class="phase-number">1</div>
-                    <div class="phase-name">AIRB</div>
-                    <div class="phase-desc">Internal Ratings Based Approach</div>
-                    <div class="phase-badge badge-complete">Complete</div>
-                </div>
-                <div class="phase complete">
-                    <div class="phase-number">2</div>
-                    <div class="phase-name">Standardized</div>
-                    <div class="phase-desc">External Rating Based Approach</div>
-                    <div class="phase-badge badge-complete">Complete</div>
-                </div>
-                <div class="phase planned">
-                    <div class="phase-number">3</div>
-                    <div class="phase-name">Operational Risk</div>
-                    <div class="phase-desc">BIA, TSA, AMA approaches</div>
-                    <div class="phase-badge badge-planned">Planned</div>
-                </div>
-                <div class="phase planned">
-                    <div class="phase-number">4</div>
-                    <div class="phase-name">Market Risk</div>
-                    <div class="phase-desc">VaR models, standard approach</div>
-                    <div class="phase-badge badge-planned">Planned</div>
-                </div>
-                <div class="phase planned">
-                    <div class="phase-number">5</div>
-                    <div class="phase-name">Liquidity Risk</div>
-                    <div class="phase-desc">LCR and NSFR calculations</div>
-                    <div class="phase-badge badge-planned">Planned</div>
-                </div>
-            </div>
-        </div>
-
     </div>
 
     <div class="footer">
-        Banking Credit Risk Calculator &nbsp;|&nbsp; Basel III Compliant &nbsp;|&nbsp; Phases 1–2 Complete &nbsp;|&nbsp; June 2026
+        India Banking Intelligence Platform &nbsp;|&nbsp; Basel III Compliant &nbsp;|&nbsp; Credit Risk + Operations &nbsp;|&nbsp; June 2026
     </div>
 
 </body>

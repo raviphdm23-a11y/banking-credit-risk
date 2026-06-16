@@ -51,3 +51,53 @@ FEATURE_META = {
         "bench_label":   ">= 1.5x",
     },
 }
+
+# The active model was retrained on a wider 21-feature schema (the 4 ratios above
+# plus borrower/bureau attributes). The 4 ratios remain the explainable drivers;
+# the remaining features are filled from these neutral defaults (or from the
+# application when the value is supplied), keeping the model vector aligned with
+# whatever `model.feature_names_in_` the deployed pickle expects.
+EXTRA_FEATURE_DEFAULTS = {
+    "age":                       40.0,
+    "employment_type_enc":       1.0,
+    "years_employed":            6.0,
+    "annual_income":             800000.0,
+    "foir":                      0.40,
+    "num_dependents":            1.0,
+    "city_tier_enc":             1.0,
+    "education_enc":             2.0,
+    "residence_type_enc":        1.0,
+    "loan_purpose_enc":          1.0,
+    "cibil_score":               720.0,
+    "previous_default_flag":     0.0,
+    "months_as_customer":        36.0,
+    "num_late_payments_past_12m": 0.0,
+    "existing_loans_count":      1.0,
+    "num_existing_products":     2.0,
+    "is_rural":                  0.0,
+}
+
+
+def model_feature_frame(inputs: dict, model=None):
+    """Build a single-row DataFrame aligned to the model's expected feature set.
+
+    Uses ``model.feature_names_in_`` when available (so it tracks whatever schema
+    the deployed pickle was trained on); otherwise falls back to the 4 ratios.
+    Missing values come from the application, then FEATURE_META baselines, then
+    EXTRA_FEATURE_DEFAULTS.
+    """
+    import pandas as pd
+    names_attr = getattr(model, "feature_names_in_", None)
+    names = list(names_attr) if names_attr is not None and len(names_attr) > 0 else list(FEATURE_ORDER)
+
+    def _val(name):
+        if name in inputs and inputs[name] is not None:
+            try:
+                return float(inputs[name])
+            except (TypeError, ValueError):
+                pass
+        if name in FEATURE_META:
+            return float(FEATURE_META[name]["baseline"])
+        return float(EXTRA_FEATURE_DEFAULTS.get(name, 0.0))
+
+    return pd.DataFrame([{n: _val(n) for n in names}])[names]

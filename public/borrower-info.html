@@ -627,10 +627,157 @@
             </div>
         </div>
 
-        <!-- Step 2: Financial Metrics -->
+        <!-- Step 2: Borrower Profile (KYC) -->
         <div class="form-section">
             <div class="step-header">
                 <div class="step-number">2</div>
+                <div>
+                    <h3>Borrower Profile</h3>
+                    <p>KYC &amp; demographic inputs — used by the ML model for PD prediction</p>
+                </div>
+            </div>
+
+            <div class="grid-2">
+                <div class="form-group">
+                    <label for="kycAge">Age *</label>
+                    <input type="number" id="kycAge" placeholder="e.g., 35" min="18" max="100" step="1">
+                    <div class="error" id="kycAgeError"></div>
+                </div>
+                <div class="form-group">
+                    <label for="kycEmploymentType">Employment Type *</label>
+                    <select id="kycEmploymentType">
+                        <option value="">-- Select --</option>
+                        <option value="1">Salaried — Government</option>
+                        <option value="2">Salaried — Private</option>
+                        <option value="3">Self-Employed Professional</option>
+                        <option value="4">Business Owner</option>
+                        <option value="5">Freelancer / Contract</option>
+                        <option value="6">Retired</option>
+                        <option value="7">Other</option>
+                    </select>
+                    <div class="error" id="kycEmploymentTypeError"></div>
+                </div>
+                <div class="form-group">
+                    <label for="kycYearsEmployed">Years Employed *</label>
+                    <input type="number" id="kycYearsEmployed" placeholder="e.g., 5" min="0" max="60" step="0.5">
+                    <div class="error" id="kycYearsEmployedError"></div>
+                </div>
+                <div class="form-group">
+                    <label for="kycAnnualIncome">Annual Income (₹) *</label>
+                    <input type="number" id="kycAnnualIncome" placeholder="e.g., 600000" min="100000" step="10000">
+                    <div class="error" id="kycAnnualIncomeError"></div>
+                </div>
+                <div class="form-group">
+                    <label for="kycFoir">FOIR (Fixed Obligation to Income Ratio) *</label>
+                    <input type="number" id="kycFoir" placeholder="e.g., 0.40" min="0" max="0.9" step="0.01">
+                    <div class="error" id="kycFoirError"></div>
+                </div>
+                <div class="form-group">
+                    <label for="kycNumDependents">Number of Dependents *</label>
+                    <input type="number" id="kycNumDependents" placeholder="e.g., 2" min="0" max="20" step="1">
+                    <div class="error" id="kycNumDependentsError"></div>
+                </div>
+                <div class="form-group">
+                    <label for="kycCityTier">City Tier *</label>
+                    <select id="kycCityTier">
+                        <option value="">-- Select --</option>
+                        <option value="1">Tier 1 (Mumbai, Delhi, Bengaluru…)</option>
+                        <option value="2">Tier 2 (Pune, Ahmedabad, Jaipur…)</option>
+                        <option value="3">Tier 3 (Smaller cities / towns)</option>
+                    </select>
+                    <div class="error" id="kycCityTierError"></div>
+                </div>
+                <div class="form-group">
+                    <label for="kycEducation">Education Level *</label>
+                    <select id="kycEducation">
+                        <option value="">-- Select --</option>
+                        <option value="1">Below 10th</option>
+                        <option value="2">10th Pass</option>
+                        <option value="3">12th Pass / Diploma</option>
+                        <option value="4">Graduate</option>
+                        <option value="5">Post Graduate</option>
+                        <option value="6">Doctorate / PhD</option>
+                    </select>
+                    <div class="error" id="kycEducationError"></div>
+                </div>
+                <div class="form-group">
+                    <label for="kycResidenceType">Residence Type *</label>
+                    <select id="kycResidenceType">
+                        <option value="">-- Select --</option>
+                        <option value="1">Owned</option>
+                        <option value="2">Rented</option>
+                        <option value="3">Company Provided</option>
+                        <option value="4">Living with Parents</option>
+                    </select>
+                    <div class="error" id="kycResidenceTypeError"></div>
+                </div>
+                <div class="form-group">
+                    <label for="kycLoanPurpose">Loan Purpose *</label>
+                    <select id="kycLoanPurpose">
+                        <option value="">-- Select --</option>
+                        <option value="1">Home Purchase</option>
+                        <option value="2">Home Renovation</option>
+                        <option value="3">Car / Vehicle Loan</option>
+                        <option value="4">Personal Loan</option>
+                        <option value="5">Business Expansion</option>
+                        <option value="6">Education</option>
+                        <option value="7">Medical Emergency</option>
+                        <option value="8">Debt Consolidation</option>
+                        <option value="9">Wedding / Social</option>
+                        <option value="10">Other</option>
+                    </select>
+                    <div class="error" id="kycLoanPurposeError"></div>
+                </div>
+                <div class="form-group">
+                    <label for="kycCibilScore">CIBIL Score *</label>
+                    <input type="number" id="kycCibilScore" placeholder="e.g., 750" min="300" max="900" step="1">
+                    <div class="error" id="kycCibilScoreError"></div>
+                </div>
+                <div class="form-group">
+                    <label for="kycPreviousDefault">Previous Default *</label>
+                    <select id="kycPreviousDefault">
+                        <option value="">-- Select --</option>
+                        <option value="0">No</option>
+                        <option value="1">Yes</option>
+                    </select>
+                    <div class="error" id="kycPreviousDefaultError"></div>
+                </div>
+                <div class="form-group">
+                    <label for="kycMonthsAsCustomer">Months as Bank Customer *</label>
+                    <input type="number" id="kycMonthsAsCustomer" placeholder="e.g., 24" min="0" max="600" step="1">
+                    <div class="error" id="kycMonthsAsCustomerError"></div>
+                </div>
+                <div class="form-group">
+                    <label for="kycLatePayments">Late Payments (past 12 months) *</label>
+                    <input type="number" id="kycLatePayments" placeholder="e.g., 0" min="0" max="12" step="1">
+                    <div class="error" id="kycLatePaymentsError"></div>
+                </div>
+                <div class="form-group">
+                    <label for="kycExistingLoans">Existing Loans Count *</label>
+                    <input type="number" id="kycExistingLoans" placeholder="e.g., 1" min="0" max="10" step="1">
+                    <div class="error" id="kycExistingLoansError"></div>
+                </div>
+                <div class="form-group">
+                    <label for="kycExistingProducts">Existing Bank Products *</label>
+                    <input type="number" id="kycExistingProducts" placeholder="e.g., 2" min="0" max="20" step="1">
+                    <div class="error" id="kycExistingProductsError"></div>
+                </div>
+                <div class="form-group">
+                    <label for="kycIsRural">Location *</label>
+                    <select id="kycIsRural">
+                        <option value="">-- Select --</option>
+                        <option value="0">Urban / Semi-Urban</option>
+                        <option value="1">Rural</option>
+                    </select>
+                    <div class="error" id="kycIsRuralError"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Step 3: Financial Metrics -->
+        <div class="form-section">
+            <div class="step-header">
+                <div class="step-number">3</div>
                 <div>
                     <h3>Financial Metrics</h3>
                     <p>Used to auto-calculate Probability of Default (PD)</p>
@@ -661,10 +808,10 @@
             </div>
         </div>
 
-        <!-- Step 3a: AIRB — Collateral & Seniority -->
+        <!-- Step 4a: AIRB — Collateral & Seniority -->
         <div id="airbSection" class="form-section">
             <div class="step-header">
-                <div class="step-number">3a</div>
+                <div class="step-number">4a</div>
                 <div>
                     <h3>Collateral &amp; Seniority (AIRB)</h3>
                     <p>Used to auto-calculate LGD and collateral haircut</p>
@@ -703,7 +850,7 @@
             </div>
 
             <div class="step-header" style="margin-top: 18px;">
-                <div class="step-number">3b</div>
+                <div class="step-number">4b</div>
                 <div>
                     <h3>Loan Characteristics (AIRB)</h3>
                     <p>Loan type determines maturity; override if needed</p>
@@ -731,10 +878,10 @@
             </div>
         </div>
 
-        <!-- Step 3c: SA Parameters -->
+        <!-- Step 4c: SA Parameters -->
         <div id="saSection" class="form-section hidden-section">
             <div class="step-header">
-                <div class="step-number">3c</div>
+                <div class="step-number">4c</div>
                 <div>
                     <h3>Standardized Approach Parameters</h3>
                     <p>External rating and exposure category determine the Basel III risk weight</p>
@@ -1107,6 +1254,35 @@
         if (isNaN(pm))                { setError('profitabilityMargin', 'Enter a valid margin');          ok = false; }
         if (isNaN(lr) || lr < 0)      { setError('liquidityRatio', 'Enter a valid ratio (≥ 0)');         ok = false; }
 
+        // KYC validations
+        const kycAge     = parseFloat(document.getElementById('kycAge').value);
+        const kycFoir    = parseFloat(document.getElementById('kycFoir').value);
+        const kycIncome  = parseFloat(document.getElementById('kycAnnualIncome').value);
+        const kycYearsEmp= parseFloat(document.getElementById('kycYearsEmployed').value);
+        const kycDep     = parseFloat(document.getElementById('kycNumDependents').value);
+        const kycCibil   = parseFloat(document.getElementById('kycCibilScore').value);
+        const kycMonths  = parseFloat(document.getElementById('kycMonthsAsCustomer').value);
+        const kycLate    = parseFloat(document.getElementById('kycLatePayments').value);
+        const kycLoans   = parseFloat(document.getElementById('kycExistingLoans').value);
+        const kycProds   = parseFloat(document.getElementById('kycExistingProducts').value);
+        if (isNaN(kycAge) || kycAge < 18 || kycAge > 100)        { setError('kycAge',            'Must be 18–100');          ok = false; }
+        if (!document.getElementById('kycEmploymentType').value)  { setError('kycEmploymentType', 'Required');                ok = false; }
+        if (isNaN(kycYearsEmp) || kycYearsEmp < 0)               { setError('kycYearsEmployed',  'Enter years (≥ 0)');       ok = false; }
+        if (isNaN(kycIncome) || kycIncome < 100000)               { setError('kycAnnualIncome',   'Must be ≥ ₹1,00,000');    ok = false; }
+        if (isNaN(kycFoir) || kycFoir < 0 || kycFoir > 0.9)      { setError('kycFoir',           'Must be 0.00–0.90');       ok = false; }
+        if (isNaN(kycDep) || kycDep < 0)                          { setError('kycNumDependents',  'Enter a value (≥ 0)');     ok = false; }
+        if (!document.getElementById('kycCityTier').value)        { setError('kycCityTier',       'Required');                ok = false; }
+        if (!document.getElementById('kycEducation').value)       { setError('kycEducation',      'Required');                ok = false; }
+        if (!document.getElementById('kycResidenceType').value)   { setError('kycResidenceType',  'Required');                ok = false; }
+        if (!document.getElementById('kycLoanPurpose').value)     { setError('kycLoanPurpose',    'Required');                ok = false; }
+        if (isNaN(kycCibil) || kycCibil < 300 || kycCibil > 900) { setError('kycCibilScore',     'Must be 300–900');         ok = false; }
+        if (!document.getElementById('kycPreviousDefault').value) { setError('kycPreviousDefault','Required');                ok = false; }
+        if (isNaN(kycMonths) || kycMonths < 0)                    { setError('kycMonthsAsCustomer','Enter months (≥ 0)');     ok = false; }
+        if (isNaN(kycLate) || kycLate < 0 || kycLate > 12)       { setError('kycLatePayments',   'Must be 0–12');            ok = false; }
+        if (isNaN(kycLoans) || kycLoans < 0)                      { setError('kycExistingLoans',  'Enter a value (≥ 0)');     ok = false; }
+        if (isNaN(kycProds) || kycProds < 0)                      { setError('kycExistingProducts','Enter a value (≥ 0)');   ok = false; }
+        if (!document.getElementById('kycIsRural').value)         { setError('kycIsRural',        'Required');                ok = false; }
+
         if (mode === 'airb' || mode === 'both') {
             if (!document.getElementById('seniority').value) { setError('seniority', 'Required for AIRB'); ok = false; }
             if (!document.getElementById('loanType').value)  { setError('loanType',  'Required for AIRB'); ok = false; }
@@ -1134,6 +1310,27 @@
         const pm  = parseFloat(document.getElementById('profitabilityMargin').value);
         const lr  = parseFloat(document.getElementById('liquidityRatio').value);
 
+        // KYC features for the 21-feature ML model
+        const kyc = {
+            age:                        parseFloat(document.getElementById('kycAge').value),
+            employment_type_enc:        parseInt(document.getElementById('kycEmploymentType').value),
+            years_employed:             parseFloat(document.getElementById('kycYearsEmployed').value),
+            annual_income:              parseFloat(document.getElementById('kycAnnualIncome').value),
+            foir:                       parseFloat(document.getElementById('kycFoir').value),
+            num_dependents:             parseInt(document.getElementById('kycNumDependents').value),
+            city_tier_enc:              parseInt(document.getElementById('kycCityTier').value),
+            education_enc:              parseInt(document.getElementById('kycEducation').value),
+            residence_type_enc:         parseInt(document.getElementById('kycResidenceType').value),
+            loan_purpose_enc:           parseInt(document.getElementById('kycLoanPurpose').value),
+            cibil_score:                parseInt(document.getElementById('kycCibilScore').value),
+            previous_default_flag:      parseInt(document.getElementById('kycPreviousDefault').value),
+            months_as_customer:         parseInt(document.getElementById('kycMonthsAsCustomer').value),
+            num_late_payments_past_12m: parseInt(document.getElementById('kycLatePayments').value),
+            existing_loans_count:       parseInt(document.getElementById('kycExistingLoans').value),
+            num_existing_products:      parseInt(document.getElementById('kycExistingProducts').value),
+            is_rural:                   parseInt(document.getElementById('kycIsRural').value),
+        };
+
         // Show loading state
         const calcBtn = document.getElementById('calculateBtn');
         const originalText = 'Calculate Risk Parameters';
@@ -1142,7 +1339,7 @@
 
         try {
         // PD via ML model (Flask /api/predict-pd-ml), falls back to local rule-based
-        let pdResult = await calculatePDFromAPI(de, ic, pm, lr, 'ml');
+        let pdResult = await calculatePDFromAPI(de, ic, pm, lr, 'ml', kyc);
         if (!pdResult) {
             console.warn('ML API unavailable, using local rule-based PD calculation');
             pdResult = calculatePD(de, ic, pm, lr);
@@ -1484,13 +1681,19 @@
     function resetForm() {
         // Clear all text/number inputs
         ['borrowerId','borrowerName','exposureAmount','debtToEquity','interestCoverage',
-         'profitabilityMargin','liquidityRatio','collateralValue','maturityOverride'].forEach(id => {
+         'profitabilityMargin','liquidityRatio','collateralValue','maturityOverride',
+         'kycAge','kycYearsEmployed','kycAnnualIncome','kycFoir','kycNumDependents',
+         'kycCibilScore','kycMonthsAsCustomer','kycLatePayments','kycExistingLoans','kycExistingProducts'
+        ].forEach(id => {
             const el = document.getElementById(id);
             if (el) el.value = '';
         });
 
         // Reset selects to first option
-        ['sector','seniority','collateralType','loanType','externalRating','exposureCategory'].forEach(id => {
+        ['sector','seniority','collateralType','loanType','externalRating','exposureCategory',
+         'kycEmploymentType','kycCityTier','kycEducation','kycResidenceType',
+         'kycLoanPurpose','kycPreviousDefault','kycIsRural'
+        ].forEach(id => {
             const el = document.getElementById(id);
             if (el) el.selectedIndex = 0;
         });
