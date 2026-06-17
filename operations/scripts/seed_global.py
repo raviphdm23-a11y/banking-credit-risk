@@ -223,6 +223,9 @@ def seed(db_path=DB_PATH, verbose=True):
 
     # 6. ground each foreign bank in a real ledger (customers/loans/accounts/...)
     _load('seed_global_customers').seed(db_path=db_path, verbose=verbose)
+    # 7. give those customers a realistic monthly transaction history
+    #    (deposit-neutral — ends at each account's grounded balance)
+    _load('seed_global_transactions').seed(db_path=db_path, verbose=verbose)
 
     if verbose:
         nc = cur.execute("SELECT COUNT(*) FROM countries").fetchone()[0]
