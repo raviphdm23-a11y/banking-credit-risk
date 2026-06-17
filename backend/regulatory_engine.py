@@ -78,6 +78,12 @@ GEN_PROV_T2_CAP         = 0.0125  # general provisions admissible as T2, ≤1.25
 OP_RISK_ALPHA           = 0.15    # Basel Basic Indicator Approach alpha
 RWA_DENSITY_FOR_OP      = 12.5    # 1 / 8% — capital→RWA scaling
 
+# ── Balance-sheet-only banks (foreign/group entities carried without a per-loan
+#    ledger): derive credit/operational RWA from the stored net advances. ───────
+FOREIGN_AVG_RISK_WEIGHT     = 0.75    # blended Standardised-Approach RW on the book
+FOREIGN_GROSS_INCOME_YIELD  = 0.095   # gross income proxy ≈ 9.5% of net advances
+FOREIGN_PROVISION_RATE      = 0.010   # general provision ≈ 1.0% of net advances
+
 HQLA_TO_FUNDING_PROXY   = 0.30    # HQLA ≈ 30% of total funding (CRR+SLR+buffer)
 RETAIL_RUNOFF           = 0.10    # 30-day stressed run-off on retail deposits
 WHOLESALE_RUNOFF        = 0.25    # 30-day stressed run-off on wholesale funding
@@ -97,6 +103,19 @@ def _status(actual, minimum, watch_buffer=1.0):
     if actual < minimum + watch_buffer:
         return 'Watch'
     return 'Compliant'
+
+
+# ── balance-sheet helpers (when a stored bank_balance_sheet row is available) ─
+def bs_total_assets(bs):
+    """Total assets from a bank_balance_sheet dict (raw INR)."""
+    return sum(float(bs.get(k) or 0) for k in
+               ('cash_with_rbi', 'balances_with_banks', 'investments',
+                'advances_net', 'fixed_assets', 'other_assets'))
+
+
+def bs_total_deposits(bs):
+    return sum(float(bs.get(k) or 0) for k in
+               ('deposits_demand', 'deposits_savings', 'deposits_term'))
 
 
 # ════════════════════════════════════════════════════════════════════════════
@@ -152,8 +171,14 @@ def client_exposure(loan, metrics=None, customer_name=None):
 # ════════════════════════════════════════════════════════════════════════════
 # BANK-LEVEL CAPITAL ADEQUACY
 # ════════════════════════════════════════════════════════════════════════════
-def bank_capital_report(bank_id, loans, accounts, metrics_by_lid, report_date=None):
-    """Basel III capital-adequacy return for one bank."""
+def bank_capital_report(bank_id, loans, accounts, metrics_by_lid, report_date=None,
+                        balance_sheet=None):
+    """Basel III capital-adequacy return for one bank.
+
+    If `balance_sheet` (a bank_balance_sheet row dict) is supplied, the capital
+    base and total assets are read from it (real figures); otherwise the
+    synthetic proxies are used.
+    """
     report_date = report_date or date.today().isoformat()
 
     exposures = []
@@ -175,14 +200,35 @@ def bank_capital_report(bank_id, loans, accounts, metrics_by_lid, report_date=No
     operational_rwa = OP_RISK_ALPHA * gross_income * RWA_DENSITY_FOR_OP
     market_rwa = 0.0   # no trading book in this dataset
 
+    # Balance-sheet-only banks (no per-loan rows, e.g. foreign group entities):
+    # derive credit & operational RWA from the stored net advances.
+    if not loans and balance_sheet:
+        adv = float(balance_sheet.get('advances_net') or 0)
+        credit_rwa      = adv * FOREIGN_AVG_RISK_WEIGHT
+        loan_book       = adv
+        gross_income    = adv * FOREIGN_GROSS_INCOME_YIELD
+        operational_rwa = OP_RISK_ALPHA * gross_income * RWA_DENSITY_FOR_OP
+        total_provisions = adv * FOREIGN_PROVISION_RATE
+
     total_rwa = credit_rwa + operational_rwa + market_rwa
 
-    # Capital base (synthetic proxy — see module docstring).
-    total_assets = loan_book + HQLA_TO_FUNDING_PROXY * max(loan_book, deposits)
-    tier1_capital = CAPITAL_TO_ASSETS_PROXY * total_assets
     gen_prov_admissible = min(total_provisions, GEN_PROV_T2_CAP * credit_rwa)
-    tier2_capital = gen_prov_admissible + TIER2_SUBDEBT_PROXY * total_rwa
-    total_capital = tier1_capital + tier2_capital
+
+    if balance_sheet:
+        # Real capital base from the stored balance sheet (CET1 = equity + reserves).
+        tier1_capital = (float(balance_sheet.get('equity_capital') or 0)
+                         + float(balance_sheet.get('reserves_surplus') or 0))
+        tier2_capital = gen_prov_admissible
+        total_capital = tier1_capital + tier2_capital
+        total_assets  = bs_total_assets(balance_sheet)
+        capital_source = 'bank_balance_sheet ' + str(balance_sheet.get('period', ''))
+    else:
+        # Capital base (synthetic proxy — see module docstring).
+        total_assets = loan_book + HQLA_TO_FUNDING_PROXY * max(loan_book, deposits)
+        tier1_capital = CAPITAL_TO_ASSETS_PROXY * total_assets
+        tier2_capital = gen_prov_admissible + TIER2_SUBDEBT_PROXY * total_rwa
+        total_capital = tier1_capital + tier2_capital
+        capital_source = 'synthetic proxy (no balance sheet on file)'
 
     rwa_safe = total_rwa or 1.0
     assets_safe = total_assets or 1.0
@@ -217,11 +263,15 @@ def bank_capital_report(bank_id, loans, accounts, metrics_by_lid, report_date=No
         'num_loans':      len(loans),
         'num_npa':        sum(1 for l in loans
                               if (l.get('loan_classification') or 'Standard') not in ('Standard', 'Performing')),
+        'capital_source': capital_source,
         'assumptions': {
-            'capital_to_assets_proxy': CAPITAL_TO_ASSETS_PROXY,
+            'capital_source': capital_source,
+            'capital_to_assets_proxy': None if balance_sheet else CAPITAL_TO_ASSETS_PROXY,
             'op_risk_method': 'Basel Basic Indicator Approach (alpha=15% of gross income)',
             'market_rwa': 'nil — dataset has no trading book',
-            'note': 'Capital base is a synthetic proxy; RWA is computed from the live loan book.',
+            'note': ('Capital base & total assets sourced from the stored balance sheet; '
+                     'RWA computed from the live loan book.' if balance_sheet else
+                     'Capital base is a synthetic proxy; RWA is computed from the live loan book.'),
         },
         'exposures': exposures,
     }
@@ -230,20 +280,43 @@ def bank_capital_report(bank_id, loans, accounts, metrics_by_lid, report_date=No
 # ════════════════════════════════════════════════════════════════════════════
 # BANK-LEVEL LIQUIDITY
 # ════════════════════════════════════════════════════════════════════════════
-def bank_liquidity_report(bank_id, accounts, loans, total_capital=0.0, report_date=None):
-    """Basel III liquidity return (LCR, NSFR) + RBI CRR/SLR for one bank."""
+def bank_liquidity_report(bank_id, accounts, loans, total_capital=0.0, report_date=None,
+                          balance_sheet=None):
+    """Basel III liquidity return (LCR, NSFR) + RBI CRR/SLR for one bank.
+
+    With a `balance_sheet`, HQLA (cash with RBI + balances with banks + SLR
+    investments), wholesale funding (borrowings) and CRR/SLR holdings are read
+    off the real sheet; otherwise Basel-style proxies are used.
+    """
     report_date = report_date or date.today().isoformat()
 
     retail_deposits = sum(float(a.get('balance') or 0) for a in accounts)
     loan_book       = sum(float(l.get('outstanding') or 0) for l in loans)
+    # Balance-sheet-only banks have no account/loan rows — read totals off the sheet.
+    if balance_sheet and retail_deposits <= 0:
+        retail_deposits = bs_total_deposits(balance_sheet)
+    if balance_sheet and loan_book <= 0:
+        loan_book = float(balance_sheet.get('advances_net') or 0)
+    ndtl            = retail_deposits   # net demand & time liabilities proxy
 
-    # Loans beyond the retail deposit base are funded with wholesale/market money
-    # (less stable, faster run-off) — realistic for a loaned-up book.
-    wholesale_funding = max(0.0, loan_book - retail_deposits)
-    total_funding     = retail_deposits + wholesale_funding
-    ndtl              = retail_deposits   # net demand & time liabilities proxy
-
-    hqla = HQLA_TO_FUNDING_PROXY * total_funding
+    if balance_sheet:
+        cash_rbi   = float(balance_sheet.get('cash_with_rbi') or 0)
+        bal_banks  = float(balance_sheet.get('balances_with_banks') or 0)
+        investments = float(balance_sheet.get('investments') or 0)
+        wholesale_funding = float(balance_sheet.get('borrowings') or 0)
+        total_funding = retail_deposits + wholesale_funding
+        hqla = cash_rbi + bal_banks + investments          # cash + SLR securities
+        crr_ratio = cash_rbi / (ndtl or 1.0) * 100
+        slr_ratio = investments / (ndtl or 1.0) * 100
+        liq_source = 'bank_balance_sheet ' + str(balance_sheet.get('period', ''))
+    else:
+        # Loans beyond the retail deposit base are funded with wholesale/market money.
+        wholesale_funding = max(0.0, loan_book - retail_deposits)
+        total_funding     = retail_deposits + wholesale_funding
+        hqla = HQLA_TO_FUNDING_PROXY * total_funding
+        crr_ratio = CRR_HOLDING_PROXY * 100
+        slr_ratio = SLR_HOLDING_PROXY * 100
+        liq_source = 'synthetic proxy (no balance sheet on file)'
 
     # LCR — 30-day stressed net cash outflows
     net_outflows = RETAIL_RUNOFF * retail_deposits + WHOLESALE_RUNOFF * wholesale_funding
@@ -256,10 +329,6 @@ def bank_liquidity_report(bank_id, accounts, loans, total_capital=0.0, report_da
     rsf = RSF_LOANS * loan_book + RSF_HQLA * hqla
     rsf = max(rsf, 1.0)
     nsfr = asf / rsf * 100
-
-    # RBI CRR / SLR (% of NDTL) — holdings proxy
-    crr_ratio = CRR_HOLDING_PROXY * 100
-    slr_ratio = SLR_HOLDING_PROXY * 100
 
     return {
         'bank_id':          bank_id,
@@ -280,10 +349,17 @@ def bank_liquidity_report(bank_id, accounts, loans, total_capital=0.0, report_da
         'nsfr_status':      _status(nsfr, RBI_THRESHOLDS['nsfr_min'], watch_buffer=10),
         'crr_status':       _status(crr_ratio, RBI_THRESHOLDS['crr_min'], watch_buffer=0.25),
         'slr_status':       _status(slr_ratio, RBI_THRESHOLDS['slr_min'], watch_buffer=0.5),
+        'liquidity_source': liq_source,
         'assumptions': {
-            'hqla_to_funding_proxy': HQLA_TO_FUNDING_PROXY,
-            'funding_model': 'retail deposits (live) + wholesale plug for the loan-to-deposit gap',
-            'note': 'HQLA and run-off factors are Basel-style proxies; deposits & loan book are live.',
+            'liquidity_source': liq_source,
+            'hqla_to_funding_proxy': None if balance_sheet else HQLA_TO_FUNDING_PROXY,
+            'funding_model': ('retail deposits + borrowings from the stored balance sheet'
+                              if balance_sheet else
+                              'retail deposits (live) + wholesale plug for the loan-to-deposit gap'),
+            'note': ('HQLA, CRR/SLR holdings and wholesale funding sourced from the stored '
+                     'balance sheet; run-off factors remain Basel-style assumptions.'
+                     if balance_sheet else
+                     'HQLA and run-off factors are Basel-style proxies; deposits & loan book are live.'),
         },
     }
 

@@ -50,6 +50,7 @@ data/synthetic/
 data/runs/
 data/reports/
 data/case_reports/
+data/financial_reports/
 data/audit_log.json
 
 # Flask default instance folder (orphaned/unused SQLAlchemy artifacts)

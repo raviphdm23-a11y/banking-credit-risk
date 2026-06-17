@@ -99,6 +99,24 @@ def run_batch(db_path=DB_PATH, report_date=None, verbose=True):
     cur = conn.cursor()
     cur.executescript(SCHEMA)
 
+    # Ensure the balance sheet exists so capital/liquidity use real figures, not
+    # proxies. Self-seeds on a fresh DB (e.g. first GCP deploy).
+    try:
+        n_bs = cur.execute("SELECT COUNT(*) FROM bank_balance_sheet").fetchone()[0]
+    except sqlite3.OperationalError:
+        n_bs = 0
+    if not n_bs:
+        try:
+            import importlib.util
+            _seed_path = os.path.join(os.path.dirname(__file__), 'seed_bank_balance_sheet.py')
+            _spec = importlib.util.spec_from_file_location('seed_bank_balance_sheet', _seed_path)
+            _mod = importlib.util.module_from_spec(_spec)
+            _spec.loader.exec_module(_mod)
+            _mod.seed(db_path=db_path, verbose=False)
+        except Exception as e:
+            if verbose:
+                print(f"[warn] balance-sheet seed skipped: {e}")
+
     banks = [dict(r) for r in cur.execute("SELECT * FROM banks").fetchall()]
     results = []
 
@@ -111,8 +129,21 @@ def run_batch(db_path=DB_PATH, report_date=None, verbose=True):
         names = {r['id']: f"{r['first']} {r['last']}" for r in
                  cur.execute("SELECT id, first, last FROM customers WHERE bank_id=?", (bid,)).fetchall()}
 
-        cap = bank_capital_report(bid, loans, accounts, metrics, report_date)
-        liq = bank_liquidity_report(bid, accounts, loans, cap['total_capital'], report_date)
+        # Latest stored balance sheet for this bank (real capital/liquidity anchors).
+        # Falls back to None → engine uses synthetic proxies (e.g. table absent).
+        balance_sheet = None
+        try:
+            bs_row = cur.execute(
+                "SELECT * FROM bank_balance_sheet WHERE bank_id=? ORDER BY as_on_date DESC LIMIT 1",
+                (bid,)).fetchone()
+            balance_sheet = dict(bs_row) if bs_row else None
+        except sqlite3.OperationalError:
+            balance_sheet = None   # table not seeded yet
+
+        cap = bank_capital_report(bid, loans, accounts, metrics, report_date,
+                                  balance_sheet=balance_sheet)
+        liq = bank_liquidity_report(bid, accounts, loans, cap['total_capital'], report_date,
+                                    balance_sheet=balance_sheet)
         compliance = compliance_assessment(cap, liq)
 
         # ── idempotent replace for this bank + date ──

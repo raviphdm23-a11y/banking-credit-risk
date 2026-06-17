@@ -1527,6 +1527,8 @@ def reg_bank(bank_id):
             "FROM reg_capital_reports cr LEFT JOIN reg_liquidity_reports lr "
             "ON cr.bank_id=lr.bank_id AND cr.report_date=lr.report_date "
             "WHERE cr.bank_id=? ORDER BY cr.report_date", (bank_id,)).fetchall())
+        # balance sheet — all stored periods, newest first
+        balance_sheets = _safe_balance_sheets(conn, bank_id)
 
     for r in (cap, liq):
         if r and r.get('detail'):
@@ -1536,7 +1538,31 @@ def reg_bank(bank_id):
                 pass
     return jsonify({'available': True, 'report_date': d, 'thresholds': _RBI_THRESHOLDS,
                     'bank': bank, 'capital': cap, 'liquidity': liq,
-                    'compliance': compliance, 'exposure_mix': mix, 'trend': trend})
+                    'compliance': compliance, 'exposure_mix': mix, 'trend': trend,
+                    'balance_sheets': balance_sheets})
+
+
+def _safe_balance_sheets(conn, bank_id):
+    """Balance-sheet rows for a bank (newest first), with computed totals.
+    Returns [] if the table hasn't been seeded yet."""
+    try:
+        rows = _rows_to_list(conn.execute(
+            "SELECT * FROM bank_balance_sheet WHERE bank_id=? ORDER BY as_on_date DESC",
+            (bank_id,)).fetchall())
+    except Exception:
+        return []
+    for r in rows:
+        r['total_deposits'] = round(sum(float(r.get(k) or 0) for k in
+                                        ('deposits_demand', 'deposits_savings', 'deposits_term')), 2)
+        r['total_capital'] = round(float(r.get('equity_capital') or 0)
+                                   + float(r.get('reserves_surplus') or 0), 2)
+        r['total_liabilities_capital'] = round(
+            r['total_capital'] + r['total_deposits']
+            + float(r.get('borrowings') or 0) + float(r.get('other_liabilities') or 0), 2)
+        r['total_assets'] = round(sum(float(r.get(k) or 0) for k in
+                                      ('cash_with_rbi', 'balances_with_banks', 'investments',
+                                       'advances_net', 'fixed_assets', 'other_assets')), 2)
+    return rows
 
 
 @app.route('/regulatory/api/banks/<bank_id>/exposures')
@@ -1550,6 +1576,17 @@ def reg_bank_exposures(bank_id):
             "SELECT * FROM reg_client_exposures WHERE bank_id=? AND report_date=? "
             "ORDER BY rwa DESC", (bank_id, d)).fetchall())
     return jsonify({'available': True, 'report_date': d, 'bank_id': bank_id, 'exposures': rows})
+
+
+@app.route('/regulatory/api/banks/<bank_id>/balance-sheet')
+def reg_bank_balance_sheet(bank_id):
+    """RBI Schedule III balance sheet for one bank (all stored periods, newest first)."""
+    with _ops_conn() as conn:
+        bank = _row_to_dict(conn.execute(
+            "SELECT * FROM banks WHERE bank_id=?", (bank_id,)).fetchone())
+        sheets = _safe_balance_sheets(conn, bank_id)
+    return jsonify({'available': bool(sheets), 'bank_id': bank_id, 'bank': bank,
+                    'balance_sheets': sheets})
 
 
 @app.route('/regulatory/api/clients/<cid>')
@@ -1612,6 +1649,373 @@ def _ensure_regulatory_reports():
         _run_regulatory_batch_job()
     except Exception as e:
         print(f'[regulatory] startup batch skipped: {e}')
+
+# ============================================================================
+# FINANCIAL REPORTING & DISCLOSURES DEPARTMENT
+# Per-bank and consolidated Balance Sheet + P&L + Key Ratios + Basel III
+# Pillar 3 disclosures, assembled from bank_balance_sheet / bank_profit_loss
+# + the regulatory engine. Combined PDF (LaTeX) export per scope.
+# ============================================================================
+from backend import financial_reports as _fr
+from backend import financial_report_pdf as _frpdf
+
+
+def _seed_script(fname, modname):
+    """Load and return a standalone operations/scripts seeder module."""
+    import importlib.util
+    base = os.path.join(os.path.dirname(__file__), 'operations', 'scripts')
+    spec = importlib.util.spec_from_file_location(modname, os.path.join(base, fname))
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
+def _ensure_financials(conn):
+    """Seed bank_balance_sheet + bank_profit_loss if empty (self-init on fresh DB)."""
+    for tbl, fname, modname in (
+            ('bank_balance_sheet', 'seed_bank_balance_sheet.py', 'seed_bank_balance_sheet'),
+            ('bank_profit_loss',   'seed_bank_profit_loss.py',   'seed_bank_profit_loss')):
+        try:
+            n = conn.execute(f"SELECT COUNT(*) FROM {tbl}").fetchone()[0]
+        except Exception:
+            n = 0
+        if not n:
+            _seed_script(fname, modname).seed(db_path=_OPS_DB_PATH, verbose=False)
+    _ensure_global(conn)
+
+
+def _ensure_global(conn):
+    """Seed the country reference layer + foreign group banks (self-init)."""
+    try:
+        n = conn.execute("SELECT COUNT(*) FROM countries").fetchone()[0]
+    except Exception:
+        n = 0
+    if not n:
+        _seed_script('seed_global.py', 'seed_global').seed(db_path=_OPS_DB_PATH, verbose=False)
+
+
+def _country_index(conn):
+    """country_code -> country dict (with macro latest snapshot attached)."""
+    _ensure_global(conn)
+    out = {}
+    for r in conn.execute("SELECT * FROM countries").fetchall():
+        d = _row_to_dict(r)
+        out[d['country_code']] = d
+    return out
+
+
+def _macro_for(conn, code):
+    rows = _rows_to_list(conn.execute(
+        "SELECT * FROM country_macro WHERE country_code=? ORDER BY period", (code,)).fetchall())
+    return rows
+
+
+def _fin_gather(conn, bank, period='FY2025'):
+    """Gather one bank's stored + computed inputs for the financial reports."""
+    from backend import regulatory_engine as _reg
+    bid = bank['bank_id']
+    loans = _rows_to_list(conn.execute("SELECT * FROM loans WHERE bank_id=?", (bid,)).fetchall())
+    accts = _rows_to_list(conn.execute("SELECT * FROM accounts WHERE bank_id=?", (bid,)).fetchall())
+    metrics = {r['lid']: dict(r) for r in
+               conn.execute("SELECT * FROM credit_risk_metrics WHERE bank_id=?", (bid,)).fetchall()}
+    bs = _row_to_dict(conn.execute(
+        "SELECT * FROM bank_balance_sheet WHERE bank_id=? AND period=?", (bid, period)).fetchone())
+    pl = _row_to_dict(conn.execute(
+        "SELECT * FROM bank_profit_loss WHERE bank_id=? AND period=?", (bid, period)).fetchone())
+    cap = _reg.bank_capital_report(bid, loans, accts, metrics, balance_sheet=bs)
+    liq = _reg.bank_liquidity_report(bid, accts, loans, cap['total_capital'], balance_sheet=bs)
+    mix = {}
+    for e in cap['exposures']:
+        k = (e['loan_type'], e['classification'])
+        a = mix.setdefault(k, {'loan_type': k[0], 'classification': k[1],
+                               'n': 0, 'ead': 0.0, 'rwa': 0.0, 'provision': 0.0})
+        a['n'] += 1; a['ead'] += e['ead']; a['rwa'] += e['rwa']; a['provision'] += e['provision']
+    def _is_npa(l): return (l.get('loan_classification') or 'Standard') not in ('Standard', 'Performing')
+    stats = {
+        'gnpa_amount': sum(float(l.get('outstanding') or 0) for l in loans if _is_npa(l)),
+        'gross_advances': sum(float(l.get('outstanding') or 0) for l in loans),
+        'num_loans': len(loans),
+        'num_npa': sum(1 for l in loans if _is_npa(l)),
+    }
+    return {'bank': bank, 'bs': bs, 'pl': pl, 'cap': cap, 'liq': liq,
+            'stats': stats, 'exposure_mix': list(mix.values())}
+
+
+def _fin_bundle(conn, scope, period='FY2025', as_on='2025-03-31'):
+    """Return a report bundle for a bank_id, a region, a country, or the group.
+
+    scope:  'CONSOLIDATED' | 'REGION:<region>' | 'COUNTRY:<iso3>' | '<bank_id>'.
+    Region / country roll-ups reuse financial_reports.consolidate() over the
+    member banks, so the maths is identical at every level of the hierarchy.
+    """
+    banks = _rows_to_list(conn.execute("SELECT * FROM banks").fetchall())
+    countries = _country_index(conn)
+    scope_s = str(scope)
+
+    def _aggregate(members, scope_id, scope_name, scope_kind, scope_meta=None):
+        raws = [_fin_gather(conn, b, period) for b in members]
+        raws = [r for r in raws if r['bs'] and r['pl']]
+        if not raws:
+            return None
+        return _fr.consolidate(raws, period, as_on, scope_id=scope_id,
+                               scope_name=scope_name, scope=scope_kind, scope_meta=scope_meta)
+
+    if scope_s.upper() == 'CONSOLIDATED':
+        return _aggregate(banks, 'CONSOLIDATED', 'Group — All Banks', 'consolidated',
+                          {'level': 'group'})
+
+    if scope_s.upper().startswith('REGION:'):
+        region = scope_s.split(':', 1)[1]
+        members = [b for b in banks if (countries.get(b.get('country_code')) or {}).get('region') == region]
+        return _aggregate(members, 'REGION:' + region, region + ' — Regional Aggregate',
+                          'region', {'level': 'region', 'region': region})
+
+    if scope_s.upper().startswith('COUNTRY:'):
+        code = scope_s.split(':', 1)[1].upper()
+        members = [b for b in banks if (b.get('country_code') or '').upper() == code]
+        cdef = countries.get(code) or {}
+        name = cdef.get('country_name', code)
+        return _aggregate(members, 'COUNTRY:' + code, name + ' — Country Aggregate',
+                          'country', {'level': 'country', 'country_code': code,
+                                      'country_name': name, 'region': cdef.get('region')})
+
+    bank = next((b for b in banks if b['bank_id'] == scope_s), None)
+    if not bank:
+        return None
+    g = _fin_gather(conn, bank, period)
+    if not g['bs'] or not g['pl']:
+        return None
+    bundle = _fr.bank_bundle(g['bank'], g['bs'], g['pl'], g['cap'], g['liq'],
+                             g['stats'], g['exposure_mix'])
+    cdef = countries.get(bank.get('country_code')) or {}
+    bundle['country'] = {'country_code': bank.get('country_code'),
+                         'country_name': cdef.get('country_name'),
+                         'region': cdef.get('region'), 'sub_region': cdef.get('sub_region'),
+                         'currency_code': cdef.get('currency_code'),
+                         'currency_symbol': cdef.get('currency_symbol'),
+                         'central_bank': cdef.get('central_bank'),
+                         'basel_framework': cdef.get('basel_framework')}
+    return bundle
+
+
+@app.route('/financials/')
+@app.route('/financials')
+def financials_home():
+    return send_from_directory('public/financials', 'index.html')
+
+
+@app.route('/financials/api/system')
+def fin_system():
+    """Bank list with snapshot KPIs + a Group → Region → Country → Bank tree."""
+    with _ops_conn() as conn:
+        _ensure_financials(conn)
+        countries = _country_index(conn)
+        banks = _rows_to_list(conn.execute("SELECT * FROM banks").fetchall())
+        cards = []
+        for b in banks:
+            g = _fin_gather(conn, b)
+            if not g['bs'] or not g['pl']:
+                continue
+            cap, liq, pl = g['cap'], g['liq'], g['pl']
+            cdef = countries.get(b.get('country_code')) or {}
+            cards.append({
+                'bank_id': b['bank_id'], 'bank_name': b['bank_name'],
+                'country_code': b.get('country_code'),
+                'country_name': cdef.get('country_name') or b.get('country'),
+                'region': cdef.get('region') or 'Unassigned',
+                'sub_region': cdef.get('sub_region'),
+                'currency_code': cdef.get('currency_code'),
+                'currency_symbol': cdef.get('currency_symbol'),
+                'total_assets': cap['total_assets'], 'pat': float(pl['profit_after_tax']),
+                'car': cap['car'], 'car_status': cap['car_status'],
+                'lcr': liq['lcr'], 'lcr_status': liq['lcr_status'],
+                'gnpa_pct': round(g['stats']['gnpa_amount'] / (g['stats']['gross_advances'] or 1) * 100, 2),
+            })
+        consol = _fin_bundle(conn, 'CONSOLIDATED')
+
+    # Build the region → country → bank tree with rolled-up assets per node.
+    regions = {}
+    for c in cards:
+        reg = regions.setdefault(c['region'], {'region': c['region'], 'total_assets': 0.0,
+                                               'pat': 0.0, 'num_banks': 0, 'countries': {}})
+        ctry = reg['countries'].setdefault(c['country_code'], {
+            'country_code': c['country_code'], 'country_name': c['country_name'],
+            'currency_code': c['currency_code'], 'total_assets': 0.0, 'pat': 0.0, 'banks': []})
+        ctry['banks'].append({'bank_id': c['bank_id'], 'bank_name': c['bank_name'],
+                              'total_assets': c['total_assets'], 'car': c['car'],
+                              'lcr': c['lcr'], 'gnpa_pct': c['gnpa_pct']})
+        ctry['total_assets'] += c['total_assets']; ctry['pat'] += c['pat']
+        reg['total_assets'] += c['total_assets']; reg['pat'] += c['pat']; reg['num_banks'] += 1
+    tree = []
+    for reg in sorted(regions.values(), key=lambda r: -r['total_assets']):
+        reg['countries'] = sorted(reg['countries'].values(), key=lambda c: -c['total_assets'])
+        reg['num_countries'] = len(reg['countries'])
+        reg['total_assets'] = round(reg['total_assets'], 2); reg['pat'] = round(reg['pat'], 2)
+        for ctry in reg['countries']:
+            ctry['total_assets'] = round(ctry['total_assets'], 2); ctry['pat'] = round(ctry['pat'], 2)
+        tree.append(reg)
+
+    snap = None
+    if consol:
+        cap, liq = consol['raw']['capital'], consol['raw']['liquidity']
+        snap = {'total_assets': cap['total_assets'],
+                'pat': float(consol['profit_loss']['summary'][-1]['value']),
+                'car': cap['car'], 'lcr': liq['lcr'], 'num_banks': len(cards),
+                'num_countries': len({c['country_code'] for c in cards}),
+                'num_regions': len(tree)}
+    return jsonify({'period': 'FY2025', 'banks': cards, 'consolidated': snap, 'tree': tree})
+
+
+@app.route('/financials/api/region/<region>')
+def fin_region(region):
+    with _ops_conn() as conn:
+        _ensure_financials(conn)
+        bundle = _fin_bundle(conn, 'REGION:' + region)
+    if not bundle:
+        return jsonify({'available': False, 'error': 'No financials for this region'}), 404
+    bundle['available'] = True
+    return jsonify(bundle)
+
+
+@app.route('/financials/api/country/<code>')
+def fin_country(code):
+    with _ops_conn() as conn:
+        _ensure_financials(conn)
+        bundle = _fin_bundle(conn, 'COUNTRY:' + code)
+    if not bundle:
+        return jsonify({'available': False, 'error': 'No financials for this country'}), 404
+    bundle['available'] = True
+    return jsonify(bundle)
+
+
+@app.route('/financials/api/banks/<bank_id>')
+def fin_bank(bank_id):
+    with _ops_conn() as conn:
+        _ensure_financials(conn)
+        bundle = _fin_bundle(conn, bank_id)
+    if not bundle:
+        return jsonify({'available': False, 'error': 'No financials for this bank'}), 404
+    bundle['available'] = True
+    return jsonify(bundle)
+
+
+@app.route('/financials/api/consolidated')
+def fin_consolidated():
+    with _ops_conn() as conn:
+        _ensure_financials(conn)
+        bundle = _fin_bundle(conn, 'CONSOLIDATED')
+    if not bundle:
+        return jsonify({'available': False, 'error': 'No financials available'}), 404
+    bundle['available'] = True
+    return jsonify(bundle)
+
+
+@app.route('/financials/api/reports/<scope>', methods=['GET', 'POST'])
+def fin_reports(scope):
+    """GET → list report versions; POST → generate a new combined PDF version."""
+    scope_id = 'CONSOLIDATED' if str(scope).upper() == 'CONSOLIDATED' else scope
+    if request.method == 'POST':
+        with _ops_conn() as conn:
+            _ensure_financials(conn)
+            bundle = _fin_bundle(conn, scope_id)
+        if not bundle:
+            return jsonify({'error': 'No financials for this scope'}), 404
+        try:
+            meta = _frpdf.generate_report(bundle)
+        except Exception as e:
+            return jsonify({'error': f'Report generation failed: {e}'}), 500
+        code = 201 if meta.get('pdf_exists') else 500
+        return jsonify({'success': meta.get('pdf_exists', False), 'report': meta,
+                        'versions': _frpdf.list_versions(scope_id)}), code
+    return jsonify({'scope_id': scope_id, 'latex_available': _frpdf.latex_available(),
+                    'versions': _frpdf.list_versions(scope_id)})
+
+
+@app.route('/financials/api/reports/<scope>/<version>/pdf')
+def fin_report_pdf(scope, version):
+    scope_id = 'CONSOLIDATED' if str(scope).upper() == 'CONSOLIDATED' else scope
+    path = _frpdf.pdf_path(scope_id, version)
+    if not path:
+        return jsonify({'error': 'PDF not found'}), 404
+    download = request.args.get('dl') in ('1', 'true', 'yes')
+    return _send_file(path, mimetype='application/pdf', as_attachment=download,
+                      download_name=f'{scope_id}_{version}.pdf')
+
+
+# ============================================================================
+# GLOBAL REFERENCE DATA — COUNTRIES & MACRO INDICATORS
+# Jurisdiction master + high-level economic variables (GDP, inflation, policy
+# rate, …) that sit above the banks: the group operates Group → Region →
+# Country → Bank. Sourced from the `countries` / `country_macro` tables.
+# ============================================================================
+def _macro_snapshot(macro_rows):
+    """Latest macro row (by period) from a country's macro history."""
+    return dict(macro_rows[-1]) if macro_rows else None
+
+
+@app.route('/reference/')
+@app.route('/reference')
+def reference_home():
+    return send_from_directory('public/reference', 'index.html')
+
+
+@app.route('/reference/api/countries')
+def ref_countries():
+    """All jurisdictions with latest macro snapshot, region grouping + bank counts."""
+    with _ops_conn() as conn:
+        _ensure_global(conn)
+        countries = [_row_to_dict(r) for r in conn.execute(
+            "SELECT * FROM countries ORDER BY region, sub_region, country_name").fetchall()]
+        bank_counts = {r['country_code']: r['n'] for r in conn.execute(
+            "SELECT country_code, COUNT(*) AS n FROM banks GROUP BY country_code").fetchall()}
+        out = []
+        for c in countries:
+            macro = _macro_snapshot(_macro_for(conn, c['country_code']))
+            c['num_banks'] = bank_counts.get(c['country_code'], 0)
+            c['macro'] = macro
+            out.append(c)
+    # group by region for the UI
+    regions = {}
+    for c in out:
+        regions.setdefault(c['region'], []).append(c)
+    tree = [{'region': r, 'countries': cs,
+             'num_banks': sum(x['num_banks'] for x in cs)}
+            for r, cs in sorted(regions.items())]
+    return jsonify({'countries': out, 'regions': tree,
+                    'num_countries': len(out),
+                    'num_with_banks': sum(1 for c in out if c['num_banks'])})
+
+
+@app.route('/reference/api/countries/<code>')
+def ref_country(code):
+    """One jurisdiction: profile, macro history, and the group's banks there."""
+    code = code.upper()
+    with _ops_conn() as conn:
+        _ensure_global(conn)
+        row = conn.execute("SELECT * FROM countries WHERE country_code=?", (code,)).fetchone()
+        if not row:
+            return jsonify({'available': False, 'error': 'Unknown country'}), 404
+        country = _row_to_dict(row)
+        macro = _macro_for(conn, code)
+        banks = _rows_to_list(conn.execute(
+            "SELECT * FROM banks WHERE country_code=?", (code,)).fetchall())
+        cards = []
+        for b in banks:
+            g = _fin_gather(conn, b)
+            if not g['bs'] or not g['pl']:
+                cards.append({'bank_id': b['bank_id'], 'bank_name': b['bank_name'], 'available': False})
+                continue
+            cap, liq, pl = g['cap'], g['liq'], g['pl']
+            cards.append({
+                'bank_id': b['bank_id'], 'bank_name': b['bank_name'], 'available': True,
+                'headquarters_city': b.get('headquarters_city'),
+                'total_assets': cap['total_assets'], 'pat': float(pl['profit_after_tax']),
+                'car': cap['car'], 'car_status': cap['car_status'],
+                'lcr': liq['lcr'], 'lcr_status': liq['lcr_status'],
+                'gnpa_pct': round(g['stats']['gnpa_amount'] / (g['stats']['gross_advances'] or 1) * 100, 2),
+            })
+    return jsonify({'available': True, 'country': country, 'macro': macro, 'banks': cards})
+
 
 # ============================================================================
 # RELATIONSHIP MANAGEMENT & DECISION SUPPORT DEPARTMENT

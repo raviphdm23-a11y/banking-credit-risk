@@ -7,9 +7,11 @@
 **Current Status:** Production-ready — GCP App Engine deployment in progress  
 **Location:** `C:\Users\Arnav\OneDrive\Desktop\Daily reading\Banking_Credit_Risk`  
 **User Email:** ravi_phdm23@iift.edu  
-**Last Updated:** June 16, 2026  
+**Last Updated:** June 17, 2026  
 
-**Four departments** surfaced from the home page (`public/index.html`): **Credit Risk** (calculator + ML), **Banking Operations** (`/operations/`), **Regulatory Reporting** (`/regulatory/` — Basel III / RBI capital & liquidity returns), and **Relationship Management & Decision Support** (`/relationship/` — front-line RM workflow with AI-assisted decisioning, four-eyes, and the M/H/O provenance ledger). Each has its own section below.
+**Five departments + a global reference layer** surfaced from the home page (`public/index.html`): **Credit Risk** (calculator + ML), **Banking Operations** (`/operations/`), **Regulatory Reporting** (`/regulatory/` — Basel III / RBI capital & liquidity returns), **Relationship Management & Decision Support** (`/relationship/` — front-line RM workflow with AI-assisted decisioning and the M/H/O provenance ledger), **Financial Reporting & Disclosures** (`/financials/` — per-bank & consolidated Balance Sheet, P&L, Key Ratios, Basel III Pillar 3, with combined LaTeX→PDF export), and **Global Reference Data** (`/reference/` — the country/jurisdiction layer above the banks: regulators, macro indicators, sovereign ratings, per-jurisdiction Basel minimums). Each has its own section below.
+
+**Global group hierarchy (June 17, 2026):** the platform is now a **global group bank** organised as **Group → Region → Country → Bank**. Banks map to a country (`banks.country_code`); countries carry region/currency/regulator + macro variables (`countries` + `country_macro` tables). The two original India banks (BANK001/002) plus four foreign group banks (BANK003 Atlas Bank N.A./USA, BANK004 Britannia Banking Group/UK, BANK005 Lion City Bank/Singapore, BANK006 Gulf Union Bank/UAE) span 4 regions / 5 countries. Foreign banks are carried at the balance-sheet + P&L level (no per-loan ledger) in the **group reporting currency (₹)**; the regulatory engine derives their RWA from net advances. Financial Reporting rolls up at every level (region & country aggregates reuse `financial_reports.consolidate()`).
 
 ---
 
@@ -61,7 +63,9 @@ Banking_Credit_Risk/
 │   ├── policy_engine.py            Deterministic, versioned credit-policy rules — SEPARATE from the ML model (FOIR/LTV/income/age/KYC/sanctions/exposure)
 │   ├── decision_orchestrator.py    Composes Machine Recommendation (M): model findings + policy + confidence routing/OOD + sensitivity + risk-adjusted reco + DoA control + tiered business explanation
 │   ├── rm_case_store.py            RM case ledger — M/H/O constructs + hash-chained provenance events + outcomes; RM is final authority (accept/reject finalise; legacy four_eyes retained but unused) (sqlite in bank.db)
-│   └── report_generator.py         PDF credit decision report: matplotlib charts (PNG) → LaTeX → pdflatex → PDF; versioned per case under data/case_reports/<case_id>/<version>/ (regeneration keeps history)
+│   ├── report_generator.py         PDF credit decision report: matplotlib charts (PNG) → LaTeX → pdflatex → PDF; versioned per case under data/case_reports/<case_id>/<version>/ (regeneration keeps history)
+│   ├── financial_reports.py        Pure assembly for the Financial Reporting dept — Balance Sheet, P&L, Key Ratios, Pillar 3 per bank + consolidated (all-banks aggregate); dicts in/out, reuses regulatory_engine
+│   └── financial_report_pdf.py     Combined annual-report PDF (BS + P&L + Ratios + Pillar 3 + charts) per scope (bank / consolidated); LaTeX → pdflatex, versioned under data/financial_reports/<scope>/<version>/ (reuses report_generator helpers)
 │
 ├── ml_models/
 │   ├── __init__.py
@@ -82,7 +86,9 @@ Banking_Credit_Risk/
 │       ├── backfill_transactions.py   Adds realistic income/expense transactions for the 48 bulk-generated customers (who only had EMI debits)
 │       ├── add_new_customers.py    Adds new customers with full records + a 21-feature bank_loan_metrics training row each (then retrain) — `python operations/scripts/add_new_customers.py [N]`
 │       ├── reconcile_ledger.py     Rebalances monthly cash flow + recomputes balance_after for every txn so accounts.balance == latest balance_after (fixes balance-sync)
-│       ├── run_regulatory_batch.py Daily Regulatory Reporting batch — computes & stores Basel III/RBI returns into the reg_* tables; also wired into APScheduler (daily 01:00) and POST /regulatory/api/run-batch
+│       ├── run_regulatory_batch.py Daily Regulatory Reporting batch — computes & stores Basel III/RBI returns into the reg_* tables; reads bank_balance_sheet for real capital/liquidity (self-seeds it if empty); also wired into APScheduler (daily 01:00) and POST /regulatory/api/run-batch
+│       ├── seed_bank_balance_sheet.py  Creates & populates bank_balance_sheet (RBI Schedule III, per bank per period); FY2025 anchored to live advances/deposits so assets==liabilities and CRAR is realistic; idempotent (INSERT OR REPLACE). Skips zero-loan foreign banks (seeded by seed_global.py)
+│       ├── seed_global.py          Global group layer — creates/populates `countries` + `country_macro` (region/currency/regulator + macro vars), adds `banks.country_code`, seeds 4 foreign group banks (USA/UK/SGP/UAE) + their balance sheet & P&L in group ₹; idempotent
 │       └── update_bank_data.py     Hourly automation: adds a couple of new customers/transactions (intended for Task Scheduler/cron, not currently scheduled)
 │
 ├── public/                         Flask serves everything here as static
@@ -103,8 +109,12 @@ Banking_Credit_Risk/
 │   │   └── multibank.html          Cross-bank dashboard (served at /operations/multibank)
 │   ├── regulatory/
 │   │   └── index.html              Regulatory Reporting dashboard (served at /regulatory/) — system / per-bank / per-client Basel III & RBI returns
-│   └── relationship/
-│       └── index.html              RM decision-support cockpit (served at /relationship/) — intake, recommendation, provenance, four-eyes, insights
+│   ├── relationship/
+│   │   └── index.html              RM decision-support cockpit (served at /relationship/) — intake, recommendation, provenance, four-eyes, insights
+│   ├── financials/
+│   │   └── index.html              Financial Reporting dashboard (served at /financials/) — Group → Region → Country → Bank tree, BS/P&L/Ratios/Pillar 3 + PDF
+│   └── reference/
+│       └── index.html              Global Reference dashboard (served at /reference/) — country/jurisdiction register + macro indicators
 │
 ├── templates/
 │   └── ops_admin.html              Jinja2-rendered live bank.db schema viewer (served at /operations/db-admin)
@@ -125,6 +135,7 @@ Banking_Credit_Risk/
     ├── runs/{run_id}/              Per-run chart .b64 files + metrics
     ├── reports/{report_id}.json    Persisted assessment findings (disk-backed cache for /api/get-report and admin case list)
     ├── case_reports/{case_id}/     RM case PDF reports — manifest.json (version index) + {version}/charts/*.png + report.tex + report.pdf (newest = latest)
+    ├── financial_reports/{scope}/  Combined financial-report PDFs per bank / CONSOLIDATED — manifest.json + {version}/charts/*.png + report.tex + report.pdf
     └── audit_log.json              Append-only log of REPORT_GENERATED / REPORT_VIEWED / OVERRIDE_RECORDED events
 ```
 
@@ -224,6 +235,31 @@ Banking_Credit_Risk/
 |-------|---------|
 | `/relationship/` | `public/relationship/index.html` — RM decision-support cockpit |
 
+### Financial Reporting & Disclosures API (`/financials/api/`) — assembles bank_balance_sheet + bank_profit_loss + regulatory engine, no auth header
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET  | `/financials/api/system` | Bank list with snapshot KPIs + a **Group → Region → Country → Bank `tree`** (rolled-up assets per node) + consolidated snapshot (self-seeds tables incl. the global layer) |
+| GET  | `/financials/api/banks/<bank_id>` | Full bundle for one bank: balance_sheet, profit_loss, key_ratios, pillar3 (+ `country` block: code/region/currency/regulator) |
+| GET  | `/financials/api/region/<region>` | Regional aggregate bundle (all banks in the region) — reuses `consolidate()` |
+| GET  | `/financials/api/country/<code>` | Country aggregate bundle (all banks in the ISO-3 country) |
+| GET  | `/financials/api/consolidated` | Consolidated (whole-group aggregate) bundle, ratios recomputed on aggregates |
+| GET/POST | `/financials/api/reports/<scope>` | GET = list PDF versions; POST = generate a new combined PDF (`scope` = `<bank_id>` \| `consolidated` \| `REGION:<region>` \| `COUNTRY:<iso3>`; `:` is folder-sanitised to `_`) |
+| GET  | `/financials/api/reports/<scope>/<version>/pdf` | Serve a report PDF inline, or download with `?dl=1` |
+
+| Route | Renders |
+|-------|---------|
+| `/financials/` | `public/financials/index.html` — Financial Reporting dashboard (Group → Region → Country → Bank tree, all 4 reports + PDF at every level) |
+
+### Global Reference Data API (`/reference/api/`) — `countries` + `country_macro` tables, no auth header
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET  | `/reference/api/countries` | All jurisdictions with latest macro snapshot, grouped by region, with group-bank counts (self-seeds the global layer) |
+| GET  | `/reference/api/countries/<code>` | One jurisdiction: profile + regulatory minimums + full macro history + the group's banks there (with KPI cards) |
+
+| Route | Renders |
+|-------|---------|
+| `/reference/` | `public/reference/index.html` — Global Reference dashboard (world overview + per-country macro drill) |
+
 ---
 
 ## ML Model
@@ -291,7 +327,7 @@ PD (point + 80% band from RandomForest tree variance) → internal rating grade 
 
 ## Banking Operations Module
 
-A separate banking-operations demo, backed by **`bank.db`** (SQLite, project root) — distinct from the credit-risk calculator's own data. Schema: `banks`, `branches`, `customers`, `accounts`, `loans`, `transactions`, `credit_risk_metrics`, plus regulatory tables (`regulatory_bodies`, `regulatory_requirements`, `regulatory_compliance`).
+A separate banking-operations demo, backed by **`bank.db`** (SQLite, project root) — distinct from the credit-risk calculator's own data. Schema: `banks` (static bank master details), `bank_balance_sheet` (per-bank per-period RBI Schedule III balance sheet — see below), `branches`, `customers`, `accounts`, `loans`, `transactions`, `credit_risk_metrics`, plus regulatory tables (`regulatory_bodies`, `regulatory_requirements`, `regulatory_compliance`).
 
 - Two demo banks seeded: **BANK001 (HDFC)** and **BANK002 (ICICI)**.
 - `app.py` reads `bank.db` with raw `sqlite3` via `_ops_conn()` — no ORM, read-mostly except for the `operations/scripts/` seeders.
@@ -315,9 +351,11 @@ Third department (`/regulatory/`), built on the same `bank.db`. Produces Basel I
   - *Bank capital:* credit RWA + operational RWA (Basel Basic Indicator Approach) + market RWA (nil), Tier-1/Tier-2 capital, CRAR/CET1/Tier-1/leverage ratios vs RBI minimums.
   - *Bank liquidity:* HQLA, LCR, ASF/RSF → NSFR, CRR, SLR. Funding modelled as live retail deposits + a wholesale plug for the loan-to-deposit gap.
 - **RBI minimums used:** CRAR ≥ 11.5% (incl. 2.5% CCB), Tier-1 ≥ 9.5%, CET1 ≥ 8%, LCR ≥ 100%, NSFR ≥ 100%, CRR ≥ 4.5%, SLR ≥ 18%.
-- **Synthetic-data proxies:** the dataset has no equity ledger or trading book, so the capital base (Tier-1 ≈ 12% of banking-book assets) and HQLA (≈ 30% of funding) are **clearly-labelled proxies** surfaced in each report's `assumptions` block and on the UI's amber methodology panel. RWA, deposits, loan book and provisions are computed from live data.
+- **Balance sheet now feeds real figures (June 16 2026):** a `bank_balance_sheet` table (RBI Schedule III / Form A, per bank per period — equity capital, reserves, demand/savings/term deposits, borrowings, other liabilities; cash with RBI, balances with banks, investments, net advances, fixed/other assets; contingent liabilities & bills for collection) holds the financial position. The latest period (FY2025) is **live-anchored** (advances = SUM loan outstanding, deposits = SUM account balances) so assets == liabilities and the CRAR is realistic. `regulatory_engine.bank_capital_report` / `bank_liquidity_report` take an optional `balance_sheet` arg: when present they use the **real capital base** (CET1 = equity + reserves), total assets, HQLA (cash + SLR investments) and CRR/SLR holdings; when absent they fall back to the original proxies. The batch passes the latest balance sheet automatically. **Consequence:** ratios are now truthful — e.g. BANK001's ~265% loan-to-deposit ratio surfaces a genuine **LCR breach** (was masked by the old 30%-of-funding HQLA proxy).
+- **Legacy synthetic-data proxies (fallback only):** if no balance sheet is on file, the capital base (Tier-1 ≈ 12% of assets) and HQLA (≈ 30% of funding) proxies still apply, labelled in each report's `assumptions` block. Operational RWA (Basel BIA) and nil market RWA remain assumptions either way. RWA, deposits, loan book and provisions are always computed from live data.
 - **Batch:** `operations/scripts/run_regulatory_batch.py` runs the engine for all banks + all loans and writes the `reg_*` tables. Idempotent per `report_date` (re-running the same day replaces; history retained across days). Self-creates its tables (`CREATE TABLE IF NOT EXISTS`) so a fresh GCP deploy initialises automatically. Also refreshes the previously-empty `regulatory_compliance` table.
-- **New `bank.db` tables:** `reg_capital_reports`, `reg_liquidity_reports`, `reg_client_exposures` (+ indices). All gitignored with `bank.db`, deployed to GCP.
+- **New `bank.db` tables:** `reg_capital_reports`, `reg_liquidity_reports`, `reg_client_exposures` (+ indices), and `bank_balance_sheet`. All gitignored with `bank.db`, deployed to GCP.
+- **Balance-sheet API/UI:** `GET /regulatory/api/banks/<bank_id>/balance-sheet` (all periods, with computed totals); also embedded in the `GET /regulatory/api/banks/<bank_id>` response as `balance_sheets`. The per-bank dashboard view renders an RBI Schedule III "Statement of Financial Position" card (assets vs capital & liabilities, periods as columns) between the Liquidity and RWA panels.
 - **Scheduling:** an APScheduler **daily 01:00** job (`regulatory_batch`) plus a startup run-if-missing (`_ensure_regulatory_reports`) — both in `app.py`'s `_start_scheduler()`, which is now invoked at the **bottom** of `app.py` (after the regulatory job functions are defined). Manual trigger via `POST /regulatory/api/run-batch` or the dashboard's "Run Batch" button.
 - **Frontend:** `public/regulatory/index.html` — system overview (KPI cards, RWA-composition + capital-vs-RWA charts, bank scorecard), per-bank drill-down (ratio bars vs RBI floors, compliance register, exposure mix, top exposures, trend), and per-client regulatory report (EAD/RWA/capital/EL/provision register). Matches the operations UI design system (Syne/IBM Plex, red accent).
 
@@ -343,6 +381,37 @@ Fourth department (`/relationship/`) — the front-line RM workflow that sits be
 **Frontend:** `public/relationship/index.html` — queue (All / Pending / Decided), intake form (onboarding/KYC/bureau/financials), decision cockpit (recommendation hero + confidence dial, influential factors, counterfactual recourse, sensitivity, policy flags, M/H/O provenance timeline, **two-button accept/reject action panel**, **Case Report (PDF) card** with generate + versioned open/download links, outcome capture), and a governance/insights view.
 
 **Design note (challenged the brief):** the requirement said "pass onboarding data into existing predictive models" and "modify the recommendation." Implemented as (a) an OOD/data-quality-aware path rather than blind pass-through, and (b) authority-gated actions with escalation-instead-of-override — both per the architecture review.
+
+---
+
+## Financial Reporting & Disclosures Department
+
+Fifth department (`/financials/`), built on `bank.db`. Produces **bank-level and consolidated financial statements + regulatory disclosures**, with combined PDF export.
+
+- **Reports (per bank + consolidated, period FY2025 with FY2024 history in the tables):**
+  - *Balance Sheet* — RBI Schedule III (Form A), from `bank_balance_sheet`.
+  - *Profit & Loss* — income statement, from `bank_profit_loss` (interest on advances live-anchored to the loan book; rest modelled from the balance sheet — yields/costs in `seed_bank_profit_loss.py`).
+  - *Key Ratios* — CRAR, CET1, NIM, ROA, ROE, cost-income, Gross NPA, PCR, credit-deposit, CASA, LCR, NSFR.
+  - *Basel III Pillar 3* — capital structure, RWA composition, capital-adequacy & leverage ratios, liquidity (LCR/NSFR), credit-risk exposure mix.
+- **Engine:** `backend/financial_reports.py` (pure dict in/out) assembles the four reports; `consolidate()` aggregates per-bank stored rows and recomputes group ratios. Pillar 3 capital/liquidity reuse `regulatory_engine` (with the real balance sheet, so figures match the Regulatory dept).
+- **PDF:** `backend/financial_report_pdf.py` builds one combined annual-report-style PDF per scope (matplotlib charts → LaTeX → pdflatex), versioned under `data/financial_reports/<scope>/<version>/` (scope = `<bank_id>` or `CONSOLIDATED`); regeneration keeps history. Reuses `report_generator`'s LaTeX helpers.
+- **New `bank.db` table:** `bank_profit_loss` (per bank per period). Self-seeded (along with `bank_balance_sheet`) on first API hit via `_ensure_financials` → `seed_bank_balance_sheet.py` + `seed_bank_profit_loss.py`. Gitignored with `bank.db`, deployed to GCP.
+- **Engine roll-ups:** `consolidate(bundles_raw, period, as_on, scope_id, scope_name, scope, scope_meta)` is generic — the same aggregation produces the whole-group, a **region** or a **country** bundle. `app._fin_bundle(conn, scope)` dispatches on `'CONSOLIDATED' | 'REGION:<region>' | 'COUNTRY:<iso3>' | '<bank_id>'`.
+- **Foreign group banks:** carried balance-sheet-only (no loan/account rows). `regulatory_engine.bank_capital_report` / `bank_liquidity_report` detect `not loans and balance_sheet` and derive credit RWA from net advances (`FOREIGN_AVG_RISK_WEIGHT=0.75`), gross-income proxy (`FOREIGN_GROSS_INCOME_YIELD=0.095`) and read deposits/HQLA off the sheet — so their Basel III ratios are realistic. `seed_bank_balance_sheet.py` / `seed_bank_profit_loss.py` **skip** zero-loan banks so they never clobber the global seed.
+- **PDF:** scope can also be `REGION:<region>` / `COUNTRY:<iso3>`; `report_generator._safe()` sanitises `:` → `_` for the folder name (`data/financial_reports/COUNTRY_USA/…`).
+- **Frontend:** `public/financials/index.html` — **Group → Region → Country → Bank tree** sidebar; Group Overview with per-region cards; per-scope view (bank / country / region / group) with a Combined Report PDF card (generate + versioned open/download), Key Ratios, Balance Sheet (two-column), P&L, and Pillar 3 panels. Foreign-bank views disclose the group-reporting-currency assumption. Matches the platform design system.
+
+---
+
+## Global Reference Data Department
+
+Sixth surface (`/reference/`) — the **country/jurisdiction layer above the banks**, making this a global group bank navigable as **Group → Region → Country → Bank**. Built on `bank.db`.
+
+- **Tables:** `countries` (jurisdiction master — ISO-3 code, region, sub-region, currency, central bank, capital regulator, Basel framework, sovereign rating, per-jurisdiction min CRAR/CET1/Tier1/LCR/NSFR, `is_home`) and `country_macro` (periodic high-level indicators per country per period — GDP USD bn, GDP growth %, CPI inflation %, policy rate %, unemployment %, public-debt/GDP, current-account/GDP, FX per USD, population). 7 countries seeded (IND home + USA/GBR/SGP/ARE with banks; DEU/JPN reference-only), 2 macro periods each (CY2024/CY2025).
+- **`banks.country_code`** column added + back-filled (`IND` for the original banks). Four foreign group banks seeded by `seed_global.py` (USA/GBR/SGP/ARE) with balance sheet + P&L in group reporting currency (₹).
+- **Seed:** `operations/scripts/seed_global.py` — creates/populates `countries` + `country_macro`, adds `banks.country_code`, inserts the foreign banks + their `bank_balance_sheet`/`bank_profit_loss` rows (reuses `seed_bank_balance_sheet._build_sheet`), and a few foreign `regulatory_bodies` rows. Idempotent (INSERT OR REPLACE). Self-seeded via `app._ensure_global` (called by `_ensure_financials` and the reference endpoints).
+- **Frontend:** `public/reference/index.html` — world overview (KPIs + jurisdiction register grouped by region with macro snapshot, teal accent) and per-country drill (macro indicator cards with CY-on-CY trend arrows, jurisdiction regulatory minimums, full macro history table, and the group's banks there with links into Financial Reporting).
+- **Reporting-currency note:** every bank.db figure is INR; foreign banks' statements are seeded in the **group reporting currency (₹)** (consistent with how groups publish one consolidated currency), while home country / local currency / FX / macro come from the country tables — so consolidation stays additive and the country dimension stays truthful.
 
 ---
 
@@ -377,6 +446,9 @@ Fourth department (`/relationship/`) — the front-line RM workflow that sits be
 | Phase 5.11 | Model-alignment fix: `feature_meta.model_feature_frame()` aligns engine/explainability inputs to the deployed 21-feature pickle (was silently broken at 4 features) | June 16, 2026 |
 | Phase 5.12 | **Relationship Mgmt & Decision Support Department** — policy_engine (model-independent), decision_orchestrator (M), rm_case_store (M/H/O + hash-chained provenance + four-eyes/DoA + outcomes), /relationship/api/* routes, /relationship/ cockpit, home-page 4th card | June 16, 2026 |
 | Phase 5.13 | **RM workflow simplified to two options** (accept / reject; RM is final authority — four-eyes/escalation/modify/defer/request-info removed from the live flow) **+ PDF case reports** (`report_generator.py`: matplotlib charts → LaTeX → pdflatex, versioned per case under `data/case_reports/`, generate/list/open/download routes, cockpit Report card) | June 16, 2026 |
+| Phase 5.14 | **Bank balance sheet** — `bank_balance_sheet` table (RBI Schedule III, per bank per period, live-anchored), `seed_bank_balance_sheet.py`; regulatory_engine now uses real capital base/HQLA/CRR-SLR from it (proxies are fallback); balance-sheet API + Schedule III card on the per-bank Regulatory dashboard; Playwright RM E2E tests added under `testing/rm-e2e/` | June 16, 2026 |
+| Phase 5.15 | **Financial Reporting & Disclosures Department** (`/financials/`) — `bank_profit_loss` table + `seed_bank_profit_loss.py`; `financial_reports.py` (Balance Sheet / P&L / Key Ratios / Pillar 3, per bank + consolidated); `financial_report_pdf.py` (combined LaTeX→PDF per scope, versioned); `/financials/api/*` routes with self-seed; `/financials/` dashboard; home-page 5th department card | June 16, 2026 |
+| Phase 5.16 | **Global group bank — country reference layer** (`/reference/`): `countries` + `country_macro` tables + `seed_global.py` (macro vars, regulators, per-jurisdiction Basel minimums); `banks.country_code`; 4 foreign group banks (USA/UK/Singapore/UAE, balance-sheet-only, group ₹); `regulatory_engine` advances-based RWA fallback for loan-less banks; `financial_reports.consolidate()` generalised for region/country roll-ups; `/financials/api/{region,country}` + Group→Region→Country→Bank tree UI; `/reference/api/*` + reference dashboard; home-page 6th card | June 17, 2026 |
 
 ---
 

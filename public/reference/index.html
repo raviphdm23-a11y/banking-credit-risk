@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Global Reference Data — Countries & Macro</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=IBM+Plex+Sans:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--navy:#0D1B2A;--red:#E31837;--red-dk:#B01229;--off:#F4F6FA;--border:#E2E8F0;
+  --t1:#0D1B2A;--t2:#4A5568;--t3:#8A9AB0;--green:#10B981;--amber:#F59E0B;--blue:#3B82F6;--purple:#8B5CF6;--teal:#0EA5A4}
+body{font-family:'IBM Plex Sans',sans-serif;background:var(--off);color:var(--t1);display:flex;flex-direction:column;height:100vh;overflow:hidden}
+.topnav{background:#fff;border-bottom:1px solid var(--border);padding:0 26px;height:54px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.topnav-title{font-family:'Syne';font-weight:700;font-size:15px}
+.btn{padding:8px 15px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;border:1px solid var(--border);background:#fff;color:var(--t2);transition:.18s;display:inline-flex;gap:7px;align-items:center;text-decoration:none}
+.btn:hover{border-color:var(--red);color:var(--red)}
+.btn-primary{background:var(--red);color:#fff;border-color:var(--red)}.btn-primary:hover{background:var(--red-dk);color:#fff}
+.btn-sm{padding:6px 11px;font-size:11px}
+.layout{display:flex;flex:1;overflow:hidden}
+.sidebar{width:262px;min-width:262px;background:var(--navy);display:flex;flex-direction:column;overflow:hidden}
+.sb-head{padding:16px 20px 12px;border-bottom:1px solid rgba(255,255,255,.07)}
+.home-link{display:flex;gap:6px;color:rgba(255,255,255,.5);font-size:11px;text-decoration:none;margin-bottom:10px}.home-link:hover{color:#fff}
+.logo-row{display:flex;align-items:center;gap:11px}
+.logo-mark{width:34px;height:34px;background:var(--teal);border-radius:9px;display:flex;align-items:center;justify-content:center;font-family:'Syne';font-weight:800;font-size:13px;color:#fff}
+.logo-name{font-family:'Syne';font-weight:700;font-size:12.5px;color:#fff}
+.logo-sub{font-size:9px;color:rgba(255,255,255,.35);letter-spacing:.8px;text-transform:uppercase;margin-top:1px}
+.nav{flex:1;overflow-y:auto;padding:12px 10px}
+.nav-sl{font-size:9px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:rgba(255,255,255,.3);padding:10px 10px 5px}
+.nav-item{padding:9px 12px;border-radius:9px;cursor:pointer;color:rgba(255,255,255,.7);font-size:13px;margin-bottom:2px;border:1px solid transparent;display:flex;justify-content:space-between;align-items:center}
+.nav-item:hover{background:rgba(255,255,255,.06)}
+.nav-item.active{background:rgba(14,165,164,.18);border-color:rgba(14,165,164,.35);color:#fff}
+.nav-item .sub{font-size:10px;color:rgba(255,255,255,.4);font-family:'IBM Plex Mono'}
+.main{flex:1;overflow-y:auto;min-width:0}
+.main::-webkit-scrollbar{width:6px}.main::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+.content{padding:24px 30px 70px;max-width:1180px;display:flex;flex-direction:column;gap:20px}
+.page-title{font-family:'Syne';font-weight:800;font-size:25px;letter-spacing:-.4px}
+.page-desc{font-size:12.5px;color:var(--t3);margin-top:4px;line-height:1.55;max-width:760px}
+.sl{font-size:9.5px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:var(--t3);margin:4px 0 10px;display:flex;align-items:center;gap:10px}.sl::after{content:'';flex:1;height:1px;background:var(--border)}
+.card{background:#fff;border-radius:13px;padding:20px 22px;border:1px solid var(--border)}
+.card-title{font-family:'Syne';font-weight:700;font-size:14px;margin-bottom:3px}
+.card-sub{font-size:11px;color:var(--t3);margin-bottom:14px}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+.kpi{background:#fff;border:1px solid var(--border);border-radius:12px;padding:15px 17px}
+.kpi .l{font-size:9.5px;text-transform:uppercase;letter-spacing:.6px;color:var(--t3);font-weight:600}
+.kpi .v{font-family:'Syne';font-weight:800;font-size:23px;margin-top:6px}
+.kpi .s{font-size:10.5px;color:var(--t3);margin-top:3px}
+.tbl{width:100%;border-collapse:collapse;font-size:12.5px}
+.tbl th{text-align:left;font-size:9.5px;text-transform:uppercase;letter-spacing:.5px;color:var(--t3);font-weight:600;padding:7px 8px;border-bottom:1px solid var(--border)}
+.tbl td{padding:8px 8px;border-bottom:1px solid #F1F5F9}
+.tbl td.num,.tbl th.num{text-align:right;font-family:'IBM Plex Mono';font-size:11.5px}
+.tbl tr.clk{cursor:pointer}.tbl tr.clk:hover{background:#F8FAFC}
+.badge{font-size:9px;font-weight:700;padding:2px 9px;border-radius:100px;display:inline-block}
+.badge.home{background:#CCFBF1;color:#0F766E}.badge.gray{background:#E5E7EB;color:#374151}
+.badge.Compliant{background:#D1FAE5;color:#065F46}.badge.Watch{background:#FEF3C7;color:#92400E}.badge.Breach{background:#FEE2E2;color:#991B1B}
+.chip{font-size:10px;font-weight:600;padding:3px 10px;border-radius:100px;background:#EEF2F7;color:var(--t2);display:inline-block}
+.up{color:var(--green)}.dn{color:var(--red)}
+.flag{font-size:16px}
+.empty{padding:70px 30px;text-align:center;color:var(--t3)}
+.spinner{display:inline-block;width:24px;height:24px;border:3px solid var(--border);border-top-color:var(--teal);border-radius:50%;animation:spin .8s linear infinite;margin-bottom:12px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.amber{background:#FFFBEB;border:1px solid #FDE68A;color:#92400E;border-radius:10px;padding:12px 15px;font-size:11.5px;line-height:1.6}
+.macro-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.macro{background:#fff;border:1px solid var(--border);border-radius:11px;padding:13px 15px}
+.macro .l{font-size:9.5px;text-transform:uppercase;letter-spacing:.5px;color:var(--t3);font-weight:600}
+.macro .v{font-family:'Syne';font-weight:800;font-size:21px;margin-top:5px}
+.macro .s{font-size:10.5px;color:var(--t3);margin-top:3px;font-family:'IBM Plex Mono'}
+@media(max-width:980px){.grid-2,.macro-grid{grid-template-columns:1fr}.kpi-grid{grid-template-columns:1fr 1fr}}
+</style>
+</head>
+<body>
+<div class="topnav">
+  <span class="topnav-title">🌍 Global Reference Data</span>
+  <a class="btn" href="/financials/">Financial Reports →</a>
+</div>
+<div class="layout">
+  <aside class="sidebar">
+    <div class="sb-head">
+      <a href="/" class="home-link">← Platform Home</a>
+      <div class="logo-row"><div class="logo-mark">🌐</div>
+        <div><div class="logo-name">Reference Data</div><div class="logo-sub">Countries · Macro</div></div></div>
+    </div>
+    <div class="nav" id="nav"></div>
+  </aside>
+  <main class="main"><div class="content" id="content">
+    <div class="empty"><div class="spinner"></div><div>Loading…</div></div>
+  </div></main>
+</div>
+<script>
+const FLAG={IND:'🇮🇳',USA:'🇺🇸',GBR:'🇬🇧',SGP:'🇸🇬',ARE:'🇦🇪',DEU:'🇩🇪',JPN:'🇯🇵'};
+const flag=c=>FLAG[c]||'🏳️';
+const esc=s=>(s==null?'':String(s)).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+const inr=n=>{if(n==null)return '—';const a=Math.abs(n);
+  if(a>=1e7)return '₹'+(n/1e7).toFixed(2)+' Cr';if(a>=1e5)return '₹'+(n/1e5).toFixed(2)+' L';
+  return '₹'+Number(n).toLocaleString('en-IN',{maximumFractionDigits:0});};
+const gdp=n=>n==null?'—':(n>=1000?'$'+(n/1000).toFixed(2)+' T':'$'+n.toFixed(0)+' bn');
+let REF=null, current='overview';
+
+async function load(){
+  REF=await fetch('/reference/api/countries').then(r=>r.json());
+  renderNav(); select('overview');
+}
+function renderNav(){
+  let s='';
+  (REF.regions||[]).forEach(reg=>{
+    s+=`<div class="nav-sl">${esc(reg.region)}</div>`;
+    reg.countries.forEach(c=>{
+      s+=`<div class="nav-item ${current===c.country_code?'active':''}" onclick="select('${c.country_code}')">
+        <span>${flag(c.country_code)} ${esc(c.country_name)}</span><span class="sub">${c.num_banks?c.num_banks+'🏦':'—'}</span></div>`;
+    });
+  });
+  document.getElementById('nav').innerHTML=`
+    <div class="nav-sl">Overview</div>
+    <div class="nav-item ${current==='overview'?'active':''}" onclick="select('overview')"><span>🗺️ World Overview</span></div>
+    ${s}`;
+}
+function select(c){current=c;renderNav();c==='overview'?renderOverview():renderCountry(c);}
+
+function renderOverview(){
+  const cs=REF.countries||[];
+  const regions=(REF.regions||[]).map(reg=>{
+    const rows=reg.countries.map(c=>{const m=c.macro||{};
+      return `<tr class="clk" onclick="select('${c.country_code}')">
+        <td><span class="flag">${flag(c.country_code)}</span> ${esc(c.country_name)} ${c.is_home?'<span class="badge home">HOME</span>':''}</td>
+        <td>${esc(c.currency_code)} ${esc(c.currency_symbol||'')}</td>
+        <td>${esc(c.central_bank_abbr)}</td>
+        <td><span class="chip">${esc(c.sovereign_rating)}</span></td>
+        <td class="num">${gdp(m.gdp_usd_bn)}</td>
+        <td class="num ${m.gdp_growth_pct>=0?'up':'dn'}">${m.gdp_growth_pct!=null?m.gdp_growth_pct.toFixed(1)+'%':'—'}</td>
+        <td class="num">${m.inflation_cpi_pct!=null?m.inflation_cpi_pct.toFixed(1)+'%':'—'}</td>
+        <td class="num">${m.policy_rate_pct!=null?m.policy_rate_pct.toFixed(2)+'%':'—'}</td>
+        <td class="num">${c.num_banks||'—'}</td></tr>`;}).join('');
+    return `<div class="card">
+      <div class="card-title">🌐 ${esc(reg.region)}</div>
+      <div class="card-sub">${reg.countries.length} ${reg.countries.length===1?'jurisdiction':'jurisdictions'} · ${reg.num_banks} group ${reg.num_banks===1?'bank':'banks'}</div>
+      <table class="tbl"><thead><tr><th>Country</th><th>Currency</th><th>Regulator</th><th>Rating</th>
+        <th class="num">GDP</th><th class="num">Growth</th><th class="num">CPI</th><th class="num">Policy</th><th class="num">Banks</th></tr></thead>
+        <tbody>${rows}</tbody></table></div>`;
+  }).join('');
+  document.getElementById('content').innerHTML=`
+    <div><div class="page-title">Global Reference Data</div>
+    <div class="page-desc">The jurisdiction layer above the group's banks. Each country carries its regulator &amp; Basel framework, sovereign rating, per-jurisdiction regulatory minimums and high-level macroeconomic indicators (GDP, growth, inflation, policy rate, …). The group operates <b>Group → Region → Country → Bank</b>; macro &amp; FX context here, financial statements in the <a href="/financials/" style="color:var(--red)">Financial Reporting</a> department.</div></div>
+    <div class="kpi-grid">
+      <div class="kpi"><div class="l">Jurisdictions</div><div class="v">${REF.num_countries||0}</div></div>
+      <div class="kpi"><div class="l">With Group Banks</div><div class="v">${REF.num_with_banks||0}</div></div>
+      <div class="kpi"><div class="l">Regions</div><div class="v">${(REF.regions||[]).length}</div></div>
+      <div class="kpi"><div class="l">Currencies</div><div class="v">${new Set(cs.map(c=>c.currency_code)).size}</div></div>
+    </div>
+    <div class="sl">Jurisdiction Register · Macro Snapshot (latest)</div>
+    ${regions}
+    <div class="amber">⚠ Macro indicators are illustrative reference values (IMF / World Bank style) for demonstration; the latest period shown is the most recent macro row per country. FX rate is local currency units per USD.</div>`;
+}
+
+async function renderCountry(code){
+  document.getElementById('content').innerHTML='<div class="empty"><div class="spinner"></div><div>Loading jurisdiction…</div></div>';
+  const d=await fetch('/reference/api/countries/'+code).then(r=>r.json());
+  if(!d.available){document.getElementById('content').innerHTML=`<div class="empty">${esc(d.error||'No data')}</div>`;return;}
+  const c=d.country, macro=d.macro||[], latest=macro[macro.length-1]||{}, prev=macro[macro.length-2]||{};
+  const trend=(k,suffix='%',dp=1)=>{const v=latest[k],p=prev[k];
+    if(v==null)return '—';
+    let arrow='';if(p!=null){const dir=v>p?'up':(v<p?'dn':'');arrow=` <span class="${dir}">${v>p?'▲':(v<p?'▼':'')}${p!=null?(Math.abs(v-p)).toFixed(dp):''}</span>`;}
+    return v.toFixed(dp)+suffix+arrow;};
+  const macroCards=[
+    ['GDP (nominal)',gdp(latest.gdp_usd_bn),'USD'],
+    ['GDP Growth',trend('gdp_growth_pct'),'real, YoY'],
+    ['CPI Inflation',trend('inflation_cpi_pct'),'headline'],
+    ['Policy Rate',latest.policy_rate_pct!=null?latest.policy_rate_pct.toFixed(2)+'%':'—',c.central_bank_abbr],
+    ['Unemployment',latest.unemployment_pct!=null?latest.unemployment_pct.toFixed(1)+'%':'—',''],
+    ['Public Debt / GDP',latest.public_debt_gdp_pct!=null?latest.public_debt_gdp_pct.toFixed(0)+'%':'—',''],
+    ['Current Account / GDP',latest.current_account_gdp_pct!=null?latest.current_account_gdp_pct.toFixed(1)+'%':'—',''],
+    ['FX Rate',latest.fx_rate_per_usd!=null?(c.currency_code+' '+latest.fx_rate_per_usd.toFixed(2)+'/USD'):'—',''],
+    ['Population',latest.population_mn!=null?latest.population_mn.toFixed(1)+' mn':'—',''],
+  ].map(([l,v,s])=>`<div class="macro"><div class="l">${l}</div><div class="v" style="font-size:18px">${v}</div><div class="s">${esc(s)}</div></div>`).join('');
+
+  const banks=(d.banks||[]).map(b=>b.available?`
+    <tr class="clk" onclick="location.href='/financials/'"><td>${esc(b.bank_name)} <span class="card-sub" style="margin:0">${esc(b.headquarters_city||'')}</span></td>
+      <td class="num">${inr(b.total_assets)}</td><td class="num">${inr(b.pat)}</td>
+      <td class="num">${b.car!=null?b.car.toFixed(2)+'%':'—'} <span class="badge ${b.car_status}">${b.car_status}</span></td>
+      <td class="num">${b.lcr!=null?b.lcr.toFixed(1)+'%':'—'}</td><td class="num">${b.gnpa_pct}%</td></tr>`
+    :`<tr><td>${esc(b.bank_name)}</td><td colspan="5" class="card-sub" style="margin:0">no financials</td></tr>`).join('');
+
+  const macroHist=`<table class="tbl"><thead><tr><th>Indicator</th>${macro.map(m=>`<th class="num">${esc(m.period)}</th>`).join('')}</tr></thead><tbody>
+    ${[['GDP (USD bn)','gdp_usd_bn',0,''],['GDP growth','gdp_growth_pct',1,'%'],['CPI inflation','inflation_cpi_pct',1,'%'],
+       ['Policy rate','policy_rate_pct',2,'%'],['Unemployment','unemployment_pct',1,'%'],['Public debt/GDP','public_debt_gdp_pct',0,'%'],
+       ['Current account/GDP','current_account_gdp_pct',1,'%'],['FX per USD','fx_rate_per_usd',2,''],['Population (mn)','population_mn',1,'']]
+      .map(([lab,k,dp,suf])=>`<tr><td>${lab}</td>${macro.map(m=>`<td class="num">${m[k]!=null?m[k].toFixed(dp)+suf:'—'}</td>`).join('')}</tr>`).join('')}
+    </tbody></table>`;
+
+  document.getElementById('content').innerHTML=`
+    <div><div class="page-title"><span class="flag" style="font-size:28px">${flag(c.country_code)}</span> ${esc(c.country_name)} ${c.is_home?'<span class="badge home">HOME JURISDICTION</span>':''}</div>
+    <div class="page-desc">${esc(c.region)} · ${esc(c.sub_region)} · ${esc(c.central_bank)} (${esc(c.central_bank_abbr)}) · ${esc(c.basel_framework)}. Sovereign rating ${esc(c.sovereign_rating)}. Reporting currency ${esc(c.currency_code)} (${esc(c.currency_symbol)}).</div></div>
+
+    <div class="sl">Macro Indicators · ${esc(latest.period||'')}</div>
+    <div class="macro-grid">${macroCards}</div>
+
+    <div class="grid-2">
+      <div class="card"><div class="card-title">Regulatory Minimums (jurisdiction)</div>
+        <div class="card-sub">Basel III floors applied by ${esc(c.capital_regulator)}</div>
+        <table class="tbl"><tbody>
+          <tr><td>Min CRAR / Total Capital</td><td class="num">${c.min_crar}%</td></tr>
+          <tr><td>Min CET1</td><td class="num">${c.min_cet1}%</td></tr>
+          <tr><td>Min Tier-1</td><td class="num">${c.min_tier1}%</td></tr>
+          <tr><td>Min LCR</td><td class="num">${c.min_lcr}%</td></tr>
+          <tr><td>Min NSFR</td><td class="num">${c.min_nsfr}%</td></tr>
+        </tbody></table></div>
+      <div class="card"><div class="card-title">Macro History</div>
+        <div class="card-sub">Per reporting period</div>${macroHist}</div>
+    </div>
+
+    <div class="sl">Group Banks in ${esc(c.country_name)}</div>
+    <div class="card">${(d.banks&&d.banks.length)?`<table class="tbl"><thead><tr><th>Bank</th><th class="num">Total Assets</th><th class="num">PAT</th><th class="num">CRAR</th><th class="num">LCR</th><th class="num">GNPA</th></tr></thead><tbody>${banks}</tbody></table>
+      <div class="card-sub" style="margin-top:10px">Figures in group reporting currency (₹). Open the <a href="/financials/" style="color:var(--red)">Financial Reporting</a> department for full statements &amp; PDF.</div>`
+      :'<div class="card-sub" style="margin:0">No group banks in this jurisdiction yet — reference jurisdiction only.</div>'}</div>`;
+}
+load();
+</script>
+</body>
+</html>

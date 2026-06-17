@@ -217,6 +217,49 @@ function inr(n){ if(n==null) return '—'; const a=Math.abs(n);
   return '₹'+Number(n).toLocaleString('en-IN',{maximumFractionDigits:0}); }
 const pct = n => n==null ? '—' : Number(n).toFixed(2)+'%';
 const esc = s => (s==null?'':String(s)).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+
+// RBI Schedule III (Form A) balance sheet — periods as columns, assets vs liabilities.
+function renderBalanceSheet(sheets){
+  if(!sheets || !sheets.length) return '';
+  const periods = sheets.slice().reverse();   // oldest → newest
+  const head = periods.map(p=>`<th class="th-num">${esc(p.period)}</th>`).join('');
+  const row = (label,key,opt={})=>`<tr style="${opt.strong?'font-weight:700;border-top:1.5px solid var(--border)':''}">
+    <td style="${opt.indent?'padding-left:20px;color:var(--t3);font-size:11px':''}">${esc(label)}</td>
+    ${periods.map(p=>`<td class="num">${inr(p[key])}</td>`).join('')}</tr>`;
+  const liab = `<table class="tbl"><thead><tr><th>Capital &amp; Liabilities</th>${head}</tr></thead><tbody>
+    ${row('Equity Share Capital','equity_capital')}
+    ${row('Reserves & Surplus','reserves_surplus')}
+    ${row('Deposits','total_deposits')}
+    ${row('— Demand deposits','deposits_demand',{indent:true})}
+    ${row('— Savings deposits','deposits_savings',{indent:true})}
+    ${row('— Term deposits','deposits_term',{indent:true})}
+    ${row('Borrowings','borrowings')}
+    ${row('Other Liabilities & Provisions','other_liabilities')}
+    ${row('Total Capital & Liabilities','total_liabilities_capital',{strong:true})}
+  </tbody></table>`;
+  const assets = `<table class="tbl"><thead><tr><th>Assets</th>${head}</tr></thead><tbody>
+    ${row('Cash & Balances with RBI','cash_with_rbi')}
+    ${row('Balances with Banks / Money at Call','balances_with_banks')}
+    ${row('Investments','investments')}
+    ${row('Advances (net)','advances_net')}
+    ${row('Fixed Assets','fixed_assets')}
+    ${row('Other Assets','other_assets')}
+    ${row('Total Assets','total_assets',{strong:true})}
+  </tbody></table>`;
+  const latest = periods[periods.length-1];
+  return `<div>
+    <div class="sl">Balance Sheet — RBI Schedule III (Form A)</div>
+    <div class="card">
+      <div class="card-title">Statement of Financial Position</div>
+      <div class="card-sub">As at ${esc(latest.as_on_date)} · ₹ (INR) · the latest period's capital base &amp; HQLA feed the CRAR/LCR above</div>
+      <div class="grid-2">${liab}${assets}</div>
+      <div class="ratio-foot">
+        <span>Contingent liabilities ${inr(latest.contingent_liabilities)}</span>
+        <span>Bills for collection ${inr(latest.bills_for_collection)}</span>
+      </div>
+    </div>
+  </div>`;
+}
 const statusColor = s => ({Compliant:'green',Watch:'amber',Breach:'red',Monitored:'blue'}[s]||'blue');
 
 // horizontal ratio bar: actual vs regulatory minimum (minimum sits at 50% of track)
@@ -500,6 +543,8 @@ async function showBank(bankId){
     </div>
   </div>
 
+  ${renderBalanceSheet(data.balance_sheets)}
+
   <div class="grid-2">
     <div class="card">
       <div class="card-title">Risk-Weighted Assets</div>
@@ -560,8 +605,8 @@ async function showBank(bankId){
   </div>
 
   <div class="assume">
-    <div class="assume-title">⚠ Methodology &amp; Synthetic-Data Assumptions</div>
-    Capital base proxy: Tier-1 ≈ ${(capAssume.capital_to_assets_proxy!=null?(capAssume.capital_to_assets_proxy*100).toFixed(1)+'% of banking-book assets':'n/a')}. Operational RWA via ${esc(capAssume.op_risk_method||'Basel BIA')}. Market RWA ${esc(capAssume.market_rwa||'nil')}. Liquidity: ${esc(liqAssume.funding_model||'')} (HQLA ≈ ${(liqAssume.hqla_to_funding_proxy!=null?(liqAssume.hqla_to_funding_proxy*100).toFixed(0)+'% of funding':'n/a')}). <strong>RWA, deposits, loan book and provisions are computed from live data; the capital/HQLA anchors are clearly-labelled proxies because the synthetic dataset has no equity ledger.</strong>
+    <div class="assume-title">⚠ Methodology &amp; Data Sources</div>
+    Capital base: <strong>${esc(capAssume.capital_source||'synthetic proxy')}</strong>. ${capAssume.capital_to_assets_proxy!=null?`Capital proxy Tier-1 ≈ ${(capAssume.capital_to_assets_proxy*100).toFixed(1)}% of assets.`:''} Operational RWA via ${esc(capAssume.op_risk_method||'Basel BIA')}. Market RWA ${esc(capAssume.market_rwa||'nil')}. Liquidity source: <strong>${esc(liqAssume.liquidity_source||'synthetic proxy')}</strong> — ${esc(liqAssume.funding_model||'')}${liqAssume.hqla_to_funding_proxy!=null?` (HQLA ≈ ${(liqAssume.hqla_to_funding_proxy*100).toFixed(0)}% of funding)`:''}. <strong>RWA is computed from the live loan book; the capital base, total assets, HQLA and CRR/SLR holdings are now read from the stored bank balance sheet (RBI Schedule III). Run-off factors remain Basel-style assumptions; market RWA is nil (no trading book).</strong>
   </div>`;
 
   setTimeout(()=>{

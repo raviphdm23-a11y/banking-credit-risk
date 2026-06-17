@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Financial Reporting & Disclosures — India Banking Intelligence</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=IBM+Plex+Sans:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--navy:#0D1B2A;--red:#E31837;--red-dk:#B01229;--off:#F4F6FA;--border:#E2E8F0;
+  --t1:#0D1B2A;--t2:#4A5568;--t3:#8A9AB0;--green:#10B981;--amber:#F59E0B;--blue:#3B82F6;--purple:#8B5CF6}
+body{font-family:'IBM Plex Sans',sans-serif;background:var(--off);color:var(--t1);display:flex;flex-direction:column;height:100vh;overflow:hidden}
+.topnav{background:#fff;border-bottom:1px solid var(--border);padding:0 26px;height:54px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.topnav-title{font-family:'Syne';font-weight:700;font-size:15px}
+.btn{padding:8px 15px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;border:1px solid var(--border);background:#fff;color:var(--t2);transition:.18s;display:inline-flex;gap:7px;align-items:center;text-decoration:none}
+.btn:hover{border-color:var(--red);color:var(--red)}
+.btn-primary{background:var(--red);color:#fff;border-color:var(--red)}.btn-primary:hover{background:var(--red-dk);color:#fff}
+.btn-sm{padding:6px 11px;font-size:11px}.btn:disabled{opacity:.5;cursor:not-allowed}
+.layout{display:flex;flex:1;overflow:hidden}
+.sidebar{width:270px;min-width:270px;background:var(--navy);display:flex;flex-direction:column;overflow:hidden}
+.sb-head{padding:16px 20px 12px;border-bottom:1px solid rgba(255,255,255,.07)}
+.home-link{display:flex;gap:6px;color:rgba(255,255,255,.5);font-size:11px;text-decoration:none;margin-bottom:10px}.home-link:hover{color:#fff}
+.logo-row{display:flex;align-items:center;gap:11px}
+.logo-mark{width:34px;height:34px;background:var(--red);border-radius:9px;display:flex;align-items:center;justify-content:center;font-family:'Syne';font-weight:800;font-size:11px;color:#fff}
+.logo-name{font-family:'Syne';font-weight:700;font-size:12.5px;color:#fff}
+.logo-sub{font-size:9px;color:rgba(255,255,255,.35);letter-spacing:.8px;text-transform:uppercase;margin-top:1px}
+.nav{flex:1;overflow-y:auto;padding:12px 10px}
+.nav-sl{font-size:9px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:rgba(255,255,255,.3);padding:10px 10px 5px}
+.nav-item{padding:10px 12px;border-radius:9px;cursor:pointer;color:rgba(255,255,255,.7);font-size:13px;margin-bottom:3px;border:1px solid transparent;display:flex;justify-content:space-between;align-items:center}
+.nav-item:hover{background:rgba(255,255,255,.06)}
+.nav-item.active{background:rgba(227,24,55,.16);border-color:rgba(227,24,55,.3);color:#fff}
+.nav-item .sub{font-size:10px;color:rgba(255,255,255,.4);font-family:'IBM Plex Mono'}
+.main{flex:1;overflow-y:auto;min-width:0}
+.main::-webkit-scrollbar{width:6px}.main::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+.content{padding:24px 30px 70px;max-width:1180px;display:flex;flex-direction:column;gap:20px}
+.page-title{font-family:'Syne';font-weight:800;font-size:25px;letter-spacing:-.4px}
+.page-desc{font-size:12.5px;color:var(--t3);margin-top:4px;line-height:1.55;max-width:740px}
+.sl{font-size:9.5px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:var(--t3);margin:4px 0 10px;display:flex;align-items:center;gap:10px}.sl::after{content:'';flex:1;height:1px;background:var(--border)}
+.card{background:#fff;border-radius:13px;padding:20px 22px;border:1px solid var(--border)}
+.card-title{font-family:'Syne';font-weight:700;font-size:14px;margin-bottom:3px}
+.card-sub{font-size:11px;color:var(--t3);margin-bottom:14px}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+.kpi{background:#fff;border:1px solid var(--border);border-radius:12px;padding:15px 17px}
+.kpi .l{font-size:9.5px;text-transform:uppercase;letter-spacing:.6px;color:var(--t3);font-weight:600}
+.kpi .v{font-family:'Syne';font-weight:800;font-size:23px;margin-top:6px}
+.kpi .s{font-size:10.5px;color:var(--t3);margin-top:3px}
+.tbl{width:100%;border-collapse:collapse;font-size:12.5px}
+.tbl th{text-align:left;font-size:9.5px;text-transform:uppercase;letter-spacing:.5px;color:var(--t3);font-weight:600;padding:7px 8px;border-bottom:1px solid var(--border)}
+.tbl td{padding:7px 8px;border-bottom:1px solid #F1F5F9}
+.tbl td.num,.tbl th.num{text-align:right;font-family:'IBM Plex Mono';font-size:11.5px}
+.tbl tr.grp td{font-weight:700;border-top:1px solid var(--border)}
+.tbl td.ind{padding-left:24px;color:var(--t2);font-size:11.5px}
+.tbl tr.tot td{font-weight:800;border-top:1.5px solid var(--navy)}
+.badge{font-size:9px;font-weight:700;padding:2px 9px;border-radius:100px;display:inline-block}
+.badge.Compliant{background:#D1FAE5;color:#065F46}.badge.Watch{background:#FEF3C7;color:#92400E}
+.badge.Breach{background:#FEE2E2;color:#991B1B}.badge.Monitored,.badge.gray{background:#E5E7EB;color:#374151}
+.foot{display:flex;justify-content:space-between;font-size:10.5px;color:var(--t3);margin-top:12px;flex-wrap:wrap;gap:8px}
+.empty{padding:70px 30px;text-align:center;color:var(--t3)}
+.spinner{display:inline-block;width:24px;height:24px;border:3px solid var(--border);border-top-color:var(--red);border-radius:50%;animation:spin .8s linear infinite;margin-bottom:12px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.toast{position:fixed;bottom:22px;right:22px;background:var(--navy);color:#fff;padding:12px 18px;border-radius:10px;font-size:12.5px;box-shadow:0 10px 30px rgba(0,0,0,.25);opacity:0;transform:translateY(10px);transition:.3s;z-index:100}
+.toast.show{opacity:1;transform:translateY(0)}.toast.error{border-left:3px solid var(--red)}.toast.success{border-left:3px solid var(--green)}
+.amber{background:#FFFBEB;border:1px solid #FDE68A;color:#92400E;border-radius:10px;padding:12px 15px;font-size:11.5px;line-height:1.6}
+@media(max-width:980px){.grid-2{grid-template-columns:1fr}.kpi-grid{grid-template-columns:1fr 1fr}}
+</style>
+</head>
+<body>
+<div class="topnav">
+  <span class="topnav-title">📊 Financial Reporting & Disclosures</span>
+  <a class="btn" href="/">← Platform Home</a>
+</div>
+<div class="layout">
+  <aside class="sidebar">
+    <div class="sb-head">
+      <a href="/" class="home-link">← Platform Home</a>
+      <div class="logo-row"><div class="logo-mark">FR</div>
+        <div><div class="logo-name">Financial Reports</div><div class="logo-sub">BS · P&amp;L · Pillar 3</div></div></div>
+    </div>
+    <div class="nav" id="nav"></div>
+  </aside>
+  <main class="main"><div class="content" id="content">
+    <div class="empty"><div class="spinner"></div><div>Loading…</div></div>
+  </div></main>
+</div>
+<div class="toast" id="toast"></div>
+<script>
+const inr=n=>{if(n==null)return '—';const a=Math.abs(n);
+  if(a>=1e7)return '₹'+(n/1e7).toFixed(2)+' Cr';
+  if(a>=1e5)return '₹'+(n/1e5).toFixed(2)+' L';
+  return '₹'+Number(n).toLocaleString('en-IN',{maximumFractionDigits:0});};
+const pctv=n=>n==null?'—':Number(n).toFixed(2)+'%';
+const esc=s=>(s==null?'':String(s)).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+function toast(m,t='success'){const e=document.getElementById('toast');e.className='toast '+t;e.textContent=m;e.classList.add('show');setTimeout(()=>e.classList.remove('show'),3200);}
+let SYS=null, current='system';
+const scopeUrl=s=>{
+  if(s==='CONSOLIDATED')return '/financials/api/consolidated';
+  if(s.indexOf('REGION:')===0)return '/financials/api/region/'+encodeURIComponent(s.slice(7));
+  if(s.indexOf('COUNTRY:')===0)return '/financials/api/country/'+encodeURIComponent(s.slice(8));
+  return '/financials/api/banks/'+s;
+};
+const isAgg=s=>s==='CONSOLIDATED'||s.indexOf('REGION:')===0||s.indexOf('COUNTRY:')===0;
+
+async function loadSystem(){
+  SYS=await fetch('/financials/api/system').then(r=>r.json());
+  renderNav(); selectScope('system');
+}
+function renderNav(){
+  let tree='';
+  (SYS.tree||[]).forEach(reg=>{
+    const ract=current==='REGION:'+reg.region?'active':'';
+    tree+=`<div class="nav-item ${ract}" onclick="selectScope('REGION:${esc(reg.region)}')">
+      <span>🌐 ${esc(reg.region)}</span><span class="sub">${inr(reg.total_assets)}</span></div>`;
+    reg.countries.forEach(ct=>{
+      const cact=current==='COUNTRY:'+ct.country_code?'active':'';
+      tree+=`<div class="nav-item ${cact}" style="padding-left:22px" onclick="selectScope('COUNTRY:${ct.country_code}')">
+        <span>${flag(ct.country_code)} ${esc(ct.country_name)}</span><span class="sub">${ct.banks.length}🏦</span></div>`;
+      ct.banks.forEach(b=>{
+        const bact=current===b.bank_id?'active':'';
+        tree+=`<div class="nav-item ${bact}" style="padding-left:38px" onclick="selectScope('${b.bank_id}')">
+          <span style="font-size:12px">${esc(b.bank_name)}</span><span class="sub">${b.car}%</span></div>`;
+      });
+    });
+  });
+  document.getElementById('nav').innerHTML=`
+    <div class="nav-sl">Overview</div>
+    <div class="nav-item ${current==='system'?'active':''}" onclick="selectScope('system')"><span>🗺️ Group Overview</span></div>
+    <div class="nav-item ${current==='CONSOLIDATED'?'active':''}" onclick="selectScope('CONSOLIDATED')"><span>🔗 Consolidated (Group)</span></div>
+    <div class="nav-sl">Region · Country · Bank</div>${tree}
+    <div class="nav-sl">Reference</div>
+    <a class="nav-item" href="/reference/" style="text-decoration:none"><span>🌍 Country Reference Data</span></a>`;
+}
+function flag(code){return {IND:'🇮🇳',USA:'🇺🇸',GBR:'🇬🇧',SGP:'🇸🇬',ARE:'🇦🇪',DEU:'🇩🇪',JPN:'🇯🇵'}[code]||'🏳️';}
+function selectScope(s){current=s;renderNav();
+  if(s==='system')return renderSystem();
+  renderScope(s);
+}
+
+// ── GROUP OVERVIEW ──────────────────────────────────────────────────────────
+function renderSystem(){
+  const c=SYS.consolidated||{};
+  const regions=(SYS.tree||[]).map(reg=>{
+    const countries=reg.countries.map(ct=>{
+      const banks=ct.banks.map(b=>`<tr><td class="ind" style="cursor:pointer" onclick="selectScope('${b.bank_id}')">${esc(b.bank_name)}</td>
+        <td class="num">${inr(b.total_assets)}</td><td class="num">${pctv(b.car)}</td><td class="num">${pctv(b.lcr)}</td><td class="num">${b.gnpa_pct}%</td></tr>`).join('');
+      return `<tr class="grp"><td style="cursor:pointer" onclick="selectScope('COUNTRY:${ct.country_code}')">${flag(ct.country_code)} ${esc(ct.country_name)} <span class="sub" style="color:var(--t3)">(${ct.banks.length})</span></td>
+        <td class="num">${inr(ct.total_assets)}</td><td class="num"></td><td class="num"></td><td class="num"></td></tr>${banks}`;
+    }).join('');
+    return `<div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+        <div><div class="card-title">🌐 ${esc(reg.region)}</div><div class="card-sub">${reg.num_countries} ${reg.num_countries===1?'country':'countries'} · ${reg.num_banks} ${reg.num_banks===1?'bank':'banks'}</div></div>
+        <div style="text-align:right"><div class="card-title" style="font-size:16px">${inr(reg.total_assets)}</div>
+          <a class="btn btn-sm" onclick="selectScope('REGION:${esc(reg.region)}')">Regional report →</a></div></div>
+      <table class="tbl" style="margin-top:12px"><thead><tr><th>Country / Bank</th><th class="num">Total Assets</th><th class="num">CRAR</th><th class="num">LCR</th><th class="num">GNPA</th></tr></thead>
+        <tbody>${countries}</tbody></table></div>`;
+  }).join('');
+  document.getElementById('content').innerHTML=`
+    <div><div class="page-title">Global Group — Financial Reporting</div>
+    <div class="page-desc">A global banking group spanning <b>${c.num_regions||0} regions</b> and <b>${c.num_countries||0} countries</b>. Balance Sheet, P&amp;L, Key Ratios and Basel III Pillar 3 disclosures at every level of the hierarchy — <b>Group → Region → Country → Bank</b> — with annual-report PDF (LaTeX) export per scope. Figures in group reporting currency (₹), FY2025.</div></div>
+    <div class="kpi-grid">
+      <div class="kpi"><div class="l">Group Total Assets</div><div class="v" style="font-size:20px">${inr(c.total_assets)}</div><div class="s">${c.num_banks||0} banks</div></div>
+      <div class="kpi"><div class="l">Group PAT</div><div class="v" style="font-size:20px">${inr(c.pat)}</div></div>
+      <div class="kpi"><div class="l">Group CRAR / LCR</div><div class="v" style="font-size:20px">${pctv(c.car)} / ${pctv(c.lcr)}</div></div>
+      <div class="kpi"><div class="l">Footprint</div><div class="v" style="font-size:20px">${c.num_countries||0} 🌍</div><div class="s">${c.num_regions||0} regions</div></div>
+    </div>
+    <div class="sl">By Region</div>
+    ${regions}
+    <div style="text-align:center"><a class="btn btn-primary" onclick="selectScope('CONSOLIDATED')">View Consolidated Group Report →</a>
+      <a class="btn" href="/reference/" style="margin-left:8px">🌍 Country Reference Data →</a></div>`;
+}
+
+// ── BANK / COUNTRY / REGION / GROUP REPORT ──────────────────────────────────
+async function renderScope(scope){
+  document.getElementById('content').innerHTML='<div class="empty"><div class="spinner"></div><div>Loading report…</div></div>';
+  const d=await fetch(scopeUrl(scope)).then(r=>r.json());
+  if(!d.available){document.getElementById('content').innerHTML=`<div class="empty">${esc(d.error||'No data')}</div>`;return;}
+  const bank=d.bank||{}, bs=d.balance_sheet, pl=d.profit_loss, p3=d.pillar3, agg=isAgg(scope);
+  const ctry=d.country;
+  let subtitle;
+  if(scope==='CONSOLIDATED')subtitle=`Consolidated across ${bank.num_banks} banks`;
+  else if(scope.indexOf('REGION:')===0)subtitle=`Regional aggregate · ${bank.num_banks} ${bank.num_banks===1?'bank':'banks'}`;
+  else if(scope.indexOf('COUNTRY:')===0)subtitle=`${flag(bank.country_code)} Country aggregate · ${bank.num_banks} ${bank.num_banks===1?'bank':'banks'}`;
+  else subtitle=esc(bank.bank_code)+' · '+esc(bank.headquarters_city)+(ctry?` · ${flag(ctry.country_code)} ${esc(ctry.country_name)} (${esc(ctry.region)})`:'');
+  document.getElementById('content').innerHTML=`
+    <div><div class="page-title">${agg?'':flag(ctry?ctry.country_code:'')+' '}${esc(bank.bank_name)}</div>
+    <div class="page-desc">${subtitle} · ${esc(d.period)} (as at ${esc(d.as_on_date)}). Balance Sheet, P&amp;L, Key Ratios &amp; Basel III Pillar 3 disclosures.${ctry&&ctry.currency_code&&ctry.country_code!=='IND'?` Home currency ${esc(ctry.currency_code)}; figures presented in group reporting currency (₹).`:''}</div></div>
+
+    <div class="card" id="pdfCard">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap">
+        <div><div class="card-title">📄 Combined Report PDF</div>
+          <div class="card-sub">Annual-report-style PDF (Balance Sheet + P&amp;L + Key Ratios + Pillar 3) via LaTeX. Each generation is versioned.</div></div>
+        <button class="btn btn-primary btn-sm" id="genBtn" onclick="genReport('${scope}')">Generate PDF report</button>
+      </div>
+      <div id="reportList"><div class="card-sub">Loading report history…</div></div>
+    </div>
+
+    <div class="sl">Key Financial Ratios</div>
+    <div class="card"><table class="tbl"><thead><tr><th>Ratio</th><th class="num">Value</th><th class="num">RBI Min</th><th>Status</th></tr></thead>
+      <tbody>${(d.key_ratios||[]).map(r=>`<tr><td>${esc(r.label)}</td><td class="num">${r.value==null?'—':r.value.toFixed(2)+'%'}</td>
+        <td class="num">${r.min!=null?r.min.toFixed(1)+'%':'—'}</td><td>${r.status?`<span class="badge ${r.status}">${r.status}</span>`:''}</td></tr>`).join('')}</tbody></table></div>
+
+    <div class="sl">Balance Sheet — RBI Schedule III (Form A)</div>
+    <div class="grid-2">
+      <div class="card"><div class="card-title">Capital &amp; Liabilities</div>${lineTable(bs.liabilities,'Total Capital & Liabilities',bs.total_liabilities_capital)}</div>
+      <div class="card"><div class="card-title">Assets</div>${lineTable(bs.assets,'Total Assets',bs.total_assets)}</div>
+    </div>
+    <div class="foot" style="margin-top:-8px"><span>Contingent liabilities ${inr(bs.contingent_liabilities)}</span><span>Bills for collection ${inr(bs.bills_for_collection)}</span></div>
+
+    <div class="sl">Profit &amp; Loss Statement</div>
+    <div class="card">
+      ${lineTable(pl.income)}<div style="height:8px"></div>${lineTable(pl.expenses)}<div style="height:8px"></div>${lineTable(pl.summary)}
+    </div>
+
+    <div class="sl">Basel III Pillar 3 Disclosures</div>
+    <div class="grid-2">
+      <div class="card"><div class="card-title">Capital Structure</div>${lineTable(p3.capital_structure)}</div>
+      <div class="card"><div class="card-title">Risk-Weighted Assets</div><div class="card-sub">Density ${pctv(p3.rwa_density)} of assets</div>${lineTable(p3.rwa)}</div>
+    </div>
+    <div class="card"><div class="card-title">Capital Adequacy &amp; Leverage</div>
+      <table class="tbl"><thead><tr><th>Ratio</th><th class="num">Value</th><th class="num">RBI Min</th><th>Status</th></tr></thead>
+      <tbody>${(p3.capital_ratios||[]).map(r=>`<tr><td>${esc(r.label)}</td><td class="num">${pctv(r.value)}</td>
+        <td class="num">${r.min!=null?r.min.toFixed(1)+'%':'—'}</td><td>${r.status?`<span class="badge ${r.status}">${r.status}</span>`:''}</td></tr>`).join('')}</tbody></table></div>
+    <div class="card"><div class="card-title">Liquidity Disclosures (LCR / NSFR)</div>
+      <table class="tbl"><tbody>${(p3.liquidity||[]).map(r=>`<tr><td>${esc(r.label)}</td>
+        <td class="num">${r.ratio?(r.value.toFixed(2)+'%'):inr(r.value)}</td>
+        <td>${r.status?`<span class="badge ${r.status}">${r.status}</span>`:''}</td></tr>`).join('')}</tbody></table></div>
+    ${(p3.credit_risk_mix&&p3.credit_risk_mix.length)?`<div class="card"><div class="card-title">Credit Risk — Exposure Mix</div>
+      <table class="tbl"><thead><tr><th>Product</th><th>Class</th><th class="num">#</th><th class="num">EAD</th><th class="num">RWA</th><th class="num">Provision</th></tr></thead>
+      <tbody>${p3.credit_risk_mix.map(m=>`<tr><td>${esc(m.loan_type)}</td><td><span class="badge ${m.classification==='Standard'?'Compliant':'Breach'}">${esc(m.classification)}</span></td>
+        <td class="num">${m.n}</td><td class="num">${inr(m.ead)}</td><td class="num">${inr(m.rwa)}</td><td class="num">${inr(m.provision)}</td></tr>`).join('')}</tbody></table></div>`:''}
+
+    <div class="amber">⚠ <b>Methodology:</b> Balance-sheet capital, deposits &amp; advances are ${agg?'aggregated across the member banks':(ctry&&ctry.country_code!=='IND')?'modelled in group reporting currency (₹) for this foreign entity':'live-anchored to the loan book &amp; deposit base'}; the P&amp;L is modelled from advances yield and balance-sheet funding. Operational RWA via Basel BIA; market RWA nil (no trading book). Ratios computed on a Basel III basis${ctry&&ctry.country_code!=='IND'?' (home regulator: '+esc(ctry.basel_framework||'')+')':''}.</div>`;
+  loadReports(scope);
+}
+
+function lineTable(items,totalLabel,totalVal){
+  const rows=items.map(it=>{
+    const cls=it.indent?'ind':'';const tr=it.group||it.strong?'grp':'';
+    return `<tr class="${tr}"><td class="${cls}">${esc(it.label)}</td><td class="num">${inr(it.value)}</td></tr>`;
+  }).join('');
+  const tot=totalLabel!=null?`<tr class="tot"><td>${esc(totalLabel)}</td><td class="num">${inr(totalVal)}</td></tr>`:'';
+  return `<table class="tbl"><tbody>${rows}${tot}</tbody></table>`;
+}
+
+// ── PDF reports ─────────────────────────────────────────────────────────────
+async function loadReports(scope){
+  const el=document.getElementById('reportList');if(!el)return;
+  try{const d=await fetch('/financials/api/reports/'+scope).then(r=>r.json());renderReports(scope,d.versions||[],d.latex_available);}
+  catch(e){el.innerHTML='<div class="card-sub">Could not load report history.</div>';}
+}
+function renderReports(scope,versions,latexOk){
+  const el=document.getElementById('reportList');if(!el)return;
+  if(latexOk===false){el.innerHTML='<div class="amber">PDF engine (LaTeX) not available in this environment — generate reports locally.</div>';return;}
+  if(!versions.length){el.innerHTML='<div class="card-sub">No reports generated yet. Click “Generate PDF report”.</div>';return;}
+  el.innerHTML=`<table class="tbl"><tbody>${versions.map(v=>{
+    const when=esc((v.generated_at||'').replace('T',' ').replace('+00:00',' UTC'));
+    const links=v.pdf_exists?`<a class="btn btn-sm" target="_blank" href="/financials/api/reports/${scope}/${v.version}/pdf">Open</a>
+      <a class="btn btn-sm" href="/financials/api/reports/${scope}/${v.version}/pdf?dl=1">Download</a>`:`<span class="badge Breach">build failed</span>`;
+    return `<tr><td>${when} ${v.latest?'<span class="badge Compliant">latest</span>':''}<div class="card-sub" style="margin:2px 0 0">${esc(v.version)}</div></td>
+      <td style="text-align:right;display:flex;gap:7px;justify-content:flex-end">${links}</td></tr>`;}).join('')}</tbody></table>`;
+}
+async function genReport(scope){
+  const btn=document.getElementById('genBtn');btn.disabled=true;btn.textContent='Generating…';
+  try{const res=await fetch('/financials/api/reports/'+scope,{method:'POST'});const j=await res.json();
+    if(j.success){toast('PDF report generated');renderReports(scope,j.versions||[],true);}
+    else toast((j.report&&j.report.error)||j.error||'Generation failed','error');}
+  catch(e){toast(e.message,'error');}
+  finally{btn.disabled=false;btn.textContent='Generate PDF report';}
+}
+loadSystem();
+</script>
+</body>
+</html>
