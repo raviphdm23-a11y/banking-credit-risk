@@ -17,16 +17,18 @@ What it creates / populates (all in bank.db, idempotent):
                         FX rate, population) — one row per country per period.
   • `banks.country_code` — new column mapping every bank to a country
                         (existing India banks back-filled to IND).
-  • Four **foreign group banks** (USA / UK / Singapore / UAE) carried at the
-    balance-sheet + P&L level so the region/country roll-ups are meaningful.
+  • Four **foreign group banks** (USA / UK / Singapore / UAE) as bank-master rows,
+    then **grounded in a real ledger** via seed_global_customers.py (customers /
+    loans / accounts / …) — their balance sheet & P&L are live-anchored by the
+    BS/P&L seeders afterwards, exactly like the India banks (no hardcoded figures).
   • A handful of foreign **regulatory_bodies** rows (Fed, BoE, MAS, CBUAE).
 
 Reporting-currency note: every monetary figure in bank.db is denominated in INR
 (₹). Consistent with how real global groups publish one *consolidated* currency,
-the foreign banks' balance sheet / P&L are seeded in the **group reporting
-currency (₹)**; each bank's home country, local currency and macro context come
-from the `countries` / `country_macro` tables. So consolidation stays additive
-while the country dimension stays truthful.
+the foreign banks' ledgers are seeded in the **group reporting currency (₹)**;
+each bank's home country, local currency and macro context come from the
+`countries` / `country_macro` tables. So consolidation stays additive while the
+country dimension stays truthful.
 
 Run:  python operations/scripts/seed_global.py
 """
@@ -147,27 +149,6 @@ _FOREIGN_REGULATORS = [
      'Central bank and banking regulator of the United Arab Emirates'),
 ]
 
-# P&L modelling assumptions for the balance-sheet-only banks (disclosed)
-_ADV_YIELD       = 0.095
-_INVESTMENT_YIELD = 0.070
-_DEPOSIT_COST    = 0.045
-_BORROWING_COST  = 0.0725
-_OTHER_INCOME_PCT = 0.011
-_COST_INCOME     = 0.45
-_EMPLOYEE_SHARE  = 0.55
-_CREDIT_COST     = 0.010
-_TAX_RATE        = 0.25
-
-_PL_COLS = ['bank_id', 'period', 'from_date', 'to_date', 'currency', 'unit',
-            'interest_on_advances', 'interest_on_investments', 'interest_earned',
-            'other_income', 'total_income',
-            'interest_on_deposits', 'interest_on_borrowings', 'interest_expended',
-            'employee_cost', 'other_opex', 'operating_expenses',
-            'net_interest_income', 'operating_profit',
-            'provisions_contingencies', 'profit_before_tax', 'tax_expense',
-            'profit_after_tax', 'source', 'generated_at']
-
-
 def _load(modname):
     p = os.path.join(os.path.dirname(__file__), modname + '.py')
     spec = importlib.util.spec_from_file_location(modname, p)
@@ -180,52 +161,6 @@ def _ensure_country_code_column(cur):
     cols = [r[1] for r in cur.execute("PRAGMA table_info(banks)").fetchall()]
     if 'country_code' not in cols:
         cur.execute("ALTER TABLE banks ADD COLUMN country_code TEXT")
-
-
-def _pl_row(bid, period, fdt, tdt, bs):
-    """Model a P&L from a balance-sheet row (interest on advances from a yield)."""
-    adv = float(bs['advances_net'])
-    inv = float(bs['investments'])
-    dep = sum(float(bs[k]) for k in ('deposits_demand', 'deposits_savings', 'deposits_term'))
-    bor = float(bs['borrowings'])
-    ta  = sum(float(bs[k]) for k in ('cash_with_rbi', 'balances_with_banks',
-                                     'investments', 'advances_net', 'fixed_assets', 'other_assets'))
-    interest_on_advances    = adv * _ADV_YIELD
-    interest_on_investments = inv * _INVESTMENT_YIELD
-    interest_earned         = interest_on_advances + interest_on_investments
-    interest_on_deposits    = dep * _DEPOSIT_COST
-    interest_on_borrowings  = bor * _BORROWING_COST
-    interest_expended       = interest_on_deposits + interest_on_borrowings
-    nii          = interest_earned - interest_expended
-    other_income = ta * _OTHER_INCOME_PCT
-    total_income = interest_earned + other_income
-    opex          = _COST_INCOME * (nii + other_income)
-    employee_cost = opex * _EMPLOYEE_SHARE
-    other_opex    = opex - employee_cost
-    operating_profit = nii + other_income - opex
-    provisions = adv * _CREDIT_COST
-    pbt = operating_profit - provisions
-    tax = max(0.0, pbt) * _TAX_RATE
-    pat = pbt - tax
-    rnd = lambda x: round(float(x), 2)
-    return {
-        'bank_id': bid, 'period': period, 'from_date': fdt, 'to_date': tdt,
-        'currency': 'INR', 'unit': 'INR',
-        'interest_on_advances': rnd(interest_on_advances),
-        'interest_on_investments': rnd(interest_on_investments),
-        'interest_earned': rnd(interest_earned),
-        'other_income': rnd(other_income), 'total_income': rnd(total_income),
-        'interest_on_deposits': rnd(interest_on_deposits),
-        'interest_on_borrowings': rnd(interest_on_borrowings),
-        'interest_expended': rnd(interest_expended),
-        'employee_cost': rnd(employee_cost), 'other_opex': rnd(other_opex),
-        'operating_expenses': rnd(opex),
-        'net_interest_income': rnd(nii), 'operating_profit': rnd(operating_profit),
-        'provisions_contingencies': rnd(provisions),
-        'profit_before_tax': rnd(pbt), 'tax_expense': rnd(tax), 'profit_after_tax': rnd(pat),
-        'source': 'modelled (group reporting currency; interest on advances at %.1f%% yield)' % (_ADV_YIELD * 100),
-        'generated_at': datetime.now().isoformat(timespec='seconds'),
-    }
 
 
 def seed(db_path=DB_PATH, verbose=True):
@@ -270,13 +205,11 @@ def seed(db_path=DB_PATH, verbose=True):
                (regulator_id, regulator_name, abbreviation, governing_body_name, country, description)
                VALUES (?,?,?,?,?,?)""", r)
 
-    # 5. foreign group banks + their balance sheet + P&L
-    bbs = _load('seed_bank_balance_sheet')   # reuse _build_sheet
-    periods = [('FY2024', '2024-03-31', 0.88, 'modelled (prior year, scaled)'),
-               ('FY2025', '2025-03-31', 1.00, 'modelled (group reporting currency)')]
-    pl_dates = {'FY2024': ('2023-04-01', '2024-03-31'), 'FY2025': ('2024-04-01', '2025-03-31')}
-
-    bs_rows, pl_rows = [], []
+    # 5. foreign group bank master rows (banks table only). Their balance sheet
+    #    and P&L are NOT hardcoded here — the banks are grounded in a real ledger
+    #    (seed_global_customers) and then live-anchored by the BS/P&L seeders, the
+    #    same path the India banks use. _GLOBAL_BANKS advances/deposits are now just
+    #    target sizes consumed by the customer generator.
     for bid, name, code, ccode, hq_city, year, adv, dep in _GLOBAL_BANKS:
         cur.execute(
             """INSERT OR REPLACE INTO banks
@@ -286,30 +219,15 @@ def seed(db_path=DB_PATH, verbose=True):
             (bid, name, code,
              next(c[1] for c in _COUNTRIES if c[0] == ccode),   # country display name
              hq_city, _HQ_STATE.get(ccode, hq_city), year, 'Active', ccode))
-        for period, as_on, scale, source in periods:
-            sheet = bbs._build_sheet(bid, period, as_on, adv, dep, scale, source)
-            bs_rows.append(sheet)
-            fdt, tdt = pl_dates[period]
-            pl_rows.append(_pl_row(bid, period, fdt, tdt, sheet))
-
-    bs_cols = bbs._COLS
-    for r in bs_rows:
-        cur.execute("INSERT OR REPLACE INTO bank_balance_sheet ({}) VALUES ({})".format(
-            ', '.join(bs_cols), ', '.join('?' * len(bs_cols))), [r[c] for c in bs_cols])
-    for r in pl_rows:
-        cur.execute("INSERT OR REPLACE INTO bank_profit_loss ({}) VALUES ({})".format(
-            ', '.join(_PL_COLS), ', '.join('?' * len(_PL_COLS))), [r[c] for c in _PL_COLS])
-
     conn.commit()
+
+    # 6. ground each foreign bank in a real ledger (customers/loans/accounts/...)
+    _load('seed_global_customers').seed(db_path=db_path, verbose=verbose)
 
     if verbose:
         nc = cur.execute("SELECT COUNT(*) FROM countries").fetchone()[0]
         nm = cur.execute("SELECT COUNT(*) FROM country_macro").fetchone()[0]
         print(f"countries: {nc}   macro rows: {nm}")
-        for bid, name, *_ in _GLOBAL_BANKS:
-            pl = cur.execute("SELECT profit_after_tax FROM bank_profit_loss WHERE bank_id=? AND period='FY2025'",
-                             (bid,)).fetchone()
-            print(f"  {bid} {name:32s} PAT(FY2025) Rs {pl[0]:,.0f}")
         print("Banks by region:")
         for row in cur.execute(
                 """SELECT c.region, c.country_name, COUNT(b.bank_id)

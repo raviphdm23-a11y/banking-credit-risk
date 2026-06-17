@@ -1671,7 +1671,13 @@ def _seed_script(fname, modname):
 
 
 def _ensure_financials(conn):
-    """Seed bank_balance_sheet + bank_profit_loss if empty (self-init on fresh DB)."""
+    """Seed the global layer + bank_balance_sheet + bank_profit_loss (self-init).
+
+    The global layer (country reference + foreign banks + their real ledger) must
+    be seeded FIRST so the BS/P&L seeders live-anchor all six banks from real
+    loans/accounts rather than skipping the (then loan-less) foreign banks.
+    """
+    _ensure_global(conn)
     for tbl, fname, modname in (
             ('bank_balance_sheet', 'seed_bank_balance_sheet.py', 'seed_bank_balance_sheet'),
             ('bank_profit_loss',   'seed_bank_profit_loss.py',   'seed_bank_profit_loss')):
@@ -1681,7 +1687,6 @@ def _ensure_financials(conn):
             n = 0
         if not n:
             _seed_script(fname, modname).seed(db_path=_OPS_DB_PATH, verbose=False)
-    _ensure_global(conn)
 
 
 def _ensure_global(conn):

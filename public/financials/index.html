@@ -151,7 +151,9 @@ function renderSystem(){
       <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
         <div><div class="card-title">🌐 ${esc(reg.region)}</div><div class="card-sub">${reg.num_countries} ${reg.num_countries===1?'country':'countries'} · ${reg.num_banks} ${reg.num_banks===1?'bank':'banks'}</div></div>
         <div style="text-align:right"><div class="card-title" style="font-size:16px">${inr(reg.total_assets)}</div>
-          <a class="btn btn-sm" onclick="selectScope('REGION:${esc(reg.region)}')">Regional report →</a></div></div>
+          <div style="display:flex;gap:6px;justify-content:flex-end;margin-top:4px">
+            <button class="btn btn-primary btn-sm" onclick="event.stopPropagation();genRegionPdf('REGION:${esc(reg.region)}',this)">📄 Region PDF</button>
+            <a class="btn btn-sm" onclick="selectScope('REGION:${esc(reg.region)}')">Open report →</a></div></div></div>
       <table class="tbl" style="margin-top:12px"><thead><tr><th>Country / Bank</th><th class="num">Total Assets</th><th class="num">CRAR</th><th class="num">LCR</th><th class="num">GNPA</th></tr></thead>
         <tbody>${countries}</tbody></table></div>`;
   }).join('');
@@ -267,6 +269,18 @@ async function genReport(scope){
     else toast((j.report&&j.report.error)||j.error||'Generation failed','error');}
   catch(e){toast(e.message,'error');}
   finally{btn.disabled=false;btn.textContent='Generate PDF report';}
+}
+// Generate a regional aggregate PDF straight from the Group Overview card,
+// then open the freshly-built PDF in a new tab.
+async function genRegionPdf(scope,btn){
+  const label=btn.textContent;btn.disabled=true;btn.textContent='Generating…';
+  try{const res=await fetch('/financials/api/reports/'+scope,{method:'POST'});const j=await res.json();
+    if(j.success&&j.report&&j.report.version){
+      toast('Regional PDF generated');
+      window.open('/financials/api/reports/'+scope+'/'+j.report.version+'/pdf','_blank');
+    } else toast((j.report&&j.report.error)||j.error||'Generation failed','error');}
+  catch(e){toast(e.message,'error');}
+  finally{btn.disabled=false;btn.textContent=label;}
 }
 loadSystem();
 </script>
