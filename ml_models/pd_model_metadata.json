@@ -1,7 +1,7 @@
 {
   "model_type": "RandomForestRegressor",
-  "version": "run_20260618_221908",
-  "date_trained": "2026-06-18T22:19:08",
+  "version": "run_20260618_222708",
+  "date_trained": "2026-06-18T22:27:08",
   "triggered_by": "manual",
   "features": [
     "de_ratio",
@@ -24,18 +24,23 @@
     "num_late_payments_past_12m",
     "existing_loans_count",
     "num_existing_products",
-    "is_rural"
+    "is_rural",
+    "macro_gdp_growth",
+    "macro_inflation",
+    "macro_policy_rate",
+    "macro_unemployment",
+    "sovereign_rating_enc"
   ],
   "target": "pd_observed",
   "metrics": {
-    "r2": 0.9699,
-    "rmse": 0.05509,
-    "mae": 0.03319,
-    "auc_roc": 0.9745,
-    "accuracy": 0.72,
-    "precision": 0.4878,
+    "r2": 0.96,
+    "rmse": 0.063547,
+    "mae": 0.03686,
+    "auc_roc": 0.9755,
+    "accuracy": 0.6933,
+    "precision": 0.4651,
     "recall": 1.0,
-    "f1": 0.6557
+    "f1": 0.6349
   },
   "hyperparameters": {
     "n_estimators": 100,

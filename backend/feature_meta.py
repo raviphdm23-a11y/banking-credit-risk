@@ -75,7 +75,60 @@ EXTRA_FEATURE_DEFAULTS = {
     "existing_loans_count":      1.0,
     "num_existing_products":     2.0,
     "is_rural":                  0.0,
+    # Country macro — global medians used as fallback when country_code is unknown
+    "macro_gdp_growth":          4.0,   # % — blended emerging/developed median
+    "macro_inflation":           4.5,   # %
+    "macro_policy_rate":         5.0,   # %
+    "macro_unemployment":        6.0,   # %
+    "sovereign_rating_enc":      5.0,   # ordinal 1=AAA…20=D; 5 ≈ A+, mid-investment-grade
 }
+
+# Sovereign rating → ordinal (mirrors trainer.py; kept in sync manually)
+_SOVEREIGN_RATING_ENC = {
+    'AAA': 1, 'AA+': 2, 'AA': 3, 'AA-': 4,
+    'A+': 5,  'A': 6,   'A-': 7,
+    'BBB+': 8, 'BBB': 9, 'BBB-': 10,
+    'BB+': 11, 'BB': 12, 'BB-': 13,
+    'B+': 14,  'B': 15,  'B-': 16,
+    'CCC': 17, 'CC': 18, 'C': 19, 'D': 20,
+}
+
+_MACRO_COLS = ('macro_gdp_growth', 'macro_inflation', 'macro_policy_rate', 'macro_unemployment')
+
+
+def lookup_country_macro(country_code: str, db_path: str) -> dict:
+    """Return macro feature dict for a given ISO-3 country code from bank.db.
+
+    Queries the latest period in country_macro + sovereign_rating from countries.
+    Falls back to EXTRA_FEATURE_DEFAULTS values when the country is not found.
+    """
+    import sqlite3, os
+    result = {}
+    if not country_code or not db_path or not os.path.exists(db_path):
+        return result
+    try:
+        conn = sqlite3.connect(db_path)
+        cur = conn.cursor()
+        cur.execute(
+            "SELECT cm.gdp_growth_pct, cm.inflation_cpi_pct, cm.policy_rate_pct, "
+            "       cm.unemployment_pct, c.sovereign_rating "
+            "FROM country_macro cm "
+            "JOIN countries c ON cm.country_code = c.country_code "
+            "WHERE cm.country_code = ? "
+            "ORDER BY cm.period DESC LIMIT 1",
+            (country_code,)
+        )
+        row = cur.fetchone()
+        conn.close()
+        if row:
+            result['macro_gdp_growth']   = float(row[0]) if row[0] is not None else EXTRA_FEATURE_DEFAULTS['macro_gdp_growth']
+            result['macro_inflation']     = float(row[1]) if row[1] is not None else EXTRA_FEATURE_DEFAULTS['macro_inflation']
+            result['macro_policy_rate']   = float(row[2]) if row[2] is not None else EXTRA_FEATURE_DEFAULTS['macro_policy_rate']
+            result['macro_unemployment']  = float(row[3]) if row[3] is not None else EXTRA_FEATURE_DEFAULTS['macro_unemployment']
+            result['sovereign_rating_enc']= float(_SOVEREIGN_RATING_ENC.get(row[4], 10))
+    except Exception:
+        pass
+    return result
 
 
 def model_feature_frame(inputs: dict, model=None):

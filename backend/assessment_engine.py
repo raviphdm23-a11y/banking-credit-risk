@@ -25,7 +25,7 @@ import pandas as pd
 from backend.calculations import AIRBCalculations, StandardizedApproachCalculations
 from backend.rating_masterscale import pd_to_grade, grade_description
 from backend.pricing import full_pricing
-from backend.feature_meta import FEATURE_ORDER, FEATURE_META, model_feature_frame
+from backend.feature_meta import FEATURE_ORDER, FEATURE_META, model_feature_frame, lookup_country_macro
 from backend.explainability import PeerComparison, CounterfactualEngine
 
 # Policy knockout thresholds (hard referral/decline triggers, pre-model)
@@ -47,9 +47,10 @@ class AssessmentEngine:
         findings = engine.assess(inputs_dict)
     """
 
-    def __init__(self, model, model_version: str = "unknown"):
+    def __init__(self, model, model_version: str = "unknown", db_path: str = None):
         self._model        = model
         self._version      = model_version
+        self._db_path      = db_path
         self._peer         = PeerComparison()
         self._counterfact  = CounterfactualEngine(model)
         # Pre-build baseline feature dict for marginal attribution
@@ -74,6 +75,12 @@ class AssessmentEngine:
         Returns a dict suitable for JSON serialisation.
         """
         inputs = self._coerce(inputs)
+
+        # Enrich with country macro features when country_code is available
+        if self._db_path:
+            macro = lookup_country_macro(inputs.get('country_code', ''), self._db_path)
+            for k, v in macro.items():
+                inputs.setdefault(k, v)
 
         # 1. PD via ML model
         pd_result   = self._predict_pd(inputs)

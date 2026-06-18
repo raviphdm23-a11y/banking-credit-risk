@@ -1,5 +1,50 @@
 [
   {
+    "run_id": "run_20260618_222708",
+    "timestamp": "2026-06-18T22:27:08",
+    "triggered_by": "manual",
+    "status": "success",
+    "files_used": [
+      {
+        "filename": "bank_loan_metrics (bank.db)",
+        "rows": 372
+      }
+    ],
+    "files_skipped": [],
+    "total_rows": 372,
+    "train_rows": 297,
+    "test_rows": 75,
+    "metrics": {
+      "r2": 0.96,
+      "rmse": 0.063547,
+      "mae": 0.03686,
+      "auc_roc": 0.9755,
+      "accuracy": 0.6933,
+      "precision": 0.4651,
+      "recall": 1.0,
+      "f1": 0.6349
+    },
+    "confusion_matrix": [
+      [
+        32,
+        23
+      ],
+      [
+        0,
+        20
+      ]
+    ],
+    "model_promoted": true,
+    "duration_seconds": 0.73,
+    "error": null,
+    "promotion_check": {
+      "auc": 0.9755,
+      "n_trained": 297,
+      "min_rows_floor": 100,
+      "rows_ok": true
+    }
+  },
+  {
     "run_id": "run_20260618_221908",
     "timestamp": "2026-06-18T22:19:08",
     "triggered_by": "manual",

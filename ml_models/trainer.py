@@ -68,8 +68,22 @@ FEATURE_COLS  = [
     'loan_purpose_enc', 'cibil_score', 'previous_default_flag',
     'months_as_customer', 'num_late_payments_past_12m',
     'existing_loans_count', 'num_existing_products', 'is_rural',
+    # Country macro (5) — joined from banks → countries → country_macro at training time;
+    # looked up from DB at prediction time via country_code
+    'macro_gdp_growth', 'macro_inflation', 'macro_policy_rate',
+    'macro_unemployment', 'sovereign_rating_enc',
 ]
 TARGET_COL    = 'pd_observed'
+
+# Sovereign rating → ordinal (1 = AAA best; higher number = worse credit)
+_SOVEREIGN_RATING_ENC = {
+    'AAA': 1, 'AA+': 2, 'AA': 3, 'AA-': 4,
+    'A+': 5,  'A': 6,   'A-': 7,
+    'BBB+': 8, 'BBB': 9, 'BBB-': 10,
+    'BB+': 11, 'BB': 12, 'BB-': 13,
+    'B+': 14,  'B': 15,  'B-': 16,
+    'CCC': 17, 'CC': 18, 'C': 19, 'D': 20,
+}
 
 # Lock to prevent concurrent training runs
 _training_lock = threading.Lock()
@@ -109,26 +123,61 @@ def scan_db_source():
 
 def load_from_db():
     """
-    Load all rows from bank_loan_metrics in bank.db.
-    Returns a DataFrame or None if the table is missing or empty.
+    Load all rows from bank_loan_metrics, enriched with country macro features.
+
+    Joins bank_loan_metrics → banks (country_code) → countries (sovereign_rating)
+    → country_macro (latest period per country: gdp_growth, inflation, policy_rate,
+    unemployment). Macro features ride as extra columns so the model learns
+    the macroeconomic context each loan was originated in.
     """
     if not os.path.exists(BANK_DB_PATH):
         return None
     try:
         conn = sqlite3.connect(BANK_DB_PATH)
         df = pd.read_sql_query(
-            "SELECT bank_id, loan_id, de_ratio, interest_coverage, profitability, "
-            "       liquidity_ratio, default_flag, pd_observed, observation_date, "
-            "       age, employment_type_enc, years_employed, annual_income, "
-            "       foir, num_dependents, city_tier_enc, education_enc, residence_type_enc, "
-            "       loan_purpose_enc, cibil_score, previous_default_flag, "
-            "       months_as_customer, num_late_payments_past_12m, "
-            "       existing_loans_count, num_existing_products, is_rural "
-            "FROM bank_loan_metrics",
+            "SELECT blm.bank_id, blm.loan_id, blm.de_ratio, blm.interest_coverage, "
+            "       blm.profitability, blm.liquidity_ratio, blm.default_flag, "
+            "       blm.pd_observed, blm.observation_date, "
+            "       blm.age, blm.employment_type_enc, blm.years_employed, blm.annual_income, "
+            "       blm.foir, blm.num_dependents, blm.city_tier_enc, blm.education_enc, "
+            "       blm.residence_type_enc, blm.loan_purpose_enc, blm.cibil_score, "
+            "       blm.previous_default_flag, blm.months_as_customer, "
+            "       blm.num_late_payments_past_12m, blm.existing_loans_count, "
+            "       blm.num_existing_products, blm.is_rural, "
+            "       b.country_code, "
+            "       cm.gdp_growth_pct   AS macro_gdp_growth, "
+            "       cm.inflation_cpi_pct AS macro_inflation, "
+            "       cm.policy_rate_pct  AS macro_policy_rate, "
+            "       cm.unemployment_pct AS macro_unemployment, "
+            "       c.sovereign_rating "
+            "FROM bank_loan_metrics blm "
+            "LEFT JOIN banks b ON blm.bank_id = b.bank_id "
+            "LEFT JOIN countries c ON b.country_code = c.country_code "
+            "LEFT JOIN ( "
+            "    SELECT country_code, gdp_growth_pct, inflation_cpi_pct, "
+            "           policy_rate_pct, unemployment_pct "
+            "    FROM country_macro "
+            "    WHERE (country_code, period) IN ( "
+            "        SELECT country_code, MAX(period) FROM country_macro GROUP BY country_code "
+            "    ) "
+            ") cm ON b.country_code = cm.country_code",
             conn
         )
         conn.close()
-        return df if len(df) > 0 else None
+        if len(df) == 0:
+            return None
+        # Encode sovereign rating → ordinal; fill missing with 10 (≈ BBB-, emerging-market proxy)
+        df['sovereign_rating_enc'] = (
+            df['sovereign_rating']
+            .map(_SOVEREIGN_RATING_ENC)
+            .fillna(10)
+            .astype(float)
+        )
+        # Fill missing macro values with global medians across all rows
+        for col in ('macro_gdp_growth', 'macro_inflation', 'macro_policy_rate', 'macro_unemployment'):
+            df[col] = df[col].fillna(df[col].median())
+        df.drop(columns=['country_code', 'sovereign_rating'], inplace=True, errors='ignore')
+        return df
     except Exception as e:
         print('[WARN] Could not load from bank.db: {}'.format(e))
         return None

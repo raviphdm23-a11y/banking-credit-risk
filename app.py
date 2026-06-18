@@ -57,7 +57,7 @@ def _get_model_version():
     except Exception:
         return 'unknown'
 
-_assessment_engine = _AssessmentEngine(_pd_model, _get_model_version())
+_assessment_engine = _AssessmentEngine(_pd_model, _get_model_version(), db_path=_OPS_DB_PATH)
 
 # In-memory report cache keyed by report_id (uuid).
 _report_cache: dict = {}
@@ -811,6 +811,7 @@ def admin_trigger_train():
                 try:
                     import joblib
                     _pd_model = joblib.load(_MODEL_PATH)
+                    _assessment_engine.__init__(_pd_model, _get_model_version(), db_path=_OPS_DB_PATH)
                     print(f"Model reloaded in-process after training run {result['run_id']}")
                 except Exception as reload_err:
                     print(f"WARNING: Could not reload model after training: {reload_err}")
@@ -862,6 +863,7 @@ def admin_rollback():
         import joblib
         result = rollback_model()
         _pd_model = joblib.load(_MODEL_PATH)
+        _assessment_engine.__init__(_pd_model, _get_model_version(), db_path=_OPS_DB_PATH)
         return jsonify(result), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -1019,6 +1021,7 @@ def _scheduled_training():
         result = run_training(triggered_by='schedule')
         if result.get('model_promoted') or _pd_model is None:
             _pd_model = joblib.load(_MODEL_PATH)
+            _assessment_engine.__init__(_pd_model, _get_model_version(), db_path=_OPS_DB_PATH)
     except Exception as e:
         print(f"Scheduled training error: {e}")
 
