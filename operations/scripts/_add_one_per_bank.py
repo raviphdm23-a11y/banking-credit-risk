@@ -81,6 +81,18 @@ BANKS = [
         'principal': (2_000_000, 5_500_000), 'balance': (1_400_000, 3_800_000),
         'state_field': False,
     },
+    {
+        'bank_id': 'BANK008', 'name': 'Southern Cross Bank Ltd.',
+        'branch': 'BR-SCROSS-001', 'ifsc': 'SCRX0000001',
+        'first': ['James','William','Oliver','Noah','Jack','Liam','Ethan','Lucas',
+                  'Charlotte','Olivia','Amelia','Isla','Sophie','Grace','Chloe','Hannah','Emily','Zoe'],
+        'last':  ['Smith','Jones','Williams','Brown','Taylor','Wilson','Anderson',
+                  'Thompson','White','Harris','Martin','Walker','Robinson','Clark','Lewis'],
+        'cities': [('Sydney','New South Wales',1),('Melbourne','Victoria',1),
+                   ('Brisbane','Queensland',1),('Perth','Western Australia',1),('Adelaide','South Australia',1)],
+        'principal': (2_200_000, 6_000_000), 'balance': (1_500_000, 4_200_000),
+        'state_field': False,
+    },
 ]
 
 LOAN_TYPES = [('Home Loan', 5), ('Vehicle Loan', 3), ('Personal Loan', 1),
