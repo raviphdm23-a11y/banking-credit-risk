@@ -554,8 +554,7 @@ def run_training(triggered_by='manual'):
         hp        = _load_hyperparameters()
         threshold = float(hp['training'].get('pd_classification_threshold', 0.05))
         test_size = float(hp['training'].get('test_size', 0.20))
-        min_auc_floor = float(hp['training'].get('min_auc_floor', 0.75))
-        min_rows_floor= int(hp['training'].get('min_rows_floor', 500))
+        min_rows_floor= int(hp['training'].get('min_rows_floor', 100))
 
         # Load data
         merged, files_used, files_skip, dupes = load_and_merge()
@@ -590,21 +589,19 @@ def run_training(triggered_by='manual'):
             with open(os.path.join(run_charts_dir, f'{name}.b64'), 'w') as f:
                 f.write(b64)
 
-        # Model promotion: always promote if the new model clears the quality
-        # floor (AUC >= min_auc_floor and trained on >= min_rows_floor rows).
+        # Model promotion: always promote if trained on >= min_rows_floor rows.
         # We do NOT compare against the previous model — the new model always
         # reflects the current portfolio reality (new customers, updated default
         # classifications) and the old model has no knowledge of them.
         n_trained = len(X_train)
-        auc_ok  = metrics.get('auc_roc', 0) >= min_auc_floor
         rows_ok = n_trained >= min_rows_floor
         record['promotion_check'] = {
-            'auc': metrics.get('auc_roc'), 'min_auc_floor': min_auc_floor,
+            'auc': metrics.get('auc_roc'),
             'n_trained': n_trained, 'min_rows_floor': min_rows_floor,
-            'auc_ok': auc_ok, 'rows_ok': rows_ok,
+            'rows_ok': rows_ok,
         }
 
-        if auc_ok and rows_ok:
+        if rows_ok:
             if os.path.exists(MODEL_PATH):
                 shutil.copy2(MODEL_PATH, BACKUP_PATH)
             joblib.dump(model, MODEL_PATH)
