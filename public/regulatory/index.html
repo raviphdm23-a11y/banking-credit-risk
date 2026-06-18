@@ -6,7 +6,7 @@
 <title>Regulatory Reporting — India Banking Intelligence</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=IBM+Plex+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -22,7 +22,7 @@ body{font-family:'IBM Plex Sans',sans-serif;background:var(--off);color:var(--t1
 /* TOP BAR */
 .topnav{background:#fff;border-bottom:1px solid var(--border);padding:0 32px;height:54px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;z-index:15}
 .topnav-left{display:flex;align-items:center;gap:16px}
-.topnav-title{font-family:'Syne',sans-serif;font-weight:700;font-size:15px;color:var(--t1)}
+.topnav-title{font-family:'IBM Plex Sans',sans-serif;font-weight:700;font-size:15px;color:var(--t1)}
 .topnav-date{font-size:11px;color:var(--t3);font-family:'IBM Plex Mono',monospace}
 .btn{padding:8px 16px;border-radius:8px;font-family:'IBM Plex Sans',sans-serif;font-size:12px;font-weight:600;cursor:pointer;border:1px solid var(--border);background:#fff;color:var(--t2);transition:all 0.18s;display:inline-flex;align-items:center;gap:7px}
 .btn:hover{border-color:var(--red);color:var(--red)}
@@ -38,8 +38,8 @@ body{font-family:'IBM Plex Sans',sans-serif;background:var(--off);color:var(--t1
 .home-link{display:flex;align-items:center;gap:6px;text-decoration:none;color:rgba(255,255,255,0.5);font-size:11px;margin-bottom:12px;letter-spacing:0.5px}
 .home-link:hover{color:rgba(255,255,255,0.8)}
 .logo-row{display:flex;align-items:center;gap:12px}
-.logo-mark{width:36px;height:36px;background:var(--red);border-radius:10px;display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:800;font-size:12px;color:#fff;flex-shrink:0;box-shadow:0 4px 12px rgba(227,24,55,0.4)}
-.logo-name{font-family:'Syne',sans-serif;font-weight:700;font-size:13px;color:#fff;line-height:1.2}
+.logo-mark{width:36px;height:36px;background:var(--red);border-radius:10px;display:flex;align-items:center;justify-content:center;font-family:'IBM Plex Sans',sans-serif;font-weight:800;font-size:12px;color:#fff;flex-shrink:0;box-shadow:0 4px 12px rgba(227,24,55,0.4)}
+.logo-name{font-family:'IBM Plex Sans',sans-serif;font-weight:700;font-size:13px;color:#fff;line-height:1.2}
 .logo-sub{font-size:9px;color:rgba(255,255,255,0.35);letter-spacing:0.8px;text-transform:uppercase;margin-top:1px}
 .sidebar-scroll{flex:1;overflow-y:auto;scrollbar-width:none;position:relative;z-index:1}
 .sidebar-scroll::-webkit-scrollbar{display:none}
@@ -71,7 +71,7 @@ body{font-family:'IBM Plex Sans',sans-serif;background:var(--off);color:var(--t1
 .sl{font-size:9.5px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:var(--t3);margin-bottom:14px;display:flex;align-items:center;gap:10px}
 .sl::after{content:'';flex:1;height:1px;background:var(--border)}
 .page-head{display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:12px}
-.page-title{font-family:'Syne',sans-serif;font-weight:800;font-size:26px;color:var(--t1);letter-spacing:-0.5px}
+.page-title{font-family:'IBM Plex Sans',sans-serif;font-weight:800;font-size:26px;color:var(--t1);letter-spacing:-0.5px}
 .page-desc{font-size:13px;color:var(--t3);margin-top:4px;max-width:640px;line-height:1.55}
 
 /* KPI CARDS */
@@ -81,7 +81,7 @@ body{font-family:'IBM Plex Sans',sans-serif;background:var(--off);color:var(--t1
 .kpi-card.green::before{background:var(--green)}.kpi-card.amber::before{background:var(--amber)}
 .kpi-card.red::before{background:var(--red)}.kpi-card.blue::before{background:var(--blue)}
 .kpi-label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.8px;color:var(--t3)}
-.kpi-value{font-family:'Syne',sans-serif;font-weight:700;font-size:30px;color:var(--t1);margin-top:8px;line-height:1}
+.kpi-value{font-family:'IBM Plex Sans',sans-serif;font-weight:700;font-size:30px;color:var(--t1);margin-top:8px;line-height:1}
 .kpi-sub{font-size:11px;color:var(--t3);margin-top:7px}
 .kpi-badge{position:absolute;top:16px;right:16px;font-size:9px;font-weight:700;padding:3px 9px;border-radius:100px;letter-spacing:0.4px}
 
@@ -95,7 +95,7 @@ body{font-family:'IBM Plex Sans',sans-serif;background:var(--off);color:var(--t1
 /* CARD + GRID */
 .card{background:#fff;border-radius:14px;padding:22px 24px;border:1px solid var(--border)}
 .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:20px}
-.card-title{font-family:'Syne',sans-serif;font-weight:700;font-size:15px;color:var(--t1);margin-bottom:4px;display:flex;align-items:center;justify-content:space-between}
+.card-title{font-family:'IBM Plex Sans',sans-serif;font-weight:700;font-size:15px;color:var(--t1);margin-bottom:4px;display:flex;align-items:center;justify-content:space-between}
 .card-sub{font-size:11px;color:var(--t3);margin-bottom:18px}
 
 /* RATIO BAR */
@@ -128,7 +128,7 @@ body{font-family:'IBM Plex Sans',sans-serif;background:var(--off);color:var(--t1
 .statline{display:flex;flex-wrap:wrap;gap:26px}
 .stat{min-width:120px}
 .stat-label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.6px;color:var(--t3)}
-.stat-value{font-family:'Syne',sans-serif;font-weight:700;font-size:18px;color:var(--t1);margin-top:5px}
+.stat-value{font-family:'IBM Plex Sans',sans-serif;font-weight:700;font-size:18px;color:var(--t1);margin-top:5px}
 .stat-value small{font-size:11px;color:var(--t3);font-weight:400}
 
 /* ASSUMPTIONS */
@@ -357,7 +357,7 @@ function showSystem(){
     </div>
     <div style="text-align:right">
       <div style="font-size:10px;text-transform:uppercase;letter-spacing:0.8px;color:var(--t3)">Supervised banks</div>
-      <div style="font-family:'Syne';font-weight:800;font-size:30px;color:var(--red)">${s.num_banks}</div>
+      <div style="font-family:'IBM Plex Sans',sans-serif;font-weight:800;font-size:30px;color:var(--red)">${s.num_banks}</div>
     </div>
   </div>
 

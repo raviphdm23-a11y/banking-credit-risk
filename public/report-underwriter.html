@@ -280,25 +280,65 @@ function gradeDecision(grade) {
 
 async function loadReport() {
   const params   = new URLSearchParams(window.location.search);
+  const caseId   = params.get('case');
   const reportId = params.get('id');
 
-  if (!reportId) {
-    showError('No report ID in URL. Please generate a report from the calculator.');
-    return;
-  }
-
   try {
+    // ── RM case mode: the same dossier, fed from the relationship case ──────────
+    if (caseId) {
+      const res = await fetch(`/relationship/api/cases/${caseId}`);
+      if (!res.ok) { showError('Case not found.'); return; }
+      const c = await res.json();
+      const M = c.machine || {};
+      if (!M || !M.pd) { showError('This case has no machine assessment to display.'); return; }
+      renderReport(mapCaseToFindings(M, c), {
+        final_decision: c.final_decision || null,
+        final_by:       c.final_by || c.rm_id || null,
+        state:          c.state,
+        case_id:        c.case_id,
+      });
+      return;
+    }
+    // ── Calculator mode: pre-decision dossier (model suggestion is advisory) ────
+    if (!reportId) {
+      showError('No report ID in URL. Please generate a report from the calculator.');
+      return;
+    }
     const res = await fetch(`/api/get-report/${reportId}`);
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
       showError(err.error || 'Report not found. It may have expired.');
       return;
     }
-    const findings = await res.json();
-    renderReport(findings);
+    renderReport(await res.json(), null);
   } catch (e) {
     showError('Network error loading report: ' + e.message);
   }
+}
+
+// Map an RM case's Machine Recommendation (M) onto the findings shape this page
+// already renders. All sections (five_cs, attribution, peer_health, counterfactuals)
+// live in M verbatim — only the decision framing differs (handled in renderReport).
+function mapCaseToFindings(M, c) {
+  const app = M.application || {};
+  return {
+    report_id:      M.report_id || c.case_id,
+    timestamp:      M.created_at,
+    model_version:  M.model_version,
+    content_hash:   M.content_hash,
+    inputs:         Object.assign({}, app,
+                      { borrower_id: app.borrower_id || app.customer_id || c.customer_name || c.case_id }),
+    rating:         M.rating,
+    recommendation: M.model_recommendation,
+    pd:             M.pd,
+    el:             M.el,
+    pricing:        M.pricing,
+    rwa:            M.rwa,
+    attribution:    M.attribution,
+    five_cs:        M.five_cs,
+    peer_health:    M.peer_health,
+    counterfactuals: M.counterfactuals,
+  };
 }
 
 function showError(msg) {
@@ -309,7 +349,7 @@ function showError(msg) {
 
 // ── Render ─────────────────────────────────────────────────────────────────
 
-function renderReport(f) {
+function renderReport(f, rmCtx) {
   document.getElementById('loadingState').style.display = 'none';
   document.getElementById('reportContent').style.display = 'block';
 
@@ -338,8 +378,22 @@ function renderReport(f) {
   document.getElementById('rwaValue').textContent  = fmtCurrency(f.rwa?.rwa);
 
   const pill = document.getElementById('decisionPill');
-  pill.textContent  = f.recommendation?.decision_label || dec;
-  pill.className    = `decision-pill decision-${decClass}`;
+  const modelDec = f.recommendation?.decision_label || dec;
+  if (rmCtx && rmCtx.final_decision) {
+    // Post-decision: the RM's decision is authoritative; model line is advisory.
+    const rmClass = decisionClass(rmCtx.final_decision);
+    pill.textContent = `RM decision: ${rmCtx.final_decision}`;
+    pill.className   = `decision-pill decision-${rmClass}`;
+    injectDecisionCaption(
+      `Final decision by the Relationship Manager${rmCtx.final_by ? ' (' + rmCtx.final_by + ')' : ''}. ` +
+      `Model-suggested decision: <b>${modelDec}</b> — advisory.`);
+  } else {
+    // Pre-decision: show the model's suggested decision, clearly advisory.
+    pill.textContent = modelDec;
+    pill.className   = `decision-pill decision-${decClass}`;
+    injectDecisionCaption(
+      `Model-suggested decision (advisory). The final decision rests with the Relationship Manager.`);
+  }
 
   // Section 1: Charts
   ReportCharts.drawGauge(
@@ -438,11 +492,24 @@ function renderReport(f) {
   // Pathway A: pre-populate restructure form with current deal structure
   initPathwayA(f);
 
-  // Wire the Applicant Letter link
+  // Wire the Applicant Letter link. In RM-case mode the findings aren't persisted to
+  // /api/get-report, so the ?id= applicant letter would 404 — hide it there.
   const alLink = document.getElementById('applicantLetterLink');
-  if (alLink && f.report_id) {
-    alLink.href = `/report-applicant.html?id=${f.report_id}`;
+  if (alLink) {
+    if (rmCtx) { alLink.style.display = 'none'; }
+    else if (f.report_id) { alLink.href = `/report-applicant.html?id=${f.report_id}`; }
   }
+}
+
+// Small advisory line under the executive band (model-suggested vs RM-final framing).
+function injectDecisionCaption(html) {
+  const existing = document.getElementById('decisionCaption');
+  const markup = `<div id="decisionCaption" style="margin:10px 24px 0;padding:9px 14px;` +
+    `background:#f8fafc;border-left:3px solid #94a3b8;border-radius:6px;` +
+    `font-size:0.82em;color:#475569;font-family:system-ui;">${html}</div>`;
+  if (existing) { existing.outerHTML = markup; return; }
+  const band = document.getElementById('decisionPill').parentElement;
+  band.insertAdjacentHTML('afterend', markup);
 }
 
 // ── Five C's ───────────────────────────────────────────────────────────────

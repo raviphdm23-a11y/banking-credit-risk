@@ -6,7 +6,7 @@
 <title>Banking Operations — India Banking Intelligence Platform</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=IBM+Plex+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <style>
@@ -82,7 +82,7 @@ body{
   display:flex;
   align-items:center;
   justify-content:center;
-  font-family:'Syne',sans-serif;
+  font-family:'IBM Plex Sans',sans-serif;
   font-weight:800;
   font-size:13px;
   color:#fff;
@@ -97,7 +97,7 @@ body{
 }
 
 .logo-name{
-  font-family:'Syne',sans-serif;
+  font-family:'IBM Plex Sans',sans-serif;
   font-weight:700;
   font-size:15px;
   color:#fff;
@@ -166,7 +166,7 @@ body{
   display:flex;
   align-items:center;
   justify-content:center;
-  font-family:'Syne',sans-serif;
+  font-family:'IBM Plex Sans',sans-serif;
   font-weight:700;
   font-size:13px;
   color:rgba(255,255,255,0.6);
@@ -245,7 +245,7 @@ body{
 }
 
 .topbar-title{
-  font-family:'Syne',sans-serif;
+  font-family:'IBM Plex Sans',sans-serif;
   font-weight:700;
   font-size:15px;
   color:var(--t1);
@@ -324,7 +324,7 @@ body{
   display:flex;
   align-items:center;
   justify-content:center;
-  font-family:'Syne',sans-serif;
+  font-family:'IBM Plex Sans',sans-serif;
   font-weight:800;
   font-size:24px;
   color:#fff;
@@ -334,7 +334,7 @@ body{
 .p-main{flex:1;min-width:0}
 
 .p-name{
-  font-family:'Syne',sans-serif;
+  font-family:'IBM Plex Sans',sans-serif;
   font-weight:700;
   font-size:22px;
   color:var(--t1);
@@ -441,7 +441,7 @@ body{
 }
 
 .acc-balance{
-  font-family:'Syne',sans-serif;
+  font-family:'IBM Plex Sans',sans-serif;
   font-weight:700;
   font-size:20px;
   color:var(--t1);
@@ -488,7 +488,7 @@ body{
 .loan-title-group{display:flex;flex-direction:column;gap:4px}
 
 .loan-type-name{
-  font-family:'Syne',sans-serif;
+  font-family:'IBM Plex Sans',sans-serif;
   font-weight:700;
   font-size:16px;
   color:var(--t1);
@@ -581,6 +581,7 @@ body{
   display:grid;
   grid-template-columns:120px 1fr 110px 130px;
   align-items:center;
+  column-gap:14px;
   padding:13px 24px;
   border-bottom:1px solid var(--border);
   transition:background 0.13s;
@@ -640,7 +641,7 @@ body{
 }
 
 .risk-card-title{
-  font-family:'Syne',sans-serif;
+  font-family:'IBM Plex Sans',sans-serif;
   font-weight:600;
   font-size:14px;
   color:var(--t1);
@@ -854,7 +855,7 @@ body{
   margin-bottom:6px;
 }
 .kpi-value{
-  font-family:'Syne',sans-serif;
+  font-family:'IBM Plex Sans',sans-serif;
   font-weight:700;
   font-size:26px;
   color:var(--t1);
@@ -892,7 +893,7 @@ body{
   border:1px solid var(--border);
 }
 .dash-chart-title{
-  font-family:'Syne',sans-serif;
+  font-family:'IBM Plex Sans',sans-serif;
   font-weight:600;
   font-size:14px;
   color:var(--t1);
@@ -918,6 +919,11 @@ body{
 .hs-bar-fill{height:100%;border-radius:100px}
 .hs-label{font-size:12px;font-weight:500;color:var(--t2);min-width:90px}
 .hs-count{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--t3);min-width:20px;text-align:right}
+.loan-bar-list{max-height:260px;overflow-y:auto;padding-right:6px;margin-right:-4px}
+.loan-bar-list::-webkit-scrollbar{width:6px}
+.loan-bar-list::-webkit-scrollbar-thumb{background:var(--border);border-radius:100px}
+.loan-bar-list::-webkit-scrollbar-track{background:transparent}
+.loan-bar-list{scrollbar-width:thin;scrollbar-color:var(--border) transparent}
 
 .txn-date-table{
   background:#fff;
@@ -927,7 +933,7 @@ body{
 }
 .tdt-title{
   padding:16px 24px 12px;
-  font-family:'Syne',sans-serif;
+  font-family:'IBM Plex Sans',sans-serif;
   font-weight:600;
   font-size:14px;
   color:var(--t1);
@@ -939,6 +945,7 @@ body{
   display:grid;
   grid-template-columns:140px 80px 1fr 130px;
   align-items:center;
+  column-gap:14px;
   padding:12px 24px;
   border-bottom:1px solid var(--border);
   transition:background 0.13s;
@@ -950,6 +957,7 @@ body{
   font-size:9.5px;font-weight:600;
   text-transform:uppercase;letter-spacing:1.2px;
   color:var(--t3);padding:10px 24px;
+  position:sticky;top:0;z-index:2;
 }
 .tdt-date{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--t2)}
 .tdt-count-badge{
@@ -963,6 +971,17 @@ body{
 }
 .tdt-types{font-size:12px;color:var(--t2)}
 .tdt-vol{font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;color:var(--t1);text-align:right}
+.tdt-scroll{max-height:560px;overflow-y:auto}
+.tdt-scroll::-webkit-scrollbar{width:8px}
+.tdt-scroll::-webkit-scrollbar-thumb{background:var(--border);border-radius:100px}
+.tdt-scroll::-webkit-scrollbar-track{background:transparent}
+.tdt-scroll{scrollbar-width:thin;scrollbar-color:var(--border) transparent}
+.tdt-export{
+  font-family:'IBM Plex Sans',sans-serif;font-size:11px;font-weight:600;
+  color:#fff;background:var(--green);border:none;border-radius:8px;
+  padding:7px 14px;cursor:pointer;transition:opacity .13s;letter-spacing:.2px;
+}
+.tdt-export:hover{opacity:.88}
 
 /* ── UPLOAD ── */
 .upload-btn{
@@ -1007,7 +1026,7 @@ body{
 .upload-overlay.open .upload-modal{transform:translateY(0)}
 
 .um-title{
-  font-family:'Syne',sans-serif;font-weight:700;font-size:20px;
+  font-family:'IBM Plex Sans',sans-serif;font-weight:700;font-size:20px;
   color:var(--t1);margin-bottom:4px;
 }
 .um-sub{font-size:12.5px;color:var(--t3);margin-bottom:24px;line-height:1.6}
@@ -1175,14 +1194,17 @@ body{
 // The dashboard + build* functions all read these flat arrays. They used to be a
 // hardcoded mock; they are now populated from the live banking-operations API so
 // this page stays in sync with bank.db (same data the multi-bank view uses).
-let DB = { customers:[], accounts:[], loans:[], transactions:[], risk:[] };
+let DB = { customers:[], accounts:[], loans:[], transactions:[], risk:[], banks:[] };
 
 async function loadLiveData(){
-  const list = await fetch('/operations/api/customers').then(r=>r.json());
+  const [list, banks] = await Promise.all([
+    fetch('/operations/api/customers').then(r=>r.json()),
+    fetch('/operations/api/banks').then(r=>r.json()).catch(()=>[])
+  ]);
   const details = await Promise.all(
     list.map(c => fetch('/operations/api/customers/' + c.id).then(r=>r.json()).catch(()=>null))
   );
-  DB = { customers:[], accounts:[], loans:[], transactions:[], risk:[] };
+  DB = { customers:[], accounts:[], loans:[], transactions:[], risk:[], banks: banks||[] };
   details.forEach(d=>{
     if(!d || !d.customer) return;
     DB.customers.push(d.customer);
@@ -1196,6 +1218,14 @@ async function loadLiveData(){
 // ── UTILS ─────────────────────────────────────────────────────────────────────
 const inr = n => '₹' + n.toLocaleString('en-IN',{maximumFractionDigits:0});
 const inrD = n => '₹' + n.toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});
+// Indian short form: ₹X.XX Cr / L / K (compact KPI display). 2 sig decimals, trims trailing zeros.
+const inrShort = n => {
+  const a = Math.abs(n);
+  if (a >= 1e7) return '₹' + (n/1e7).toFixed(2) + ' Cr';
+  if (a >= 1e5) return '₹' + (n/1e5).toFixed(2) + ' L';
+  if (a >= 1e3) return '₹' + (n/1e3).toFixed(1) + ' K';
+  return inr(n);
+};
 const initials = c => c.first[0] + c.last[0];
 const fmtDate = d => new Date(d).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'});
 const fmtMon = d => new Date(d).toLocaleDateString('en-IN',{month:'short',year:'numeric'});
@@ -1340,7 +1370,7 @@ function buildAccounts(cid){
   }
   const total = accs.reduce((s,a)=>s+a.balance,0);
   wrap.innerHTML=`
-  <div class="sl">Accounts <span style="margin-left:8px;font-family:'IBM Plex Mono',monospace;font-weight:600;font-size:10.5px;color:var(--t2);letter-spacing:0;text-transform:none">Total: ${inr(total)}</span></div>
+  <div class="sl">Accounts <span style="margin-left:8px;font-family:'IBM Plex Mono',monospace;font-weight:600;font-size:10.5px;color:var(--t2);letter-spacing:0;text-transform:none" title="${inr(total)}">Total: ${inrShort(total)}</span></div>
   <div class="acc-grid">
     ${accs.map(a=>{
       const [bg,icon] = accColors[a.type]||['#F4F6FA','💳'];
@@ -1421,12 +1451,12 @@ function buildTransactions(cid){
   wrap.innerHTML=`
   <div class="sl">Recent Transactions</div>
   <div class="txn-table">
-    <div class="txn-row hdr" style="grid-template-columns:110px 52px 110px 1fr 120px">
+    <div class="txn-row hdr" style="grid-template-columns:104px 72px 116px 1fr 120px">
       <span>Date</span><span>Time</span><span>Type</span><span>Description</span><span style="text-align:right">Amount</span>
     </div>
     ${txns.map(t=>{
       const cr = isCredit(t.type);
-      return `<div class="txn-row" style="grid-template-columns:110px 52px 110px 1fr 120px">
+      return `<div class="txn-row" style="grid-template-columns:104px 72px 116px 1fr 120px">
         <span class="txn-date">${fmtDate(t.date)}</span>
         <span style="font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:var(--red);font-weight:500">${t.time}</span>
         <span class="txn-type-name" style="font-size:12px">${t.type}</span>
@@ -1626,14 +1656,14 @@ function buildKPIs(){
     <div class="kpi-card green">
       <span class="kpi-icon">🏦</span>
       <div class="kpi-label">Total Deposits</div>
-      <div class="kpi-value">${inr(totalDeposits)}</div>
-      <div class="kpi-sub">${DB.accounts.length} accounts · avg ${inr(Math.round(totalDeposits/DB.accounts.length))}</div>
+      <div class="kpi-value" title="${inr(totalDeposits)}">${inrShort(totalDeposits)}</div>
+      <div class="kpi-sub">${DB.accounts.length} accounts · avg ${inrShort(Math.round(totalDeposits/DB.accounts.length))}</div>
       <div class="kpi-trend up">↑ Across all account types</div>
     </div>
     <div class="kpi-card amber">
       <span class="kpi-icon">💳</span>
       <div class="kpi-label">Loan Book Outstanding</div>
-      <div class="kpi-value">${inr(totalLoans)}</div>
+      <div class="kpi-value" title="${inr(totalLoans)}">${inrShort(totalLoans)}</div>
       <div class="kpi-sub">${DB.loans.length} loans · ${activeLoans} active</div>
       <div class="kpi-trend warn">⚠ ${nDefault} stressed ${nDefault===1?'loan':'loans'}</div>
     </div>
@@ -1641,7 +1671,7 @@ function buildKPIs(){
       <span class="kpi-icon">🔄</span>
       <div class="kpi-label">Total Transactions</div>
       <div class="kpi-value">${totalTxns}</div>
-      <div class="kpi-sub">Volume: ${inr(totalTxnVol)}</div>
+      <div class="kpi-sub" title="${inr(totalTxnVol)}">Volume: ${inrShort(totalTxnVol)}</div>
       <div class="kpi-trend up">↑ Jan–Mar 2024</div>
     </div>
   </div>`;
@@ -1716,7 +1746,8 @@ function buildBreakdownRow(){
         </div>
       </div>
       <div style="margin-top:20px;border-top:1px solid var(--border);padding-top:14px">
-        <div class="dash-chart-sub" style="margin-bottom:10px">Loan book: ${inr(DB.loans.reduce((s,l)=>s+l.outstanding,0))} total</div>
+        <div class="dash-chart-sub" style="margin-bottom:10px">Loan book: ${inrShort(DB.loans.reduce((s,l)=>s+l.outstanding,0))} total · ${DB.loans.length} loans</div>
+        <div class="loan-bar-list">
         ${DB.loans.map(l=>{
           const pct=((l.outstanding/DB.loans.reduce((s,x)=>s+x.outstanding,0))*100).toFixed(1);
           const col=effStatus(l)==='Active'?'var(--green)':effStatus(l)==='NPA'?'var(--amber)':'var(--red)';
@@ -1728,6 +1759,7 @@ function buildBreakdownRow(){
             <div class="hs-bar-bg"><div class="hs-bar-fill" style="width:${pct}%;background:${col}"></div></div>
           </div>`;
         }).join('')}
+        </div>
       </div>
     </div>
   </div>`;
@@ -1735,43 +1767,96 @@ function buildBreakdownRow(){
 }
 
 // ── TXN DATE TABLE ────────────────────────────────────────────────────────────
+// txn → customer / bank / country enrichment (consolidated view spans all banks)
+function txnContext(){
+  const acctToCust = {};
+  DB.accounts.forEach(a=>{ acctToCust[a.id] = a.cid; });
+  const custById = {};
+  DB.customers.forEach(c=>{ custById[c.id] = c; });
+  const bankById = {};
+  DB.banks.forEach(b=>{ bankById[b.bank_id] = b; });
+  return t=>{
+    const cust = custById[acctToCust[t.aid]];
+    const bank = bankById[t.bank_id] || {};
+    return {
+      customer: cust ? `${cust.first} ${cust.last}` : '—',
+      bank: bank.bank_name || t.bank_id || '—',
+      country: bank.country || '—'
+    };
+  };
+}
+
+const TDT_COLS = '92px 72px 132px 128px 76px 96px 1fr 110px';
+
 function buildTxnDateTable(){
   const sorted = [...DB.transactions].sort((a,b)=>{
     const da=new Date(a.date+'T'+a.time), db=new Date(b.date+'T'+b.time);
     return db-da;
   });
+  const ctx = txnContext();
 
   const wrap = document.createElement('div');
   wrap.innerHTML=`
   <div class="sl">Full Transaction Log — Date &amp; Time</div>
   <div class="txn-date-table">
     <div class="tdt-title">
-      All Transactions
-      <span class="tdt-subtitle">${DB.transactions.length} transactions · ${[...new Set(DB.transactions.map(t=>t.date))].length} unique dates</span>
+      <span>All Transactions
+        <span class="tdt-subtitle">${DB.transactions.length} transactions · ${[...new Set(DB.transactions.map(t=>t.date))].length} unique dates</span>
+      </span>
+      <button class="tdt-export" onclick="exportTxnsExcel()">⬇ Export Excel</button>
     </div>
-    <div class="tdt-row tdt-hdr" style="grid-template-columns:100px 52px 90px 100px 1fr 120px">
-      <span>Date</span><span>Time</span><span>Hour</span><span>Type</span><span>Description</span><span style="text-align:right">Amount</span>
+    <div class="tdt-scroll">
+    <div class="tdt-row tdt-hdr" style="grid-template-columns:${TDT_COLS}">
+      <span>Date</span><span>Time</span><span>Customer</span><span>Bank</span><span>Country</span><span>Type</span><span>Description</span><span style="text-align:right">Amount</span>
     </div>
     ${sorted.map(t=>{
-      const h=parseInt(t.time.split(':')[0]);
-      const slot=`${String(h).padStart(2,'0')}:00`;
       const cr=isCredit(t.type);
-      return `<div class="tdt-row" style="grid-template-columns:100px 52px 90px 100px 1fr 120px">
+      const c=ctx(t);
+      return `<div class="tdt-row" style="grid-template-columns:${TDT_COLS}">
         <span class="tdt-date">${fmtDate(t.date)}</span>
         <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--red);font-weight:500">${t.time}</span>
-        <span style="font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:var(--t3)">${slot} hr</span>
+        <span style="font-size:12px;color:var(--t1);overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${c.customer}">${c.customer}</span>
+        <span style="font-size:11.5px;color:var(--t2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${c.bank}">${c.bank}</span>
+        <span style="font-size:11.5px;color:var(--t3)">${c.country}</span>
         <span class="tdt-types">${t.type}</span>
-        <span style="font-size:12px;color:var(--t2)">${t.desc||'—'} <span style="color:var(--t3);font-size:10px">· ${t.aid}</span></span>
+        <span style="font-size:12px;color:var(--t2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${(t.desc||'').replace(/"/g,'&quot;')}">${t.desc||'—'} <span style="color:var(--t3);font-size:10px">· ${t.aid}</span></span>
         <span class="tdt-vol" style="color:${cr?'var(--green)':'var(--red)'}">${cr?'+':'-'}${inr(t.amount)}</span>
       </div>`;
     }).join('')}
-    <div style="padding:12px 24px;background:#FAFBFD;border-top:1px solid var(--border);display:grid;grid-template-columns:90px 60px 110px 1fr 130px;font-size:11.5px;align-items:center">
-      <span></span><span></span><span></span>
-      <span style="color:var(--t3)">Total volume</span>
-      <span style="font-family:'IBM Plex Mono',monospace;font-weight:700;color:var(--t1);text-align:right">${inr(DB.transactions.reduce((s,t)=>s+t.amount,0))}</span>
+    </div>
+    <div style="padding:12px 24px;background:#FAFBFD;border-top:1px solid var(--border);display:grid;grid-template-columns:1fr 130px;font-size:11.5px;align-items:center">
+      <span style="color:var(--t3)">Total volume across ${DB.transactions.length} transactions</span>
+      <span style="font-family:'IBM Plex Mono',monospace;font-weight:700;color:var(--t1);text-align:right" title="${inr(DB.transactions.reduce((s,t)=>s+t.amount,0))}">${inrShort(DB.transactions.reduce((s,t)=>s+t.amount,0))}</span>
     </div>
   </div>`;
   return wrap;
+}
+
+// Export the full transaction log to an Excel-openable file (CSV with BOM).
+function exportTxnsExcel(){
+  const ctx = txnContext();
+  const sorted = [...DB.transactions].sort((a,b)=>{
+    const da=new Date(a.date+'T'+a.time), db=new Date(b.date+'T'+b.time);
+    return db-da;
+  });
+  const q = v => { const s = (v==null?'':String(v)); return /[",\n]/.test(s) ? '"'+s.replace(/"/g,'""')+'"' : s; };
+  const header = ['Date','Time','Customer','Bank','Country','Account','Type','Description','Direction','Amount (INR)'];
+  const lines = [header.join(',')];
+  sorted.forEach(t=>{
+    const c=ctx(t);
+    const cr=isCredit(t.type);
+    lines.push([
+      t.date, t.time, c.customer, c.bank, c.country, t.aid, t.type,
+      t.desc||'', cr?'Credit':'Debit', (cr?'':'-')+Math.round(t.amount)
+    ].map(q).join(','));
+  });
+  const blob = new Blob(['﻿'+lines.join('\r\n')], {type:'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `transaction_log_${new Date().toISOString().slice(0,10)}.csv`;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url), 1000);
 }
 
 // ── BUILD CHART INSTANCES ─────────────────────────────────────────────────────

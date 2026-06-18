@@ -588,6 +588,47 @@
                 </div>
             </div>
 
+            <!-- Existing-customer lookup result (auto-enrich from bank.db) -->
+            <div id="custLookupBanner" style="display:none;margin-bottom:15px;"></div>
+
+            <div class="grid-2" style="margin-bottom:15px;">
+                <div class="form-group">
+                    <label for="country">Country / Jurisdiction</label>
+                    <select id="country"><option value="">-- Select Country --</option></select>
+                    <div id="jurisdictionChip" style="margin-top:6px;font-size:0.82em;color:#475569;"></div>
+                </div>
+                <div class="form-group"></div>
+            </div>
+
+            <div class="grid-2" style="margin-bottom:15px;">
+                <div class="form-group">
+                    <label for="kycStatusField">KYC Status</label>
+                    <select id="kycStatusField">
+                        <option value="Verified">Verified</option>
+                        <option value="Pending">Pending</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="screeningField">Financial-crime screening</label>
+                    <select id="screeningField">
+                        <option value="clean">Clean</option>
+                        <option value="pep">PEP match</option>
+                        <option value="sanctions">Sanctions hit</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="grid-2" style="margin-bottom:15px;">
+                <div class="form-group">
+                    <label for="proposedEmi">Proposed EMI (₹)</label>
+                    <input type="number" id="proposedEmi" placeholder="e.g., 32000" min="0" step="500">
+                </div>
+                <div class="form-group">
+                    <label for="existingObligations">Existing monthly obligations (₹)</label>
+                    <input type="number" id="existingObligations" placeholder="e.g., 20000" min="0" step="500">
+                </div>
+            </div>
+
             <div class="grid-2">
                 <div class="form-group">
                     <label for="sector">Industry / Sector *</label>
@@ -1001,77 +1042,6 @@
             <div id="successBox" class="success-box">
                 <p id="successMessage"></p>
             </div>
-
-            <div class="button-group">
-                <button class="btn-secondary" onclick="resetForm()">&#8592; Recalculate</button>
-                <button class="btn-success" onclick="confirmAndRecordLoan()">&#10003; Confirm &amp; Record Loan</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Portfolio Section -->
-    <div class="card" id="portfolioSection" style="display:none;">
-        <div class="portfolio-header">
-            <h2>Recorded Loans Portfolio</h2>
-            <div style="display:flex; gap:10px; align-items:center;">
-                <span id="portfolioLoanCount" style="color:#667eea; font-weight:700; font-size:1.1em;"></span>
-            </div>
-        </div>
-
-        <div class="table-scroll">
-            <table id="loansTable">
-                <thead>
-                    <tr>
-                        <th>Loan ID</th>
-                        <th>Borrower</th>
-                        <th>Sector</th>
-                        <th class="text-center">Method</th>
-                        <th class="text-right">Exposure</th>
-                        <th class="text-right">PD %</th>
-                        <th class="text-right">LGD %</th>
-                        <th class="text-right">Risk Wt %</th>
-                        <th class="text-right">RWA</th>
-                        <th class="text-right">Capital Req</th>
-                        <th class="text-center">Action</th>
-                    </tr>
-                </thead>
-                <tbody id="loansTableBody"></tbody>
-            </table>
-        </div>
-
-        <!-- Portfolio Summary -->
-        <div class="summary-grid">
-            <div class="summary-stat">
-                <div class="summary-label">Total Loans</div>
-                <div class="summary-value" id="summaryLoanCount">0</div>
-            </div>
-            <div class="summary-stat">
-                <div class="summary-label">Total Exposure (EAD)</div>
-                <div class="summary-value" id="summaryTotalEAD">$0</div>
-            </div>
-            <div class="summary-stat">
-                <div class="summary-label">Total RWA</div>
-                <div class="summary-value" id="summaryTotalRWA">$0</div>
-            </div>
-            <div class="summary-stat">
-                <div class="summary-label">Total Capital Required (8%)</div>
-                <div class="summary-value" id="summaryTotalCapital">$0</div>
-            </div>
-            <div class="summary-stat">
-                <div class="summary-label">Average Risk Density</div>
-                <div class="summary-value" id="summaryRiskDensity">0.00%</div>
-            </div>
-            <div class="summary-stat">
-                <div class="summary-label">CET1 Required (4.5%)</div>
-                <div class="summary-value" id="summaryCET1">$0</div>
-            </div>
-        </div>
-
-        <div class="export-row">
-            <button class="btn-export" onclick="exportToCSV()">Export CSV</button>
-            <button class="btn-export" onclick="exportToJSON()">Export JSON</button>
-            <div class="spacer"></div>
-            <button class="btn-danger" style="padding:11px 20px; font-size:0.88em;" onclick="clearAllLoans()">Clear All Loans</button>
         </div>
     </div>
 
@@ -1083,12 +1053,6 @@
 
 <script src="standardized-approach.js"></script>
 <script>
-    // ── State ──────────────────────────────────────────────────────────────────
-    let loans = [];
-
-    // ── Calculation results held between Calculate and Confirm ─────────────────
-    let pendingLoanData = null;
-
     // ── Mode/section visibility ────────────────────────────────────────────────
     function getMode() {
         return document.querySelector('input[name="calcMode"]:checked').value;
@@ -1436,23 +1400,9 @@
             document.getElementById('saResultCard').style.display = 'none';
         }
 
-        // Stash for Confirm step
-        pendingLoanData = {
-            borrowerId, borrowerName, sector, exposureAmount,
-            mode, pd, lgd: lgdResult ? lgdResult.lgd : null,
-            maturity, adjustedExposure,
-            haircut: haircutResult ? parseFloat(haircutResult.haircut) : 0,
-            collateralType: document.getElementById('collateralType').value,
-            collateralValue: parseFloat(document.getElementById('collateralValue').value) || 0,
-            seniority: (mode === 'airb' || mode === 'both') ? document.getElementById('seniority').value : null,
-            externalRating: saRiskWeight !== null ? document.getElementById('externalRating').value : null,
-            exposureCategory: saRiskWeight !== null ? document.getElementById('exposureCategory').value : null,
-            saRiskWeight
-        };
-
         // Show success message
         document.getElementById('successMessage').textContent =
-            'Risk parameters calculated for ' + borrowerName + '. Review the values above, then click Confirm & Record Loan.';
+            'Risk parameters calculated for ' + borrowerName + '. Review the values above, then use “Refer to Relationship Manager” to send the case for the decision.';
         document.getElementById('successBox').classList.add('active');
 
         // Show results
@@ -1480,239 +1430,11 @@
         }
     }
 
-    // ── Confirm & Record ──────────────────────────────────────────────────────
-    function confirmAndRecordLoan() {
-        if (!pendingLoanData) {
-            alert('Please calculate risk parameters first.');
-            return;
-        }
-
-        const d = pendingLoanData;
-
-        // Calculate RWA
-        let rwa = 0;
-
-        if (d.mode === 'airb' || d.mode === 'both') {
-            rwa = calcAIRBRwa(d.adjustedExposure, d.pd, d.lgd, d.maturity);
-        } else if (d.mode === 'standardized') {
-            rwa = d.exposureAmount * d.saRiskWeight / 100;
-        }
-
-        const capitalRequired = rwa * 0.08;
-        const riskDensity     = d.exposureAmount > 0 ? (rwa / d.exposureAmount * 100) : 0;
-
-        const loan = {
-            loanId:           d.borrowerId,
-            borrowerName:     d.borrowerName,
-            sector:           d.sector,
-            ead:              d.exposureAmount,
-            calcMode:         d.mode,
-            pd:               d.pd,
-            lgd:              d.lgd,
-            maturity:         d.maturity,
-            collateralType:   d.collateralType,
-            collateralValue:  d.collateralValue,
-            haircut:          d.haircut,
-            adjustedExposure: d.adjustedExposure,
-            externalRating:   d.externalRating,
-            exposureCategory: d.exposureCategory,
-            riskWeight:       d.saRiskWeight,
-            rwa,
-            capitalRequired,
-            riskDensity
-        };
-
-        loans.push(loan);
-        localStorage.setItem('creditRiskLoans', JSON.stringify(loans));
-
-        showToast(d.borrowerName + ' recorded — RWA: ' + formatCurrency(rwa));
-
-        document.getElementById('portfolioSection').style.display = 'block';
-        updateTable();
-        updateSummary();
-
-        // Scroll to portfolio
-        setTimeout(() => {
-            document.getElementById('portfolioSection').scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }, 250);
-
-        resetForm();
-        pendingLoanData = null;
-    }
-
-    // ── Table & summary ───────────────────────────────────────────────────────
-    function updateTable() {
-        const tbody = document.getElementById('loansTableBody');
-        tbody.innerHTML = '';
-
-        loans.forEach((loan, i) => {
-            const tr = document.createElement('tr');
-
-            const modeLabel = { airb: 'AIRB', standardized: 'SA', both: 'Both' }[loan.calcMode] || loan.calcMode;
-            const modeClass = { airb: 'method-airb', standardized: 'method-sa', both: 'method-both' }[loan.calcMode] || '';
-
-            const pdDisplay  = loan.pd  != null ? loan.pd.toFixed(2) + '%'  : '—';
-            const lgdDisplay = loan.lgd != null ? loan.lgd.toFixed(0) + '%' : '—';
-            const rwDisplay  = loan.riskWeight != null ? loan.riskWeight + '%' : '—';
-
-            tr.innerHTML = `
-                <td>${loan.loanId}</td>
-                <td>${loan.borrowerName}</td>
-                <td>${loan.sector}</td>
-                <td class="text-center"><span class="method-tag ${modeClass}">${modeLabel}</span></td>
-                <td class="text-right">${formatCurrency(loan.ead)}</td>
-                <td class="text-right">${pdDisplay}</td>
-                <td class="text-right">${lgdDisplay}</td>
-                <td class="text-right">${rwDisplay}</td>
-                <td class="text-right">${formatCurrency(loan.rwa)}</td>
-                <td class="text-right">${formatCurrency(loan.capitalRequired)}</td>
-                <td class="text-center"><button class="btn-danger" onclick="deleteLoan(${i})">Delete</button></td>`;
-
-            tbody.appendChild(tr);
-        });
-
-        document.getElementById('portfolioLoanCount').textContent =
-            loans.length + ' loan' + (loans.length !== 1 ? 's' : '');
-    }
-
-    function deleteLoan(i) {
-        loans.splice(i, 1);
-        localStorage.setItem('creditRiskLoans', JSON.stringify(loans));
-        updateTable();
-        updateSummary();
-        if (loans.length === 0) document.getElementById('portfolioSection').style.display = 'none';
-    }
-
-    function clearAllLoans() {
-        if (!confirm('Delete all ' + loans.length + ' loans? This cannot be undone.')) return;
-        loans = [];
-        localStorage.setItem('creditRiskLoans', JSON.stringify(loans));
-        updateTable();
-        updateSummary();
-        document.getElementById('portfolioSection').style.display = 'none';
-    }
-
-    function updateSummary() {
-        let totalEAD = 0, totalRWA = 0, totalCapital = 0;
-        loans.forEach(l => { totalEAD += l.ead || 0; totalRWA += l.rwa || 0; totalCapital += l.capitalRequired || 0; });
-
-        const density = totalEAD > 0 ? (totalRWA / totalEAD * 100) : 0;
-
-        document.getElementById('summaryLoanCount').textContent    = loans.length;
-        document.getElementById('summaryTotalEAD').textContent     = formatCurrency(totalEAD);
-        document.getElementById('summaryTotalRWA').textContent     = formatCurrency(totalRWA);
-        document.getElementById('summaryTotalCapital').textContent = formatCurrency(totalCapital);
-        document.getElementById('summaryRiskDensity').textContent  = density.toFixed(2) + '%';
-        document.getElementById('summaryCET1').textContent         = formatCurrency(totalRWA * 0.045);
-    }
-
-    // ── Export ────────────────────────────────────────────────────────────────
-    function exportToCSV() {
-        if (!loans.length) { alert('No loans to export.'); return; }
-        let csv = 'Loan ID,Borrower,Sector,Method,EAD,PD %,LGD %,Risk Weight %,RWA,Capital Req,Risk Density %\n';
-        loans.forEach(l => {
-            csv += [
-                l.loanId, l.borrowerName, l.sector,
-                ({ airb:'AIRB', standardized:'SA', both:'Both' }[l.calcMode] || l.calcMode),
-                l.ead,
-                l.pd  != null ? l.pd.toFixed(2)  : '',
-                l.lgd != null ? l.lgd.toFixed(2) : '',
-                l.riskWeight != null ? l.riskWeight : '',
-                l.rwa.toFixed(2), l.capitalRequired.toFixed(2),
-                l.riskDensity != null ? l.riskDensity.toFixed(2) : ''
-            ].join(',') + '\n';
-        });
-
-        const totalEAD = loans.reduce((s,l) => s + l.ead, 0);
-        const totalRWA = loans.reduce((s,l) => s + l.rwa, 0);
-        csv += '\nPortfolio Summary\n';
-        csv += 'Total EAD,' + totalEAD.toFixed(2) + '\n';
-        csv += 'Total RWA,' + totalRWA.toFixed(2) + '\n';
-        csv += 'Total Capital (8%),' + (totalRWA * 0.08).toFixed(2) + '\n';
-        csv += 'RWA Density,' + (totalEAD > 0 ? (totalRWA/totalEAD*100).toFixed(2) : '0') + '%\n';
-
-        download(csv, 'portfolio-' + today() + '.csv', 'text/csv');
-    }
-
-    function exportToJSON() {
-        if (!loans.length) { alert('No loans to export.'); return; }
-        const totalEAD = loans.reduce((s,l) => s + l.ead, 0);
-        const totalRWA = loans.reduce((s,l) => s + l.rwa, 0);
-        const data = {
-            exportDate: new Date().toISOString(),
-            loans,
-            summary: {
-                totalLoans: loans.length,
-                totalEAD, totalRWA,
-                totalCapital: totalRWA * 0.08,
-                cet1Required: totalRWA * 0.045,
-                rwaDensity: totalEAD > 0 ? totalRWA / totalEAD * 100 : 0
-            }
-        };
-        download(JSON.stringify(data, null, 2), 'portfolio-' + today() + '.json', 'application/json');
-    }
-
-    function download(content, filename, type) {
-        const a = document.createElement('a');
-        a.href = 'data:' + type + ';charset=utf-8,' + encodeURIComponent(content);
-        a.download = filename;
-        a.style.display = 'none';
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-    }
-
-    function today() { return new Date().toISOString().split('T')[0]; }
-
     // ── Utilities ─────────────────────────────────────────────────────────────
     function formatCurrency(v) {
         return '$' + parseFloat(v || 0).toLocaleString('en-US', { maximumFractionDigits: 0 });
     }
 
-    function showToast(msg) {
-        const t = document.createElement('div');
-        t.className = 'toast';
-        t.textContent = msg;
-        document.body.appendChild(t);
-        setTimeout(() => { t.style.animation = 'slideOut 0.3s ease-out'; setTimeout(() => t.remove(), 300); }, 4000);
-    }
-
-    // ── Reset form ────────────────────────────────────────────────────────────
-    function resetForm() {
-        // Clear all text/number inputs
-        ['borrowerId','borrowerName','exposureAmount','debtToEquity','interestCoverage',
-         'profitabilityMargin','liquidityRatio','collateralValue','maturityOverride',
-         'kycAge','kycYearsEmployed','kycAnnualIncome','kycFoir','kycNumDependents',
-         'kycCibilScore','kycMonthsAsCustomer','kycLatePayments','kycExistingLoans','kycExistingProducts'
-        ].forEach(id => {
-            const el = document.getElementById(id);
-            if (el) el.value = '';
-        });
-
-        // Reset selects to first option
-        ['sector','seniority','collateralType','loanType','externalRating','exposureCategory',
-         'kycEmploymentType','kycCityTier','kycEducation','kycResidenceType',
-         'kycLoanPurpose','kycPreviousDefault','kycIsRural'
-        ].forEach(id => {
-            const el = document.getElementById(id);
-            if (el) el.selectedIndex = 0;
-        });
-
-        // Reset collateralType default to 'None' (index 0 is already None)
-        // Reset radio to AIRB
-        document.getElementById('modeAIRB').checked = true;
-
-        clearErrors();
-        updateSectionVisibility();
-
-        // Hide results + exec band
-        document.getElementById('resultsSection').classList.remove('active');
-        document.getElementById('successBox').classList.remove('active');
-        document.getElementById('execBand').style.display = 'none';
-        document.getElementById('execBandInner').innerHTML = '';
-
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
 
     // ── Executive Assessment Band ─────────────────────────────────────────────
     async function generateAndShowExecBand(inputs) {
@@ -1760,12 +1482,18 @@
                     <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
                         <div style="display:flex;align-items:center;gap:10px;">
                             <span style="font-size:0.8em;font-weight:700;color:#64748b;text-transform:uppercase;
-                                         letter-spacing:.06em;">Credit Assessment</span>
+                                         letter-spacing:.06em;">Risk Assessment Summary</span>
                         </div>
+                        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
                         ${reportId ? `<a href="/report-underwriter.html?id=${reportId}" target="_blank"
                                 style="background:#1a2e4a;color:#fff;padding:8px 18px;border-radius:8px;
                                        text-decoration:none;font-size:0.88em;font-weight:600;
                                        white-space:nowrap;">Full Assessment Report &#8594;</a>` : ''}
+                        <button id="sendToRmBtn" onclick="sendToRM(this)"
+                                style="background:#0ea5a4;color:#fff;padding:8px 18px;border-radius:8px;border:none;
+                                       cursor:pointer;font-size:0.88em;font-weight:600;white-space:nowrap;font-family:system-ui;">
+                            Refer to Relationship Manager &#8594;</button>
+                        </div>
                     </div>
                     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));
                                 gap:16px;margin-top:16px;">
@@ -1785,13 +1513,10 @@
                             <div style="font-size:1.5em;font-weight:700;color:#1a2e4a;">${rate}</div>
                             <div style="font-size:0.75em;color:#64748b;margin-top:2px;">Indicative Rate</div>
                         </div>
-                        <div style="text-align:center;">
-                            <div style="font-size:1.1em;font-weight:800;color:#fff;background:${decColor};
-                                        padding:6px 14px;border-radius:20px;display:inline-block;">
-                                ${decision}
-                            </div>
-                            <div style="font-size:0.75em;color:#64748b;margin-top:4px;">Decision</div>
-                        </div>
+                    </div>
+                    <div style="margin-top:14px;font-size:0.78em;color:#64748b;font-family:system-ui;
+                                border-top:1px solid #eef2f7;padding-top:10px;">
+                        These are risk measurements only. The lend / no-lend decision is made by the Relationship Manager — use “Refer to Relationship Manager”.
                     </div>
                 </div>`;
         } catch (e) {
@@ -1803,7 +1528,176 @@
         }
     }
 
+    // ── Send to Relationship Management (direct handoff) ──────────────────────
+    // Maps the borrower profile collected here onto the RM `application` shape and
+    // creates a case via POST /relationship/api/cases. The case lands in the RM
+    // Pending queue for the final accept/reject decision — no re-keying. The same
+    // assessment engine runs behind both, so the RM sees the full profile (ratios
+    // + KYC + bureau), not just the 4 ratios the quick exec band uses.
+    async function sendToRM(btn) {
+        const el   = id => document.getElementById(id);
+        const num  = id => { const n = parseFloat(el(id) && el(id).value); return isNaN(n) ? 0 : n; };
+        const intv = id => { const n = parseInt(el(id) && el(id).value); return isNaN(n) ? 0 : n; };
+        const txt  = id => (el(id) && el(id).value || '').trim();
+
+        const income    = num('kycAnnualIncome');
+        const foir       = num('kycFoir');
+        const collateral = num('collateralValue');
+        const maturity   = Math.min(5, Math.max(1, Math.round(num('maturityOverride')) || 3));
+        const screening  = txt('screeningField') || 'clean';
+        const obligations = num('existingObligations') || Math.round(foir * income / 12);
+        const countryCode = txt('country');
+
+        const app = {
+            source: 'credit_risk_calculator',
+            customer_name: txt('borrowerName') || 'New Applicant',
+            customer_id:   txt('borrowerId') || null,
+            product:       txt('loanType') || 'Term Loan',
+            country_code:  countryCode || null,
+            country:       (COUNTRY_INDEX[countryCode] || {}).name || null,
+            requested_amount: num('exposureAmount'),
+            exposure:         num('exposureAmount'),
+            existing_exposure: 0,
+            collateral_value: collateral,
+            annual_income:    income,
+            applicant_age:    intv('kycAge'),
+            tenure_years:     Math.max(1, Math.round(num('maturityOverride')) || maturity),
+            maturity:         maturity,
+            existing_monthly_obligations: obligations,
+            proposed_emi:     num('proposedEmi'),
+            kyc_status:       txt('kycStatusField') || 'Verified',
+            pep_flag:         screening === 'pep',
+            sanctions_hit:    screening === 'sanctions',
+            seniority:        txt('seniority') || (collateral > 0 ? 'Senior Secured' : 'Senior Unsecured'),
+            // 4 explainable ratios
+            de_ratio:          num('debtToEquity'),
+            interest_coverage: num('interestCoverage'),
+            profitability:     num('profitabilityMargin'),
+            liquidity_ratio:   num('liquidityRatio'),
+            // full KYC / bureau block — same features fed to the 21-feature model here
+            age:                        intv('kycAge'),
+            employment_type_enc:        intv('kycEmploymentType'),
+            years_employed:             num('kycYearsEmployed'),
+            foir:                       foir,
+            num_dependents:             intv('kycNumDependents'),
+            city_tier_enc:              intv('kycCityTier'),
+            education_enc:              intv('kycEducation'),
+            residence_type_enc:         intv('kycResidenceType'),
+            loan_purpose_enc:           intv('kycLoanPurpose'),
+            cibil_score:                intv('kycCibilScore'),
+            previous_default_flag:      intv('kycPreviousDefault'),
+            months_as_customer:         intv('kycMonthsAsCustomer'),
+            num_late_payments_past_12m: intv('kycLatePayments'),
+            existing_loans_count:       intv('kycExistingLoans'),
+            num_existing_products:      intv('kycExistingProducts'),
+            is_rural:                   intv('kycIsRural'),
+        };
+
+        const orig = btn.textContent;
+        btn.disabled = true; btn.textContent = 'Sending…';
+        try {
+            const res = await fetch('/relationship/api/cases', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(app),
+            });
+            const j = await res.json();
+            if (!res.ok || !j.success) throw new Error(j.error || ('API ' + res.status));
+            btn.textContent = '✓ Sent — opening RM…';
+            btn.style.background = '#16a34a';
+            window.open('/relationship/?case=' + encodeURIComponent(j.case_id), '_blank');
+        } catch (e) {
+            btn.disabled = false; btn.textContent = orig;
+            alert('Could not send to RM (Flask server may be offline): ' + e.message);
+        }
+    }
+    window.sendToRM = sendToRM;
+
+    // ── Country dropdown + jurisdiction chip (global reference linkage) ─────────
+    let COUNTRY_INDEX = {};
+    async function loadCountries() {
+        try {
+            const d = await fetch('/reference/api/countries').then(r => r.json());
+            const sel = document.getElementById('country');
+            (d.regions || []).forEach(reg => {
+                (reg.countries || []).forEach(c => {
+                    COUNTRY_INDEX[c.country_code] = {
+                        name: c.country_name, region: reg.region,
+                        currency: c.currency_code,
+                        regulator: c.capital_regulator || c.central_bank_abbr || '',
+                    };
+                    const o = document.createElement('option');
+                    o.value = c.country_code;
+                    o.textContent = c.country_name + ' (' + c.currency_code + ')';
+                    sel.appendChild(o);
+                });
+            });
+        } catch (e) { /* reference layer offline — country stays optional */ }
+    }
+    function updateJurisdictionChip() {
+        const m = COUNTRY_INDEX[document.getElementById('country').value];
+        document.getElementById('jurisdictionChip').textContent =
+            m ? (m.region + ' · ' + m.currency + ' · ' + m.regulator) : '';
+    }
+
+    // ── Existing-customer lookup (auto-enrich, applied on confirm click) ────────
+    let LOOKUP_DATA = null;
+    const inr0 = n => '₹' + Number(n || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 });
+    async function lookupCustomer() {
+        const id = (document.getElementById('borrowerId').value || '').trim();
+        const banner = document.getElementById('custLookupBanner');
+        LOOKUP_DATA = null;
+        if (!id) { banner.style.display = 'none'; return; }
+        let d;
+        try { d = await fetch('/api/customer-lookup/' + encodeURIComponent(id)).then(r => r.json()); }
+        catch (e) { return; }
+        if (!d || !d.found) { banner.style.display = 'none'; return; }
+        LOOKUP_DATA = d;
+        const t = d.relationship.transactions, a = d.relationship.accounts, l = d.relationship.loans;
+        banner.style.display = 'block';
+        banner.innerHTML =
+            '<div style="background:#ecfdf5;border:1px solid #6ee7b7;border-radius:10px;padding:14px 18px;font-family:system-ui;">' +
+              '<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">' +
+                '<div style="font-size:0.92em;color:#065f46;font-weight:600;">✓ Existing customer found — ' +
+                  d.fields.borrowerName + ' · ' + (d.bank_name || '') + ' (' + (d.country || '') + ')</div>' +
+                '<button type="button" onclick="applyLookup()" style="background:#059669;color:#fff;border:none;' +
+                  'border-radius:8px;padding:7px 16px;font-weight:600;cursor:pointer;font-size:0.85em;">Autofill from records →</button>' +
+              '</div>' +
+              '<div style="margin-top:10px;font-size:0.8em;color:#475569;display:grid;' +
+                'grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:8px;">' +
+                '<div><b>' + a.count + '</b> account(s) · ' + inr0(a.total_balance) + '</div>' +
+                '<div><b>' + l.count + '</b> loan(s) · ' + inr0(l.total_outstanding) + ' o/s · ' + (l.classifications || []).join(', ') + '</div>' +
+                '<div>Avg monthly inflow ' + inr0(t.avg_monthly_inflow) + '</div>' +
+                '<div>Avg monthly outflow ' + inr0(t.avg_monthly_outflow) + '</div>' +
+                '<div>' + t.num_income_credits + ' income credits · ' + t.num_emi_debits + ' EMI payments' + (t.num_missed_emi ? ' · ' + t.num_missed_emi + ' missed' : '') + '</div>' +
+                '<div>' + t.months_observed + ' mo history · ' + t.num_transactions + ' txns</div>' +
+              '</div>' +
+            '</div>';
+    }
+    function applyLookup() {
+        if (!LOOKUP_DATA) return;
+        const f = LOOKUP_DATA.fields;
+        Object.keys(f).forEach(id => {
+            if (id === 'kyc_status' || id === 'screening') return;
+            const el = document.getElementById(id);
+            if (el && f[id] !== '' && f[id] != null) {
+                el.value = f[id];
+                el.dispatchEvent(new Event('change', { bubbles: true }));
+            }
+        });
+        if (LOOKUP_DATA.country_code) {
+            const cs = document.getElementById('country');
+            if (cs) { cs.value = LOOKUP_DATA.country_code; updateJurisdictionChip(); }
+        }
+        const ks = document.getElementById('kycStatusField'); if (ks && f.kyc_status) ks.value = f.kyc_status;
+        const sc = document.getElementById('screeningField'); if (sc && f.screening) sc.value = f.screening;
+    }
+    window.applyLookup = applyLookup;
+
     // ── Init ──────────────────────────────────────────────────────────────────
+    loadCountries();
+    document.getElementById('country').addEventListener('change', updateJurisdictionChip);
+    document.getElementById('borrowerId').addEventListener('change', lookupCustomer);
+    document.getElementById('borrowerId').addEventListener('blur', lookupCustomer);
     document.getElementById('modeAIRB').addEventListener('change', updateSectionVisibility);
     document.getElementById('modeSA').addEventListener('change', updateSectionVisibility);
     document.getElementById('modeBoth').addEventListener('change', updateSectionVisibility);
@@ -1818,20 +1712,11 @@
     });
 
     window.addEventListener('DOMContentLoaded', () => {
-        const saved = localStorage.getItem('creditRiskLoans');
-        if (saved) {
-            try {
-                loans = JSON.parse(saved);
-                if (loans.length > 0) {
-                    document.getElementById('portfolioSection').style.display = 'block';
-                    updateTable();
-                    updateSummary();
-                }
-            } catch (e) { loans = []; }
-        }
         updateSectionVisibility();
     });
 </script>
 <script src="api-integration.js"></script>
+<!-- DEV ONLY — temporary test-data autofill helper. Delete this line + the public/_dev/ folder to remove. -->
+<script src="_dev/autofill.js"></script>
 </body>
 </html>

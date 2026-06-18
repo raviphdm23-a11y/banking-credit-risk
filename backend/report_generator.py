@@ -293,8 +293,33 @@ def _build_latex(case: dict, M: dict, charts: dict, now: datetime) -> str:
     # conditions / watch / recourse
     conditions = comp.get("conditions") or []
     watch = be.get("watch_items") or []
-    recourse = be.get("what_could_change") or []
+    recourse = _recourse_items(M, be)
     top_factors = be.get("top_factors") or []
+
+    # rich underwriter detail (folded in from the same findings the dossier shows)
+    five_detail = _five_cs_detail(M)
+    peer_rows = _peer_rows(M)
+    reason_rows = _reason_rows(M)
+    reason_section = ""
+    if reason_rows:
+        reason_section = (
+            r"\vspace{4pt}\textbf{Reason codes}\\[2pt]"
+            r"\renewcommand{\arraystretch}{1.2}"
+            r"\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{0.24\linewidth} l l X@{}}"
+            r"\toprule \textbf{Driver} & \textbf{Value} & \textbf{PD} & \textbf{Why it matters} \\ \midrule "
+            + reason_rows + r"\bottomrule\end{tabularx}")
+    peer_section = ""
+    if peer_rows:
+        peer_section = (
+            r"\section*{\textcolor{navy}{Metrics vs Approved Borrowers}}"
+            r"\renewcommand{\arraystretch}{1.2}"
+            r"\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}X l l l l@{}}"
+            r"\toprule \textbf{Metric} & \textbf{Applicant} & \textbf{Approved median} & "
+            r"\textbf{Approved P25--P75} & \textbf{Status} \\ \midrule "
+            + peer_rows + r"\bottomrule\end{tabularx}")
+    five_detail_section = ""
+    if five_detail:
+        five_detail_section = r"\vspace{4pt}" + five_detail
 
     def bullets(items):
         if not items:
@@ -393,10 +418,15 @@ def _build_latex(case: dict, M: dict, charts: dict, now: datetime) -> str:
 \begin{{tabularx}}{{\linewidth}}{{@{{}}l X@{{}}}}
 {factor_rows}
 \end{{tabularx}}
+{reason_section}
 
 % ── five Cs ──────────────────────────────────────────────
 \section*{{\textcolor{{navy}}{{Five C's of Credit}}}}
 {img('five_cs')}
+{five_detail_section}
+
+% ── peer comparison ──────────────────────────────────────
+{peer_section}
 
 % ── risk economics ───────────────────────────────────────
 \section*{{\textcolor{{navy}}{{Risk \& Capital}}}}
@@ -435,6 +465,73 @@ case content hash and is for internal credit-decisioning use.}}
 
 \end{{document}}
 """
+
+
+def _fmt_peer(v, unit) -> str:
+    try:
+        v = float(v)
+    except (TypeError, ValueError):
+        return _tex(str(v))
+    u = (unit or "").lower()
+    if u in ("inr", "rs", "rupee", "₹"):
+        return _inr(v)
+    if u in ("%", "pct", "percent"):
+        return f"{v:.1f}\\%"
+    if u == "ratio":
+        return f"{v:.2f}x"
+    return f"{v:.2f}"
+
+
+def _five_cs_detail(M: dict) -> str:
+    """Per-C evidence/commentary tables (the textual detail the underwriter view shows,
+    which the scorecard chart alone omits)."""
+    five = M.get("five_cs") or {}
+    order = ["character", "capacity", "capital", "collateral", "conditions"]
+    blocks = []
+    for c in order:
+        d = five.get(c)
+        if not d:
+            continue
+        items = d.get("items") or []
+        if not items:
+            continue
+        rows = "".join(
+            f"{_tex(it.get('label',''))} & {_tex(str(it.get('value','')))} & "
+            f"{_tex(str(it.get('benchmark','')))} & {_tex(it.get('assessment',''))} \\\\\n"
+            for it in items)
+        blocks.append(
+            rf"\textbf{{{c.capitalize()}}}~\textcolor{{gray}}{{[{_tex(d.get('score','-'))}]}}\\[1pt]"
+            rf"\begin{{tabularx}}{{\linewidth}}{{@{{}}>{{\raggedright\arraybackslash}}p{{0.22\linewidth}} l l X@{{}}}}"
+            rf"{rows}\end{{tabularx}}\vspace{{5pt}}")
+    return "\n".join(blocks)
+
+
+def _peer_rows(M: dict) -> str:
+    peer = M.get("peer_health") or {}
+    rows = ""
+    for f, h in list(peer.items())[:8]:
+        u = h.get("unit")
+        rows += (f"{_tex(h.get('display_name', f))} & {_fmt_peer(h.get('value'), u)} & "
+                 f"{_fmt_peer(h.get('peer_median'), u)} & "
+                 f"{_fmt_peer(h.get('peer_p25'), u)}--{_fmt_peer(h.get('peer_p75'), u)} & "
+                 f"{_tex(str(h.get('status', '')))} \\\\\n")
+    return rows
+
+
+def _reason_rows(M: dict) -> str:
+    attr = [a for a in (M.get("attribution") or []) if abs(a.get("contribution", 0)) > 1e-4][:6]
+    rows = ""
+    for a in attr:
+        rows += (f"{_tex(a.get('display_name', ''))} & {_tex(str(a.get('value', '')))} & "
+                 f"{a.get('contribution', 0) * 100:+.2f}pp & {_tex(a.get('reason_text', ''))} \\\\\n")
+    return rows
+
+
+def _recourse_items(M: dict, be: dict) -> list:
+    """Prefer the structured counterfactual recourse from the findings; fall back to
+    the business-explanation summary."""
+    cf = [c.get("action_text") for c in (M.get("counterfactuals") or []) if c.get("action_text")]
+    return cf or (be.get("what_could_change") or [])
 
 
 def _outcome_block(outcome: dict) -> str:

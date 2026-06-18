@@ -41,6 +41,9 @@ README_DEPLOYMENT.md
 public/api-test.html
 public/pd-calculator.html
 
+# Temporary dev-only helpers (e.g. form autofill test button) — never ship to prod
+public/_dev/
+
 # All testing scripts (not needed at runtime on GCP)
 testing/
 

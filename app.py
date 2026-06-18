@@ -1282,6 +1282,169 @@ def ops_get_customer(cid):
                     'transactions': transactions, 'risk': risk_metrics})
 
 
+# ── Customer lookup for the Credit Risk data-collection page ───────────────────
+# Given a customer id typed into the calculator, see if the person already banks
+# with ANY group bank. If so, return their KYC mapped onto the calculator's input
+# encodings + bank/country + an existing-relationship summary (accounts, loans,
+# transaction-history-derived variables) so the analyst need not re-key.
+_EMP_MAP = {'GOVERNMENT': 1, 'GOVT': 1, 'SALARIED': 2, 'PRIVATE': 2, 'SELF_EMPLOYED': 3,
+            'SELF-EMPLOYED': 3, 'PROFESSIONAL': 3, 'BUSINESS': 4, 'BUSINESS_OWNER': 4,
+            'FREELANCE': 5, 'FREELANCER': 5, 'CONTRACT': 5, 'RETIRED': 6,
+            'STUDENT': 7, 'UNEMPLOYED': 7}
+_EDU_MAP = {'BELOW_10TH': 1, 'PRIMARY': 1, 'SECONDARY': 2, '10TH': 2, 'HIGHER_SECONDARY': 3,
+            '12TH': 3, 'DIPLOMA': 3, 'GRADUATE': 4, 'UNDER_GRADUATE': 4, 'POST_GRADUATE': 5,
+            'POSTGRADUATE': 5, 'DOCTORATE': 6, 'PHD': 6}
+_TIER_MAP = {'TIER1': 1, 'TIER_1': 1, 'TIER2': 2, 'TIER_2': 2, 'TIER3': 3, 'TIER_3': 3}
+_RES_MAP = {'OWNED': 1, 'OWN': 1, 'RENTED': 2, 'RENT': 2, 'COMPANY_PROVIDED': 3, 'COMPANY': 3,
+            'PARENTS': 4, 'FAMILY': 4, 'WITH_PARENTS': 4}
+_PURP_MAP = {'HOME_PURCHASE': 1, 'HOME': 1, 'HOME_RENOVATION': 2, 'RENOVATION': 2, 'CAR': 3,
+             'VEHICLE': 3, 'AUTO': 3, 'PERSONAL': 4, 'BUSINESS': 5, 'BUSINESS_EXPANSION': 5,
+             'EDUCATION': 6, 'MEDICAL': 7, 'MEDICAL_EMERGENCY': 7}
+_SECTOR_MAP = {'IT': 'Technology', 'TECHNOLOGY': 'Technology', 'MANUFACTURING': 'Manufacturing',
+               'RETAIL': 'Retail', 'FINANCIAL': 'Financial', 'BANKING': 'Financial',
+               'REAL_ESTATE': 'Real Estate', 'HEALTHCARE': 'Healthcare', 'HEALTH': 'Healthcare',
+               'ENERGY': 'Energy', 'GOVERNMENT': 'Government', 'UTILITIES': 'Utilities'}
+_CREDIT_TYPES = {'DEPOSIT', 'SALARY', 'INTEREST', 'REFUND', 'CREDIT'}
+
+
+def _emap(table, key, default=''):
+    if key is None:
+        return default
+    return table.get(str(key).upper().replace(' ', '_').replace('-', '_'), default)
+
+
+@app.route('/api/customer-lookup/<cid>')
+def api_customer_lookup(cid):
+    cid = (cid or '').strip()
+    with _ops_conn() as conn:
+        cust = _row_to_dict(conn.execute(
+            'SELECT * FROM customers WHERE id=?', (cid,)).fetchone())
+        if not cust:
+            return jsonify({'found': False})
+        bank = _row_to_dict(conn.execute(
+            'SELECT * FROM banks WHERE bank_id=?', (cust['bank_id'],)).fetchone()) or {}
+        kyc = _row_to_dict(conn.execute(
+            'SELECT * FROM customer_kyc WHERE cid=?', (cid,)).fetchone()) or {}
+        accounts = _rows_to_list(conn.execute(
+            'SELECT * FROM accounts WHERE cid=?', (cid,)).fetchall())
+        loans = _rows_to_list(conn.execute(
+            'SELECT * FROM loans WHERE cid=?', (cid,)).fetchall())
+        acc_ids = [a['id'] for a in accounts]
+        txns = []
+        if acc_ids:
+            ph = ','.join('?' * len(acc_ids))
+            txns = _rows_to_list(conn.execute(
+                f'SELECT type, amount, date, desc FROM transactions WHERE aid IN ({ph})',
+                acc_ids).fetchall())
+
+    # ── transaction-history-derived variables ──
+    months = sorted({(t['date'] or '')[:7] for t in txns if t.get('date')})
+    n_months = max(1, len(months))
+    inflow = outflow = 0.0
+    n_income = n_emi = 0
+    for t in txns:
+        typ = (t.get('type') or '').upper()
+        desc = (t.get('desc') or '').upper()
+        amt = float(t.get('amount') or 0)
+        is_credit = typ in _CREDIT_TYPES or desc.startswith('[INCOME]')
+        if is_credit:
+            inflow += amt
+            n_income += 1
+        else:
+            outflow += amt
+            if typ == 'EMI PAYMENT' or 'EMI' in desc:
+                n_emi += 1
+    total_emi = sum(float(l.get('emi') or 0) for l in loans if (l.get('status') == 'Active' or l.get('loan_classification')))
+    # expected EMIs = months elapsed since each loan's disbursement (capped at its tenure),
+    # so "missed" only counts months the loan was actually live — not the whole history.
+    from datetime import date as _date
+    def _months_since(dstr):
+        try:
+            y, m = int(dstr[:4]), int(dstr[5:7])
+            t = _date.today()
+            return max(0, (t.year - y) * 12 + (t.month - m))
+        except Exception:
+            return 0
+    expected_emi = 0
+    for l in loans:
+        if float(l.get('emi') or 0) > 0:
+            tenure = int(l.get('tenure') or 0)
+            elapsed = _months_since(l.get('disbursed') or '')
+            expected_emi += min(elapsed, tenure) if tenure else elapsed
+    txn_vars = {
+        'months_observed': len(months),
+        'num_transactions': len(txns),
+        'avg_monthly_inflow': round(inflow / n_months, 0),
+        'avg_monthly_outflow': round(outflow / n_months, 0),
+        'net_monthly_surplus': round((inflow - outflow) / n_months, 0),
+        'num_income_credits': n_income,
+        'num_emi_debits': n_emi,
+        'expected_emi': expected_emi,
+        'num_missed_emi': max(0, expected_emi - n_emi),
+        'current_balance': round(sum(float(a.get('balance') or 0) for a in accounts), 0),
+        'last_txn_date': months[-1] if months else None,
+    }
+
+    income = float(kyc.get('annual_income') or 0) + float(kyc.get('other_income') or 0)
+    # the 4 explainable ratios come from the customer's loan risk metrics (latest)
+    ratios = {}
+    if loans:
+        with _ops_conn() as conn:
+            lid = loans[0]['id']
+            m = _row_to_dict(conn.execute(
+                'SELECT * FROM credit_risk_metrics WHERE lid=? ORDER BY obs DESC LIMIT 1',
+                (lid,)).fetchone())
+        if m:
+            ratios = {'debtToEquity': m.get('de'), 'interestCoverage': m.get('intcov'),
+                      'profitabilityMargin': m.get('profit'), 'liquidityRatio': m.get('liq')}
+
+    fields = {
+        'borrowerName': f"{cust.get('first', '')} {cust.get('last', '')}".strip(),
+        'sector': _emap(_SECTOR_MAP, kyc.get('industry_sector'), ''),
+        'exposureAmount': round(sum(float(l.get('outstanding') or 0) for l in loans), 0) or '',
+        'kycAge': kyc.get('age'),
+        'kycAnnualIncome': round(income) or '',
+        'kycFoir': kyc.get('foir_declared'),
+        'kycCibilScore': kyc.get('cibil_score'),
+        'kycYearsEmployed': kyc.get('years_employed'),
+        'kycNumDependents': kyc.get('num_dependents'),
+        'kycMonthsAsCustomer': kyc.get('months_as_customer'),
+        'kycLatePayments': kyc.get('num_late_payments_past_12m'),
+        'kycExistingLoans': kyc.get('existing_loans_count'),
+        'kycExistingProducts': kyc.get('num_existing_products'),
+        'kycEmploymentType': _emap(_EMP_MAP, kyc.get('employment_type'), ''),
+        'kycEducation': _emap(_EDU_MAP, kyc.get('education_level'), ''),
+        'kycCityTier': _emap(_TIER_MAP, kyc.get('city_tier'), ''),
+        'kycResidenceType': _emap(_RES_MAP, kyc.get('residence_type'), ''),
+        'kycLoanPurpose': _emap(_PURP_MAP, kyc.get('loan_purpose'), ''),
+        'kycPreviousDefault': kyc.get('previous_default_flag'),
+        'kycIsRural': kyc.get('is_rural'),
+        'kyc_status': 'Verified' if str(kyc.get('kyc_status', '')).upper() == 'VERIFIED' else 'Pending',
+        'screening': 'pep' if kyc.get('is_pep') else 'clean',
+    }
+    fields.update({k: v for k, v in ratios.items() if v is not None})
+
+    return jsonify({
+        'found': True,
+        'customer_id': cid,
+        'bank_id': cust.get('bank_id'),
+        'bank_name': bank.get('bank_name'),
+        'country': bank.get('country'),
+        'country_code': bank.get('country_code'),
+        'fields': fields,
+        'relationship': {
+            'accounts': {'count': len(accounts),
+                         'total_balance': round(sum(float(a.get('balance') or 0) for a in accounts), 0),
+                         'types': sorted({a.get('type') for a in accounts if a.get('type')})},
+            'loans': {'count': len(loans),
+                      'total_outstanding': round(sum(float(l.get('outstanding') or 0) for l in loans), 0),
+                      'total_emi': round(total_emi, 0),
+                      'classifications': sorted({l.get('loan_classification') or 'Standard' for l in loans})},
+            'transactions': txn_vars,
+        },
+    })
+
+
 @app.route('/operations/api/system-dashboard')
 def ops_system_dashboard():
     with _ops_conn() as conn:

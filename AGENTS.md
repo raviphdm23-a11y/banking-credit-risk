@@ -1,4 +1,4 @@
-# Credit Risk Calculator — Project Context (CLAUDE.md)
+# Credit Risk Calculator — Project Context (AGENTS.md)
 
 ## Project Overview
 
@@ -49,7 +49,7 @@ Banking_Credit_Risk/
 ├── .env                            Local environment vars (never committed)
 ├── .gitignore                      Git exclusions
 ├── .gcloudignore                   GCP deployment exclusions
-├── CLAUDE.md                       This file
+├── AGENTS.md                       This file
 │
 ├── backend/
 │   ├── __init__.py
@@ -383,16 +383,6 @@ Fourth department (`/relationship/`) — the front-line RM workflow that sits be
 **Frontend:** `public/relationship/index.html` — queue (All / Pending / Decided), intake form (onboarding/KYC/bureau/financials), decision cockpit (recommendation hero + confidence dial, influential factors, counterfactual recourse, sensitivity, policy flags, M/H/O provenance timeline, **two-button accept/reject action panel**, **Case Report (PDF) card** with generate + versioned open/download links, outcome capture), and a governance/insights view.
 
 **Design note (challenged the brief):** the requirement said "pass onboarding data into existing predictive models" and "modify the recommendation." Implemented as (a) an OOD/data-quality-aware path rather than blind pass-through, and (b) authority-gated actions with escalation-instead-of-override — both per the architecture review.
-
-**Underwriter dossier reunified with the RM loop + richer PDF (June 17, 2026):** `report-underwriter.html` now has a **`?case=<case_id>` mode** that renders the full dossier (PD gauge, attribution + reason codes, Five C's scorecard **and** commentary, peer comparison, counterfactual recourse) directly from the RM case's `machine_json` (M) — no new endpoint, no disk persistence needed (`mapCaseToFindings()` maps M → the findings shape). **Decision framing:** pre-decision it shows the **model-suggested decision (advisory)** with a caption that the final decision rests with the RM; once the RM decides (`?case=` with `final_decision`), the **RM's decision is the authoritative pill** and the model line is labelled advisory. The RM cockpit's report card links **"📑 Underwriter report"** (`/report-underwriter.html?case=<id>`). The post-decision **PDF** (`report_generator.py`) now folds in the same rich detail it previously omitted: **Five C's per-C commentary** tables, a **Metrics vs Approved Borrowers** peer table, a **reason-code table** (driver/value/PD/why), and **counterfactual recourse** (from `M.counterfactuals`). All sourced from the existing M — no recomputation. The calculator's `?id=` applicant-letter link is hidden in `?case=` mode (findings aren't on disk for RM cases).
-
-**Single origination channel — Credit Risk → RM (June 17, 2026):** data collection happens **only** on the Credit Risk data-collection page (`public/borrower-info.html`); the RM no longer has its own intake form. The flow:
-- The calculator's summary band is **"Risk Assessment Summary"** and shows **risk measurements only** (grade, PD band, EL, indicative rate) — the **Approve/Refer/Decline verdict was removed**; the lend/no-lend decision belongs to the RM.
-- A **"Refer to Relationship Manager →"** button (`sendToRM()`) maps the full borrower profile (4 ratios + KYC/bureau + exposure/collateral/age/income + onboarding/compliance: `kyc_status`, screening→`pep_flag`/`sanctions_hit`, `proposed_emi`, `existing_monthly_obligations` + `country_code`/`country`) onto the RM `application` shape and `POST`s `/relationship/api/cases` → INTERIM_ASSESSED case, tagged `source=credit_risk_calculator`, carrying `customer_id`. Cockpit deep-links via `/relationship/?case=<id>`.
-- **RM page:** the "+ New Assessment" button is now **"+ New Customer"** and simply navigates to `/static/borrower-info.html` (single channel); the RM intake form (`showNewCase`/`submitCase`) was removed and an empty-state shown instead.
-- **Country linkage:** the calculator has a **Country/Jurisdiction** dropdown populated from `/reference/api/countries` (shows a region·currency·regulator chip); the chosen `country_code` rides into the case.
-- **Customer-ID lookup (`GET /api/customer-lookup/<cid>`, app.py):** when a typed Borrower/Loan ID matches a customer in **any** group bank, a green "Existing customer found" banner shows the relationship summary (accounts, loans, and transaction-history-derived variables: avg monthly inflow/outflow, income-credit count, EMI payments, **missed EMIs computed from each loan's disbursed date + tenure**, current balance) with an **"Autofill from records →"** button that populates the form (KYC mapped from `customer_kyc` enum→encoded values, 4 ratios from `credit_risk_metrics`, bank/country). Autofill is applied on the confirm click, not automatically.
-No DB schema change — country/source ride in the case's application JSON; `create_case` already persists `customer_id`/`product`.
 
 ---
 
