@@ -9,7 +9,7 @@ deposit txn + loans + credit_risk_metrics + bank_loan_metrics).
 import os, sqlite3, random
 from datetime import date, datetime
 
-random.seed(20260704)
+random.seed(20260724)
 
 _REPO = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 DB = os.path.join(_REPO, 'bank.db')
