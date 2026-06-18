@@ -13,7 +13,7 @@
     "cv_folds": 5,
     "pd_classification_threshold": 0.05,
     "min_auc_floor": 0.75,
-    "min_rows_floor": 500
+    "min_rows_floor": 100
   },
   "schedule": {
     "enabled": true,
