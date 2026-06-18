@@ -1,5 +1,99 @@
 [
   {
+    "run_id": "run_20260618_194750",
+    "timestamp": "2026-06-18T19:47:50",
+    "triggered_by": "manual",
+    "status": "success",
+    "files_used": [
+      {
+        "filename": "bank_loan_metrics (bank.db)",
+        "rows": 192
+      }
+    ],
+    "files_skipped": [],
+    "total_rows": 192,
+    "train_rows": 153,
+    "test_rows": 39,
+    "metrics": {
+      "r2": 0.9607,
+      "rmse": 0.054385,
+      "mae": 0.031073,
+      "auc_roc": 0.9444,
+      "accuracy": 0.4359,
+      "precision": 0.2143,
+      "recall": 1.0,
+      "f1": 0.3529
+    },
+    "confusion_matrix": [
+      [
+        11,
+        22
+      ],
+      [
+        0,
+        6
+      ]
+    ],
+    "model_promoted": true,
+    "duration_seconds": 0.87,
+    "error": null,
+    "promotion_check": {
+      "auc": 0.9444,
+      "min_auc_floor": 0.75,
+      "n_trained": 153,
+      "min_rows_floor": 100,
+      "auc_ok": true,
+      "rows_ok": true
+    }
+  },
+  {
+    "run_id": "run_20260618_185758",
+    "timestamp": "2026-06-18T18:57:58",
+    "triggered_by": "manual",
+    "status": "success",
+    "files_used": [
+      {
+        "filename": "bank_loan_metrics (bank.db)",
+        "rows": 162
+      }
+    ],
+    "files_skipped": [],
+    "total_rows": 162,
+    "train_rows": 129,
+    "test_rows": 33,
+    "metrics": {
+      "r2": 0.8778,
+      "rmse": 0.0731,
+      "mae": 0.037998,
+      "auc_roc": 0.6556,
+      "accuracy": 0.3333,
+      "precision": 0.087,
+      "recall": 0.6667,
+      "f1": 0.1538
+    },
+    "confusion_matrix": [
+      [
+        9,
+        21
+      ],
+      [
+        1,
+        2
+      ]
+    ],
+    "model_promoted": false,
+    "duration_seconds": 0.84,
+    "error": null,
+    "promotion_check": {
+      "auc": 0.6556,
+      "min_auc_floor": 0.75,
+      "n_trained": 129,
+      "min_rows_floor": 100,
+      "auc_ok": false,
+      "rows_ok": true
+    }
+  },
+  {
     "run_id": "run_20260618_184910",
     "timestamp": "2026-06-18T18:49:10",
     "triggered_by": "manual",
