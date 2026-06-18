@@ -69,6 +69,18 @@ BANKS = [
         'principal': (1_800_000, 4_500_000), 'balance': (1_200_000, 3_000_000),
         'state_field': False,
     },
+    {
+        'bank_id': 'BANK007', 'name': 'Nippon Commercial Bank Ltd.',
+        'branch': 'BR-NIPPON-001', 'ifsc': 'NPCB0000001',
+        'first': ['Hiroshi','Kenji','Takashi','Ryota','Shota','Daiki','Kazuki','Naoki',
+                  'Sakura','Hana','Aiko','Nana','Mio','Rin','Yui','Saki','Mei','Akane'],
+        'last':  ['Tanaka','Suzuki','Watanabe','Ito','Yamamoto','Nakamura',
+                  'Kobayashi','Kato','Sato','Yoshida','Hayashi','Kimura','Matsumoto'],
+        'cities': [('Tokyo','Tokyo',1),('Osaka','Osaka',1),('Nagoya','Aichi',1),
+                   ('Yokohama','Kanagawa',1),('Kyoto','Kyoto',1)],
+        'principal': (2_000_000, 5_500_000), 'balance': (1_400_000, 3_800_000),
+        'state_field': False,
+    },
 ]
 
 LOAN_TYPES = [('Home Loan', 5), ('Vehicle Loan', 3), ('Personal Loan', 1),
