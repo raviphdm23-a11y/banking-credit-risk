@@ -12,7 +12,8 @@
     "test_size": 0.2,
     "cv_folds": 5,
     "pd_classification_threshold": 0.05,
-    "min_r2_improvement": 0.01
+    "min_auc_floor": 0.75,
+    "min_rows_floor": 500
   },
   "schedule": {
     "enabled": true,
