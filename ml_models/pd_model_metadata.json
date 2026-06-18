@@ -1,7 +1,7 @@
 {
   "model_type": "RandomForestRegressor",
-  "version": "run_20260618_222708",
-  "date_trained": "2026-06-18T22:27:08",
+  "version": "run_20260618_224038",
+  "date_trained": "2026-06-18T22:40:38",
   "triggered_by": "manual",
   "features": [
     "de_ratio",
@@ -33,14 +33,14 @@
   ],
   "target": "pd_observed",
   "metrics": {
-    "r2": 0.96,
-    "rmse": 0.063547,
-    "mae": 0.03686,
-    "auc_roc": 0.9755,
-    "accuracy": 0.6933,
-    "precision": 0.4651,
-    "recall": 1.0,
-    "f1": 0.6349
+    "r2": 0.9816,
+    "rmse": 0.043632,
+    "mae": 0.026012,
+    "auc_roc": 0.8395,
+    "accuracy": 0.7207,
+    "precision": 0.4694,
+    "recall": 0.8214,
+    "f1": 0.5974
   },
   "hyperparameters": {
     "n_estimators": 100,
@@ -51,7 +51,7 @@
     "bootstrap": true,
     "random_state": 42
   },
-  "rows_trained": 297,
+  "rows_trained": 441,
   "currency": "INR",
   "note": "Trained on Indian bank synthetic data"
 }
