@@ -1,8 +1,8 @@
 {
   "model_type": "XGBoostClassifier",
-  "version": "run_20260619_074302",
-  "date_trained": "2026-06-19T07:43:02",
-  "triggered_by": "bulk_1408_rows",
+  "version": "run_20260619_074740",
+  "date_trained": "2026-06-19T07:47:40",
+  "triggered_by": "peer_benchmark_autorefresh_test",
   "features": [
     "de_ratio",
     "interest_coverage",

@@ -1,0 +1,53 @@
+{
+  "_meta": {
+    "generated_at": "2026-06-19T07:47:41",
+    "source": "bank_loan_metrics (default_flag=0)",
+    "n_approved": 1224,
+    "n_total": 1408,
+    "default_rate": 0.1307
+  },
+  "de_ratio": {
+    "label": "Debt-to-Equity",
+    "median": 1.17,
+    "p25": 0.7775,
+    "p75": 1.53,
+    "p10": 0.57,
+    "p90": 1.76,
+    "min": 0.3,
+    "max": 6.0,
+    "n": 1224
+  },
+  "interest_coverage": {
+    "label": "Interest Coverage",
+    "median": 8.085,
+    "p25": 5.6575,
+    "p75": 10.405,
+    "p10": 4.463,
+    "p90": 12.0353,
+    "min": 0.81,
+    "max": 14.7912,
+    "n": 1224
+  },
+  "profitability": {
+    "label": "Net Profit Margin (%)",
+    "median": 14.6,
+    "p25": 10.775,
+    "p75": 18.325,
+    "p10": 8.6,
+    "p90": 20.5,
+    "min": -8.0,
+    "max": 29.5287,
+    "n": 1224
+  },
+  "liquidity_ratio": {
+    "label": "Current Ratio",
+    "median": 2.03,
+    "p25": 1.65,
+    "p75": 2.43,
+    "p10": 1.47,
+    "p90": 2.66,
+    "min": 0.61,
+    "max": 4.3545,
+    "n": 1224
+  }
+}

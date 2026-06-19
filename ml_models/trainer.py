@@ -41,11 +41,12 @@ ML_DIR        = os.path.join(_ROOT, 'ml_models')
 # Path to bank.db (override with BANK_DB_PATH env var)
 BANK_DB_PATH  = os.environ.get('BANK_DB_PATH', os.path.join(_ROOT, 'bank.db'))
 
-MODEL_PATH    = os.path.join(ML_DIR, 'pd_model.pkl')
-BACKUP_PATH   = os.path.join(ML_DIR, 'pd_model_backup.pkl')
-META_PATH     = os.path.join(ML_DIR, 'pd_model_metadata.json')
-HISTORY_PATH  = os.path.join(ML_DIR, 'run_history.json')
-HPARAM_PATH   = os.path.join(ML_DIR, 'hyperparameters.json')
+MODEL_PATH       = os.path.join(ML_DIR, 'pd_model.pkl')
+BACKUP_PATH      = os.path.join(ML_DIR, 'pd_model_backup.pkl')
+META_PATH        = os.path.join(ML_DIR, 'pd_model_metadata.json')
+HISTORY_PATH     = os.path.join(ML_DIR, 'run_history.json')
+HPARAM_PATH      = os.path.join(ML_DIR, 'hyperparameters.json')
+BENCHMARKS_PATH  = os.path.join(ML_DIR, 'peer_benchmarks.json')
 
 REQUIRED_COLUMNS = {
     'bank_id', 'loan_id', 'de_ratio', 'interest_coverage',
@@ -573,6 +574,66 @@ def archive_training_files(files_used, run_id):
             shutil.move(src, dst)
 
 
+# ── Peer benchmark refresh ────────────────────────────────────────────────────
+
+_BENCHMARK_COLS = ['de_ratio', 'interest_coverage', 'profitability', 'liquidity_ratio']
+_BENCHMARK_LABELS = {
+    'de_ratio':          'Debt-to-Equity',
+    'interest_coverage': 'Interest Coverage',
+    'profitability':     'Net Profit Margin (%)',
+    'liquidity_ratio':   'Current Ratio',
+}
+
+def _refresh_peer_benchmarks(df):
+    """
+    Recompute peer benchmarks (P25/median/P75/P10/P90) from approved borrowers
+    (default_flag=0) in the training dataframe and write peer_benchmarks.json.
+    Called automatically after every successful model promotion.
+    """
+    approved = df[df[TARGET_COL] == 0]
+    n_approved = len(approved)
+    n_total    = len(df)
+    benchmarks = {}
+
+    for col in _BENCHMARK_COLS:
+        vals = approved[col].dropna().sort_values().tolist()
+        if not vals:
+            continue
+
+        def pct(p):
+            n   = len(vals)
+            idx = (p / 100) * (n - 1)
+            lo  = int(idx)
+            hi  = min(lo + 1, n - 1)
+            return vals[lo] + (idx - lo) * (vals[hi] - vals[lo])
+
+        benchmarks[col] = {
+            'label':  _BENCHMARK_LABELS.get(col, col),
+            'median': round(pct(50), 4),
+            'p25':    round(pct(25), 4),
+            'p75':    round(pct(75), 4),
+            'p10':    round(pct(10), 4),
+            'p90':    round(pct(90), 4),
+            'min':    round(vals[0],  4),
+            'max':    round(vals[-1], 4),
+            'n':      n_approved,
+        }
+
+    out = {
+        '_meta': {
+            'generated_at': datetime.now().isoformat(timespec='seconds'),
+            'source':       'bank_loan_metrics (default_flag=0)',
+            'n_approved':   n_approved,
+            'n_total':      n_total,
+            'default_rate': round(1 - n_approved / n_total, 4) if n_total else None,
+        },
+        **benchmarks,
+    }
+
+    with open(BENCHMARKS_PATH, 'w') as f:
+        json.dump(out, f, indent=2)
+
+
 # ── Main training orchestrator ────────────────────────────────────────────────
 
 def run_training(triggered_by='manual'):
@@ -687,6 +748,7 @@ def run_training(triggered_by='manual'):
             with open(META_PATH, 'w') as f:
                 json.dump(new_meta, f, indent=2)
             record['model_promoted'] = True
+            _refresh_peer_benchmarks(merged)
 
         # Archive used files
         archive_training_files(files_used, run_id)
