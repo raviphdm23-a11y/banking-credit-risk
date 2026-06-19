@@ -1,8 +1,8 @@
 {
   "model_type": "XGBoostClassifier",
-  "version": "run_20260619_073553",
-  "date_trained": "2026-06-19T07:35:53",
-  "triggered_by": "final_imbalance_fix",
+  "version": "run_20260619_074302",
+  "date_trained": "2026-06-19T07:43:02",
+  "triggered_by": "bulk_1408_rows",
   "features": [
     "de_ratio",
     "interest_coverage",
@@ -34,15 +34,15 @@
   "n_features": 26,
   "target": "default_flag",
   "metrics": {
-    "auc_roc": 0.7292,
-    "accuracy": 0.7297,
-    "precision": 0.25,
-    "recall": 0.75,
-    "f1": 0.375,
-    "brier_score": 0.131487,
-    "n_test": 74,
-    "n_defaults": 8,
-    "default_rate": 0.1081
+    "auc_roc": 0.9749,
+    "accuracy": 0.9468,
+    "precision": 0.7255,
+    "recall": 0.9737,
+    "f1": 0.8315,
+    "brier_score": 0.039195,
+    "n_test": 282,
+    "n_defaults": 38,
+    "default_rate": 0.1348
   },
   "hyperparameters": {
     "n_estimators": 200,
@@ -57,10 +57,10 @@
     "scale_pos_weight": 1,
     "random_state": 42
   },
-  "n_train": 294,
-  "rows_trained": 294,
-  "n_defaults_train": 46,
-  "scale_pos_weight": 5.39,
+  "n_train": 1126,
+  "rows_trained": 1126,
+  "n_defaults_train": 146,
+  "scale_pos_weight": 6.71,
   "threshold": 0.2,
   "currency": "INR",
   "note": "XGBoost binary classifier; target=default_flag (RBI 90-day NPA rule)"
