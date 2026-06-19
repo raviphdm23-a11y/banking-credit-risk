@@ -40,17 +40,128 @@ RBI_THRESHOLDS = {
     'slr_min':      18.0,   # Statutory Liquidity Ratio (% of NDTL)
 }
 
-# ── RBI Standardised-Approach risk weights for the retail/banking book ───────
-# (representative values; real RW varies by LTV and ticket size)
-RISK_WEIGHT_BY_TYPE = {
-    'Home Loan':      0.35,   # housing, avg of 35-50% by LTV
-    'Vehicle Loan':   0.75,   # regulatory retail, secured
-    'Education Loan': 0.75,   # regulatory retail
-    'Personal Loan':  1.00,   # unsecured consumer credit
-    'Business Loan':  1.00,   # SME / commercial
+# ── Basel III.1 Standardized Approach: risk weight by exposure_class ─────────
+# Source: CRE20-CRE22, Basel III.1 finalization December 2017 (effective Jan 2023).
+# Where the RW is rating-dependent or LTV-dependent, the UNRATED/CONSERVATIVE value
+# is used as the default (safest approach for unrated retail/corporate exposures).
+EXPOSURE_CLASS_RW = {
+    'SOVEREIGN_HOME':    0.00,   # CRE20: home sovereign, 0% RW
+    'SOVEREIGN_FOREIGN': 0.50,   # CRE20: foreign sovereign, unrated → 100% (use 50% midpoint)
+    'PSE':               0.50,   # CRE20: public sector entities, treatment similar to banks
+    'MDB':               0.00,   # CRE20: qualifying MDBs → 0% RW
+    'BANK':              0.50,   # CRE20: bank exposures, unrated → 50% (Basel III.1 updated)
+    'CORPORATE':         1.00,   # CRE20: corporate unrated → 100%
+    'SME':               0.85,   # CRE20: SME corporate → 85% (Basel III.1 update)
+    'RETAIL_MORTGAGES':  0.35,   # CRE20: residential RE, conservative (avg LTV band 60-80%)
+    'RETAIL_REVOLVING':  0.45,   # CRE20: qualifying revolving retail → 45% (Basel III.1 update)
+    'RETAIL_OTHER':      0.75,   # CRE20: retail other (auto, personal, education) → 75%
+    'COMMERCIAL_RE':     0.80,   # CRE20: income-producing commercial RE, conservative
+    'ADC':               1.00,   # CRE20: land acquisition, development & construction → 100%
+    'COVERED_BONDS':     0.20,   # CRE20: covered bonds, unrated → 20%
+    'DEFAULT_NPA':       1.50,   # CRE20: defaulted exposures → 150%
 }
-DEFAULT_RISK_WEIGHT = 1.00
-NPA_RISK_WEIGHT      = 1.50   # NPA with provision cover < 20%
+DEFAULT_RISK_WEIGHT   = 1.00   # Fallback for unknown/unclassified exposure
+NPA_RISK_WEIGHT       = 1.50   # Override: NPA always 150% per Basel (overrides class RW)
+
+# ── Legacy: loan-type-based RW fallback (used when exposure_class is absent) ─
+# Kept for backward compatibility with older records and any code still using loan type.
+RISK_WEIGHT_BY_TYPE = {
+    'Home Loan':      0.35,
+    'Vehicle Loan':   0.75,
+    'Education Loan': 0.75,
+    'Personal Loan':  0.75,   # Updated: 75% per RETAIL_OTHER (was 100%)
+    'Business Loan':  0.85,   # Updated: 85% per SME default (was 100%)
+}
+
+# ── LTV-based residential mortgage risk weight table (Basel III.1 CRE20) ─────
+RESIDENTIAL_RE_LTV_RW = [
+    (0.50, 0.20),   # LTV <= 50%  → 20%
+    (0.60, 0.25),   # LTV <= 60%  → 25%
+    (0.80, 0.30),   # LTV <= 80%  → 30%
+    (0.90, 0.40),   # LTV <= 90%  → 40%
+    (1.00, 0.50),   # LTV <= 100% → 50%
+    (9.99, 0.70),   # LTV > 100%  → 70%
+]
+
+# ── External rating → risk weight tables (Basel III.1 CRE20) ─────────────────
+EXTERNAL_RATING_TO_RW = {
+    # Sovereigns & banks (long-term)
+    'sovereign': {
+        'AAA': 0.00, 'AA+': 0.00, 'AA': 0.00, 'AA-': 0.00,
+        'A+': 0.20,  'A': 0.20,   'A-': 0.50,
+        'BBB+': 0.50, 'BBB': 0.50, 'BBB-': 0.50,
+        'BB+': 1.00, 'BB': 1.00,  'BB-': 1.00,
+        'B+': 1.50,  'B': 1.50,   'B-': 1.50,
+        'CCC': 1.50, 'D': 1.50,
+    },
+    # Banks (long-term, Basel III.1 updated)
+    'bank': {
+        'AAA': 0.20, 'AA+': 0.20, 'AA': 0.20, 'AA-': 0.20,
+        'A+': 0.30,  'A': 0.30,   'A-': 0.50,
+        'BBB+': 0.50, 'BBB': 0.50, 'BBB-': 1.00,
+        'BB+': 1.00, 'BB': 1.00,  'BB-': 1.00,
+        'B+': 1.50,  'B': 1.50,   'B-': 1.50,
+        'CCC': 1.50, 'D': 1.50,
+    },
+    # Corporates (long-term)
+    'corporate': {
+        'AAA': 0.20, 'AA+': 0.20, 'AA': 0.20, 'AA-': 0.20,
+        'A+': 0.50,  'A': 0.50,   'A-': 0.50,
+        'BBB+': 0.75, 'BBB': 0.75, 'BBB-': 1.00,
+        'BB+': 1.00, 'BB': 1.00,  'BB-': 1.50,
+        'B+': 1.50,  'B': 1.50,   'B-': 1.50,
+        'CCC': 1.50, 'D': 1.50,
+    },
+}
+
+
+def _resolve_risk_weight(loan, is_npa):
+    """Determine Basel III.1 SA risk weight for a loan.
+
+    Priority:
+      1. NPA override → always 150%
+      2. exposure_class + external_rating (rated exposure) → rating table
+      3. exposure_class + ltv_ratio (real-estate) → LTV band table
+      4. exposure_class alone → EXPOSURE_CLASS_RW table
+      5. loan type fallback (legacy, no exposure_class set)
+    """
+    if is_npa:
+        return NPA_RISK_WEIGHT, 'NPA override: 150%'
+
+    exposure_class  = (loan.get('exposure_class') or '').strip()
+    external_rating = (loan.get('external_rating') or '').strip().upper()
+    ltv_ratio       = loan.get('ltv_ratio')
+
+    # Rating-based for rated exposures
+    if external_rating and exposure_class in ('SOVEREIGN_HOME', 'SOVEREIGN_FOREIGN'):
+        rw = EXTERNAL_RATING_TO_RW['sovereign'].get(external_rating, 1.00)
+        return rw, f'sovereign rating {external_rating}: {rw*100:.0f}%'
+
+    if external_rating and exposure_class == 'BANK':
+        rw = EXTERNAL_RATING_TO_RW['bank'].get(external_rating, 0.50)
+        return rw, f'bank rating {external_rating}: {rw*100:.0f}%'
+
+    if external_rating and exposure_class in ('CORPORATE', 'SME'):
+        rw = EXTERNAL_RATING_TO_RW['corporate'].get(external_rating, 1.00)
+        return rw, f'corporate rating {external_rating}: {rw*100:.0f}%'
+
+    # LTV-banded for real estate
+    if exposure_class == 'RETAIL_MORTGAGES' and ltv_ratio is not None:
+        ltv = float(ltv_ratio)
+        for ltv_ceiling, rw in RESIDENTIAL_RE_LTV_RW:
+            if ltv <= ltv_ceiling:
+                return rw, f'residential RE LTV {ltv:.0%}: {rw*100:.0f}%'
+        return 0.70, f'residential RE LTV {ltv:.0%} > 100%: 70%'
+
+    # Standard exposure_class table
+    if exposure_class and exposure_class in EXPOSURE_CLASS_RW:
+        rw = EXPOSURE_CLASS_RW[exposure_class]
+        return rw, f'exposure_class {exposure_class}: {rw*100:.0f}%'
+
+    # Legacy fallback by loan type
+    ltype = loan.get('type') or loan.get('loan_type') or ''
+    rw = RISK_WEIGHT_BY_TYPE.get(ltype, DEFAULT_RISK_WEIGHT)
+    return rw, f'loan type fallback {ltype}: {rw*100:.0f}%'
 
 # ── IRAC provisioning rates (RBI Master Circular) ────────────────────────────
 PROVISION_RATES = {
@@ -122,12 +233,20 @@ def bs_total_deposits(bs):
 # CLIENT-LEVEL EXPOSURE
 # ════════════════════════════════════════════════════════════════════════════
 def client_exposure(loan, metrics=None, customer_name=None):
-    """Regulatory exposure for a single loan.
+    """Regulatory exposure for a single loan — Basel III.1 Standardized Approach.
 
     Args:
-        loan (dict): row from `loans` (type, outstanding, loan_classification, …)
+        loan (dict): row from `loans` (type, outstanding, loan_classification,
+                     exposure_class, external_rating, ltv_ratio, …)
         metrics (dict|None): row from `credit_risk_metrics` (pd_score, …)
         customer_name (str|None)
+
+    Risk weight resolution priority:
+        1. NPA → always 150%
+        2. exposure_class + external_rating → Basel III.1 rating table
+        3. exposure_class + ltv_ratio → LTV band table (real estate)
+        4. exposure_class → EXPOSURE_CLASS_RW table
+        5. loan type → legacy fallback
     """
     ead = float(loan.get('outstanding') or 0)
     ltype = loan.get('type') or ''
@@ -143,7 +262,9 @@ def client_exposure(loan, metrics=None, customer_name=None):
 
     lgd = LGD_BY_TYPE.get(ltype, DEFAULT_LGD)
 
-    risk_weight = NPA_RISK_WEIGHT if is_npa else RISK_WEIGHT_BY_TYPE.get(ltype, DEFAULT_RISK_WEIGHT)
+    # Basel III.1 SA risk weight (replaces old hard-coded type→RW mapping)
+    risk_weight, rw_basis = _resolve_risk_weight(loan, is_npa)
+
     rwa = ead * risk_weight
     capital_charge = rwa * (RBI_THRESHOLDS['car_min'] / 100.0)
 
@@ -156,11 +277,13 @@ def client_exposure(loan, metrics=None, customer_name=None):
         'customer_name':  customer_name,
         'loan_id':        loan.get('id'),
         'loan_type':      ltype,
+        'exposure_class': loan.get('exposure_class') or 'UNCLASSIFIED',
         'classification': classification,
         'ead':            round(ead, 2),
         'pd':             round(pd, 4),
         'lgd':            round(lgd, 4),
         'risk_weight':    round(risk_weight * 100, 1),   # as %
+        'rw_basis':       rw_basis,                       # audit trail
         'rwa':            round(rwa, 2),
         'capital_charge': round(capital_charge, 2),
         'expected_loss':  round(expected_loss, 2),

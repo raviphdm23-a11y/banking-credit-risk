@@ -180,7 +180,10 @@ def sync(db_path=DB_PATH):
             -- Trend features (direction of travel since origination)
             ROUND(crm.de - crm.prior_de, 4)                                   AS delta_de_ratio,
             ROUND(CAST(kyc.cibil_score AS REAL) - CAST(crm.prior_cibil AS REAL), 1) AS delta_cibil,
-            ROUND((julianday('now') - julianday(l.disbursed)) / 30.44, 1)     AS months_since_origination
+            ROUND((julianday('now') - julianday(l.disbursed)) / 30.44, 1)     AS months_since_origination,
+
+            -- Basel III.1 SA exposure class
+            l.exposure_class
 
         FROM loans l
         JOIN banks                  b       ON b.bank_id      = l.bank_id
@@ -253,8 +256,9 @@ def sync(db_path=DB_PATH):
                  existing_loans_count, num_existing_products, is_rural,
                  country_code,
                  gdp_growth_pct, inflation_cpi_pct, policy_rate_pct, unemployment_pct,
-                 delta_de_ratio, delta_cibil, months_since_origination)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                 delta_de_ratio, delta_cibil, months_since_origination,
+                 exposure_class)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, (
             loan['bank_id'],
             loan['bank_name'],
@@ -292,6 +296,7 @@ def sync(db_path=DB_PATH):
             loan['delta_de_ratio'],
             loan['delta_cibil'],
             loan['months_since_origination'],
+            loan['exposure_class'],
         ))
 
         status = "DEFAULT" if default_flag else "OK    "
