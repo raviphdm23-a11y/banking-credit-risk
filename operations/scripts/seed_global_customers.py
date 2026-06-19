@@ -45,7 +45,7 @@ DB_PATH = os.path.join(_REPO_ROOT, 'bank.db')
 #  land near the original anchors with a healthy loan-to-deposit ratio)
 BANKS = {
     'BANK003': {  # Atlas Bank N.A. — USA
-        'name': 'Atlas Bank N.A.', 'stem': 'ATLS', 'short': 'ATLAS', 'n': 30,
+        'name': 'Atlas Bank N.A.', 'stem': 'ATLS', 'short': 'ATLAS', 'n': 30, 'country_code': 'USA',
         'principal': (2_500_000, 6_000_000), 'balance': (1_500_000, 3_800_000),
         'first': ['James', 'Michael', 'Robert', 'John', 'David', 'William', 'Richard',
                   'Joseph', 'Mary', 'Patricia', 'Jennifer', 'Linda', 'Elizabeth', 'Emily',
@@ -57,7 +57,7 @@ BANKS = {
                    ('Seattle', 'WA'), ('Miami', 'FL'), ('Austin', 'TX')],
     },
     'BANK004': {  # Britannia Banking Group plc — UK
-        'name': 'Britannia Banking Group plc', 'stem': 'BRIT', 'short': 'BRITANNIA', 'n': 24,
+        'name': 'Britannia Banking Group plc', 'stem': 'BRIT', 'short': 'BRITANNIA', 'n': 24, 'country_code': 'GBR',
         'principal': (2_200_000, 5_500_000), 'balance': (1_400_000, 3_500_000),
         'first': ['Oliver', 'George', 'Harry', 'Jack', 'Charlie', 'Thomas', 'Henry',
                   'William', 'Amelia', 'Olivia', 'Emily', 'Isla', 'Sophie', 'Grace',
@@ -69,7 +69,7 @@ BANKS = {
                    ('Bristol', 'England'), ('Cardiff', 'Wales')],
     },
     'BANK005': {  # Lion City Bank Ltd — Singapore
-        'name': 'Lion City Bank Ltd', 'stem': 'LION', 'short': 'LIONCITY', 'n': 18,
+        'name': 'Lion City Bank Ltd', 'stem': 'LION', 'short': 'LIONCITY', 'n': 18, 'country_code': 'SGP',
         'principal': (2_200_000, 5_200_000), 'balance': (1_600_000, 3_600_000),
         'first': ['Wei', 'Jun', 'Hui', 'Ming', 'Mei', 'Xin', 'Jia', 'Kai', 'Ling', 'Yan',
                   'Arjun', 'Priya', 'Ahmad', 'Nurul', 'Siti', 'Daniel', 'Rachel', 'Marcus'],
@@ -79,7 +79,7 @@ BANKS = {
                    ('Woodlands', 'North'), ('Bedok', 'East'), ('Punggol', 'North-East')],
     },
     'BANK006': {  # Gulf Union Bank PJSC — UAE
-        'name': 'Gulf Union Bank PJSC', 'stem': 'GULF', 'short': 'GULFUNION', 'n': 14,
+        'name': 'Gulf Union Bank PJSC', 'stem': 'GULF', 'short': 'GULFUNION', 'n': 14, 'country_code': 'ARE',
         'principal': (2_000_000, 5_000_000), 'balance': (1_500_000, 3_200_000),
         'first': ['Mohammed', 'Ahmed', 'Ali', 'Omar', 'Khalid', 'Hassan', 'Saeed', 'Rashid',
                   'Fatima', 'Aisha', 'Mariam', 'Layla', 'Noura', 'Hessa', 'Sara', 'Yousef'],
@@ -227,11 +227,12 @@ def _seed_bank(cur, bank_id, cfg, today):
                     "profitability,liquidity_ratio,default_flag,pd_observed,observation_date,loaded_at,age,"
                     "employment_type_enc,years_employed,annual_income,foir,num_dependents,city_tier_enc,education_enc,"
                     "residence_type_enc,loan_purpose_enc,cibil_score,previous_default_flag,months_as_customer,"
-                    "num_late_payments_past_12m,existing_loans_count,num_existing_products,is_rural) "
-                    "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                    "num_late_payments_past_12m,existing_loans_count,num_existing_products,is_rural,country_code) "
+                    "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
                     (bank_id, cfg['name'], lid, de, ic, profit, liq, default_flag, pd_obs, obs, now,
                      age, emp_enc, years_emp, income, foir, deps, tier, edu_enc, res_enc, purpose_enc,
-                     cibil, prev_def, months_cust, late, ex_loans, ex_products, 0))
+                     cibil, prev_def, months_cust, late, ex_loans, ex_products, 0,
+                     cfg.get('country_code', '')))
         added += 1
     return added, npa
 

@@ -16,7 +16,7 @@ DB = os.path.join(_REPO, 'bank.db')
 
 BANKS = [
     {
-        'bank_id': 'BANK001', 'name': 'HDFC Bank Limited',
+        'bank_id': 'BANK001', 'name': 'HDFC Bank Limited', 'country_code': 'IND',
         'branch': 'BR-HDFC-002', 'ifsc': 'HDFC0000002',
         'first': ['Aarav','Diya','Kabir','Anaya','Vivaan','Saanvi','Reyansh','Myra'],
         'last':  ['Malhotra','Kapoor','Bhat','Menon','Chauhan','Pillai','Saxena'],
@@ -25,7 +25,7 @@ BANKS = [
         'state_field': True,
     },
     {
-        'bank_id': 'BANK002', 'name': 'ICICI Bank Limited',
+        'bank_id': 'BANK002', 'name': 'ICICI Bank Limited', 'country_code': 'IND',
         'branch': 'BR-ICICI-002', 'ifsc': 'ICIC0000002',
         'first': ['Arjun','Kiara','Ishaan','Riya','Aditya','Ira','Krishna','Aadhya'],
         'last':  ['Bose','Nayak','Gill','Saxena','Menon','Chauhan','Pillai'],
@@ -34,7 +34,7 @@ BANKS = [
         'state_field': True,
     },
     {
-        'bank_id': 'BANK003', 'name': 'Atlas Bank N.A.',
+        'bank_id': 'BANK003', 'name': 'Atlas Bank N.A.', 'country_code': 'USA',
         'branch': 'BR-ATLAS-002', 'ifsc': 'ATLS0000002',
         'first': ['James','Michael','Robert','David','Emily','Jessica','Sarah','Daniel'],
         'last':  ['Smith','Johnson','Williams','Brown','Jones','Garcia','Miller','Davis'],
@@ -43,7 +43,7 @@ BANKS = [
         'state_field': False,
     },
     {
-        'bank_id': 'BANK004', 'name': 'Britannia Banking Group plc',
+        'bank_id': 'BANK004', 'name': 'Britannia Banking Group plc', 'country_code': 'GBR',
         'branch': 'BR-BRITANNIA-002', 'ifsc': 'BRIT0000002',
         'first': ['Oliver','George','Harry','Jack','Amelia','Olivia','Emily','Daniel'],
         'last':  ['Smith','Jones','Taylor','Brown','Williams','Wilson','Evans','Thomas'],
@@ -52,7 +52,7 @@ BANKS = [
         'state_field': False,
     },
     {
-        'bank_id': 'BANK005', 'name': 'Lion City Bank Ltd',
+        'bank_id': 'BANK005', 'name': 'Lion City Bank Ltd', 'country_code': 'SGP',
         'branch': 'BR-LIONCITY-002', 'ifsc': 'LION0000002',
         'first': ['Wei','Jun','Hui','Ming','Mei','Arjun','Ahmad','Rachel'],
         'last':  ['Tan','Lim','Lee','Ng','Wong','Chan','Goh','Kumar'],
@@ -61,7 +61,7 @@ BANKS = [
         'state_field': False,
     },
     {
-        'bank_id': 'BANK006', 'name': 'Gulf Union Bank PJSC',
+        'bank_id': 'BANK006', 'name': 'Gulf Union Bank PJSC', 'country_code': 'ARE',
         'branch': 'BR-GULFUNION-002', 'ifsc': 'GULF0000002',
         'first': ['Mohammed','Ahmed','Ali','Omar','Fatima','Aisha','Mariam','Khalid'],
         'last':  ['Al-Rashidi','Al-Farsi','Al-Mansoori','Al-Hashimi','Ibrahim','Hassan','Malik'],
@@ -70,7 +70,7 @@ BANKS = [
         'state_field': False,
     },
     {
-        'bank_id': 'BANK007', 'name': 'Nippon Commercial Bank Ltd.',
+        'bank_id': 'BANK007', 'name': 'Nippon Commercial Bank Ltd.', 'country_code': 'JPN',
         'branch': 'BR-NIPPON-001', 'ifsc': 'NPCB0000001',
         'first': ['Hiroshi','Kenji','Takashi','Ryota','Shota','Daiki','Kazuki','Naoki',
                   'Sakura','Hana','Aiko','Nana','Mio','Rin','Yui','Saki','Mei','Akane'],
@@ -82,7 +82,7 @@ BANKS = [
         'state_field': False,
     },
     {
-        'bank_id': 'BANK008', 'name': 'Southern Cross Bank Ltd.',
+        'bank_id': 'BANK008', 'name': 'Southern Cross Bank Ltd.', 'country_code': 'AUS',
         'branch': 'BR-SCROSS-001', 'ifsc': 'SCRX0000001',
         'first': ['James','William','Oliver','Noah','Jack','Liam','Ethan','Lucas',
                   'Charlotte','Olivia','Amelia','Isla','Sophie','Grace','Chloe','Hannah','Emily','Zoe'],
@@ -233,11 +233,13 @@ def main():
             "profitability,liquidity_ratio,default_flag,pd_observed,observation_date,loaded_at,age,"
             "employment_type_enc,years_employed,annual_income,foir,num_dependents,city_tier_enc,"
             "education_enc,residence_type_enc,loan_purpose_enc,cibil_score,previous_default_flag,"
-            "months_as_customer,num_late_payments_past_12m,existing_loans_count,num_existing_products,is_rural) "
-            "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+            "months_as_customer,num_late_payments_past_12m,existing_loans_count,num_existing_products,"
+            "is_rural,country_code) "
+            "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
             (bank_id, bank_name, lid, de, ic, profit, liq, default_flag, pd_obs, obs, now,
              age, emp_enc, years_emp, income, foir, deps, tier, edu_enc, res_enc, purpose_enc,
-             cibil, prev_def, months_cust, late, ex_loans, ex_products, is_rural))
+             cibil, prev_def, months_cust, late, ex_loans, ex_products, is_rural,
+             b.get('country_code', '')))
 
         added.append((cid, f"{first} {last}", bank_id, 'good' if good else 'risky', pd_obs, classification))
 

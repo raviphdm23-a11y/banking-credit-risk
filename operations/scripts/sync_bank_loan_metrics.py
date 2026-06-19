@@ -166,7 +166,10 @@ def sync(db_path=DB_PATH):
             kyc.num_late_payments_past_12m,
             kyc.existing_loans_count,
             kyc.num_existing_products,
-            kyc.is_rural
+            kyc.is_rural,
+
+            -- Country
+            b.country_code
 
         FROM loans l
         JOIN banks                  b       ON b.bank_id      = l.bank_id
@@ -232,8 +235,9 @@ def sync(db_path=DB_PATH):
                  residence_type_enc,
                  loan_purpose_enc, cibil_score, previous_default_flag,
                  months_as_customer, num_late_payments_past_12m,
-                 existing_loans_count, num_existing_products, is_rural)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                 existing_loans_count, num_existing_products, is_rural,
+                 country_code)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, (
             loan['bank_id'],
             loan['bank_name'],
@@ -263,6 +267,7 @@ def sync(db_path=DB_PATH):
             loan['existing_loans_count'],
             loan['num_existing_products'],
             loan['is_rural'],
+            loan['country_code'],
         ))
 
         status = "DEFAULT" if default_flag else "OK    "

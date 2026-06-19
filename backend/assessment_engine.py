@@ -164,21 +164,22 @@ class AssessmentEngine:
             return {"point": pd_val, "low": pd_val, "high": pd_val,
                     "method": "rule_based_fallback", "n_trees": 0}
 
-        # Per-tree predictions give genuine uncertainty (no hardcoding).
-        # Pass the raw array — individual trees were fitted without feature names.
-        X_arr = X.values
-        per_tree = np.array([t.predict(X_arr)[0] for t in self._model.estimators_])
-        point = float(np.clip(per_tree.mean(), 0.0001, 1.0))
-        low   = float(np.clip(np.percentile(per_tree, 10), 0.0001, 1.0))
-        high  = float(np.clip(np.percentile(per_tree, 90), 0.0001, 1.0))
+        # XGBClassifier: predict_proba gives P(default=1)
+        point = float(np.clip(self._model.predict_proba(X)[0, 1], 0.0001, 1.0))
+
+        # 80% uncertainty band using binomial standard error approximation
+        n_trees = getattr(self._model, 'n_estimators', 200)
+        se   = float(np.sqrt(point * (1.0 - point) / max(n_trees, 1)))
+        low  = float(np.clip(point - 1.28 * se, 0.0001, 1.0))
+        high = float(np.clip(point + 1.28 * se, 0.0001, 1.0))
 
         return {
             "point":    round(point, 6),
             "low":      round(low, 6),
             "high":     round(high, 6),
-            "method":   "RandomForestRegressor",
-            "n_trees":  len(self._model.estimators_),
-            "band_note": "80% prediction interval across estimator trees",
+            "method":   "XGBoostClassifier",
+            "n_trees":  n_trees,
+            "band_note": "80% interval via binomial SE around point estimate",
         }
 
     # -----------------------------------------------------------------------
@@ -197,7 +198,7 @@ class AssessmentEngine:
         results = []
         X_full = self._feature_vector(inputs)
         pd_full = (
-            float(np.clip(self._model.predict(X_full)[0], 0.0001, 1.0))
+            float(np.clip(self._model.predict_proba(X_full)[0, 1], 0.0001, 1.0))
             if self._model else pd_point
         )
 
@@ -210,7 +211,7 @@ class AssessmentEngine:
             sub_inputs[feat] = meta["baseline"]
             X_sub = model_feature_frame(sub_inputs, self._model)
             pd_sub   = (
-                float(np.clip(self._model.predict(X_sub)[0], 0.0001, 1.0))
+                float(np.clip(self._model.predict_proba(X_sub)[0, 1], 0.0001, 1.0))
                 if self._model else pd_full
             )
 

@@ -196,10 +196,10 @@ def main():
             "employment_type_enc,years_employed,annual_income,foir,num_dependents,city_tier_enc,"
             "education_enc,residence_type_enc,loan_purpose_enc,cibil_score,previous_default_flag,"
             "months_as_customer,num_late_payments_past_12m,existing_loans_count,num_existing_products,"
-            "is_rural) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+            "is_rural,country_code) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
             (BANK_ID, BANK_NAME, lid, de, ic, pm, lq, default_flag, pd_obs, obs, now,
              age, emp_enc, years_emp, income, foir, deps, tier, edu_enc, res_enc, purpose_enc,
-             cibil, prev_def, months_cust, late, ex_loans, ex_products, 0))
+             cibil, prev_def, months_cust, late, ex_loans, ex_products, 0, 'JPN'))
 
         added.append((cid, f"{first} {last}", 'good' if good else 'risky', pd_obs, classif))
 

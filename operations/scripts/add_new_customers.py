@@ -17,8 +17,8 @@ random.seed(2026)
 DB = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', 'bank.db')
 N = int(sys.argv[1]) if len(sys.argv) > 1 else 14
 
-BANKS = {'BANK001': ('HDFC Bank Limited', 'BR-HDFC-001', 'HDFC0000001'),
-         'BANK002': ('ICICI Bank Limited', 'BR-ICICI-001', 'ICIC0000001')}
+BANKS = {'BANK001': ('HDFC Bank Limited', 'BR-HDFC-001', 'HDFC0000001', 'IND'),
+         'BANK002': ('ICICI Bank Limited', 'BR-ICICI-001', 'ICIC0000001', 'IND')}
 FIRST = ['Aarav','Diya','Kabir','Anaya','Vivaan','Saanvi','Reyansh','Myra','Aditya','Ira',
          'Krishna','Aadhya','Arjun','Kiara','Ishaan','Riya']
 LAST  = ['Malhotra','Kapoor','Bhat','Menon','Chauhan','Pillai','Saxena','Bose','Nayak','Gill']
@@ -45,7 +45,7 @@ def main():
         idx = start + k
         cid = f"CUST{idx}"
         bank_id = list(BANKS)[k % 2]
-        bank_name, branch, ifsc = BANKS[bank_id]
+        bank_name, branch, ifsc, country_code = BANKS[bank_id]
         first, last = random.choice(FIRST), random.choice(LAST)
         city, state, tier = random.choice(CITIES)
         is_rural = 1 if tier == 3 and random.random() < 0.5 else 0
@@ -135,11 +135,11 @@ def main():
                     "liquidity_ratio,default_flag,pd_observed,observation_date,loaded_at,age,employment_type_enc,"
                     "years_employed,annual_income,foir,num_dependents,city_tier_enc,education_enc,residence_type_enc,"
                     "loan_purpose_enc,cibil_score,previous_default_flag,months_as_customer,num_late_payments_past_12m,"
-                    "existing_loans_count,num_existing_products,is_rural) "
-                    "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                    "existing_loans_count,num_existing_products,is_rural,country_code) "
+                    "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
                     (bank_id, bank_name, lid, de, ic, profit, liq, default_flag, pd_obs, obs, now,
                      age, emp_enc, years_emp, income, foir, deps, tier, edu_enc, res_enc, purpose_enc,
-                     cibil, prev_def, months_cust, late, ex_loans, ex_products, is_rural))
+                     cibil, prev_def, months_cust, late, ex_loans, ex_products, is_rural, country_code))
 
         added.append((cid, f"{first} {last}", bank_id, 'good' if good else 'risky', pd_obs, default_flag, classification))
 

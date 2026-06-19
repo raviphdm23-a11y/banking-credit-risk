@@ -158,7 +158,7 @@ class CounterfactualEngine:
 
         # Current PD + grade
         X_current = self._to_df(inputs)
-        pd_current = float(np.clip(self._model.predict(X_current)[0], 0.0001, 1.0))
+        pd_current = float(np.clip(self._model.predict_proba(X_current)[0, 1], 0.0001, 1.0))
         current_grade = pd_to_grade(pd_current)["grade"]
         target_pd_threshold = self._next_grade_threshold(pd_current)
 
@@ -235,7 +235,7 @@ class CounterfactualEngine:
         extreme_val = lo if direction == "decrease" else hi
         test_inputs = dict(inputs)
         test_inputs[feat] = extreme_val
-        pd_extreme = float(np.clip(self._model.predict(self._to_df(test_inputs))[0], 0.0001, 1.0))
+        pd_extreme = float(np.clip(self._model.predict_proba(self._to_df(test_inputs))[0, 1], 0.0001, 1.0))
 
         if pd_extreme >= target_pd:
             return None, None  # Not achievable even at extreme
@@ -244,7 +244,7 @@ class CounterfactualEngine:
         for _ in range(max_iter):
             mid = (lo + hi) / 2
             test_inputs[feat] = mid
-            pd_mid = float(np.clip(self._model.predict(self._to_df(test_inputs))[0], 0.0001, 1.0))
+            pd_mid = float(np.clip(self._model.predict_proba(self._to_df(test_inputs))[0, 1], 0.0001, 1.0))
 
             if direction == "decrease":
                 if pd_mid <= target_pd:
@@ -260,7 +260,7 @@ class CounterfactualEngine:
         # Final value: use the boundary that achieves the target
         final_val = lo if direction == "decrease" else hi
         test_inputs[feat] = final_val
-        pd_final = float(np.clip(self._model.predict(self._to_df(test_inputs))[0], 0.0001, 1.0))
+        pd_final = float(np.clip(self._model.predict_proba(self._to_df(test_inputs))[0, 1], 0.0001, 1.0))
 
         return round(final_val, 4), round(pd_final, 6)
 
@@ -302,7 +302,7 @@ class CounterfactualEngine:
             return None
 
         X_combined = self._to_df(combined_inputs)
-        pd_combined = float(np.clip(self._model.predict(X_combined)[0], 0.0001, 1.0))
+        pd_combined = float(np.clip(self._model.predict_proba(X_combined)[0, 1], 0.0001, 1.0))
         target_grade = pd_to_grade(pd_combined)["grade"]
         pd_reduction = pd_current - pd_combined
 

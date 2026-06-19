@@ -22,12 +22,12 @@ matplotlib.use('Agg')  # non-interactive backend
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 
-from sklearn.ensemble import RandomForestRegressor
-from sklearn.model_selection import train_test_split, cross_val_score
+from xgboost import XGBClassifier
+from sklearn.model_selection import train_test_split
 from sklearn.metrics import (
-    mean_squared_error, mean_absolute_error, r2_score,
     roc_auc_score, accuracy_score, precision_score,
-    recall_score, f1_score, confusion_matrix
+    recall_score, f1_score, confusion_matrix, brier_score_loss,
+    precision_recall_curve, roc_curve
 )
 import joblib
 
@@ -49,7 +49,7 @@ HPARAM_PATH   = os.path.join(ML_DIR, 'hyperparameters.json')
 
 REQUIRED_COLUMNS = {
     'bank_id', 'loan_id', 'de_ratio', 'interest_coverage',
-    'profitability', 'liquidity_ratio', 'default_flag', 'pd_observed', 'observation_date',
+    'profitability', 'liquidity_ratio', 'default_flag', 'observation_date',
     # KYC — character & capacity
     'age', 'employment_type_enc', 'years_employed', 'annual_income',
     'foir', 'num_dependents', 'city_tier_enc', 'education_enc', 'residence_type_enc',
@@ -73,7 +73,7 @@ FEATURE_COLS  = [
     'macro_gdp_growth', 'macro_inflation', 'macro_policy_rate',
     'macro_unemployment', 'sovereign_rating_enc',
 ]
-TARGET_COL    = 'pd_observed'
+TARGET_COL    = 'default_flag'
 
 # Sovereign rating → ordinal (1 = AAA best; higher number = worse credit)
 _SOVEREIGN_RATING_ENC = {
@@ -196,8 +196,6 @@ def _validate_dataframe(df, name='data'):
     df.dropna(subset=feature_cols_present, inplace=True)
     if not df['default_flag'].isin([0, 1]).all():
         return False, 'default_flag must be 0 or 1 only'
-    if not ((df['pd_observed'] >= 0.0001) & (df['pd_observed'] <= 1.0)).all():
-        return False, 'pd_observed values must be between 0.0001 and 1.0'
     for col, lo, hi in [
         ('de_ratio',                    0.0,       10.0),
         ('interest_coverage',           0.0,       20.0),
@@ -321,9 +319,6 @@ def validate_file(filepath):
     if not df['default_flag'].isin([0, 1]).all():
         return False, "default_flag must be 0 or 1 only", len(df)
 
-    if not ((df['pd_observed'] >= 0.0001) & (df['pd_observed'] <= 1.0)).all():
-        return False, "pd_observed values must be between 0.0001 and 1.0", len(df)
-
     for col, lo, hi in [
         ('de_ratio',                    0.0,       10.0),
         ('interest_coverage',           0.0,       20.0),
@@ -415,17 +410,23 @@ def load_and_merge():
 # ── Step 4: Train ─────────────────────────────────────────────────────────────
 
 def train_model(X_train, y_train, hp):
-    """Fit RandomForestRegressor with given hyperparameters."""
+    """Fit XGBClassifier with given hyperparameters."""
     model_hp = hp.get('model', {})
-    model = RandomForestRegressor(
-        n_estimators     = int(model_hp.get('n_estimators', 100)),
-        max_depth        = model_hp.get('max_depth') or None,
-        min_samples_split= int(model_hp.get('min_samples_split', 2)),
-        min_samples_leaf = int(model_hp.get('min_samples_leaf', 1)),
-        max_features     = model_hp.get('max_features', 'sqrt'),
-        bootstrap        = bool(model_hp.get('bootstrap', True)),
-        random_state     = int(model_hp.get('random_state', 42)),
-        n_jobs           = -1,
+    model = XGBClassifier(
+        n_estimators      = int(model_hp.get('n_estimators', 200)),
+        max_depth         = int(model_hp.get('max_depth', 4)),
+        learning_rate     = float(model_hp.get('learning_rate', 0.05)),
+        subsample         = float(model_hp.get('subsample', 0.8)),
+        colsample_bytree  = float(model_hp.get('colsample_bytree', 0.8)),
+        min_child_weight  = int(model_hp.get('min_child_weight', 5)),
+        gamma             = float(model_hp.get('gamma', 0.1)),
+        reg_alpha         = float(model_hp.get('reg_alpha', 0.1)),
+        reg_lambda        = float(model_hp.get('reg_lambda', 1.0)),
+        scale_pos_weight  = float(model_hp.get('scale_pos_weight', 1)),
+        random_state      = int(model_hp.get('random_state', 42)),
+        eval_metric       = 'logloss',
+        verbosity         = 0,
+        n_jobs            = -1,
     )
     model.fit(X_train, y_train)
     return model
@@ -435,34 +436,33 @@ def train_model(X_train, y_train, hp):
 
 def evaluate_model(model, X_test, y_test, df_test, threshold):
     """
-    Compute regression + classification metrics.
-    Classification threshold converts continuous PD to default/no-default.
+    Compute classification metrics.
+    y_test IS default_flag (binary). Model outputs predict_proba → probability of default.
     """
-    y_pred   = model.predict(X_test)
-    y_pred   = np.clip(y_pred, 0.0001, 1.0)
+    y_pred_proba = model.predict_proba(X_test)[:, 1]
+    y_true_bin   = y_test.values          # already binary (0/1)
+    y_pred_bin   = (y_pred_proba >= threshold).astype(int)
 
-    # Regression metrics
-    r2   = float(r2_score(y_test, y_pred))
-    rmse = float(np.sqrt(mean_squared_error(y_test, y_pred)))
-    mae  = float(mean_absolute_error(y_test, y_pred))
-
-    # Classification metrics
-    y_true_bin = df_test['default_flag'].values
-    y_pred_bin = (y_pred >= threshold).astype(int)
-
-    auc   = float(roc_auc_score(y_true_bin, y_pred))
-    acc   = float(accuracy_score(y_true_bin, y_pred_bin))
-    prec  = float(precision_score(y_true_bin, y_pred_bin, zero_division=0))
-    rec   = float(recall_score(y_true_bin, y_pred_bin, zero_division=0))
-    f1    = float(f1_score(y_true_bin, y_pred_bin, zero_division=0))
-    cm    = confusion_matrix(y_true_bin, y_pred_bin).tolist()
+    auc    = float(roc_auc_score(y_true_bin, y_pred_proba)) if len(np.unique(y_true_bin)) > 1 else 0.5
+    acc    = float(accuracy_score(y_true_bin, y_pred_bin))
+    prec   = float(precision_score(y_true_bin, y_pred_bin, zero_division=0))
+    rec    = float(recall_score(y_true_bin, y_pred_bin, zero_division=0))
+    f1     = float(f1_score(y_true_bin, y_pred_bin, zero_division=0))
+    brier  = float(brier_score_loss(y_true_bin, y_pred_proba))
+    cm     = confusion_matrix(y_true_bin, y_pred_bin).tolist()
 
     metrics = {
-        'r2': round(r2, 4), 'rmse': round(rmse, 6), 'mae': round(mae, 6),
-        'auc_roc': round(auc, 4), 'accuracy': round(acc, 4),
-        'precision': round(prec, 4), 'recall': round(rec, 4), 'f1': round(f1, 4),
+        'auc_roc':   round(auc, 4),
+        'accuracy':  round(acc, 4),
+        'precision': round(prec, 4),
+        'recall':    round(rec, 4),
+        'f1':        round(f1, 4),
+        'brier_score': round(brier, 6),
+        'n_test':    int(len(y_true_bin)),
+        'n_defaults': int(y_true_bin.sum()),
+        'default_rate': round(float(y_true_bin.mean()), 4),
     }
-    return metrics, cm, y_pred
+    return metrics, cm, y_pred_proba
 
 
 # ── Step 6: Charts ────────────────────────────────────────────────────────────
@@ -517,36 +517,38 @@ def generate_charts(model, X_test, y_test, y_pred, df_test, threshold):
                     color='white' if cm[i, j] > cm.max() / 2 else 'black', fontsize=14)
     charts['confusion_matrix'] = _fig_to_base64(fig)
 
-    # 4. PD Distribution
+    # 4. PD Score Distribution — split by actual default status
     fig, ax = plt.subplots(figsize=(7, 4))
-    ax.hist(y_pred,        bins=40, alpha=0.6, color='#2196F3', label='Predicted PD')
-    ax.hist(y_test.values, bins=40, alpha=0.6, color='#FF5722', label='Actual PD')
-    ax.set_xlabel('PD Value')
+    ax.hist(y_pred[y_true_bin == 0], bins=40, alpha=0.6, color='#2196F3', label='Non-Default')
+    ax.hist(y_pred[y_true_bin == 1], bins=40, alpha=0.6, color='#FF5722', label='Default')
+    ax.axvline(threshold, color='black', linestyle='--', lw=1.5, label=f'Threshold={threshold}')
+    ax.set_xlabel('Predicted PD (probability)')
     ax.set_ylabel('Count')
-    ax.set_title('PD Distribution — Predicted vs Actual', fontsize=13, fontweight='bold')
+    ax.set_title('PD Score Distribution by Actual Outcome', fontsize=13, fontweight='bold')
     ax.legend()
     charts['pd_distribution'] = _fig_to_base64(fig)
 
-    # 5. Actual vs Predicted Scatter
+    # 5. Precision-Recall Curve
+    prec_vals, rec_vals, _ = precision_recall_curve(y_true_bin, y_pred)
     fig, ax = plt.subplots(figsize=(6, 5))
-    ax.scatter(y_test, y_pred, alpha=0.3, s=10, color='#2196F3')
-    mn, mx = min(y_test.min(), y_pred.min()), max(y_test.max(), y_pred.max())
-    ax.plot([mn, mx], [mn, mx], 'r--', lw=1.5, label='Perfect fit')
-    ax.set_xlabel('Actual PD')
-    ax.set_ylabel('Predicted PD')
-    ax.set_title('Actual vs Predicted PD', fontsize=13, fontweight='bold')
-    ax.legend()
-    charts['actual_vs_predicted'] = _fig_to_base64(fig)
+    ax.plot(rec_vals, prec_vals, color='#E91E63', lw=2)
+    ax.set_xlabel('Recall')
+    ax.set_ylabel('Precision')
+    ax.set_title('Precision-Recall Curve', fontsize=13, fontweight='bold')
+    ax.set_xlim([0, 1]); ax.set_ylim([0, 1])
+    charts['precision_recall'] = _fig_to_base64(fig)
 
-    # 6. Residual Distribution
-    residuals = y_pred - y_test.values
-    fig, ax = plt.subplots(figsize=(7, 4))
-    ax.hist(residuals, bins=40, color='#9C27B0', alpha=0.75)
-    ax.axvline(0, color='red', linestyle='--', lw=1.5)
-    ax.set_xlabel('Residual (Predicted − Actual)')
-    ax.set_ylabel('Count')
-    ax.set_title('Residual Distribution', fontsize=13, fontweight='bold')
-    charts['residual_distribution'] = _fig_to_base64(fig)
+    # 6. Calibration Curve (reliability diagram)
+    from sklearn.calibration import calibration_curve
+    fraction_pos, mean_pred = calibration_curve(y_true_bin, y_pred, n_bins=8, strategy='quantile')
+    fig, ax = plt.subplots(figsize=(6, 5))
+    ax.plot(mean_pred, fraction_pos, 's-', color='#4CAF50', lw=2, label='XGBoost')
+    ax.plot([0, 1], [0, 1], 'k--', lw=1, label='Perfect calibration')
+    ax.set_xlabel('Mean Predicted PD')
+    ax.set_ylabel('Fraction of Actual Defaults')
+    ax.set_title('Calibration Curve', fontsize=13, fontweight='bold')
+    ax.legend()
+    charts['calibration'] = _fig_to_base64(fig)
 
     return charts
 
