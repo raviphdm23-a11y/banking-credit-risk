@@ -859,6 +859,24 @@
                 </div>
             </div>
 
+            <!-- Basel III.1 Exposure Class (required for SA risk weight) -->
+            <div class="grid-2" style="margin-bottom:12px;">
+                <div class="form-group">
+                    <label for="exposureClass">Basel III.1 Exposure Class *
+                        <span style="font-size:11px;color:#888;font-weight:400;margin-left:6px;">Required for Standardized Approach RWA</span>
+                    </label>
+                    <select id="exposureClass" required>
+                        <option value="">-- Select Exposure Class --</option>
+                    </select>
+                    <div class="error" id="exposureClassError"></div>
+                </div>
+                <div class="form-group">
+                    <label for="ltvRatio">LTV Ratio (%) <span style="font-size:11px;color:#888;font-weight:400;">For real estate — affects residential mortgage RW</span></label>
+                    <input type="number" id="ltvRatio" placeholder="e.g. 75 (leave blank if N/A)" min="0" max="200" step="1">
+                    <div style="font-size:11px;color:#888;margin-top:4px;">Used for LTV-banded RW (Basel III.1 CRE20): &le;50%(20%) &le;60%(25%) &le;80%(30%) &le;90%(40%) &le;100%(50%) &gt;100%(70%)</div>
+                </div>
+            </div>
+
             <div class="grid-3">
                 <div class="form-group">
                     <label for="seniority">Loan Seniority *</label>
@@ -1555,6 +1573,9 @@
             product:       txt('loanType') || 'Term Loan',
             country_code:  countryCode || null,
             country:       (COUNTRY_INDEX[countryCode] || {}).name || null,
+            exposure_class: txt('exposureClass') || null,
+            ltv_ratio:      num('ltvRatio') ? num('ltvRatio') / 100 : null,
+            external_rating: null,  // placeholder for future rated-exposure entry
             requested_amount: num('exposureAmount'),
             exposure:         num('exposureAmount'),
             existing_exposure: 0,
@@ -1713,6 +1734,41 @@
 
     window.addEventListener('DOMContentLoaded', () => {
         updateSectionVisibility();
+        // Populate Basel III.1 exposure class dropdown from the reference API
+        fetch('/api/exposure-classes')
+            .then(r => r.json())
+            .then(data => {
+                const sel = document.getElementById('exposureClass');
+                if (!sel || !data.exposure_classes) return;
+                (data.exposure_classes || []).forEach(ec => {
+                    const opt = document.createElement('option');
+                    opt.value = ec.code;
+                    opt.textContent = `${ec.label} (${ec.default_rw_pct}% RW)`;
+                    opt.title = ec.description;
+                    sel.appendChild(opt);
+                });
+            })
+            .catch(() => {
+                // Fallback static options if API is unavailable
+                const sel = document.getElementById('exposureClass');
+                if (!sel) return;
+                const fallback = [
+                    ['RETAIL_MORTGAGES','Retail Mortgages (35% RW)'],
+                    ['RETAIL_OTHER','Retail Other (75% RW)'],
+                    ['RETAIL_REVOLVING','Retail Revolving (45% RW)'],
+                    ['SME','SME (85% RW)'],
+                    ['CORPORATE','Corporate (100% RW)'],
+                    ['BANK','Bank (50% RW)'],
+                    ['SOVEREIGN_HOME','Sovereign Home (0% RW)'],
+                    ['SOVEREIGN_FOREIGN','Sovereign Foreign (50% RW)'],
+                    ['DEFAULT_NPA','Default/NPA (150% RW)'],
+                ];
+                fallback.forEach(([v, t]) => {
+                    const opt = document.createElement('option');
+                    opt.value = v; opt.textContent = t;
+                    sel.appendChild(opt);
+                });
+            });
     });
 </script>
 <script src="api-integration.js"></script>

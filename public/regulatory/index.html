@@ -566,6 +566,31 @@ async function showBank(bankId){
     </div>
   </div>
 
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-title">Basel III.1 SA — RWA by Exposure Class</div>
+      <div class="card-sub">Risk-weighted assets composition per Basel III.1 Standardized Approach exposure classification</div>
+      <table class="tbl">
+        <thead><tr><th>Exposure Class</th><th class="th-num">Loans</th><th class="th-num">EAD</th><th class="th-num">RWA</th><th class="th-num">RWA %</th></tr></thead>
+        <tbody>${(data.rwa_by_exposure_class||[]).map(m=>`<tr>
+          <td style="font-family:'IBM Plex Mono';font-size:11px">${esc(m.exposure_class||'UNCLASSIFIED')}</td>
+          <td class="num">${m.n}</td>
+          <td class="num">${inr(m.ead)}</td>
+          <td class="num">${inr(m.rwa)}</td>
+          <td class="num" style="font-weight:600">${(m.rwa_pct||0).toFixed(1)}%</td>
+        </tr>`).join('')||'<tr><td colspan="5" class="empty">No data</td></tr>'}</tbody>
+      </table>
+      <div style="font-size:10px;color:#888;margin-top:8px;padding:0 4px;">
+        RW per Basel III.1 CRE20-CRE22: RETAIL_MORTGAGES 35% · SME 85% · CORPORATE 100% · RETAIL_OTHER 75% · RETAIL_REVOLVING 45% · DEFAULT_NPA 150%
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Exposure Class Distribution</div>
+      <div class="card-sub">EAD share by Basel III.1 exposure category</div>
+      <div class="chart-box"><canvas id="exposureClassChart"></canvas></div>
+    </div>
+  </div>
+
   <div>
     <div class="sl">RBI Compliance Register</div>
     <div class="card">
@@ -619,6 +644,33 @@ async function showBank(bankId){
         plugins:{legend:{position:'bottom',labels:{font:{size:11},padding:12,boxWidth:11}},
           tooltip:{callbacks:{label:x=>`${x.label}: ${inr(x.raw)}`}}}}
     });
+    // Exposure class donut chart (Basel III.1 SA)
+    const ecData = data.rwa_by_exposure_class || [];
+    if(ecData.length > 0){
+      const EC_COLORS = {
+        'RETAIL_MORTGAGES':'rgba(34,197,94,0.85)','RETAIL_OTHER':'rgba(59,130,246,0.85)',
+        'RETAIL_REVOLVING':'rgba(168,85,247,0.85)','SME':'rgba(245,158,11,0.85)',
+        'CORPORATE':'rgba(227,24,55,0.85)','BANK':'rgba(20,184,166,0.85)',
+        'SOVEREIGN_HOME':'rgba(16,185,129,0.85)','SOVEREIGN_FOREIGN':'rgba(99,102,241,0.85)',
+        'DEFAULT_NPA':'rgba(107,114,128,0.85)','COMMERCIAL_RE':'rgba(251,191,36,0.85)',
+        'ADC':'rgba(239,68,68,0.85)',
+      };
+      charts.exposureClass = new Chart(document.getElementById('exposureClassChart'),{
+        type:'doughnut',
+        data:{
+          labels: ecData.map(e=>e.exposure_class||'UNCLASSIFIED'),
+          datasets:[{
+            data: ecData.map(e=>e.ead),
+            backgroundColor: ecData.map(e=>EC_COLORS[e.exposure_class]||'rgba(156,163,175,0.8)'),
+            borderColor:'#fff',borderWidth:3,hoverOffset:6
+          }]
+        },
+        options:{responsive:true,maintainAspectRatio:false,cutout:'60%',
+          plugins:{legend:{position:'bottom',labels:{font:{size:10},padding:10,boxWidth:10}},
+            tooltip:{callbacks:{label:x=>`${x.label}: ${inr(x.raw)} EAD`}}}}
+      });
+    }
+
     if(data.trend && data.trend.length>1){
       charts.trend = new Chart(document.getElementById('trendChart'),{
         type:'line',

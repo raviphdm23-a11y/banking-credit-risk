@@ -510,6 +510,38 @@ def masterscale():
     return jsonify({'grades': masterscale_table()}), 200
 
 
+@app.route('/api/exposure-classes', methods=['GET'])
+def exposure_classes():
+    """GET /api/exposure-classes — Basel III.1 SA exposure class reference.
+
+    Returns the 14 exposure classes from ref_lookup (domain='exposure_class')
+    enriched with the default risk weight from regulatory_engine.EXPOSURE_CLASS_RW.
+    Used by the calculator UI for the exposure class dropdown.
+    """
+    from backend.regulatory_engine import EXPOSURE_CLASS_RW
+    try:
+        conn = _ops_conn()
+        rows = conn.execute(
+            "SELECT code, label, description, risk_order "
+            "FROM ref_lookup WHERE domain='exposure_class' ORDER BY risk_order"
+        ).fetchall()
+        conn.close()
+        classes = []
+        for r in rows:
+            code = r['code']
+            classes.append({
+                'code':        code,
+                'label':       r['label'],
+                'description': r['description'],
+                'risk_order':  r['risk_order'],
+                'default_rw':  EXPOSURE_CLASS_RW.get(code, 1.0),
+                'default_rw_pct': round(EXPOSURE_CLASS_RW.get(code, 1.0) * 100, 1),
+            })
+        return jsonify({'exposure_classes': classes, 'count': len(classes)}), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
 @app.route('/api/generate-report', methods=['POST'])
 def generate_report():
     """
@@ -1687,6 +1719,16 @@ def reg_bank(bank_id):
             "SUM(provision) provision FROM reg_client_exposures "
             "WHERE bank_id=? AND report_date=? GROUP BY loan_type, classification",
             (bank_id, d)).fetchall())
+        # Basel III.1 SA: RWA breakdown by exposure_class
+        rwa_by_exposure_class = _rows_to_list(conn.execute(
+            "SELECT l.exposure_class, COUNT(rce.loan_id) n, "
+            "SUM(rce.rwa) rwa, SUM(rce.ead) ead, "
+            "ROUND(100.0*SUM(rce.rwa)/NULLIF(SUM(SUM(rce.rwa)) OVER(),0),1) rwa_pct "
+            "FROM reg_client_exposures rce "
+            "LEFT JOIN loans l ON l.id = rce.loan_id "
+            "WHERE rce.bank_id=? AND rce.report_date=? "
+            "GROUP BY l.exposure_class ORDER BY rwa DESC",
+            (bank_id, d)).fetchall())
         # trend across dates
         trend = _rows_to_list(conn.execute(
             "SELECT cr.report_date, cr.car, cr.cet1_ratio, lr.lcr, lr.nsfr "
@@ -1704,8 +1746,9 @@ def reg_bank(bank_id):
                 pass
     return jsonify({'available': True, 'report_date': d, 'thresholds': _RBI_THRESHOLDS,
                     'bank': bank, 'capital': cap, 'liquidity': liq,
-                    'compliance': compliance, 'exposure_mix': mix, 'trend': trend,
-                    'balance_sheets': balance_sheets})
+                    'compliance': compliance, 'exposure_mix': mix,
+                    'rwa_by_exposure_class': rwa_by_exposure_class,
+                    'trend': trend, 'balance_sheets': balance_sheets})
 
 
 def _safe_balance_sheets(conn, bank_id):
