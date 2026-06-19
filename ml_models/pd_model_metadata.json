@@ -1,7 +1,7 @@
 {
   "model_type": "XGBoostClassifier",
-  "version": "run_20260619_084301",
-  "date_trained": "2026-06-19T08:43:01",
+  "version": "run_20260619_211947",
+  "date_trained": "2026-06-19T21:19:47",
   "triggered_by": "manual",
   "features": [
     "de_ratio",
@@ -35,15 +35,15 @@
   "n_features": 27,
   "target": "default_flag",
   "metrics": {
-    "auc_roc": 0.9777,
-    "accuracy": 0.9433,
-    "precision": 0.7292,
-    "recall": 0.9211,
-    "f1": 0.814,
-    "brier_score": 0.040647,
-    "n_test": 282,
-    "n_defaults": 38,
-    "default_rate": 0.1348
+    "auc_roc": 1.0,
+    "accuracy": 1.0,
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1": 1.0,
+    "brier_score": 4.4e-05,
+    "n_test": 234,
+    "n_defaults": 7,
+    "default_rate": 0.0299
   },
   "hyperparameters": {
     "n_estimators": 200,
@@ -58,10 +58,10 @@
     "scale_pos_weight": 1,
     "random_state": 42
   },
-  "n_train": 1126,
-  "rows_trained": 1126,
-  "n_defaults_train": 146,
-  "scale_pos_weight": 6.71,
+  "n_train": 932,
+  "rows_trained": 932,
+  "n_defaults_train": 18,
+  "scale_pos_weight": 50.78,
   "threshold": 0.25,
   "currency": "INR",
   "note": "XGBoost binary classifier; target=default_flag (RBI 90-day NPA rule)"

@@ -1,53 +1,53 @@
 {
   "_meta": {
-    "generated_at": "2026-06-19T08:43:03",
+    "generated_at": "2026-06-19T21:19:48",
     "source": "bank_loan_metrics (default_flag=0)",
-    "n_approved": 1224,
-    "n_total": 1408,
-    "default_rate": 0.1307
+    "n_approved": 1141,
+    "n_total": 1166,
+    "default_rate": 0.0214
   },
   "de_ratio": {
     "label": "Debt-to-Equity",
-    "median": 1.17,
-    "p25": 0.7775,
-    "p75": 1.53,
-    "p10": 0.57,
-    "p90": 1.76,
-    "min": 0.3,
-    "max": 6.0,
-    "n": 1224
+    "median": 1.12,
+    "p25": 0.74,
+    "p75": 1.57,
+    "p10": 0.54,
+    "p90": 1.83,
+    "min": 0.4,
+    "max": 2.0,
+    "n": 1141
   },
   "interest_coverage": {
     "label": "Interest Coverage",
-    "median": 8.085,
-    "p25": 5.6575,
-    "p75": 10.405,
-    "p10": 4.463,
-    "p90": 12.0353,
-    "min": 0.81,
-    "max": 14.7912,
-    "n": 1224
+    "median": 8.81,
+    "p25": 6.09,
+    "p75": 11.39,
+    "p10": 4.56,
+    "p90": 12.94,
+    "min": 3.53,
+    "max": 13.99,
+    "n": 1141
   },
   "profitability": {
     "label": "Net Profit Margin (%)",
-    "median": 14.6,
-    "p25": 10.775,
-    "p75": 18.325,
-    "p10": 8.6,
-    "p90": 20.5,
-    "min": -8.0,
-    "max": 29.5287,
-    "n": 1224
+    "median": 15.1,
+    "p25": 10.7,
+    "p75": 20.2,
+    "p10": 7.9,
+    "p90": 23.2,
+    "min": 6.0,
+    "max": 25.0,
+    "n": 1141
   },
   "liquidity_ratio": {
     "label": "Current Ratio",
-    "median": 2.03,
-    "p25": 1.65,
-    "p75": 2.43,
-    "p10": 1.47,
-    "p90": 2.66,
-    "min": 0.61,
-    "max": 4.3545,
-    "n": 1224
+    "median": 2.13,
+    "p25": 1.74,
+    "p75": 2.55,
+    "p10": 1.46,
+    "p90": 2.83,
+    "min": 1.3,
+    "max": 3.0,
+    "n": 1141
   }
 }
