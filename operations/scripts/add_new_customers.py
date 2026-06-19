@@ -24,6 +24,7 @@ FIRST = ['Aarav','Diya','Kabir','Anaya','Vivaan','Saanvi','Reyansh','Myra','Adit
 LAST  = ['Malhotra','Kapoor','Bhat','Menon','Chauhan','Pillai','Saxena','Bose','Nayak','Gill']
 LOAN_TYPES = [('Home Loan', 5), ('Vehicle Loan', 3), ('Personal Loan', 1),
               ('Education Loan', 4), ('Business Loan', 2)]
+EMP_LABELS = ['GOVT','SALARIED','RETIRED','SELF_EMPLOYED','BUSINESS','FREELANCE','STUDENT']
 CITIES = [('Mumbai','Maharashtra',1),('Pune','Maharashtra',2),('Indore','Madhya Pradesh',2),
           ('Kochi','Kerala',2),('Patna','Bihar',3),('Bengaluru','Karnataka',1)]
 
@@ -33,6 +34,17 @@ def emi(principal, annual_rate, months):
     if r == 0:
         return round(principal / months, 2)
     return round(principal * r * (1 + r) ** months / ((1 + r) ** months - 1), 2)
+
+
+def determine_exposure_class(loan_type, employment_type):
+    """Map loan type + employment to Basel III.1 exposure class."""
+    if loan_type == 'Home Loan':
+        return 'RETAIL_MORTGAGES'
+    if loan_type in ('Vehicle Loan', 'Personal Loan', 'Education Loan'):
+        return 'RETAIL_OTHER'
+    if loan_type == 'Business Loan':
+        return 'SME' if employment_type in ('BUSINESS', 'SELF_EMPLOYED') else 'CORPORATE'
+    return 'CORPORATE'  # fallback
 
 
 def main():
@@ -66,6 +78,8 @@ def main():
         age = random.randint(24, 60); years_emp = round(random.uniform(1, min(age-22, 30)), 1)
         emp_enc = random.randint(1, 7); edu_enc = random.randint(1, 6); res_enc = random.randint(1, 4)
         ltype, purpose_enc = random.choice(LOAN_TYPES)
+        emp_label = EMP_LABELS[emp_enc - 1]
+        exposure_class = determine_exposure_class(ltype, emp_label)
         deps = random.randint(0, 4); months_cust = random.randint(3, 180)
         ex_loans = random.randint(0, 4); ex_products = random.randint(1, 6)
 
@@ -107,10 +121,10 @@ def main():
                     (f"TX-NEW-{idx}", bank_id, aid, '2023-01-10', '10:00:00', 'Deposit', balance, balance,
                      '[INCOME] Opening deposit - account funded'))
 
-        cur.execute("INSERT INTO loans (id,bank_id,cid,type,principal,rate,tenure,emi,disbursed,maturity,outstanding,status,branch_id,loan_classification) "
-                    "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+        cur.execute("INSERT INTO loans (id,bank_id,cid,type,principal,rate,tenure,emi,disbursed,maturity,outstanding,status,branch_id,loan_classification,exposure_class) "
+                    "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
                     (lid, bank_id, cid, ltype, principal, rate, tenure, loan_emi, disb, mat, outstanding,
-                     'Active', branch, classification))
+                     'Active', branch, classification, exposure_class))
 
         cur.execute("INSERT INTO customer_kyc (cid,bank_id,pan_verified,aadhaar_verified,kyc_status,kyc_date,age,gender,"
                     "marital_status,education_level,num_dependents,employment_type,employer_name,industry_sector,"

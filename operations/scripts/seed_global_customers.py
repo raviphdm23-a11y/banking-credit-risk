@@ -109,6 +109,16 @@ _LTYPE_TO_PURPOSE = {
 def _ltype_to_purpose(ltype):
     return _LTYPE_TO_PURPOSE.get(ltype, 'PERSONAL')
 
+def determine_exposure_class(loan_type, employment_type):
+    """Map loan type + employment to Basel III.1 exposure class."""
+    if loan_type == 'Home Loan':
+        return 'RETAIL_MORTGAGES'
+    if loan_type in ('Vehicle Loan', 'Personal Loan', 'Education Loan'):
+        return 'RETAIL_OTHER'
+    if loan_type == 'Business Loan':
+        return 'SME' if employment_type in ('BUSINESS', 'SELF_EMPLOYED') else 'CORPORATE'
+    return 'CORPORATE'  # fallback
+
 def _emi(principal, annual_rate, months):
     r = annual_rate / 1200.0
     if r == 0:
@@ -167,6 +177,8 @@ def _seed_bank(cur, bank_id, cfg, today):
         years_emp = round(random.uniform(1, min(age - 22, 30)), 1)
         emp_enc = random.randint(1, 7); edu_enc = random.randint(3, 6); res_enc = random.randint(1, 4)
         ltype, purpose_enc = random.choice(RISKY_LOANS if not good else LOAN_TYPES)
+        emp_label = EMP_LABELS[emp_enc - 1]
+        exposure_class = determine_exposure_class(ltype, emp_label)
         deps = random.randint(0, 4); months_cust = random.randint(6, 200)
         ex_loans = random.randint(0, 4); ex_products = random.randint(1, 6)
 
@@ -209,9 +221,10 @@ def _seed_bank(cur, bank_id, cfg, today):
                      balance, balance, '[INCOME] Opening deposit - account funded'))
 
         cur.execute("INSERT OR IGNORE INTO loans (id,bank_id,cid,type,principal,rate,tenure,emi,disbursed,"
-                    "maturity,outstanding,status,branch_id,loan_classification) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                    "maturity,outstanding,status,branch_id,loan_classification,exposure_class) "
+                    "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
                     (lid, bank_id, cid, ltype, principal, rate, tenure, loan_emi, disb, mat,
-                     outstanding, 'Active', branch, classification))
+                     outstanding, 'Active', branch, classification, exposure_class))
 
         cur.execute("INSERT OR IGNORE INTO customer_kyc (cid,bank_id,pan_verified,aadhaar_verified,kyc_status,"
                     "kyc_date,age,gender,marital_status,education_level,num_dependents,employment_type,employer_name,"

@@ -161,6 +161,16 @@ def calc_emi(principal, annual_rate, months):
         return round(principal / months, 2)
     return round(principal * r * (1 + r) ** months / ((1 + r) ** months - 1), 2)
 
+def determine_exposure_class(loan_type, employment_type):
+    """Map loan type + employment to Basel III.1 exposure class."""
+    if loan_type == 'Home Loan':
+        return 'RETAIL_MORTGAGES'
+    if loan_type in ('Vehicle Loan', 'Personal Loan', 'Education Loan'):
+        return 'RETAIL_OTHER'
+    if loan_type == 'Business Loan':
+        return 'SME' if employment_type in ('BUSINESS', 'SELF_EMPLOYED') else 'CORPORATE'
+    return 'CORPORATE'  # fallback
+
 
 def emi_months_up_to(disb_str, tenure, stop_before=None):
     """Return list of date objects for each monthly EMI due (5th of month)."""
@@ -258,6 +268,8 @@ def seed(n_per_bank=130, db_path=None, verbose=True):
             is_rural    = 0
 
             lt_name, lt_purpose, lt_enc = random.choice(RISKY_LOANS if is_npa else LOAN_TYPES)
+            emp_label = EMP_LABELS[emp_enc - 1]
+            exposure_class = determine_exposure_class(lt_name, emp_label)
 
             # pd_observed kept for legacy column
             risk = (0.01 + max(0, (750 - cibil)) / 900.0 + de * 0.025
@@ -324,10 +336,10 @@ def seed(n_per_bank=130, db_path=None, verbose=True):
 
             cur.execute(
                 "INSERT INTO loans (id,bank_id,cid,type,principal,rate,tenure,emi,"
-                "disbursed,maturity,outstanding,status,branch_id,loan_classification) "
-                "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                "disbursed,maturity,outstanding,status,branch_id,loan_classification,exposure_class) "
+                "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
                 (lid, bank_id, cid, lt_name, principal, rate, tenure, loan_emi_val,
-                 disb, mat, outstanding, 'Active', b['branch'], classification))
+                 disb, mat, outstanding, 'Active', b['branch'], classification, exposure_class))
 
             cur.execute(
                 "INSERT INTO customer_kyc (cid,bank_id,pan_verified,aadhaar_verified,"
