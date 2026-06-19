@@ -132,15 +132,23 @@ def main():
                     (bank_id, lid, de, ic, profit, liq, default_flag, pd_obs,
                      1 if classification == 'NPA' else 0, '2024-Q2', obs))
 
+        # Look up macro values for this country
+        macro = cur.execute("""
+            SELECT gdp_growth_pct, inflation_cpi_pct, policy_rate_pct, unemployment_pct
+            FROM country_macro WHERE country_code=? ORDER BY period DESC LIMIT 1
+        """, (country_code,)).fetchone() or (6.7, 4.5, 6.25, 7.6)
+
         cur.execute("INSERT INTO bank_loan_metrics (bank_id,bank_name,loan_id,de_ratio,interest_coverage,profitability,"
                     "liquidity_ratio,default_flag,pd_observed,observation_date,loaded_at,age,employment_type_enc,"
                     "years_employed,annual_income,foir,num_dependents,city_tier_enc,education_enc,residence_type_enc,"
                     "loan_purpose_enc,cibil_score,previous_default_flag,months_as_customer,num_late_payments_past_12m,"
-                    "existing_loans_count,num_existing_products,is_rural,country_code) "
-                    "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                    "existing_loans_count,num_existing_products,is_rural,country_code,"
+                    "gdp_growth_pct,inflation_cpi_pct,policy_rate_pct,unemployment_pct) "
+                    "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
                     (bank_id, bank_name, lid, de, ic, profit, liq, default_flag, pd_obs, obs, now,
                      age, emp_enc, years_emp, income, foir, deps, tier, edu_enc, res_enc, purpose_enc,
-                     cibil, prev_def, months_cust, late, ex_loans, ex_products, is_rural, country_code))
+                     cibil, prev_def, months_cust, late, ex_loans, ex_products, is_rural, country_code,
+                     macro[0], macro[1], macro[2], macro[3]))
 
         added.append((cid, f"{first} {last}", bank_id, 'good' if good else 'risky', pd_obs, default_flag, classification))
 

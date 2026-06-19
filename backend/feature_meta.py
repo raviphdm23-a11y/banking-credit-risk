@@ -76,31 +76,20 @@ EXTRA_FEATURE_DEFAULTS = {
     "num_existing_products":     2.0,
     "is_rural":                  0.0,
     # Country macro — global medians used as fallback when country_code is unknown
-    "macro_gdp_growth":          4.0,   # % — blended emerging/developed median
-    "macro_inflation":           4.5,   # %
-    "macro_policy_rate":         5.0,   # %
-    "macro_unemployment":        6.0,   # %
-    "sovereign_rating_enc":      5.0,   # ordinal 1=AAA…20=D; 5 ≈ A+, mid-investment-grade
+    "gdp_growth_pct":            4.0,   # % — blended emerging/developed median
+    "inflation_cpi_pct":         4.5,   # %
+    "policy_rate_pct":           5.0,   # %
+    "unemployment_pct":          6.0,   # %
 }
 
-# Sovereign rating → ordinal (mirrors trainer.py; kept in sync manually)
-_SOVEREIGN_RATING_ENC = {
-    'AAA': 1, 'AA+': 2, 'AA': 3, 'AA-': 4,
-    'A+': 5,  'A': 6,   'A-': 7,
-    'BBB+': 8, 'BBB': 9, 'BBB-': 10,
-    'BB+': 11, 'BB': 12, 'BB-': 13,
-    'B+': 14,  'B': 15,  'B-': 16,
-    'CCC': 17, 'CC': 18, 'C': 19, 'D': 20,
-}
-
-_MACRO_COLS = ('macro_gdp_growth', 'macro_inflation', 'macro_policy_rate', 'macro_unemployment')
+_MACRO_COLS = ('gdp_growth_pct', 'inflation_cpi_pct', 'policy_rate_pct', 'unemployment_pct')
 
 
 def lookup_country_macro(country_code: str, db_path: str) -> dict:
     """Return macro feature dict for a given ISO-3 country code from bank.db.
 
-    Queries the latest period in country_macro + sovereign_rating from countries.
-    Falls back to EXTRA_FEATURE_DEFAULTS values when the country is not found.
+    Queries the latest period in country_macro. Falls back to EXTRA_FEATURE_DEFAULTS
+    values when the country is not found.
     """
     import sqlite3, os
     result = {}
@@ -110,22 +99,17 @@ def lookup_country_macro(country_code: str, db_path: str) -> dict:
         conn = sqlite3.connect(db_path)
         cur = conn.cursor()
         cur.execute(
-            "SELECT cm.gdp_growth_pct, cm.inflation_cpi_pct, cm.policy_rate_pct, "
-            "       cm.unemployment_pct, c.sovereign_rating "
-            "FROM country_macro cm "
-            "JOIN countries c ON cm.country_code = c.country_code "
-            "WHERE cm.country_code = ? "
-            "ORDER BY cm.period DESC LIMIT 1",
+            "SELECT gdp_growth_pct, inflation_cpi_pct, policy_rate_pct, unemployment_pct "
+            "FROM country_macro WHERE country_code = ? ORDER BY period DESC LIMIT 1",
             (country_code,)
         )
         row = cur.fetchone()
         conn.close()
         if row:
-            result['macro_gdp_growth']   = float(row[0]) if row[0] is not None else EXTRA_FEATURE_DEFAULTS['macro_gdp_growth']
-            result['macro_inflation']     = float(row[1]) if row[1] is not None else EXTRA_FEATURE_DEFAULTS['macro_inflation']
-            result['macro_policy_rate']   = float(row[2]) if row[2] is not None else EXTRA_FEATURE_DEFAULTS['macro_policy_rate']
-            result['macro_unemployment']  = float(row[3]) if row[3] is not None else EXTRA_FEATURE_DEFAULTS['macro_unemployment']
-            result['sovereign_rating_enc']= float(_SOVEREIGN_RATING_ENC.get(row[4], 10))
+            result['gdp_growth_pct']    = float(row[0]) if row[0] is not None else EXTRA_FEATURE_DEFAULTS['gdp_growth_pct']
+            result['inflation_cpi_pct'] = float(row[1]) if row[1] is not None else EXTRA_FEATURE_DEFAULTS['inflation_cpi_pct']
+            result['policy_rate_pct']   = float(row[2]) if row[2] is not None else EXTRA_FEATURE_DEFAULTS['policy_rate_pct']
+            result['unemployment_pct']  = float(row[3]) if row[3] is not None else EXTRA_FEATURE_DEFAULTS['unemployment_pct']
     except Exception:
         pass
     return result

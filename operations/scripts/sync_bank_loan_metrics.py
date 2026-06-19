@@ -169,7 +169,13 @@ def sync(db_path=DB_PATH):
             kyc.is_rural,
 
             -- Country
-            b.country_code
+            b.country_code,
+
+            -- Country macro (latest period per country)
+            cm.gdp_growth_pct,
+            cm.inflation_cpi_pct,
+            cm.policy_rate_pct,
+            cm.unemployment_pct
 
         FROM loans l
         JOIN banks                  b       ON b.bank_id      = l.bank_id
@@ -187,6 +193,10 @@ def sync(db_path=DB_PATH):
                                            AND cty_ref.code   = kyc.city_tier
         LEFT JOIN ref_lookup        lp_ref  ON lp_ref.domain  = 'loan_purpose'
                                            AND lp_ref.code    = kyc.loan_purpose
+        LEFT JOIN country_macro     cm      ON cm.country_code = b.country_code
+                                           AND cm.period = (
+                                               SELECT MAX(period) FROM country_macro
+                                               WHERE country_code = b.country_code)
         ORDER BY l.bank_id, l.id
     """)
     loans = cursor.fetchall()
@@ -236,8 +246,9 @@ def sync(db_path=DB_PATH):
                  loan_purpose_enc, cibil_score, previous_default_flag,
                  months_as_customer, num_late_payments_past_12m,
                  existing_loans_count, num_existing_products, is_rural,
-                 country_code)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                 country_code,
+                 gdp_growth_pct, inflation_cpi_pct, policy_rate_pct, unemployment_pct)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, (
             loan['bank_id'],
             loan['bank_name'],
@@ -268,6 +279,10 @@ def sync(db_path=DB_PATH):
             loan['num_existing_products'],
             loan['is_rural'],
             loan['country_code'],
+            loan['gdp_growth_pct'],
+            loan['inflation_cpi_pct'],
+            loan['policy_rate_pct'],
+            loan['unemployment_pct'],
         ))
 
         status = "DEFAULT" if default_flag else "OK    "

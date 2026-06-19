@@ -209,6 +209,11 @@ def seed(n_per_bank=130, db_path=None, verbose=True):
         npa_target = b['npa_rate']
         short      = ''.join(w[0] for w in bank_name.split()[:3]).upper()
 
+        macro = cur.execute(
+            "SELECT gdp_growth_pct,inflation_cpi_pct,policy_rate_pct,unemployment_pct "
+            "FROM country_macro WHERE country_code=? ORDER BY period DESC LIMIT 1",
+            (b['country_code'],)).fetchone() or (6.7, 4.5, 6.25, 7.6)
+
         bank_added = 0
         for i in range(n_per_bank):
             idx = start_id + total_added
@@ -359,14 +364,16 @@ def seed(n_per_bank=130, db_path=None, verbose=True):
                 "num_dependents,city_tier_enc,education_enc,residence_type_enc,"
                 "loan_purpose_enc,cibil_score,previous_default_flag,months_as_customer,"
                 "num_late_payments_past_12m,existing_loans_count,num_existing_products,"
-                "is_rural,country_code) "
-                "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                "is_rural,country_code,"
+                "gdp_growth_pct,inflation_cpi_pct,policy_rate_pct,unemployment_pct) "
+                "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
                 (bank_id, bank_name, lid, de, ic, profit, liq,
                  default_flag, pd_obs, obs, now,
                  age, emp_enc, years_emp, income, foir, deps,
                  tier, edu_enc, res_enc, lt_enc,
                  cibil, prev_def, months_cust, late, ex_loans, ex_products,
-                 is_rural, b['country_code']))
+                 is_rural, b['country_code'],
+                 macro[0], macro[1], macro[2], macro[3]))
 
             # ── EMI transactions for Standard (performing) loans ──────────────
             if not is_npa:
