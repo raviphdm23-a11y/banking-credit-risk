@@ -175,7 +175,12 @@ def sync(db_path=DB_PATH):
             cm.gdp_growth_pct,
             cm.inflation_cpi_pct,
             cm.policy_rate_pct,
-            cm.unemployment_pct
+            cm.unemployment_pct,
+
+            -- Trend features (direction of travel since origination)
+            ROUND(crm.de - crm.prior_de, 4)                                   AS delta_de_ratio,
+            ROUND(CAST(kyc.cibil_score AS REAL) - CAST(crm.prior_cibil AS REAL), 1) AS delta_cibil,
+            ROUND((julianday('now') - julianday(l.disbursed)) / 30.44, 1)     AS months_since_origination
 
         FROM loans l
         JOIN banks                  b       ON b.bank_id      = l.bank_id
@@ -247,8 +252,9 @@ def sync(db_path=DB_PATH):
                  months_as_customer, num_late_payments_past_12m,
                  existing_loans_count, num_existing_products, is_rural,
                  country_code,
-                 gdp_growth_pct, inflation_cpi_pct, policy_rate_pct, unemployment_pct)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                 gdp_growth_pct, inflation_cpi_pct, policy_rate_pct, unemployment_pct,
+                 delta_de_ratio, delta_cibil, months_since_origination)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, (
             loan['bank_id'],
             loan['bank_name'],
@@ -283,6 +289,9 @@ def sync(db_path=DB_PATH):
             loan['inflation_cpi_pct'],
             loan['policy_rate_pct'],
             loan['unemployment_pct'],
+            loan['delta_de_ratio'],
+            loan['delta_cibil'],
+            loan['months_since_origination'],
         ))
 
         status = "DEFAULT" if default_flag else "OK    "

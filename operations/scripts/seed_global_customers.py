@@ -226,21 +226,36 @@ def _seed_bank(cur, bank_id, cfg, today):
                      f"TIER{tier}", 0, 'HIGH' if not good else 'LOW', now, now, months_cust, ex_products,
                      ex_loans, _ltype_to_purpose(ltype), prev_def, cibil, late, state, 0))
 
+        # Prior values: uniform origination baseline (same distribution for all loans)
+        prior_de    = round(random.uniform(0.5, 1.8), 4)
+        prior_cibil = random.randint(710, 820)
+
         cur.execute("INSERT OR IGNORE INTO credit_risk_metrics (bank_id,lid,de,intcov,profit,liq,df,pd_score,"
-                    "npa_flag,period,obs) VALUES (?,?,?,?,?,?,?,?,?,?,?)",
+                    "npa_flag,period,obs,prior_de,prior_cibil) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)",
                     (bank_id, lid, de, ic, profit, liq, default_flag, pd_obs,
-                     1 if classification == 'NPA' else 0, '2024-Q2', obs))
+                     1 if classification == 'NPA' else 0, '2024-Q2', obs,
+                     prior_de, prior_cibil))
+
+        months_orig = round((today - date.fromisoformat(disb)).days / 30.44, 1)
+        macro_row = cur.execute(
+            "SELECT gdp_growth_pct,inflation_cpi_pct,policy_rate_pct,unemployment_pct "
+            "FROM country_macro WHERE country_code=? ORDER BY period DESC LIMIT 1",
+            (cfg.get('country_code', ''),)).fetchone() or (4.0, 4.5, 5.0, 6.0)
 
         cur.execute("INSERT OR IGNORE INTO bank_loan_metrics (bank_id,bank_name,loan_id,de_ratio,interest_coverage,"
                     "profitability,liquidity_ratio,default_flag,pd_observed,observation_date,loaded_at,age,"
                     "employment_type_enc,years_employed,annual_income,foir,num_dependents,city_tier_enc,education_enc,"
                     "residence_type_enc,loan_purpose_enc,cibil_score,previous_default_flag,months_as_customer,"
-                    "num_late_payments_past_12m,existing_loans_count,num_existing_products,is_rural,country_code) "
-                    "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                    "num_late_payments_past_12m,existing_loans_count,num_existing_products,is_rural,country_code,"
+                    "gdp_growth_pct,inflation_cpi_pct,policy_rate_pct,unemployment_pct,"
+                    "delta_de_ratio,delta_cibil,months_since_origination) "
+                    "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
                     (bank_id, cfg['name'], lid, de, ic, profit, liq, default_flag, pd_obs, obs, now,
                      age, emp_enc, years_emp, income, foir, deps, tier, edu_enc, res_enc, purpose_enc,
                      cibil, prev_def, months_cust, late, ex_loans, ex_products, 0,
-                     cfg.get('country_code', '')))
+                     cfg.get('country_code', ''),
+                     macro_row[0], macro_row[1], macro_row[2], macro_row[3],
+                     round(de - prior_de, 4), round(float(cibil - prior_cibil), 1), months_orig))
         added += 1
     return added, npa
 

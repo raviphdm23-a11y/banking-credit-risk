@@ -127,10 +127,16 @@ def main():
                      {'Home Loan':'HOME_PURCHASE','Vehicle Loan':'VEHICLE','Personal Loan':'PERSONAL','Education Loan':'EDUCATION','Business Loan':'BUSINESS'}.get(ltype,'PERSONAL'),
                      prev_def, cibil, late, state, is_rural))
 
-        cur.execute("INSERT INTO credit_risk_metrics (bank_id,lid,de,intcov,profit,liq,df,pd_score,npa_flag,period,obs) "
-                    "VALUES (?,?,?,?,?,?,?,?,?,?,?)",
+        # Prior values: uniform origination baseline (same distribution for all loans)
+        # Represents every borrower starting credit-worthy at disbursement
+        prior_de    = round(random.uniform(0.5, 1.8), 4)
+        prior_cibil = random.randint(710, 820)
+
+        cur.execute("INSERT INTO credit_risk_metrics (bank_id,lid,de,intcov,profit,liq,df,pd_score,npa_flag,period,obs,prior_de,prior_cibil) "
+                    "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)",
                     (bank_id, lid, de, ic, profit, liq, default_flag, pd_obs,
-                     1 if classification == 'NPA' else 0, '2024-Q2', obs))
+                     1 if classification == 'NPA' else 0, '2024-Q2', obs,
+                     prior_de, prior_cibil))
 
         # Look up macro values for this country
         macro = cur.execute("""
@@ -138,17 +144,22 @@ def main():
             FROM country_macro WHERE country_code=? ORDER BY period DESC LIMIT 1
         """, (country_code,)).fetchone() or (6.7, 4.5, 6.25, 7.6)
 
+        from datetime import date as _date
+        months_orig = round(((_date.today() - _date.fromisoformat(disb)).days) / 30.44, 1)
+
         cur.execute("INSERT INTO bank_loan_metrics (bank_id,bank_name,loan_id,de_ratio,interest_coverage,profitability,"
                     "liquidity_ratio,default_flag,pd_observed,observation_date,loaded_at,age,employment_type_enc,"
                     "years_employed,annual_income,foir,num_dependents,city_tier_enc,education_enc,residence_type_enc,"
                     "loan_purpose_enc,cibil_score,previous_default_flag,months_as_customer,num_late_payments_past_12m,"
                     "existing_loans_count,num_existing_products,is_rural,country_code,"
-                    "gdp_growth_pct,inflation_cpi_pct,policy_rate_pct,unemployment_pct) "
-                    "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                    "gdp_growth_pct,inflation_cpi_pct,policy_rate_pct,unemployment_pct,"
+                    "delta_de_ratio,delta_cibil,months_since_origination) "
+                    "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
                     (bank_id, bank_name, lid, de, ic, profit, liq, default_flag, pd_obs, obs, now,
                      age, emp_enc, years_emp, income, foir, deps, tier, edu_enc, res_enc, purpose_enc,
                      cibil, prev_def, months_cust, late, ex_loans, ex_products, is_rural, country_code,
-                     macro[0], macro[1], macro[2], macro[3]))
+                     macro[0], macro[1], macro[2], macro[3],
+                     round(de - prior_de, 4), round(float(cibil - prior_cibil), 1), months_orig))
 
         added.append((cid, f"{first} {last}", bank_id, 'good' if good else 'risky', pd_obs, default_flag, classification))
 

@@ -349,12 +349,19 @@ def seed(n_per_bank=130, db_path=None, verbose=True):
                  now, now, months_cust, ex_products, ex_loans,
                  lt_purpose, prev_def, cibil, late, state, is_rural))
 
+            # Prior values: uniform origination baseline (same distribution for all loans)
+            prior_de    = round(random.uniform(0.5, 1.8), 4)
+            prior_cibil = random.randint(710, 820)
+
             cur.execute(
                 "INSERT INTO credit_risk_metrics "
-                "(bank_id,lid,de,intcov,profit,liq,df,pd_score,npa_flag,period,obs) "
-                "VALUES (?,?,?,?,?,?,?,?,?,?,?)",
+                "(bank_id,lid,de,intcov,profit,liq,df,pd_score,npa_flag,period,obs,prior_de,prior_cibil) "
+                "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)",
                 (bank_id, lid, de, ic, profit, liq, default_flag, pd_obs,
-                 npa_flag_val, '2025-Q4', obs))
+                 npa_flag_val, '2025-Q4', obs, prior_de, prior_cibil))
+
+            from datetime import date as _date
+            months_orig = round((_date.today() - _date.fromisoformat(disb)).days / 30.44, 1)
 
             cur.execute(
                 "INSERT INTO bank_loan_metrics "
@@ -365,15 +372,17 @@ def seed(n_per_bank=130, db_path=None, verbose=True):
                 "loan_purpose_enc,cibil_score,previous_default_flag,months_as_customer,"
                 "num_late_payments_past_12m,existing_loans_count,num_existing_products,"
                 "is_rural,country_code,"
-                "gdp_growth_pct,inflation_cpi_pct,policy_rate_pct,unemployment_pct) "
-                "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                "gdp_growth_pct,inflation_cpi_pct,policy_rate_pct,unemployment_pct,"
+                "delta_de_ratio,delta_cibil,months_since_origination) "
+                "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
                 (bank_id, bank_name, lid, de, ic, profit, liq,
                  default_flag, pd_obs, obs, now,
                  age, emp_enc, years_emp, income, foir, deps,
                  tier, edu_enc, res_enc, lt_enc,
                  cibil, prev_def, months_cust, late, ex_loans, ex_products,
                  is_rural, b['country_code'],
-                 macro[0], macro[1], macro[2], macro[3]))
+                 macro[0], macro[1], macro[2], macro[3],
+                 round(de - prior_de, 4), round(float(cibil - prior_cibil), 1), months_orig))
 
             # ── EMI transactions for Standard (performing) loans ──────────────
             if not is_npa:

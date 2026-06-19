@@ -71,6 +71,8 @@ FEATURE_COLS  = [
     'existing_loans_count', 'num_existing_products',
     # Country macro (4) — from country_macro table via country_code
     'gdp_growth_pct', 'inflation_cpi_pct', 'policy_rate_pct', 'unemployment_pct',
+    # Trend features (3) — direction of travel since loan origination
+    'delta_de_ratio', 'delta_cibil', 'months_since_origination',
 ]
 TARGET_COL    = 'default_flag'
 
@@ -132,15 +134,18 @@ def load_from_db():
             "       previous_default_flag, months_as_customer, "
             "       num_late_payments_past_12m, existing_loans_count, "
             "       num_existing_products, is_rural, country_code, "
-            "       gdp_growth_pct, inflation_cpi_pct, policy_rate_pct, unemployment_pct "
+            "       gdp_growth_pct, inflation_cpi_pct, policy_rate_pct, unemployment_pct, "
+            "       delta_de_ratio, delta_cibil, months_since_origination "
             "FROM bank_loan_metrics",
             conn
         )
         conn.close()
         if len(df) == 0:
             return None
-        # Fill any missing macro values with global medians
-        for col in ('gdp_growth_pct', 'inflation_cpi_pct', 'policy_rate_pct', 'unemployment_pct'):
+        # Fill any missing feature values with column medians
+        fill_cols = ('gdp_growth_pct', 'inflation_cpi_pct', 'policy_rate_pct', 'unemployment_pct',
+                     'delta_de_ratio', 'delta_cibil', 'months_since_origination')
+        for col in fill_cols:
             if col in df.columns:
                 df[col] = df[col].fillna(df[col].median())
         return df

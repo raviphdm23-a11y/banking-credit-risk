@@ -80,6 +80,10 @@ EXTRA_FEATURE_DEFAULTS = {
     "inflation_cpi_pct":         4.5,   # %
     "policy_rate_pct":           5.0,   # %
     "unemployment_pct":          6.0,   # %
+    # Trend features — defaults assume stable borrower (no deterioration, 24 months seasoning)
+    "delta_de_ratio":            0.0,   # no change in leverage since origination
+    "delta_cibil":               0.0,   # no change in credit score
+    "months_since_origination": 24.0,   # typical mid-life loan observation
 }
 
 _MACRO_COLS = ('gdp_growth_pct', 'inflation_cpi_pct', 'policy_rate_pct', 'unemployment_pct')
