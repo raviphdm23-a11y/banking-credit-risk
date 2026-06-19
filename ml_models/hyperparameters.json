@@ -14,7 +14,7 @@
   },
   "training": {
     "test_size": 0.2,
-    "pd_classification_threshold": 0.4,
+    "pd_classification_threshold": 0.2,
     "min_rows_floor": 100
   },
   "schedule": {

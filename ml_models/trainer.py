@@ -412,6 +412,13 @@ def load_and_merge():
 def train_model(X_train, y_train, hp):
     """Fit XGBClassifier with given hyperparameters."""
     model_hp = hp.get('model', {})
+
+    # Auto-compute scale_pos_weight from training data to handle class imbalance.
+    # Overrides the hyperparameter value — real default rate should drive this.
+    n_neg = int((y_train == 0).sum())
+    n_pos = int((y_train == 1).sum())
+    auto_spw = round(n_neg / n_pos, 2) if n_pos > 0 else 1.0
+
     model = XGBClassifier(
         n_estimators      = int(model_hp.get('n_estimators', 200)),
         max_depth         = int(model_hp.get('max_depth', 4)),
@@ -422,7 +429,7 @@ def train_model(X_train, y_train, hp):
         gamma             = float(model_hp.get('gamma', 0.1)),
         reg_alpha         = float(model_hp.get('reg_alpha', 0.1)),
         reg_lambda        = float(model_hp.get('reg_lambda', 1.0)),
-        scale_pos_weight  = float(model_hp.get('scale_pos_weight', 1)),
+        scale_pos_weight  = auto_spw,
         random_state      = int(model_hp.get('random_state', 42)),
         eval_metric       = 'logloss',
         verbosity         = 0,
@@ -625,6 +632,9 @@ def run_training(triggered_by='manual'):
         record['test_rows']  = len(X_test)
 
         # Train
+        n_neg_train = int((y_train == 0).sum())
+        n_pos_train = int((y_train == 1).sum())
+        auto_spw = round(n_neg_train / n_pos_train, 2) if n_pos_train > 0 else 1.0
         model = train_model(X_train, y_train, hp)
 
         # Evaluate
@@ -666,10 +676,13 @@ def run_training(triggered_by='manual'):
                 'target':       TARGET_COL,
                 'metrics':      metrics,
                 'hyperparameters': hp['model'],
-                'n_train':      len(X_train),
-                'rows_trained': len(X_train),
-                'currency':     'INR',
-                'note':         'XGBoost binary classifier; target=default_flag (RBI 90-day NPA rule)',
+                'n_train':            len(X_train),
+                'rows_trained':       len(X_train),
+                'n_defaults_train':   n_pos_train,
+                'scale_pos_weight':   auto_spw,
+                'threshold':          threshold,
+                'currency':           'INR',
+                'note':               'XGBoost binary classifier; target=default_flag (RBI 90-day NPA rule)',
             }
             with open(META_PATH, 'w') as f:
                 json.dump(new_meta, f, indent=2)

@@ -1,5 +1,143 @@
 [
   {
+    "run_id": "run_20260619_073553",
+    "timestamp": "2026-06-19T07:35:53",
+    "triggered_by": "final_imbalance_fix",
+    "status": "success",
+    "files_used": [
+      {
+        "filename": "bank_loan_metrics (bank.db)",
+        "rows": 368
+      }
+    ],
+    "files_skipped": [],
+    "total_rows": 368,
+    "train_rows": 294,
+    "test_rows": 74,
+    "metrics": {
+      "auc_roc": 0.7292,
+      "accuracy": 0.7297,
+      "precision": 0.25,
+      "recall": 0.75,
+      "f1": 0.375,
+      "brier_score": 0.131487,
+      "n_test": 74,
+      "n_defaults": 8,
+      "default_rate": 0.1081
+    },
+    "confusion_matrix": [
+      [
+        48,
+        18
+      ],
+      [
+        2,
+        6
+      ]
+    ],
+    "model_promoted": true,
+    "duration_seconds": 0.92,
+    "error": null,
+    "promotion_check": {
+      "auc": 0.7292,
+      "n_trained": 294,
+      "min_rows_floor": 100,
+      "rows_ok": true
+    }
+  },
+  {
+    "run_id": "run_20260619_073505",
+    "timestamp": "2026-06-19T07:35:05",
+    "triggered_by": "fix_class_imbalance",
+    "status": "success",
+    "files_used": [
+      {
+        "filename": "bank_loan_metrics (bank.db)",
+        "rows": 368
+      }
+    ],
+    "files_skipped": [],
+    "total_rows": 368,
+    "train_rows": 294,
+    "test_rows": 74,
+    "metrics": {
+      "auc_roc": 0.7292,
+      "accuracy": 0.7297,
+      "precision": 0.25,
+      "recall": 0.75,
+      "f1": 0.375,
+      "brier_score": 0.131487,
+      "n_test": 74,
+      "n_defaults": 8,
+      "default_rate": 0.1081
+    },
+    "confusion_matrix": [
+      [
+        48,
+        18
+      ],
+      [
+        2,
+        6
+      ]
+    ],
+    "model_promoted": true,
+    "duration_seconds": 0.97,
+    "error": null,
+    "promotion_check": {
+      "auc": 0.7292,
+      "n_trained": 294,
+      "min_rows_floor": 100,
+      "rows_ok": true
+    }
+  },
+  {
+    "run_id": "run_20260619_073415",
+    "timestamp": "2026-06-19T07:34:15",
+    "triggered_by": "fix_india_npa_rate",
+    "status": "success",
+    "files_used": [
+      {
+        "filename": "bank_loan_metrics (bank.db)",
+        "rows": 368
+      }
+    ],
+    "files_skipped": [],
+    "total_rows": 368,
+    "train_rows": 294,
+    "test_rows": 74,
+    "metrics": {
+      "auc_roc": 0.7917,
+      "accuracy": 0.8514,
+      "precision": 0.2,
+      "recall": 0.125,
+      "f1": 0.1538,
+      "brier_score": 0.092218,
+      "n_test": 74,
+      "n_defaults": 8,
+      "default_rate": 0.1081
+    },
+    "confusion_matrix": [
+      [
+        62,
+        4
+      ],
+      [
+        7,
+        1
+      ]
+    ],
+    "model_promoted": true,
+    "duration_seconds": 1.06,
+    "error": null,
+    "promotion_check": {
+      "auc": 0.7917,
+      "n_trained": 294,
+      "min_rows_floor": 100,
+      "rows_ok": true
+    }
+  },
+  {
     "run_id": "run_20260619_064448",
     "timestamp": "2026-06-19T06:44:48",
     "triggered_by": "full_368_row_retrain",
