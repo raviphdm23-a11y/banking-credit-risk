@@ -1,8 +1,8 @@
 {
-  "model_type": "RandomForestRegressor",
-  "version": "run_20260619_062507",
-  "date_trained": "2026-06-19T06:25:07",
-  "triggered_by": "manual_xgb_migration",
+  "model_type": "XGBoostClassifier",
+  "version": "run_20260619_064448",
+  "date_trained": "2026-06-19T06:44:48",
+  "triggered_by": "full_368_row_retrain",
   "features": [
     "de_ratio",
     "interest_coverage",
@@ -31,17 +31,18 @@
     "macro_unemployment",
     "sovereign_rating_enc"
   ],
+  "n_features": 26,
   "target": "default_flag",
   "metrics": {
-    "auc_roc": 0.8937,
-    "accuracy": 0.8661,
-    "precision": 0.625,
-    "recall": 0.9259,
-    "f1": 0.7463,
-    "brier_score": 0.096754,
-    "n_test": 127,
-    "n_defaults": 27,
-    "default_rate": 0.2126
+    "auc_roc": 0.9204,
+    "accuracy": 0.8108,
+    "precision": 0.8108,
+    "recall": 0.8108,
+    "f1": 0.8108,
+    "brier_score": 0.117219,
+    "n_test": 74,
+    "n_defaults": 37,
+    "default_rate": 0.5
   },
   "hyperparameters": {
     "n_estimators": 200,
@@ -56,7 +57,8 @@
     "scale_pos_weight": 1,
     "random_state": 42
   },
-  "rows_trained": 505,
+  "n_train": 294,
+  "rows_trained": 294,
   "currency": "INR",
-  "note": "Trained on Indian bank synthetic data"
+  "note": "XGBoost binary classifier; target=default_flag (RBI 90-day NPA rule)"
 }

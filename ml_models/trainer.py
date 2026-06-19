@@ -657,17 +657,19 @@ def run_training(triggered_by='manual'):
                 shutil.copy2(MODEL_PATH, BACKUP_PATH)
             joblib.dump(model, MODEL_PATH)
             new_meta = {
-                'model_type':   'RandomForestRegressor',
+                'model_type':   'XGBoostClassifier',
                 'version':      run_id,
                 'date_trained': timestamp,
                 'triggered_by': triggered_by,
                 'features':     FEATURE_COLS,
+                'n_features':   len(FEATURE_COLS),
                 'target':       TARGET_COL,
                 'metrics':      metrics,
                 'hyperparameters': hp['model'],
+                'n_train':      len(X_train),
                 'rows_trained': len(X_train),
                 'currency':     'INR',
-                'note':         'Trained on Indian bank synthetic data',
+                'note':         'XGBoost binary classifier; target=default_flag (RBI 90-day NPA rule)',
             }
             with open(META_PATH, 'w') as f:
                 json.dump(new_meta, f, indent=2)

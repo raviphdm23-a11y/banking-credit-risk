@@ -211,16 +211,17 @@ def main():
             "years_at_address,city_tier,is_pep,risk_category,created_at,updated_at,months_as_customer,"
             "num_existing_products,existing_loans_count,loan_purpose,previous_default_flag,cibil_score,"
             "num_late_payments_past_12m,state,is_rural) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
-            (cid, bank_id, 1, 1, 'Verified', '2024-01-05', age,
-             random.choice(['Male', 'Female']), 'Married',
-             ['Below 10th','10th','12th','Graduate','Post-Graduate','Doctorate'][edu_enc - 1],
+            (cid, bank_id, 1, 1, 'VERIFIED', '2024-01-05', age,
+             random.choice(['Male', 'Female']), 'MARRIED',
+             ['PHD','PROFESSIONAL','POST_GRADUATE','GRADUATE','DIPLOMA','HIGH_SCHOOL'][edu_enc - 1],
              deps,
-             ['Salaried-Govt','Salaried-Private','Self-Employed-Prof','Self-Employed-Business','Retired','Freelance','Student'][emp_enc - 1],
+             ['GOVT','SALARIED','RETIRED','SELF_EMPLOYED','BUSINESS','FREELANCE','STUDENT'][emp_enc - 1],
              f"{bank_name.split()[0]} Corp", 'Financial Services', years_emp, income, 0, foir,
-             ['Owned','Rented','Parental','Company'][res_enc - 1],
-             round(random.uniform(1, 15), 1), f"Tier-{tier}", 0,
-             'High' if not good else 'Low', now, now, months_cust, ex_products, ex_loans,
-             ltype, prev_def, cibil, late, state, is_rural))
+             ['OWNED','RENTED','FAMILY','EMPLOYER'][res_enc - 1],
+             round(random.uniform(1, 15), 1), f"TIER{tier}", 0,
+             'HIGH' if not good else 'LOW', now, now, months_cust, ex_products, ex_loans,
+             {'Home Loan':'HOME_PURCHASE','Vehicle Loan':'VEHICLE','Personal Loan':'PERSONAL','Education Loan':'EDUCATION','Business Loan':'BUSINESS'}.get(ltype,'PERSONAL'),
+             prev_def, cibil, late, state, is_rural))
 
         cur.execute(
             "INSERT INTO credit_risk_metrics (bank_id,lid,de,intcov,profit,liq,df,pd_score,npa_flag,period,obs) "

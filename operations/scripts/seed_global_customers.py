@@ -95,11 +95,19 @@ LOAN_TYPES = [('Home Loan', 5), ('Vehicle Loan', 3), ('Personal Loan', 1),
               ('Education Loan', 4), ('Business Loan', 2)]
 RISKY_LOANS = [('Personal Loan', 1), ('Business Loan', 2)]
 
-EMP_LABELS = ['Salaried-Govt', 'Salaried-Private', 'Self-Employed-Prof',
-              'Self-Employed-Business', 'Retired', 'Freelance', 'Student']
-EDU_LABELS = ['Below 10th', '10th', '12th', 'Graduate', 'Post-Graduate', 'Doctorate']
-RES_LABELS = ['Owned', 'Rented', 'Parental', 'Company']
+# ref_lookup codes (must match ref_lookup table; index+1 = risk_order)
+EMP_LABELS = ['GOVT', 'SALARIED', 'RETIRED', 'SELF_EMPLOYED', 'BUSINESS', 'FREELANCE', 'STUDENT']
+EDU_LABELS = ['PHD', 'PROFESSIONAL', 'POST_GRADUATE', 'GRADUATE', 'DIPLOMA', 'HIGH_SCHOOL']
+RES_LABELS = ['OWNED', 'RENTED', 'FAMILY', 'EMPLOYER']
 
+
+_LTYPE_TO_PURPOSE = {
+    'Home Loan': 'HOME_PURCHASE', 'Vehicle Loan': 'VEHICLE',
+    'Personal Loan': 'PERSONAL', 'Education Loan': 'EDUCATION', 'Business Loan': 'BUSINESS',
+}
+
+def _ltype_to_purpose(ltype):
+    return _LTYPE_TO_PURPOSE.get(ltype, 'PERSONAL')
 
 def _emi(principal, annual_rate, months):
     r = annual_rate / 1200.0
@@ -212,11 +220,11 @@ def _seed_bank(cur, bank_id, cfg, today):
                     "num_existing_products,existing_loans_count,loan_purpose,previous_default_flag,cibil_score,"
                     "num_late_payments_past_12m,state,is_rural) "
                     "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
-                    (cid, bank_id, 1, 1, 'Verified', '2022-01-05', age, 'Male', 'Married',
+                    (cid, bank_id, 1, 1, 'VERIFIED', '2022-01-05', age, 'Male', 'MARRIED',
                      EDU_LABELS[edu_enc - 1], deps, EMP_LABELS[emp_enc - 1], 'Employer Ltd', 'Services',
                      years_emp, income, 0, foir, RES_LABELS[res_enc - 1], round(random.uniform(1, 15), 1),
-                     f"Tier-{tier}", 0, 'High' if not good else 'Low', now, now, months_cust, ex_products,
-                     ex_loans, ltype, prev_def, cibil, late, state, 0))
+                     f"TIER{tier}", 0, 'HIGH' if not good else 'LOW', now, now, months_cust, ex_products,
+                     ex_loans, _ltype_to_purpose(ltype), prev_def, cibil, late, state, 0))
 
         cur.execute("INSERT OR IGNORE INTO credit_risk_metrics (bank_id,lid,de,intcov,profit,liq,df,pd_score,"
                     "npa_flag,period,obs) VALUES (?,?,?,?,?,?,?,?,?,?,?)",
