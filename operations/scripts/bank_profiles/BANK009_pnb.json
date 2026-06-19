@@ -1,0 +1,57 @@
+{
+  "_comment": "Punjab National Bank — Real-world profile derived from FY2025 Annual Report & Directors Report",
+  "_source": "Directors Report FY2025 (indiainfoline.com/pnb), Business Standard Q4FY25, PNB Investor Presentation",
+  "_as_of": "FY2025 (March 31, 2025)",
+
+  "bank_id":          "BANK009",
+  "bank_name":        "Punjab National Bank",
+  "bank_code":        "PNB",
+  "country":          "India",
+  "country_code":     "IND",
+  "hq_city":          "New Delhi",
+  "hq_state":         "Delhi",
+  "year_established": 1894,
+
+  "_note_balance_sheet": "Total Assets est. ~Rs 17,50,000 cr; Net Advances (domestic) Rs 9,42,391 cr; Total Deposits Rs 15,10,456 cr (FY2025). Domestic advances include Rs 6,75,725 cr RAM (56.6%); global advances est. ~Rs 10,00,000 cr.",
+
+  "advances_pct":          0.571,
+  "deposits_pct":          0.863,
+  "borrowings_pct":        0.045,
+  "capital_pct":           0.074,
+  "investments_pct":       0.220,
+  "cash_rbi_pct":          0.030,
+  "balances_banks_pct":    0.015,
+  "fixed_assets_pct":      0.004,
+  "other_assets_pct":      0.160,
+  "other_liabilities_pct": 0.018,
+
+  "_note_deposits": "CASA 37.95% of deposits (FY2025). Current/Demand ~5.25%, Savings ~32.7%, Term ~62.0%. PNB is a strong retail deposit franchise — savings share significantly higher than BoB.",
+  "deposit_demand_pct":  0.052,
+  "deposit_savings_pct": 0.327,
+  "deposit_term_pct":    0.621,
+
+  "equity_pct_of_capital": 0.18,
+
+  "_note_exposure": "Domestic loan mix FY2025: Corporate/Large ~35%, Retail+Agri mapped to RETAIL_OTHER ~40%, MSME 17%, Housing/Mortgages 8%. RAM segment = 56.6% of domestic advances (Retail + Agri + MSME).",
+  "exposure_mix": {
+    "CORPORATE":        0.35,
+    "RETAIL_OTHER":     0.40,
+    "SME":              0.17,
+    "RETAIL_MORTGAGES": 0.08
+  },
+
+  "_note_credit_quality": "GNPA improved 178 bps YoY to 3.95% as of March 2025 (from 5.73% in FY2024). Net NPA 0.40%. Significant improvement from peak ~14% in FY2020 post Nirav Modi fraud.",
+  "gnpa_rate":     0.0395,
+  "net_npa_rate":  0.0040,
+
+  "_note_pnl": "NII Rs 42,782 cr / Total Assets Rs 17,50,000 cr = NIM 2.81%. ROA 0.99%, Net Profit grew 101.7% YoY to Rs 16,630 cr for FY2025. Cost-income ~52%.",
+  "nim_pct":           0.0281,
+  "cost_income_ratio": 0.52,
+  "roa":               0.0099,
+  "roe":               0.135,
+
+  "_note_capital": "CRAR 17.01%, CET1 12.33% as of March 2025. Well above RBI minimums (CRAR 11.5%, CET1 8%).",
+  "crar":  17.01,
+  "cet1":  12.33,
+  "tier1": 12.90
+}

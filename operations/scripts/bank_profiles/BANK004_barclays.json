@@ -1,0 +1,57 @@
+{
+  "_comment": "Barclays Bank PLC — FY2025 (year ended December 31, 2025)",
+  "_source": "Barclays PLC FY25 Results Announcement 31 December 2025, home.barclays",
+  "_as_of": "FY2025 (December 31, 2025)",
+
+  "bank_id":          "BANK004",
+  "bank_name":        "Barclays Bank PLC",
+  "bank_code":        "BARC",
+  "country":          "United Kingdom",
+  "country_code":     "GBR",
+  "hq_city":          "London",
+  "hq_state":         "England",
+  "year_established": 1736,
+
+  "_note_balance_sheet": "Total Assets £1,593.5B; Loans £348.0B (21.8% — very low due to large investment banking trading book); Deposits £574.3B (36.0%). LDR 60.6%. Large portion of balance sheet is IB trading assets/liabilities (~43%). Universal bank: UK retail + cards + corporate + global IB.",
+
+  "advances_pct":          0.218,
+  "deposits_pct":          0.360,
+  "borrowings_pct":        0.380,
+  "capital_pct":           0.047,
+  "investments_pct":       0.430,
+  "cash_rbi_pct":          0.040,
+  "balances_banks_pct":    0.040,
+  "fixed_assets_pct":      0.002,
+  "other_assets_pct":      0.270,
+  "other_liabilities_pct": 0.213,
+
+  "_note_deposits": "UK banks: Current accounts ~22%, savings ~28%, term/fixed ~50%. Barclays US credit card operations also bring in consumer deposits. CASA ~50%.",
+  "deposit_demand_pct":  0.220,
+  "deposit_savings_pct": 0.280,
+  "deposit_term_pct":    0.500,
+
+  "equity_pct_of_capital": 0.15,
+
+  "_note_exposure": "UK Retail (mortgages ~30%, personal/cards ~15%) + Corporate UK ~20% + Barclays International (corp/wealth) ~20% + Barclays US cards ~15%. Strong in UK mortgages and US credit cards.",
+  "exposure_mix": {
+    "CORPORATE":        0.30,
+    "RETAIL_OTHER":     0.25,
+    "SME":              0.15,
+    "RETAIL_MORTGAGES": 0.30
+  },
+
+  "_note_credit_quality": "NPL ratio 2.1% — higher than US/Singapore peers due to UK consumer unsecured exposure and post-pandemic normalisation. Diverse UK and international book.",
+  "gnpa_rate":     0.0210,
+  "net_npa_rate":  0.0080,
+
+  "_note_pnl": "Group NII £12.8B (NII ex-IB), total income £29.1B (+9% YoY). ROA 0.4% (low — typical for IB-heavy universal banks). RoTE 11.3%. PBT £9.1B. Cost-income ~60%.",
+  "nim_pct":           0.0100,
+  "cost_income_ratio": 0.600,
+  "roa":               0.0040,
+  "roe":               0.113,
+
+  "_note_capital": "CET1 14.3% (Dec 2025, up from 13.6% Dec 2024). RWAs £356.8B. Total capital ratio ~18%. CET1 target 13-14% — now above target, creating capital return headroom.",
+  "crar":  18.00,
+  "cet1":  14.30,
+  "tier1": 14.80
+}

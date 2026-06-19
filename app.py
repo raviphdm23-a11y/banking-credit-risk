@@ -1488,20 +1488,51 @@ def ops_system_dashboard():
         accounts     = _rows_to_list(conn.execute('SELECT * FROM accounts').fetchall())
         loans        = _rows_to_list(conn.execute('SELECT * FROM loans').fetchall())
         transactions = _rows_to_list(conn.execute('SELECT * FROM transactions').fetchall())
+        # RWA per bank from latest regulatory report
+        rwa_rows = _rows_to_list(conn.execute(
+            "SELECT bank_id, credit_rwa FROM reg_capital_reports r1 "
+            "WHERE report_date = (SELECT MAX(report_date) FROM reg_capital_reports r2 WHERE r2.bank_id=r1.bank_id)"
+        ).fetchall())
+    rwa_map = {r['bank_id']: (r['credit_rwa'] or 0) for r in rwa_rows}
+
     bank_summary = []
     for b in banks:
-        bid = b['bank_id']
-        b_accs = [a for a in accounts if a['bank_id'] == bid]
+        bid       = b['bank_id']
+        b_accs    = [a for a in accounts if a['bank_id'] == bid]
+        b_loans   = [l for l in loans    if l['bank_id'] == bid]
+        npa_loans = [l for l in b_loans  if (l.get('loan_classification') or '') == 'NPA']
+        advances  = sum(float(l.get('outstanding') or 0) for l in b_loans)
+        npa_amt   = sum(float(l.get('outstanding') or 0) for l in npa_loans)
+        n_loans   = len(b_loans)
         bank_summary.append({
-            'bank_id':   bid,
-            'bank_name': b['bank_name'],
-            'customers': sum(1 for c in customers if c['bank_id'] == bid),
-            'accounts':  len(b_accs),
-            'deposits':  sum(a['balance'] for a in b_accs),
+            'bank_id':      bid,
+            'bank_name':    b['bank_name'],
+            'customers':    sum(1 for c in customers if c['bank_id'] == bid),
+            'accounts':     len(b_accs),
+            'deposits':     sum(float(a.get('balance') or 0) for a in b_accs),
+            'loans':        n_loans,
+            'npas':         len(npa_loans),
+            'npaCountPct':  round(len(npa_loans) / n_loans * 100, 2) if n_loans else 0,
+            'npaAmount':    npa_amt,
+            'npaAmountPct': round(npa_amt / advances * 100, 2) if advances else 0,
+            'advances':  advances,
+            'rwa':       rwa_map.get(bid, 0),
         })
     payload = _ops_build_payload(None, customers, accounts, loans, transactions)
     payload['title'] = 'India Banking System — All Banks Combined'
     payload['banks'] = bank_summary
+    # Aggregate system-level totals
+    npa_loans = [l for l in loans if (l.get('loan_classification') or '') == 'NPA']
+    total_loans   = len(loans)
+    total_advances = sum(float(l.get('outstanding') or 0) for l in loans)
+    npa_amount    = sum(float(l.get('outstanding') or 0) for l in npa_loans)
+    payload['kpis']['totalLoans']      = total_loans
+    payload['kpis']['totalNPAs']       = len(npa_loans)
+    payload['kpis']['totalNPAAmount']  = npa_amount
+    payload['kpis']['npaCountPct']     = round(len(npa_loans) / total_loans * 100, 2) if total_loans else 0
+    payload['kpis']['npaAmountPct']    = round(npa_amount / total_advances * 100, 2) if total_advances else 0
+    payload['kpis']['totalAdvances']   = total_advances
+    payload['kpis']['totalRWA']        = sum(rwa_map.values())
     return jsonify(payload)
 
 

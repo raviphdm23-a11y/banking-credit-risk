@@ -1,0 +1,57 @@
+{
+  "_comment": "JPMorgan Chase Bank N.A. — FY2025 (year ended December 31, 2025)",
+  "_source": "JPMorgan Chase 4Q25 Earnings Press Release, SEC Form 8-K FY2025, jpmorganchase.com",
+  "_as_of": "FY2025 (December 31, 2025)",
+
+  "bank_id":          "BANK003",
+  "bank_name":        "JPMorgan Chase Bank N.A.",
+  "bank_code":        "JPM",
+  "country":          "United States",
+  "country_code":     "USA",
+  "hq_city":          "New York",
+  "hq_state":         "New York",
+  "year_established": 1799,
+
+  "_note_balance_sheet": "Total Assets $4,900.5B; Loans $1,526.4B (31.1% of assets — low vs Indian banks due to large IB/trading book); Deposits $2,675.5B (54.6%). LDR 57.1%. Cash & equivalents $1,582.2B (32%) due to Fed reserves and trading assets. World's largest bank by market cap.",
+
+  "advances_pct":          0.311,
+  "deposits_pct":          0.546,
+  "borrowings_pct":        0.185,
+  "capital_pct":           0.074,
+  "investments_pct":       0.280,
+  "cash_rbi_pct":          0.065,
+  "balances_banks_pct":    0.050,
+  "fixed_assets_pct":      0.003,
+  "other_assets_pct":      0.291,
+  "other_liabilities_pct": 0.195,
+
+  "_note_deposits": "US banks have lower CASA ratios than Indian banks. Non-interest bearing demand ~25%, interest-bearing checking/savings ~42%, time deposits (CDs) ~33%. Large corporate/institutional deposit base.",
+  "deposit_demand_pct":  0.250,
+  "deposit_savings_pct": 0.420,
+  "deposit_term_pct":    0.330,
+
+  "equity_pct_of_capital": 0.15,
+
+  "_note_exposure": "Consumer & Community Banking ~35% (mortgages 15%, auto/personal/cards 20%), Commercial Banking ~15% (middle market, CRE), Corporate & Investment Bank ~45% (large corporate, institutional), Asset/Wealth ~5%. Corporate-heavy due to dominant IB franchise.",
+  "exposure_mix": {
+    "CORPORATE":        0.45,
+    "RETAIL_OTHER":     0.20,
+    "SME":              0.15,
+    "RETAIL_MORTGAGES": 0.20
+  },
+
+  "_note_credit_quality": "NPL ratio 0.66% — best-in-class among global banks. Allowance for loan losses 0.6% of total loans. Strong credit culture, diversified portfolio across US economic cycles.",
+  "gnpa_rate":     0.0066,
+  "net_npa_rate":  0.0020,
+
+  "_note_pnl": "NIM 2.50% (down from 2.63% in FY2024 as Fed cut rates). Net income $55.7B. ROA 1.14%. ROE ~14.8%. Cost-income ~55%. Full year revenue $168.2B.",
+  "nim_pct":           0.0250,
+  "cost_income_ratio": 0.550,
+  "roa":               0.0114,
+  "roe":               0.148,
+
+  "_note_capital": "CET1 14.5%, Tier1 15.5%, Total Capital 17.4% (Standardized, Dec 2025). $288B CET1 capital. Well above Basel III minimums and US-specific GSIB surcharges.",
+  "crar":  17.40,
+  "cet1":  14.50,
+  "tier1": 15.50
+}

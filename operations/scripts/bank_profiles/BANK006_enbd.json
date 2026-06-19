@@ -1,0 +1,57 @@
+{
+  "_comment": "Emirates NBD PJSC — FY2025 (year ended December 31, 2025)",
+  "_source": "Emirates NBD FY2025 Press Release, emiratesnbd.com investor relations",
+  "_as_of": "FY2025 (December 31, 2025)",
+
+  "bank_id":          "BANK006",
+  "bank_name":        "Emirates NBD PJSC",
+  "bank_code":        "ENBD",
+  "country":          "United Arab Emirates",
+  "country_code":     "ARE",
+  "hq_city":          "Dubai",
+  "hq_state":         "Dubai",
+  "year_established": 2007,
+
+  "_note_balance_sheet": "Total Assets surpassed AED 1 trillion in 2025. Gross lending grew AED 129B (24%) to ~AED 669B. Deposits grew AED 119B (18%) to ~AED 779B. CASA AED 471B (60.5% of deposits). LDR 85.9%. UAE's largest bank by assets.",
+
+  "advances_pct":          0.669,
+  "deposits_pct":          0.779,
+  "borrowings_pct":        0.080,
+  "capital_pct":           0.086,
+  "investments_pct":       0.150,
+  "cash_rbi_pct":          0.040,
+  "balances_banks_pct":    0.025,
+  "fixed_assets_pct":      0.003,
+  "other_assets_pct":      0.113,
+  "other_liabilities_pct": 0.055,
+
+  "_note_deposits": "CASA AED 471B = 60.5% of deposits. UAE has high CASA due to corporate current accounts (oil/trade) and retail savings. Current/Demand ~25%, Savings ~35%, Term ~40%.",
+  "deposit_demand_pct":  0.250,
+  "deposit_savings_pct": 0.355,
+  "deposit_term_pct":    0.395,
+
+  "equity_pct_of_capital": 0.20,
+
+  "_note_exposure": "Corporate/Trade Finance ~45% (UAE is trade hub, large corporate book), Personal Banking ~25% (retail loans, credit cards), Mortgages ~20% (Dubai/UAE property market is active), SME ~10%.",
+  "exposure_mix": {
+    "CORPORATE":        0.45,
+    "RETAIL_OTHER":     0.25,
+    "SME":              0.10,
+    "RETAIL_MORTGAGES": 0.20
+  },
+
+  "_note_credit_quality": "NPL improving trend; est. ~3.5% for FY2025 (Gulf banks carry higher NPLs than Singapore/US peers due to construction/real estate exposure and some SME stress). Emirates NBD has been on a multi-year improvement trajectory.",
+  "gnpa_rate":     0.0350,
+  "net_npa_rate":  0.0080,
+
+  "_note_pnl": "Record PBT AED 29.8B. Total income AED 49.3B (+12%). NIM ~3.2% (guided 3.1-3.3% for 2026, FY2025 similar). ROA ~2.5% (UAE banks highly profitable — high rates + low opex + low tax). ROE ~20%. Cost-income ~35%.",
+  "nim_pct":           0.0320,
+  "cost_income_ratio": 0.350,
+  "roa":               0.0250,
+  "roe":               0.200,
+
+  "_note_capital": "CET1 14.4%, Total Capital 16.6% (Q4 2025). Well above UAE Central Bank requirements. UAE introduced 9% corporate tax in 2023 but banks remain highly profitable.",
+  "crar":  16.60,
+  "cet1":  14.40,
+  "tier1": 15.00
+}

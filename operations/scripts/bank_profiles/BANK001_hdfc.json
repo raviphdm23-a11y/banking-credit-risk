@@ -1,0 +1,57 @@
+{
+  "_comment": "HDFC Bank — Real-world profile derived from FY2025 Annual Report & Q4FY25 Earnings (year ended March 31, 2025)",
+  "_source": "HDFC Bank Q4FY25 Earnings Presentation, toptradetrends.com FY25 analysis, Business Standard Q4FY25",
+  "_as_of": "FY2025 (March 31, 2025)",
+
+  "bank_id":          "BANK001",
+  "bank_name":        "HDFC Bank Limited",
+  "bank_code":        "HDFC",
+  "country":          "India",
+  "country_code":     "IND",
+  "hq_city":          "Mumbai",
+  "hq_state":         "Maharashtra",
+  "year_established": 1994,
+
+  "_note_balance_sheet": "Total Assets Rs 39,10,200 cr (post HDFC Ltd merger July 2023). Gross Advances Rs 26,43,500 cr (+5.4% YoY); Total Deposits Rs 27,14,700 cr (+14.1% YoY). LDR ~96.5% — elevated due to inherited HDFC Ltd mortgage book funded by borrowings not deposits. Largest private sector bank in India by assets.",
+
+  "advances_pct":          0.662,
+  "deposits_pct":          0.694,
+  "borrowings_pct":        0.150,
+  "capital_pct":           0.107,
+  "investments_pct":       0.180,
+  "cash_rbi_pct":          0.025,
+  "balances_banks_pct":    0.015,
+  "fixed_assets_pct":      0.004,
+  "other_assets_pct":      0.114,
+  "other_liabilities_pct": 0.049,
+
+  "_note_deposits": "CASA = 30.5% of deposits (Rs 8.29 lakh cr / Rs 27.14 lakh cr) — significantly lower than pre-merger ~42% due to HDFC Ltd not having a CASA franchise. Term deposits grew 20% YoY while CASA grew only 5.7%. Current ~11%, Savings ~19.5%, Term ~69.5%.",
+  "deposit_demand_pct":  0.110,
+  "deposit_savings_pct": 0.195,
+  "deposit_term_pct":    0.695,
+
+  "equity_pct_of_capital": 0.10,
+
+  "_note_exposure": "Post-HDFC Ltd merger, home loans dominate at ~32% of advances (HDFC Ltd book). Retail other (personal/auto/kisan/credit card) ~30%, SME+commercial & rural ~20%, corporate/wholesale ~18%. Retail grew 9% YoY, commercial & rural 12.8%, corporate 3.6%.",
+  "exposure_mix": {
+    "CORPORATE":        0.18,
+    "RETAIL_OTHER":     0.30,
+    "SME":              0.20,
+    "RETAIL_MORTGAGES": 0.32
+  },
+
+  "_note_credit_quality": "GNPA 1.33% (Mar 2025), improved from 1.42% in Dec 2024 but up from 1.24% in Mar 2024 — post-merger portfolio integration effects. Ex-agriculture GNPA 1.13%. Net NPA 0.43%. Strong underwriting but mortgage book seasoning ongoing.",
+  "gnpa_rate":     0.0133,
+  "net_npa_rate":  0.0043,
+
+  "_note_pnl": "NIM 3.46% (lower than ICICI — home loans carry lower rates than unsecured/SME). ROA 1.94%. Cost-income 39.8% (best-in-class efficiency). Full-year PAT ~Rs 65,000 cr. ROE ~18%.",
+  "nim_pct":           0.0346,
+  "cost_income_ratio": 0.398,
+  "roa":               0.0194,
+  "roe":               0.180,
+
+  "_note_capital": "CRAR 19.6%, CET1 17.2% as of March 2025 — highest among large Indian banks. Reflects HDFC Ltd's strong capital base absorbed at merger plus strong internal accrual at 1.94% ROA.",
+  "crar":  19.60,
+  "cet1":  17.20,
+  "tier1": 17.50
+}

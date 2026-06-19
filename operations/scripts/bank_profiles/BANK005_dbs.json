@@ -1,0 +1,57 @@
+{
+  "_comment": "DBS Bank Ltd — FY2025 (year ended December 31, 2025)",
+  "_source": "DBS Annual Report 2025 (dbs.com), The Singaporean Investor FY2025 summary, The Asian Banker",
+  "_as_of": "FY2025 (December 31, 2025)",
+
+  "bank_id":          "BANK005",
+  "bank_name":        "DBS Bank Ltd",
+  "bank_code":        "DBS",
+  "country":          "Singapore",
+  "country_code":     "SGP",
+  "hq_city":          "Singapore",
+  "hq_state":         "Central Region",
+  "year_established": 1968,
+
+  "_note_balance_sheet": "Total Assets est. SGD 800B; Net Loans SGD 445B (55.6%); Total Deposits SGD 610B (76.3%). Loans grew 6% (constant currency), deposits 12% — record inflow. LDR 72.9%. Over two-thirds of deposits in CASA. Largest bank in Southeast Asia.",
+
+  "advances_pct":          0.556,
+  "deposits_pct":          0.763,
+  "borrowings_pct":        0.120,
+  "capital_pct":           0.080,
+  "investments_pct":       0.200,
+  "cash_rbi_pct":          0.050,
+  "balances_banks_pct":    0.030,
+  "fixed_assets_pct":      0.003,
+  "other_assets_pct":      0.161,
+  "other_liabilities_pct": 0.037,
+
+  "_note_deposits": "Over two-thirds CASA (~72%). Singapore's high savings culture drives large savings deposits. Current ~20%, Savings ~52%, Term ~28%. DBS is dominant in Singapore institutional and retail deposits.",
+  "deposit_demand_pct":  0.200,
+  "deposit_savings_pct": 0.520,
+  "deposit_term_pct":    0.280,
+
+  "equity_pct_of_capital": 0.18,
+
+  "_note_exposure": "Institutional Banking (large corporate, trade finance, real estate) ~40%, Consumer Banking (Singapore mortgages ~25%, personal/wealth ~15%) + SME ~15%. Strong in trade finance and wealth management across Asia.",
+  "exposure_mix": {
+    "CORPORATE":        0.40,
+    "RETAIL_OTHER":     0.20,
+    "SME":              0.15,
+    "RETAIL_MORTGAGES": 0.25
+  },
+
+  "_note_credit_quality": "NPL ratio 1.0% (stable, non-performing assets declined 4%). Resilient through Asia credit cycles. Highly secured book with strong collateral coverage.",
+  "gnpa_rate":     0.0100,
+  "net_npa_rate":  0.0030,
+
+  "_note_pnl": "NIM 2.01% (-12bps YoY as Singapore rates eased). Total income SGD 22.9B (+3%). Net profit SGD 11.0B (record). ROA 1.28%. ROE 16.2%. Cost-income 40% (best-in-class for global banks).",
+  "nim_pct":           0.0201,
+  "cost_income_ratio": 0.400,
+  "roa":               0.0128,
+  "roe":               0.162,
+
+  "_note_capital": "CET1 17.0% — highest among Singapore's major banks and well above MAS requirements. Strong internal capital generation supports CET1 well above regulatory floors.",
+  "crar":  19.00,
+  "cet1":  17.00,
+  "tier1": 17.50
+}

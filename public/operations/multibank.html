@@ -516,14 +516,24 @@ async function showSystemDashboard() {
   Object.keys(dashCharts).forEach(k => delete dashCharts[k]);
 
   // Build system overview
-  const bankRows = banks.map(b => `
+  const bankRows = banks.map(b => {
+    const hasNpa   = (b.npas || 0) > 0;
+    const npaStyle = hasNpa ? 'color:#DC2626;font-weight:600' : '';
+    return `
     <tr style="border-bottom:1px solid var(--border);font-size:12px">
       <td style="padding:10px">${b.bank_name}</td>
       <td style="padding:10px;text-align:right">${b.customers}</td>
       <td style="padding:10px;text-align:right">${b.accounts}</td>
       <td style="padding:10px;text-align:right" title="${inr(b.deposits)}">${inrShort(b.deposits)}</td>
-    </tr>
-  `).join('');
+      <td style="padding:10px;text-align:right">${(b.loans || 0).toLocaleString()}</td>
+      <td style="padding:10px;text-align:right;${npaStyle}">${(b.npas || 0).toLocaleString()}</td>
+      <td style="padding:10px;text-align:right;${npaStyle}">${(b.npaCountPct || 0).toFixed(2)}%</td>
+      <td style="padding:10px;text-align:right;${npaStyle}" title="${inr(b.npaAmount)}">${inrShort(b.npaAmount)}</td>
+      <td style="padding:10px;text-align:right;${npaStyle}">${(b.npaAmountPct || 0).toFixed(2)}%</td>
+      <td style="padding:10px;text-align:right" title="${inr(b.advances)}">${inrShort(b.advances)}</td>
+      <td style="padding:10px;text-align:right" title="${inr(b.rwa)}">${inrShort(b.rwa)}</td>
+    </tr>`;
+  }).join('');
 
   const html = `
     <div class="bank-overview-card">
@@ -543,7 +553,7 @@ async function showSystemDashboard() {
           <div class="kpi-label">All Customers</div>
           <div class="kpi-value">${kpis.customers}</div>
         </div>
-        <div class="kpi-card blue" style="--blue:#3B82F6">
+        <div class="kpi-card" style="border-color:#BFDBFE">
           <div class="kpi-icon">💳</div>
           <div class="kpi-label">All Accounts</div>
           <div class="kpi-value">${kpis.accounts}</div>
@@ -552,6 +562,43 @@ async function showSystemDashboard() {
           <div class="kpi-icon">💰</div>
           <div class="kpi-label">Total Deposits</div>
           <div class="kpi-value" title="${inr(kpis.totalDeposits)}">${inrShort(kpis.totalDeposits)}</div>
+        </div>
+      </div>
+
+      <div class="kpi-grid" style="margin-top:12px">
+        <div class="kpi-card" style="border-color:#D1FAE5">
+          <div class="kpi-icon">📋</div>
+          <div class="kpi-label">Total Loans</div>
+          <div class="kpi-value">${(kpis.totalLoans || 0).toLocaleString()}</div>
+        </div>
+        <div class="kpi-card red" style="padding:14px 20px">
+          <div class="kpi-icon">⚠️</div>
+          <div class="kpi-label">NPA Accounts</div>
+          <div class="kpi-value" style="color:var(--red)">${(kpis.totalNPAs || 0).toLocaleString()}</div>
+          <div style="margin-top:8px;display:flex;gap:16px;flex-wrap:wrap">
+            <div>
+              <div style="font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:1px;color:var(--t3);margin-bottom:2px">% of Loans</div>
+              <div style="font-size:14px;font-weight:700;color:#DC2626">${(kpis.npaCountPct || 0).toFixed(2)}%</div>
+            </div>
+            <div>
+              <div style="font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:1px;color:var(--t3);margin-bottom:2px">NPA Amount</div>
+              <div style="font-size:14px;font-weight:700;color:#DC2626" title="${inr(kpis.totalNPAAmount)}">${inrShort(kpis.totalNPAAmount)}</div>
+            </div>
+            <div>
+              <div style="font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:1px;color:var(--t3);margin-bottom:2px">GNPA %</div>
+              <div style="font-size:14px;font-weight:700;color:#DC2626">${(kpis.npaAmountPct || 0).toFixed(2)}%</div>
+            </div>
+          </div>
+        </div>
+        <div class="kpi-card" style="border-color:#FEF3C7">
+          <div class="kpi-icon">📈</div>
+          <div class="kpi-label">Total Advances</div>
+          <div class="kpi-value" title="${inr(kpis.totalAdvances)}">${inrShort(kpis.totalAdvances)}</div>
+        </div>
+        <div class="kpi-card amber">
+          <div class="kpi-icon">⚖️</div>
+          <div class="kpi-label">Total RWA</div>
+          <div class="kpi-value" title="${inr(kpis.totalRWA)}">${inrShort(kpis.totalRWA)}</div>
         </div>
       </div>
 
@@ -564,6 +611,13 @@ async function showSystemDashboard() {
               <th style="padding:10px;text-align:right">Customers</th>
               <th style="padding:10px;text-align:right">Accounts</th>
               <th style="padding:10px;text-align:right">Deposits</th>
+              <th style="padding:10px;text-align:right">Loans</th>
+              <th style="padding:10px;text-align:right">NPA A/Cs</th>
+              <th style="padding:10px;text-align:right">NPA A/C %</th>
+              <th style="padding:10px;text-align:right">NPA Amount</th>
+              <th style="padding:10px;text-align:right">GNPA %</th>
+              <th style="padding:10px;text-align:right">Advances</th>
+              <th style="padding:10px;text-align:right">RWA</th>
             </tr>
           </thead>
           <tbody>

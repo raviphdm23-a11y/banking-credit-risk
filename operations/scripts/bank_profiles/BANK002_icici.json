@@ -1,0 +1,57 @@
+{
+  "_comment": "ICICI Bank — Real-world profile derived from FY2025 Annual Report (year ended March 31, 2025)",
+  "_source": "ICICI Bank FY2025 Annual Report (icici.bank.in), Business Standard Q4FY25, equitymaster.com analysis",
+  "_as_of": "FY2025 (March 31, 2025)",
+
+  "bank_id":          "BANK002",
+  "bank_name":        "ICICI Bank Limited",
+  "bank_code":        "ICICI",
+  "country":          "India",
+  "country_code":     "IND",
+  "hq_city":          "Mumbai",
+  "hq_state":         "Maharashtra",
+  "year_established": 1994,
+
+  "_note_balance_sheet": "Total Assets Rs 21,18,240 cr; Net Advances Rs 13,41,766 cr (13.28% YoY); Total Deposits Rs 16,10,348 cr (13.98% YoY). LDR 83.3%. Largest private sector bank by advances.",
+
+  "advances_pct":          0.633,
+  "deposits_pct":          0.760,
+  "borrowings_pct":        0.090,
+  "capital_pct":           0.096,
+  "investments_pct":       0.175,
+  "cash_rbi_pct":          0.025,
+  "balances_banks_pct":    0.020,
+  "fixed_assets_pct":      0.004,
+  "other_assets_pct":      0.143,
+  "other_liabilities_pct": 0.054,
+
+  "_note_deposits": "CASA ~43% of deposits (mid-40s target). Current/Demand ~17.5%, Savings ~25.5%, Term ~57%. ICICI is stronger in current accounts than PSU banks due to large corporate/SME franchise and salary account base.",
+  "deposit_demand_pct":  0.175,
+  "deposit_savings_pct": 0.255,
+  "deposit_term_pct":    0.570,
+
+  "equity_pct_of_capital": 0.12,
+
+  "_note_exposure": "Retail ~56% of loan book (incl. home loans ~25%), SME ~20.5% (fastest growing, 30% YoY), Corporate ~20%, Kisan/Agri ~3.5% mapped to RETAIL_OTHER. ICICI is India's largest private mortgage lender.",
+  "exposure_mix": {
+    "CORPORATE":        0.20,
+    "RETAIL_OTHER":     0.35,
+    "SME":              0.20,
+    "RETAIL_MORTGAGES": 0.25
+  },
+
+  "_note_credit_quality": "GNPA improved to 1.67% (from 2.16% in FY2024) — best-in-class among large Indian banks. Net NPA 0.39%. Reflects strong underwriting, high secured retail mix, and clean corporate book post-2019 NPA cycle.",
+  "gnpa_rate":     0.0167,
+  "net_npa_rate":  0.0039,
+
+  "_note_pnl": "NIM 4.32% (best among large banks — reflects high retail/SME mix and MCLR repricing benefit). PAT Rs 47,227 cr (FY2025). ROA ~2.23%, ROE ~18%. Cost-income ~39% (highly efficient private bank).",
+  "nim_pct":           0.0432,
+  "cost_income_ratio": 0.39,
+  "roa":               0.0223,
+  "roe":               0.180,
+
+  "_note_capital": "CRAR 16.55%, CET1 15.94% as of March 2025. Comfortably above RBI minimums. Highest CET1 among large Indian banks — reflects strong internal capital generation via 2%+ ROA.",
+  "crar":  16.55,
+  "cet1":  15.94,
+  "tier1": 16.10
+}

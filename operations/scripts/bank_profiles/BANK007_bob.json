@@ -1,0 +1,57 @@
+{
+  "_comment": "Bank of Baroda — Real-world profile derived from FY2025 Annual Report & Directors Report",
+  "_source": "Annual Report FY2025 (bankofbaroda.bank.in), Directors Report via indiainfoline.com",
+  "_as_of": "FY2025 (March 31, 2025)",
+
+  "bank_id":          "BANK007",
+  "bank_name":        "Bank of Baroda",
+  "bank_code":        "BOB",
+  "country":          "India",
+  "country_code":     "IND",
+  "hq_city":          "Vadodara",
+  "hq_state":         "Gujarat",
+  "year_established": 1908,
+
+  "_note_balance_sheet": "Ratios derived from FY2025: Total Assets Rs 17,81,247 cr, Net Advances Rs 12,09,558 cr, Deposits Rs 14,72,035 cr",
+
+  "advances_pct":          0.679,
+  "deposits_pct":          0.827,
+  "borrowings_pct":        0.055,
+  "capital_pct":           0.065,
+  "investments_pct":       0.180,
+  "cash_rbi_pct":          0.025,
+  "balances_banks_pct":    0.020,
+  "fixed_assets_pct":      0.005,
+  "other_assets_pct":      0.091,
+  "other_liabilities_pct": 0.053,
+
+  "_note_deposits": "Demand 9.8% / Savings 28.1% / Term 62.1% of total deposits (FY2025 actuals)",
+  "deposit_demand_pct":  0.098,
+  "deposit_savings_pct": 0.281,
+  "deposit_term_pct":    0.621,
+
+  "equity_pct_of_capital": 0.20,
+
+  "_note_exposure": "Domestic loan mix: Corporate 39%, Retail+Agri 42% mapped to RETAIL_OTHER, MSME 14%, Housing 5% as RETAIL_MORTGAGES",
+  "exposure_mix": {
+    "CORPORATE":        0.39,
+    "RETAIL_OTHER":     0.42,
+    "SME":              0.14,
+    "RETAIL_MORTGAGES": 0.05
+  },
+
+  "_note_credit_quality": "GNPA 2.26%, Net NPA 0.58% as of March 2025",
+  "gnpa_rate":     0.0226,
+  "net_npa_rate":  0.0058,
+
+  "_note_pnl": "NII Rs 46,518 cr / Total Assets Rs 17,81,247 cr = 2.61%. ROA 1.1%, ROE 16.96%",
+  "nim_pct":           0.0261,
+  "cost_income_ratio": 0.44,
+  "roa":               0.011,
+  "roe":               0.1696,
+
+  "_note_capital": "CRAR 17.19%, CET1 13.78%, Tier1 14.79% as of March 2025",
+  "crar":  17.19,
+  "cet1":  13.78,
+  "tier1": 14.79
+}

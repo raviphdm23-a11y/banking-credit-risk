@@ -1,0 +1,57 @@
+{
+  "_comment": "Commonwealth Bank of Australia (CBA) — FY2025 (year ended June 30, 2025)",
+  "_source": "CBA FY2025 Full Year Results, commbank.com.au, commbank.com.au/newsroom/features/fy2025-financial-results",
+  "_as_of": "FY2025 (June 30, 2025)",
+
+  "bank_id":          "BANK008",
+  "bank_name":        "Commonwealth Bank of Australia",
+  "bank_code":        "CBA",
+  "country":          "Australia",
+  "country_code":     "AUS",
+  "hq_city":          "Sydney",
+  "hq_state":         "New South Wales",
+  "year_established": 1911,
+
+  "_note_balance_sheet": "Total Assets AUD 1,354B; Net Loans AUD 542B (+8.3%, 40.0% of assets); Total Deposits AUD 930B (68.7%). LDR 58.3% — very low; excess deposits fund large investment and liquid asset portfolio. Australia's largest bank by assets and home loans.",
+
+  "advances_pct":          0.400,
+  "deposits_pct":          0.687,
+  "borrowings_pct":        0.175,
+  "capital_pct":           0.080,
+  "investments_pct":       0.220,
+  "cash_rbi_pct":          0.050,
+  "balances_banks_pct":    0.020,
+  "fixed_assets_pct":      0.003,
+  "other_assets_pct":      0.307,
+  "other_liabilities_pct": 0.058,
+
+  "_note_deposits": "Australian banks: Transaction/demand ~20%, savings ~35%, term deposits ~45%. CBA has dominant retail deposit franchise. CASA ~55%. Significant wholesale funding also via covered bonds.",
+  "deposit_demand_pct":  0.200,
+  "deposit_savings_pct": 0.350,
+  "deposit_term_pct":    0.450,
+
+  "equity_pct_of_capital": 0.15,
+
+  "_note_exposure": "Home loans dominant at ~55% (Australia's largest mortgage lender). Business/Commercial lending ~25%, Personal (cards, personal loans) ~10%, Institutional/corporate ~10%. Property market strength drives mortgage concentration.",
+  "exposure_mix": {
+    "CORPORATE":        0.10,
+    "RETAIL_OTHER":     0.15,
+    "SME":              0.20,
+    "RETAIL_MORTGAGES": 0.55
+  },
+
+  "_note_credit_quality": "NPL ~0.5% — among the world's cleanest loan books. Australia's strong employment, low unemployment and high property collateral values underpin exceptional credit quality. Home loan arrears remain low.",
+  "gnpa_rate":     0.0050,
+  "net_npa_rate":  0.0015,
+
+  "_note_pnl": "NIM 2.08% (+9bps YoY from deposit repricing and capital hedge gains). NPAT $10,133M (+7% YoY). ROA 0.78%. ROE 13.7%. Cost-income 48.5% (improving from 50.2% FY24).",
+  "nim_pct":           0.0208,
+  "cost_income_ratio": 0.485,
+  "roa":               0.0078,
+  "roe":               0.137,
+
+  "_note_capital": "CET1 12.3% (June 2025), well above APRA minimum of 10.25%. Australian banks operate under APRA's 'unquestionably strong' capital framework. Tier1 ~13%, Total Capital ~14.5%.",
+  "crar":  14.50,
+  "cet1":  12.30,
+  "tier1": 13.00
+}
