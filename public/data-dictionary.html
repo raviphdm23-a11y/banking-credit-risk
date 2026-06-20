@@ -102,20 +102,26 @@
                  font-size: 12px; color: var(--blue); text-decoration: none;
                  margin-bottom: 20px; }
     .back-link:hover { text-decoration: underline; }
+
+    .sub-title {
+      font-size: 13px; font-weight: 700; color: var(--sub);
+      margin: 20px 0 10px; padding-left: 6px;
+      border-left: 3px solid var(--border);
+    }
   </style>
 </head>
 <body>
 
 <header>
   <div>
-    <h1>📖 Data Dictionary — Banking Credit Risk Calculator</h1>
-    <p>Variable definitions, data types, valid values, and Five C's mapping for all model and frontend fields</p>
+    <h1>&#128214; Data Dictionary — Banking Credit Risk Calculator</h1>
+    <p>Variable definitions, data types, valid values, and Five C's mapping for all model and frontend fields &mdash; updated June 2026 (27-feature XGBoost model)</p>
   </div>
 </header>
 
 <div class="container">
 
-  <a class="back-link" href="/">← Back to Home</a>
+  <a class="back-link" href="/">&#8592; Back to Home</a>
 
   <!-- ── Five C's Legend ─────────────────────────────────────────────────── -->
   <div class="legend">
@@ -151,7 +157,7 @@
         <td>Borrower ID</td>
         <td>Unique reference code for the loan or borrower used for portfolio tracking. Not used in PD calculation.</td>
         <td>Text, free-form</td>
-        <td class="allowed">e.g. CORP-001, SBI-LN-00001</td>
+        <td class="allowed">e.g. CORP-001, BANK001-LN-00001</td>
         <td><span class="five-c c1">Character</span></td>
         <td><span class="tag-input">Input</span></td>
       </tr>
@@ -169,9 +175,9 @@
         <td><code>bank_id</code></td>
         <td><code>bank_id</code></td>
         <td>Bank ID</td>
-        <td>Identifier of the originating bank in the training dataset. Used for data provenance only; excluded from model features.</td>
+        <td>Identifier of the originating bank. Used for data provenance and ledger linkage; excluded from model features.</td>
         <td>Text, categorical</td>
-        <td class="allowed">SBI, HDFC, ICICI, AXIS, PNB, BOB</td>
+        <td class="allowed">BANK001 (HDFC), BANK002 (ICICI), BANK003 (JPMorgan), BANK004 (Barclays), BANK005 (DBS), BANK006 (Emirates NBD), BANK007 (Bank of Baroda), BANK008 (Commonwealth Bank of Australia), BANK009 (Punjab National Bank)</td>
         <td><span class="five-c c1">Character</span></td>
         <td><span class="tag-meta">Metadata</span></td>
       </tr>
@@ -179,9 +185,9 @@
         <td>—</td>
         <td><code>loan_id</code></td>
         <td>Loan ID</td>
-        <td>Auto-generated unique loan identifier in the training data. Format: BANK-LN-NNNNN-XXXXXX. Not a model feature.</td>
+        <td>Auto-generated unique loan identifier in the training data. Format: BANK00N-LN-NNNNN-XXXXXX. Not a model feature.</td>
         <td>Text</td>
-        <td class="allowed">e.g. SBI-LN-00001-AB3K7X</td>
+        <td class="allowed">e.g. BANK001-LN-00001-AB3K7X</td>
         <td><span class="five-c c1">Character</span></td>
         <td><span class="tag-meta">Metadata</span></td>
       </tr>
@@ -189,11 +195,13 @@
   </table>
 
   <!-- ════════════════════════════════════════════════════════════════════════
-       SECTION 2 — FINANCIAL METRICS (MODEL FEATURES)
+       SECTION 2 — ML MODEL FEATURES (ALL 27)
   ═══════════════════════════════════════════════════════════════════════════ -->
-  <div class="section-title">2 — Financial Metrics &amp; ML Model Features</div>
-  <p class="note">These four variables are the <strong>only inputs to the RandomForest PD model</strong>. They must be present in every training CSV and are sent to <code>/api/predict-pd-ml</code> at inference time.</p>
+  <div class="section-title">2 — ML Model Features (XGBoost — 27 features)</div>
+  <p class="note">The active model is an <strong>XGBoostClassifier</strong> trained on 27 features and targeting <code>default_flag</code> (binary 0/1). The four core financial ratios below are the primary explainable drivers; the remaining 23 borrower, bureau, macro, and trend features provide additional signal and are filled from application data or neutral defaults at inference time.</p>
   <br>
+
+  <div class="sub-title">2a — Core Financial Ratios (primary PD drivers)</div>
   <table class="dict-table">
     <thead>
       <tr>
@@ -214,7 +222,7 @@
         <td>Debt / Equity Ratio</td>
         <td>Total debt divided by total shareholders' equity. Measures financial leverage. Higher ratio implies greater default risk as interest burden grows relative to equity cushion.</td>
         <td>Numeric, decimal</td>
-        <td class="allowed">0.1 – 8.0<br><em>Typical Indian corporate: 0.5–3.0</em></td>
+        <td class="allowed">0.1 – 8.0<br><em>Typical corporate: 0.5–3.0</em></td>
         <td><span class="five-c c3">Capital</span></td>
         <td><span class="tag-both">Input + Model</span></td>
       </tr>
@@ -247,6 +255,264 @@
         <td class="allowed">0.2 – 4.0<br><em>Healthy: &gt; 1.5; Distressed: &lt; 1.0</em></td>
         <td><span class="five-c c2">Capacity</span></td>
         <td><span class="tag-both">Input + Model</span></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="sub-title">2b — Borrower &amp; Bureau Features</div>
+  <table class="dict-table">
+    <thead>
+      <tr>
+        <th style="width:200px">Training CSV Column</th>
+        <th>Display Label</th>
+        <th>Description</th>
+        <th style="width:130px">Type / Format</th>
+        <th>Notes / Default</th>
+        <th style="width:110px">Five C's</th>
+        <th style="width:80px">Usage</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>age</code></td>
+        <td>Borrower Age</td>
+        <td>Age of the primary borrower or key principal in years.</td>
+        <td>Numeric, integer</td>
+        <td class="allowed">Default: 40</td>
+        <td><span class="five-c c1">Character</span></td>
+        <td><span class="tag-model">Model</span></td>
+      </tr>
+      <tr>
+        <td><code>employment_type_enc</code></td>
+        <td>Employment Type (encoded)</td>
+        <td>Type of employment: salaried, self-employed, business owner, etc. Encoded as integer.</td>
+        <td>Integer (encoded)</td>
+        <td class="allowed">Default: 1 (salaried)</td>
+        <td><span class="five-c c2">Capacity</span></td>
+        <td><span class="tag-model">Model</span></td>
+      </tr>
+      <tr>
+        <td><code>years_employed</code></td>
+        <td>Years Employed</td>
+        <td>Number of years in current employment or business operation. Longer tenure reduces default risk.</td>
+        <td>Numeric, decimal</td>
+        <td class="allowed">Default: 6.0</td>
+        <td><span class="five-c c2">Capacity</span></td>
+        <td><span class="tag-model">Model</span></td>
+      </tr>
+      <tr>
+        <td><code>annual_income</code></td>
+        <td>Annual Income (₹)</td>
+        <td>Gross annual income of the borrower in INR. Key capacity signal alongside financial ratios.</td>
+        <td>Numeric, INR</td>
+        <td class="allowed">Default: ₹8,00,000</td>
+        <td><span class="five-c c2">Capacity</span></td>
+        <td><span class="tag-model">Model</span></td>
+      </tr>
+      <tr>
+        <td><code>foir</code></td>
+        <td>Fixed Obligation to Income Ratio</td>
+        <td>Sum of all fixed monthly obligations divided by gross monthly income. Higher FOIR signals over-leverage. Analogous to Debt Service Coverage at the borrower level.</td>
+        <td>Numeric, decimal (0–1)</td>
+        <td class="allowed">0.0–1.0; Default: 0.40</td>
+        <td><span class="five-c c2">Capacity</span></td>
+        <td><span class="tag-model">Model</span></td>
+      </tr>
+      <tr>
+        <td><code>num_dependents</code></td>
+        <td>Number of Dependents</td>
+        <td>Count of financial dependents. Affects disposable income and repayment capacity.</td>
+        <td>Integer</td>
+        <td class="allowed">Default: 1</td>
+        <td><span class="five-c c2">Capacity</span></td>
+        <td><span class="tag-model">Model</span></td>
+      </tr>
+      <tr>
+        <td><code>city_tier_enc</code></td>
+        <td>City Tier (encoded)</td>
+        <td>Urban classification of borrower's location: Tier 1 (metro), Tier 2, Tier 3. Encodes economic environment and income stability. Encoded as integer.</td>
+        <td>Integer (1=Tier 1, 2=Tier 2, 3=Tier 3)</td>
+        <td class="allowed">Default: 1</td>
+        <td><span class="five-c c5">Conditions</span></td>
+        <td><span class="tag-model">Model</span></td>
+      </tr>
+      <tr>
+        <td><code>education_enc</code></td>
+        <td>Education Level (encoded)</td>
+        <td>Highest educational qualification. Proxy for earning potential and financial literacy. Encoded as integer.</td>
+        <td>Integer (encoded)</td>
+        <td class="allowed">Default: 2 (graduate)</td>
+        <td><span class="five-c c1">Character</span></td>
+        <td><span class="tag-model">Model</span></td>
+      </tr>
+      <tr>
+        <td><code>residence_type_enc</code></td>
+        <td>Residence Type (encoded)</td>
+        <td>Owned, rented, or employer-provided. Owned property signals stability and potential collateral. Encoded as integer.</td>
+        <td>Integer (encoded)</td>
+        <td class="allowed">Default: 1 (owned)</td>
+        <td><span class="five-c c4">Collateral</span></td>
+        <td><span class="tag-model">Model</span></td>
+      </tr>
+      <tr>
+        <td><code>loan_purpose_enc</code></td>
+        <td>Loan Purpose (encoded)</td>
+        <td>Purpose of the credit facility (e.g. working capital, expansion, personal). Different purposes carry different risk profiles. Encoded as integer.</td>
+        <td>Integer (encoded)</td>
+        <td class="allowed">Default: 1</td>
+        <td><span class="five-c c5">Conditions</span></td>
+        <td><span class="tag-model">Model</span></td>
+      </tr>
+      <tr>
+        <td><code>cibil_score</code></td>
+        <td>CIBIL / Credit Score</td>
+        <td>Bureau credit score (CIBIL scale 300–900). Strongest single predictor of default; encodes payment history, utilisation, and depth of credit. &lt;650 is subprime; &gt;750 is prime.</td>
+        <td>Numeric, integer</td>
+        <td class="allowed">300–900; Default: 720</td>
+        <td><span class="five-c c1">Character</span></td>
+        <td><span class="tag-model">Model</span></td>
+      </tr>
+      <tr>
+        <td><code>previous_default_flag</code></td>
+        <td>Previous Default Flag</td>
+        <td>Binary: 1 = borrower has a prior default on record, 0 = clean history. Strong Character signal; prior defaults substantially raise PD.</td>
+        <td>Integer (0 or 1)</td>
+        <td class="allowed">Default: 0</td>
+        <td><span class="five-c c1">Character</span></td>
+        <td><span class="tag-model">Model</span></td>
+      </tr>
+      <tr>
+        <td><code>months_as_customer</code></td>
+        <td>Months as Customer</td>
+        <td>Tenure of the borrower's relationship with the originating bank. Longer relationships reduce information asymmetry and typically correlate with lower risk.</td>
+        <td>Numeric, integer</td>
+        <td class="allowed">Default: 36</td>
+        <td><span class="five-c c1">Character</span></td>
+        <td><span class="tag-model">Model</span></td>
+      </tr>
+      <tr>
+        <td><code>num_late_payments_past_12m</code></td>
+        <td>Late Payments (last 12 months)</td>
+        <td>Count of payments made after due date in the past 12 months across all credit facilities. Directly signals payment behaviour deterioration.</td>
+        <td>Integer</td>
+        <td class="allowed">Default: 0</td>
+        <td><span class="five-c c1">Character</span></td>
+        <td><span class="tag-model">Model</span></td>
+      </tr>
+      <tr>
+        <td><code>existing_loans_count</code></td>
+        <td>Existing Loans Count</td>
+        <td>Number of active loan facilities the borrower currently holds across all lenders. Higher counts raise FOIR and indicate potential over-leverage.</td>
+        <td>Integer</td>
+        <td class="allowed">Default: 1</td>
+        <td><span class="five-c c3">Capital</span></td>
+        <td><span class="tag-model">Model</span></td>
+      </tr>
+      <tr>
+        <td><code>num_existing_products</code></td>
+        <td>Existing Bank Products</td>
+        <td>Count of active banking products (accounts, cards, deposits, investments) the borrower holds with the bank. Higher cross-sell depth typically correlates with lower churn and default risk.</td>
+        <td>Integer</td>
+        <td class="allowed">Default: 2</td>
+        <td><span class="five-c c1">Character</span></td>
+        <td><span class="tag-model">Model</span></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="sub-title">2c — Country Macro Features</div>
+  <table class="dict-table">
+    <thead>
+      <tr>
+        <th style="width:200px">Training CSV Column</th>
+        <th>Display Label</th>
+        <th>Description</th>
+        <th style="width:130px">Type / Format</th>
+        <th>Notes / Default</th>
+        <th style="width:110px">Five C's</th>
+        <th style="width:80px">Usage</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>gdp_growth_pct</code></td>
+        <td>GDP Growth Rate (%)</td>
+        <td>Real GDP growth rate of the borrower's country for the most recent period. Higher growth reduces systemic default risk; recessions raise it.</td>
+        <td>Numeric, %</td>
+        <td class="allowed">Default: 4.0% (blended EM/DM median). Sourced from <code>country_macro</code> table.</td>
+        <td><span class="five-c c5">Conditions</span></td>
+        <td><span class="tag-model">Model</span></td>
+      </tr>
+      <tr>
+        <td><code>inflation_cpi_pct</code></td>
+        <td>Inflation — CPI (%)</td>
+        <td>Consumer Price Index inflation rate. Elevated inflation erodes real income and debt serviceability; used as a systemic stress indicator.</td>
+        <td>Numeric, %</td>
+        <td class="allowed">Default: 4.5%. Sourced from <code>country_macro</code>.</td>
+        <td><span class="five-c c5">Conditions</span></td>
+        <td><span class="tag-model">Model</span></td>
+      </tr>
+      <tr>
+        <td><code>policy_rate_pct</code></td>
+        <td>Central Bank Policy Rate (%)</td>
+        <td>Benchmark interest rate set by the central bank. Higher policy rates increase borrowing costs and can amplify default risk, especially for floating-rate exposures.</td>
+        <td>Numeric, %</td>
+        <td class="allowed">Default: 5.0%. Sourced from <code>country_macro</code>.</td>
+        <td><span class="five-c c5">Conditions</span></td>
+        <td><span class="tag-model">Model</span></td>
+      </tr>
+      <tr>
+        <td><code>unemployment_pct</code></td>
+        <td>Unemployment Rate (%)</td>
+        <td>National unemployment rate. Rising unemployment is a leading indicator of consumer and SME loan stress.</td>
+        <td>Numeric, %</td>
+        <td class="allowed">Default: 6.0%. Sourced from <code>country_macro</code>.</td>
+        <td><span class="five-c c5">Conditions</span></td>
+        <td><span class="tag-model">Model</span></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="sub-title">2d — Trend Features</div>
+  <table class="dict-table">
+    <thead>
+      <tr>
+        <th style="width:200px">Training CSV Column</th>
+        <th>Display Label</th>
+        <th>Description</th>
+        <th style="width:130px">Type / Format</th>
+        <th>Notes / Default</th>
+        <th style="width:110px">Five C's</th>
+        <th style="width:80px">Usage</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>delta_de_ratio</code></td>
+        <td>Change in D/E Ratio</td>
+        <td>Period-over-period change in the debt-to-equity ratio since origination. Positive values signal increasing leverage; negative values signal deleveraging. Captures trajectory, not just the current level.</td>
+        <td>Numeric, decimal</td>
+        <td class="allowed">Default: 0.0 (no change)</td>
+        <td><span class="five-c c3">Capital</span></td>
+        <td><span class="tag-model">Model</span></td>
+      </tr>
+      <tr>
+        <td><code>delta_cibil</code></td>
+        <td>Change in CIBIL Score</td>
+        <td>Period-over-period change in the bureau credit score since origination. Declining scores (negative delta) are an early warning signal even when the absolute score is still acceptable.</td>
+        <td>Numeric, integer</td>
+        <td class="allowed">Default: 0 (no change)</td>
+        <td><span class="five-c c1">Character</span></td>
+        <td><span class="tag-model">Model</span></td>
+      </tr>
+      <tr>
+        <td><code>months_since_origination</code></td>
+        <td>Months Since Origination</td>
+        <td>Age of the loan in months at the observation date. Captures seasoning effects — newly originated loans often show lower early-period default rates before stress materialises.</td>
+        <td>Numeric, integer</td>
+        <td class="allowed">Default: 24</td>
+        <td><span class="five-c c5">Conditions</span></td>
+        <td><span class="tag-model">Model</span></td>
       </tr>
     </tbody>
   </table>
@@ -437,23 +703,23 @@
     <tbody>
       <tr>
         <td>—</td>
-        <td><code>pd_observed</code></td>
-        <td>Observed PD (Target)</td>
-        <td>Realised Probability of Default for the loan, expressed as a decimal. This is the <strong>target variable</strong> the RandomForest model is trained to predict. Derived from the true PD formula plus Gaussian noise in synthetic data.</td>
-        <td>Numeric, decimal</td>
-        <td class="allowed">0.0001 – 1.0<br><em>e.g. 0.045 = 4.5% PD</em></td>
-        <td><span class="five-c c2">Capacity</span></td>
+        <td><code>default_flag</code></td>
+        <td>Default Flag (Target)</td>
+        <td>Binary indicator: 1 = borrower defaulted (RBI 90-day NPA rule), 0 = performing. This is the <strong>target variable</strong> the XGBoost model is trained to predict. At inference the model outputs a default probability; the <code>pdValue</code> displayed in the UI is derived from this probability score.</td>
+        <td>Integer (0 or 1)</td>
+        <td class="allowed">0 (performing), 1 (defaulted)</td>
+        <td><span class="five-c c1">Character</span></td>
         <td><span class="tag-model">Model Target</span></td>
       </tr>
       <tr>
         <td>—</td>
-        <td><code>default_flag</code></td>
-        <td>Default Flag</td>
-        <td>Binary indicator: 1 = borrower defaulted, 0 = performing. Derived from <code>pd_observed</code> exceeding the bank's target default rate percentile. Used for classification metrics (AUC-ROC, confusion matrix) during model evaluation.</td>
-        <td>Integer (0 or 1)</td>
-        <td class="allowed">0 (performing), 1 (defaulted)</td>
-        <td><span class="five-c c1">Character</span></td>
-        <td><span class="tag-model">Eval Only</span></td>
+        <td><code>pd_observed</code></td>
+        <td>Observed PD</td>
+        <td>Continuous probability of default used in earlier synthetic training data (pre-Phase 5.19). Now superseded by <code>default_flag</code> as the primary target. Retained in legacy training CSVs and used for reference during evaluation.</td>
+        <td>Numeric, decimal</td>
+        <td class="allowed">0.0001 – 1.0<br><em>e.g. 0.045 = 4.5% PD</em></td>
+        <td><span class="five-c c2">Capacity</span></td>
+        <td><span class="tag-meta">Legacy / Eval</span></td>
       </tr>
       <tr>
         <td>—</td>
@@ -461,7 +727,7 @@
         <td>Observation Date</td>
         <td>Date on which the financial metrics were observed/reported. Used for temporal tracking and data provenance. Not a model feature.</td>
         <td>Date (YYYY-MM-DD)</td>
-        <td class="allowed">2023-01-01 – 2024-12-31</td>
+        <td class="allowed">2023-01-01 – 2025-12-31 (FY2025 real-bank data)</td>
         <td><span class="five-c c5">Conditions</span></td>
         <td><span class="tag-meta">Metadata</span></td>
       </tr>
@@ -490,7 +756,7 @@
         <td><code>pdValue</code></td>
         <td><code>pd_percentage</code></td>
         <td>Probability of Default (PD)</td>
-        <td>ML model prediction of the likelihood the borrower will default within one year. Expressed as a percentage. Source: <code>/api/predict-pd-ml</code> (RandomForest). Falls back to rule-based formula if API unavailable.</td>
+        <td>XGBoost model probability that the borrower will default within one year (expressed as %). Source: <code>/api/predict-pd-ml</code>. Falls back to rule-based formula if the model is unavailable.</td>
         <td>Numeric, %</td>
         <td class="allowed">0.01% – 100%<br><em>Investment grade: &lt; 1%</em></td>
         <td><span class="five-c c2">Capacity</span></td>
@@ -647,9 +913,13 @@
           <code>borrowerId</code>, <code>borrowerName</code>,
           <code>bank_id</code>, <code>loan_id</code>,
           <code>externalRating</code>, <code>exposureCategory</code>,
-          <code>default_flag</code>
+          <code>default_flag</code> (target),
+          <code>cibil_score</code>, <code>previous_default_flag</code>,
+          <code>num_late_payments_past_12m</code>, <code>delta_cibil</code>,
+          <code>months_as_customer</code>, <code>num_existing_products</code>,
+          <code>education_enc</code>
         </td>
-        <td>Identification and rating-based classification. External rating directly drives SA risk weight; default flag is the evaluation label for model quality assessment.</td>
+        <td>CIBIL score and prior default history are the strongest Character signals in the XGBoost model. Bureau trend features (<code>delta_cibil</code>, late payments) provide early-warning signals before the absolute score deteriorates. External rating drives SA risk weight; default flag is the binary training target.</td>
       </tr>
       <tr>
         <td><span class="badge c2" style="font-size:12px">Capacity</span></td>
@@ -658,20 +928,24 @@
           <code>interestCoverage</code> / <code>interest_coverage</code>,
           <code>profitabilityMargin</code> / <code>profitability</code>,
           <code>liquidityRatio</code> / <code>liquidity_ratio</code>,
-          <code>pd_observed</code> (target), <code>pdValue</code> (output)
+          <code>annual_income</code>, <code>foir</code>,
+          <code>employment_type_enc</code>, <code>years_employed</code>,
+          <code>num_dependents</code>,
+          <code>pd_observed</code> (legacy), <code>pdValue</code> (output)
         </td>
-        <td>These three ratios are the primary drivers of PD in the RandomForest model. Low coverage, negative margins, and poor liquidity each independently raise predicted PD. Together they explain the majority of model variance.</td>
+        <td>The three core financial ratios are the primary explainable Capacity drivers. Income, FOIR, and employment stability provide additional capacity context, especially for retail borrowers where P&amp;L financials are unavailable. Together these features explain the majority of model variance.</td>
       </tr>
       <tr>
         <td><span class="badge c3" style="font-size:12px">Capital</span></td>
         <td>Borrower's financial strength, net worth, and equity buffer absorbing losses before default.</td>
         <td>
           <code>debtToEquity</code> / <code>de_ratio</code>,
+          <code>delta_de_ratio</code>, <code>existing_loans_count</code>,
           <code>risk_weight</code>, <code>rwa</code> / <code>summaryTotalRWA</code>,
           <code>capital_required</code> / <code>summaryTotalCapital</code>,
           <code>summaryRiskDensity</code>, <code>summaryCET1</code>
         </td>
-        <td>D/E ratio feeds directly into the PD model as a leverage signal. RWA and capital required are the bank-side capital outputs — they measure how much of the bank's own capital must be held against the loan.</td>
+        <td>D/E ratio and its trend (<code>delta_de_ratio</code>) feed directly into the model as leverage signals. RWA and capital required are the bank-side outputs — they measure how much of the bank's own capital must be held against the loan.</td>
       </tr>
       <tr>
         <td><span class="badge c4" style="font-size:12px">Collateral</span></td>
@@ -679,9 +953,10 @@
         <td>
           <code>seniority</code>, <code>collateralType</code>,
           <code>collateralValue</code>, <code>haircutValue</code>,
-          <code>lgdValue</code> / <code>lgd_percentage</code>
+          <code>lgdValue</code> / <code>lgd_percentage</code>,
+          <code>residence_type_enc</code>
         </td>
-        <td>Collateral inputs drive LGD calculation. The seniority determines the base LGD rate; collateral type sets the haircut; collateral value reduces the net loss exposure. Higher quality collateral lowers LGD and therefore lowers RWA and capital.</td>
+        <td>Collateral inputs drive LGD calculation (rule-based, not in XGBoost features). The seniority determines the base LGD rate; collateral type sets the haircut; collateral value reduces net loss exposure. Residence type serves as a proxy for unencumbered asset ownership.</td>
       </tr>
       <tr>
         <td><span class="badge c5" style="font-size:12px">Conditions</span></td>
@@ -689,20 +964,22 @@
         <td>
           <code>sector</code>, <code>loanType</code>, <code>calcMode</code>,
           <code>exposureAmount</code>, <code>maturityValue</code>,
-          <code>observation_date</code>, <code>summaryLoanCount</code>,
-          <code>summaryTotalEAD</code>
+          <code>loan_purpose_enc</code>, <code>city_tier_enc</code>,
+          <code>months_since_origination</code>,
+          <code>gdp_growth_pct</code>, <code>inflation_cpi_pct</code>,
+          <code>policy_rate_pct</code>, <code>unemployment_pct</code>,
+          <code>observation_date</code>,
+          <code>summaryLoanCount</code>, <code>summaryTotalEAD</code>
         </td>
-        <td>Sector affects the LGD sector add-on. Loan type determines effective maturity M, which feeds into the AIRB maturity adjustment. Observation date provides temporal context for training data. Exposure amount sets the absolute scale of RWA and capital requirements.</td>
+        <td>Country macro features (GDP growth, CPI, policy rate, unemployment) bring systemic risk into the model, allowing PD to respond to the borrower's economic environment. Loan purpose and city tier contextualise the borrower's local conditions. Sector affects LGD via the sector risk add-on (not a direct XGBoost feature).</td>
       </tr>
     </tbody>
   </table>
 
   <div class="note" style="margin-top:24px">
-    <strong>Note on model scope:</strong> The RandomForest PD model uses only the four Capacity and Capital inputs
-    (<code>de_ratio</code>, <code>interest_coverage</code>, <code>profitability</code>, <code>liquidity_ratio</code>).
-    Character, Collateral, and Conditions variables are used in the rule-based LGD calculation and SA risk weight
-    lookup, but are not currently features of the ML model. Future model iterations could incorporate sector,
-    seniority, and maturity as additional features.
+    <strong>Model scope note (Phase 5.19+):</strong> The active model is an <strong>XGBoostClassifier</strong> trained on <strong>27 features</strong> targeting <code>default_flag</code> (binary, RBI 90-day NPA rule). The four core ratios
+    (<code>de_ratio</code>, <code>interest_coverage</code>, <code>profitability</code>, <code>liquidity_ratio</code>)
+    remain the primary explainable drivers and are the only features collected on the borrower assessment form. The remaining 23 features are sourced from application records or filled with calibrated neutral defaults via <code>feature_meta.model_feature_frame()</code>. Collateral and SA inputs are used exclusively in rule-based LGD and SA risk weight calculations, which run independently of the ML model.
   </div>
 
 </div><!-- /container -->

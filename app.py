@@ -2103,11 +2103,25 @@ def fin_system():
     snap = None
     if consol:
         cap, liq = consol['raw']['capital'], consol['raw']['liquidity']
+        perf = {k['label']: k['value'] for k in (consol.get('performance_kpis') or [])}
         snap = {'total_assets': cap['total_assets'],
                 'pat': float(consol['profit_loss']['summary'][-1]['value']),
+                'nii': perf.get('Net Interest Income (NII)'),
+                'nim': perf.get('Net Interest Margin (NIM)'),
+                'operating_profit': perf.get('Operating Profit'),
+                'roa': perf.get('Return on Assets (ROA)'),
+                'rote': perf.get('Return on Tangible Equity (ROTE)'),
+                'roe': perf.get('Return on Tangible Equity (ROTE)'),
+                'yield_on_advances': perf.get('Yield on Advances'),
+                'net_profit_margin': None, 'cost_to_income': None,
                 'car': cap['car'], 'lcr': liq['lcr'], 'num_banks': len(cards),
                 'num_countries': len({c['country_code'] for c in cards}),
                 'num_regions': len(tree)}
+        for r in (consol.get('key_ratios') or []):
+            if r.get('label') == 'Net Profit Margin':
+                snap['net_profit_margin'] = r['value']
+            if r.get('label') == 'Cost-to-Income Ratio':
+                snap['cost_to_income'] = r['value']
     return jsonify({'period': 'FY2025', 'banks': cards, 'consolidated': snap, 'tree': tree})
 
 

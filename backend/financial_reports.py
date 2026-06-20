@@ -110,27 +110,76 @@ def key_ratios(bs, pl, cap, liq, stats):
     nii = _g(pl, 'net_interest_income')
     opex = _g(pl, 'operating_expenses')
     other_income = _g(pl, 'other_income')
+    total_income = _g(pl, 'total_income')
+    interest_on_advances = _g(pl, 'interest_on_advances')
+    interest_expended = _g(pl, 'interest_expended')
+    advances_net = _g(bs, 'advances_net')
+    borrowings = _g(bs, 'borrowings')
     casa = _g(bs, 'deposits_demand') + _g(bs, 'deposits_savings')
     gnpa = float(stats.get('gnpa_amount') or 0)
     provisions = _g(cap, 'total_provisions')
 
     return [
+        # ── Capital
         {'label': 'Capital Adequacy Ratio (CRAR)', 'value': _g(cap, 'car'), 'unit': '%',
-         'min': 11.5, 'status': (cap or {}).get('car_status')},
+         'min': 11.5, 'status': (cap or {}).get('car_status'), 'section': 'Capital'},
         {'label': 'CET1 Ratio', 'value': _g(cap, 'cet1_ratio'), 'unit': '%',
-         'min': 8.0, 'status': (cap or {}).get('cet1_status')},
-        {'label': 'Net Interest Margin (NIM)', 'value': _pct(nii, earning_assets), 'unit': '%'},
-        {'label': 'Return on Assets (ROA)', 'value': _pct(pat, total_assets), 'unit': '%'},
-        {'label': 'Return on Equity (ROE)', 'value': _pct(pat, capital), 'unit': '%'},
-        {'label': 'Cost-to-Income Ratio', 'value': _pct(opex, nii + other_income), 'unit': '%'},
-        {'label': 'Gross NPA Ratio', 'value': _pct(gnpa, stats.get('gross_advances')), 'unit': '%'},
-        {'label': 'Provision Coverage Ratio (PCR)', 'value': _pct(provisions, gnpa), 'unit': '%'},
-        {'label': 'Credit-Deposit Ratio', 'value': _pct(_g(bs, 'advances_net'), deposits), 'unit': '%'},
-        {'label': 'CASA Ratio', 'value': _pct(casa, deposits), 'unit': '%'},
+         'min': 8.0, 'status': (cap or {}).get('cet1_status'), 'section': 'Capital'},
+        # ── Profitability
+        {'label': 'Net Interest Margin (NIM)', 'value': _pct(nii, earning_assets), 'unit': '%', 'section': 'Profitability'},
+        {'label': 'Return on Assets (ROA)', 'value': _pct(pat, total_assets), 'unit': '%', 'section': 'Profitability'},
+        {'label': 'Return on Equity (ROE)', 'value': _pct(pat, capital), 'unit': '%', 'section': 'Profitability'},
+        {'label': 'Return on Tangible Equity (ROTE)', 'value': _pct(pat, capital), 'unit': '%', 'section': 'Profitability'},
+        {'label': 'Net Profit Margin', 'value': _pct(pat, total_income), 'unit': '%', 'section': 'Profitability'},
+        {'label': 'Yield on Advances', 'value': _pct(interest_on_advances, advances_net), 'unit': '%', 'section': 'Profitability'},
+        {'label': 'Cost of Funds', 'value': _pct(interest_expended, deposits + borrowings), 'unit': '%', 'section': 'Profitability'},
+        {'label': 'Cost-to-Income Ratio', 'value': _pct(opex, nii + other_income), 'unit': '%', 'section': 'Profitability'},
+        # ── Asset Quality
+        {'label': 'Gross NPA Ratio', 'value': _pct(gnpa, stats.get('gross_advances')), 'unit': '%', 'section': 'Asset Quality'},
+        {'label': 'Provision Coverage Ratio (PCR)', 'value': _pct(provisions, gnpa), 'unit': '%', 'section': 'Asset Quality'},
+        # ── Funding & Liquidity
+        {'label': 'Credit-Deposit Ratio', 'value': _pct(advances_net, deposits), 'unit': '%', 'section': 'Funding'},
+        {'label': 'CASA Ratio', 'value': _pct(casa, deposits), 'unit': '%', 'section': 'Funding'},
         {'label': 'Liquidity Coverage Ratio (LCR)', 'value': _g(liq, 'lcr'), 'unit': '%',
-         'min': 100.0, 'status': (liq or {}).get('lcr_status')},
+         'min': 100.0, 'status': (liq or {}).get('lcr_status'), 'section': 'Funding'},
         {'label': 'Net Stable Funding Ratio (NSFR)', 'value': _g(liq, 'nsfr'), 'unit': '%',
-         'min': 100.0, 'status': (liq or {}).get('nsfr_status')},
+         'min': 100.0, 'status': (liq or {}).get('nsfr_status'), 'section': 'Funding'},
+    ]
+
+
+# ── performance KPI cards ──────────────────────────────────────────────────────
+def performance_kpis(bs, pl, cap, liq, stats):
+    """Headline performance metrics for KPI card display (mix of ₹ and %)."""
+    deposits, capital, _, total_assets = _bs_totals(bs)
+    earning_assets = _g(bs, 'advances_net') + _g(bs, 'investments')
+    advances_net = _g(bs, 'advances_net')
+    borrowings = _g(bs, 'borrowings')
+    pat = _g(pl, 'profit_after_tax')
+    nii = _g(pl, 'net_interest_income')
+    total_income = _g(pl, 'total_income')
+    interest_on_advances = _g(pl, 'interest_on_advances')
+    interest_expended = _g(pl, 'interest_expended')
+    opex = _g(pl, 'operating_expenses')
+    other_income = _g(pl, 'other_income')
+    op_profit = _g(pl, 'operating_profit')
+
+    return [
+        {'label': 'Profit After Tax (PAT)', 'value': pat, 'unit': 'INR',
+         'sub': f"Net Profit Margin {(_pct(pat, total_income) or 0):.2f}%"},
+        {'label': 'Net Interest Income (NII)', 'value': nii, 'unit': 'INR',
+         'sub': f"NIM {(_pct(nii, earning_assets) or 0):.2f}% on earning assets"},
+        {'label': 'Net Interest Margin (NIM)', 'value': _pct(nii, earning_assets), 'unit': '%',
+         'sub': "Interest income on earning assets (advances + investments)"},
+        {'label': 'Return on Tangible Equity (ROTE)', 'value': _pct(pat, capital), 'unit': '%',
+         'sub': f"ROA {(_pct(pat, total_assets) or 0):.2f}% · ROE {(_pct(pat, capital) or 0):.2f}%"},
+        {'label': 'Return on Assets (ROA)', 'value': _pct(pat, total_assets), 'unit': '%',
+         'sub': f"Total assets ₹{total_assets/1e7:.0f} Cr"},
+        {'label': 'Operating Profit', 'value': op_profit, 'unit': 'INR',
+         'sub': f"Cost-to-Income {(_pct(opex, nii + other_income) or 0):.1f}%"},
+        {'label': 'Yield on Advances', 'value': _pct(interest_on_advances, advances_net), 'unit': '%',
+         'sub': f"Interest income on net advances"},
+        {'label': 'Cost of Funds', 'value': _pct(interest_expended, deposits + borrowings), 'unit': '%',
+         'sub': f"Interest paid on deposits & borrowings"},
     ]
 
 
@@ -182,6 +231,7 @@ def bank_bundle(bank, bs, pl, cap, liq, stats, exposure_mix):
         'balance_sheet': balance_sheet_view(bs),
         'profit_loss': profit_loss_view(pl),
         'key_ratios': key_ratios(bs, pl, cap, liq, stats),
+        'performance_kpis': performance_kpis(bs, pl, cap, liq, stats),
         'pillar3': pillar3(cap, liq, bs, exposure_mix),
         'raw': {'capital': cap, 'liquidity': liq, 'stats': stats},
     }
@@ -285,6 +335,7 @@ def consolidate(bundles_raw, period, as_on_date,
         'balance_sheet': balance_sheet_view(bs),
         'profit_loss': profit_loss_view(pl),
         'key_ratios': key_ratios(bs, pl, cap, liq, stats),
+        'performance_kpis': performance_kpis(bs, pl, cap, liq, stats),
         'pillar3': pillar3(cap, liq, bs, exposure_mix),
         'raw': {'capital': cap, 'liquidity': liq, 'stats': stats},
     }

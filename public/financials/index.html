@@ -42,6 +42,7 @@ body{font-family:'IBM Plex Sans',sans-serif;background:var(--off);color:var(--t1
 .card-sub{font-size:11px;color:var(--t3);margin-bottom:14px}
 .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:18px}
 .kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+.kpi-grid-8{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
 .kpi{background:#fff;border:1px solid var(--border);border-radius:12px;padding:15px 17px}
 .kpi .l{font-size:9.5px;text-transform:uppercase;letter-spacing:.6px;color:var(--t3);font-weight:600}
 .kpi .v{font-family:'IBM Plex Sans',sans-serif;font-weight:800;font-size:23px;margin-top:6px}
@@ -161,10 +162,16 @@ function renderSystem(){
     <div><div class="page-title">Group Financial Reporting</div>
     <div class="page-desc">A global banking group spanning <b>${c.num_regions||0} regions</b> and <b>${c.num_countries||0} countries</b>. Balance Sheet, P&amp;L, Key Ratios and Basel III Pillar 3 disclosures at every level of the hierarchy — <b>Group → Region → Country → Bank</b> — with annual-report PDF (LaTeX) export per scope. Figures in group reporting currency (₹), FY2025.</div></div>
     <div class="kpi-grid">
-      <div class="kpi"><div class="l">Group Total Assets</div><div class="v" style="font-size:20px">${inr(c.total_assets)}</div><div class="s">${c.num_banks||0} banks</div></div>
-      <div class="kpi"><div class="l">Group PAT</div><div class="v" style="font-size:20px">${inr(c.pat)}</div></div>
-      <div class="kpi"><div class="l">Group CRAR / LCR</div><div class="v" style="font-size:20px">${pctv(c.car)} / ${pctv(c.lcr)}</div></div>
-      <div class="kpi"><div class="l">Footprint</div><div class="v" style="font-size:20px">${c.num_countries||0} 🌍</div><div class="s">${c.num_regions||0} regions</div></div>
+      <div class="kpi"><div class="l">Group Total Assets</div><div class="v" style="font-size:20px">${inr(c.total_assets)}</div><div class="s">${c.num_banks||0} banks · ${c.num_countries||0} countries</div></div>
+      <div class="kpi"><div class="l">Profit After Tax (PAT)</div><div class="v" style="font-size:20px">${inr(c.pat)}</div><div class="s">Net profit margin ${c.net_profit_margin!=null?c.net_profit_margin.toFixed(2)+'%':'—'}</div></div>
+      <div class="kpi"><div class="l">Net Interest Income (NII)</div><div class="v" style="font-size:20px">${inr(c.nii)}</div><div class="s">NIM ${c.nim!=null?c.nim.toFixed(2)+'%':'—'}</div></div>
+      <div class="kpi"><div class="l">Operating Profit</div><div class="v" style="font-size:20px">${inr(c.operating_profit)}</div><div class="s">Cost-to-income ${c.cost_to_income!=null?c.cost_to_income.toFixed(1)+'%':'—'}</div></div>
+    </div>
+    <div class="kpi-grid" style="margin-top:0">
+      <div class="kpi"><div class="l">Return on Equity (ROE)</div><div class="v" style="font-size:20px">${c.roe!=null?c.roe.toFixed(2)+'%':'—'}</div><div class="s">ROTE ${c.rote!=null?c.rote.toFixed(2)+'%':'—'}</div></div>
+      <div class="kpi"><div class="l">Return on Assets (ROA)</div><div class="v" style="font-size:20px">${c.roa!=null?c.roa.toFixed(2)+'%':'—'}</div><div class="s">Yield on advances ${c.yield_on_advances!=null?c.yield_on_advances.toFixed(2)+'%':'—'}</div></div>
+      <div class="kpi"><div class="l">CRAR / LCR</div><div class="v" style="font-size:20px">${pctv(c.car)} / ${pctv(c.lcr)}</div><div class="s">Capital & liquidity adequacy</div></div>
+      <div class="kpi"><div class="l">Footprint</div><div class="v" style="font-size:20px">${c.num_countries||0} 🌍</div><div class="s">${c.num_regions||0} regions · ${c.num_banks||0} banks</div></div>
     </div>
     <div class="sl">By Region</div>
     ${regions}
@@ -197,9 +204,17 @@ async function renderScope(scope){
       <div id="reportList"><div class="card-sub">Loading report history…</div></div>
     </div>
 
+    <div class="sl">Key Performance Metrics</div>
+    <div class="kpi-grid-8">${(d.performance_kpis||[]).map(k=>`
+      <div class="kpi">
+        <div class="l">${esc(k.label)}</div>
+        <div class="v" style="font-size:18px">${k.unit==='INR'?inr(k.value):k.value==null?'—':k.value.toFixed(2)+'%'}</div>
+        <div class="s">${esc(k.sub||'')}</div>
+      </div>`).join('')}</div>
+
     <div class="sl">Key Financial Ratios</div>
-    <div class="card"><table class="tbl"><thead><tr><th>Ratio</th><th class="num">Value</th><th class="num">RBI Min</th><th>Status</th></tr></thead>
-      <tbody>${(d.key_ratios||[]).map(r=>`<tr><td>${esc(r.label)}</td><td class="num">${r.value==null?'—':r.value.toFixed(2)+'%'}</td>
+    <div class="card"><table class="tbl"><thead><tr><th>Section</th><th>Ratio</th><th class="num">Value</th><th class="num">Min</th><th>Status</th></tr></thead>
+      <tbody>${(d.key_ratios||[]).map(r=>`<tr><td style="font-size:10px;color:var(--t3)">${esc(r.section||'')}</td><td>${esc(r.label)}</td><td class="num">${r.value==null?'—':r.value.toFixed(2)+'%'}</td>
         <td class="num">${r.min!=null?r.min.toFixed(1)+'%':'—'}</td><td>${r.status?`<span class="badge ${r.status}">${r.status}</span>`:''}</td></tr>`).join('')}</tbody></table></div>
 
     <div class="sl">Balance Sheet — RBI Schedule III (Form A)</div>
