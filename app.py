@@ -1107,6 +1107,12 @@ def _start_scheduler():
                            id='regulatory_batch', replace_existing=True)
     except Exception as e:
         print(f'[regulatory] could not schedule daily batch: {e}')
+    # Daily NPA Classification batch — DPD-based loan reclassification at 02:00.
+    try:
+        _scheduler.add_job(_run_npa_batch_job, 'cron', hour=2, minute=0,
+                           id='npa_batch', replace_existing=True)
+    except Exception as e:
+        print(f'[npa-batch] could not schedule daily batch: {e}')
     # Ensure today's reports exist on startup (App Engine instances are ephemeral).
     _ensure_regulatory_reports()
 
@@ -1878,6 +1884,180 @@ def _run_regulatory_batch_job():
         print('[regulatory] daily batch completed')
     except Exception as e:
         print(f'[regulatory] batch error: {e}')
+
+
+# ── NPA Classification Batch ─────────────────────────────────────────────────
+
+def _run_npa_batch(conn=None, as_of_date=None):
+    """Scan all loans, compute DPD from last EMI Payment, auto-classify NPA.
+
+    DPD buckets (RBI):
+      0-89   days → Standard
+      90-179 days → Sub-Standard NPA
+      180-359 days → Doubtful NPA
+      360+   days → Loss Asset NPA
+
+    Manual override_default=1 loans are preserved — batch never overwrites
+    a credit-officer override (it still updates DPD for reporting).
+
+    Uses bulk SQL to handle large loan books efficiently.
+    Returns a summary dict.
+    """
+    import datetime
+    close_conn = False
+    if conn is None:
+        conn = _ops_conn().__enter__()
+        close_conn = True
+
+    today_str = as_of_date if as_of_date else datetime.date.today().isoformat()
+
+    # Step 1: compute last EMI payment per (cid, bank_id) in one query
+    conn.execute("""
+        CREATE TEMP TABLE IF NOT EXISTS _npa_last_pmt AS
+        SELECT a.cid, a.bank_id, MAX(t.date) AS last_pmt
+        FROM transactions t
+        JOIN accounts a ON t.aid = a.id
+        WHERE t.type = 'EMI Payment'
+        GROUP BY a.cid, a.bank_id
+    """)
+
+    # Step 2: bulk-update last_payment_date + days_past_due on all loans
+    conn.execute(f"""
+        UPDATE loans SET
+            last_payment_date = COALESCE(
+                (SELECT last_pmt FROM _npa_last_pmt p WHERE p.cid=loans.cid AND p.bank_id=loans.bank_id),
+                loans.disbursed
+            ),
+            days_past_due = MAX(0, CAST(
+                julianday('{today_str}') -
+                julianday(COALESCE(
+                    (SELECT last_pmt FROM _npa_last_pmt p WHERE p.cid=loans.cid AND p.bank_id=loans.bank_id),
+                    loans.disbursed,
+                    '{today_str}'
+                ))
+            AS INTEGER))
+    """)
+
+    # Step 3: reclassify — skip manual overrides
+    # Sub-Standard: 90-179 DPD
+    conn.execute("""
+        UPDATE loans SET loan_classification='Sub-Standard', status='Defaulted'
+        WHERE override_default=0 AND days_past_due BETWEEN 90 AND 179
+          AND loan_classification NOT IN ('Sub-Standard','Doubtful','Loss Asset')
+    """)
+    # Doubtful: 180-359 DPD
+    conn.execute("""
+        UPDATE loans SET loan_classification='Doubtful', status='Defaulted'
+        WHERE override_default=0 AND days_past_due BETWEEN 180 AND 359
+          AND loan_classification != 'Loss Asset'
+    """)
+    # Loss Asset: 360+ DPD
+    conn.execute("""
+        UPDATE loans SET loan_classification='Loss Asset', status='Defaulted'
+        WHERE override_default=0 AND days_past_due >= 360
+    """)
+    # Restore Standard if DPD < 90 (loan caught up) — only non-overridden
+    conn.execute("""
+        UPDATE loans SET loan_classification='Standard', status='Active'
+        WHERE override_default=0 AND days_past_due < 90
+          AND loan_classification IN ('Sub-Standard','Doubtful','Loss Asset')
+    """)
+
+    # Step 4: sync credit_risk_metrics npa_flag from loans
+    conn.execute("""
+        UPDATE credit_risk_metrics SET
+            npa_flag = CASE WHEN l.loan_classification != 'Standard' THEN 1 ELSE 0 END,
+            df       = CASE WHEN l.loan_classification != 'Standard' THEN 1 ELSE 0 END
+        FROM loans l WHERE credit_risk_metrics.lid = l.id
+    """)
+
+    conn.execute("DROP TABLE IF EXISTS _npa_last_pmt")
+    conn.commit()
+
+    # Collect stats
+    total   = conn.execute("SELECT COUNT(*) FROM loans").fetchone()[0]
+    npa     = conn.execute("SELECT COUNT(*) FROM loans WHERE loan_classification IN ('Sub-Standard','Doubtful','Loss Asset','NPA')").fetchone()[0]
+    overrides = conn.execute("SELECT COUNT(*) FROM loans WHERE override_default=1").fetchone()[0]
+    stats = {'processed': total, 'npa_total': npa, 'overridden': overrides}
+
+    if close_conn:
+        conn.close()
+    return stats
+
+
+def _run_npa_batch_job():
+    """APScheduler entry point for the daily NPA classification batch."""
+    try:
+        with _ops_conn() as conn:
+            stats = _run_npa_batch(conn)
+        print(f'[npa-batch] completed: {stats}')
+    except Exception as e:
+        print(f'[npa-batch] error: {e}')
+
+
+@app.route('/operations/api/npa-batch', methods=['POST'])
+def ops_npa_batch():
+    """Manually trigger the NPA DPD batch. Optional body: {"as_of_date": "YYYY-MM-DD"}"""
+    body = request.get_json(force=True) or {}
+    as_of = body.get('as_of_date')
+    try:
+        with _ops_conn() as conn:
+            stats = _run_npa_batch(conn, as_of_date=as_of)
+        return jsonify({'success': True, 'stats': stats,
+                        'as_of_date': as_of or __import__('datetime').date.today().isoformat()})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/operations/api/loans/<loan_id>/classify', methods=['POST'])
+def ops_loan_classify(loan_id):
+    """Manual credit-officer override: classify any loan as NPA or restore to Standard.
+
+    Body:
+      classification  — 'Sub-Standard' | 'Doubtful' | 'Loss Asset' | 'Standard'
+      reason          — mandatory free-text justification (>= 20 chars)
+      officer         — officer ID / name (optional, defaults to 'CREDIT-OFFICER')
+    """
+    import datetime
+    body = request.get_json(force=True) or {}
+    classification = body.get('classification', '').strip()
+    reason = body.get('reason', '').strip()
+    officer = body.get('officer', 'CREDIT-OFFICER').strip()
+
+    valid = {'Sub-Standard', 'Doubtful', 'Loss Asset', 'Standard'}
+    if classification not in valid:
+        return jsonify({'error': f'classification must be one of {sorted(valid)}'}), 400
+    if len(reason) < 20:
+        return jsonify({'error': 'reason must be at least 20 characters'}), 400
+
+    with _ops_conn() as conn:
+        loan = conn.execute("SELECT id, bank_id, loan_classification FROM loans WHERE id=?",
+                            (loan_id,)).fetchone()
+        if not loan:
+            return jsonify({'error': f'Loan {loan_id} not found'}), 404
+
+        is_npa = 0 if classification == 'Standard' else 1
+        new_status = 'Active' if classification == 'Standard' else 'Defaulted'
+        override_flag = 0 if classification == 'Standard' else 1
+        now = datetime.datetime.utcnow().isoformat()
+
+        conn.execute("""UPDATE loans SET loan_classification=?, status=?,
+                        override_default=?, override_reason=?, override_by=?, override_at=?
+                        WHERE id=?""",
+                     (classification, new_status, override_flag, reason, officer, now, loan_id))
+        conn.execute("UPDATE credit_risk_metrics SET npa_flag=?, df=? WHERE lid=?",
+                     (is_npa, is_npa, loan_id))
+        conn.commit()
+
+    return jsonify({
+        'loan_id': loan_id,
+        'previous_classification': loan[2],
+        'new_classification': classification,
+        'override': bool(override_flag),
+        'reason': reason,
+        'officer': officer,
+        'timestamp': now
+    })
 
 
 def _ensure_regulatory_reports():
