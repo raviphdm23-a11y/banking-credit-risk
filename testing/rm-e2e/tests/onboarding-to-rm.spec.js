@@ -264,7 +264,7 @@ test.describe('Onboarding → RM decision flow', () => {
 
     // Type an existing customer ID from the seeded data
     const cidInput = page.locator('#borrowerId');
-    await cidInput.fill('CUST004');
+    await cidInput.fill('AXIS-SME-0001');
 
     // Trigger lookup (blur fires the lookup)
     await cidInput.press('Tab');
