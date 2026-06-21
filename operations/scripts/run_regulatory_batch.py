@@ -90,8 +90,10 @@ _EXP_COLS = ['cid', 'customer_name', 'loan_id', 'loan_type', 'classification',
              'expected_loss', 'provision']
 
 
+SIM_DATE = '2020-03-31'  # frozen simulation clock for Axis Bank experiment
+
 def run_batch(db_path=DB_PATH, report_date=None, verbose=True):
-    report_date = report_date or date.today().isoformat()
+    report_date = report_date or SIM_DATE
     now = datetime.now().isoformat(timespec='seconds')
 
     conn = sqlite3.connect(db_path)

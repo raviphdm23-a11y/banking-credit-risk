@@ -221,7 +221,7 @@ def bs_total_assets(bs):
     """Total assets from a bank_balance_sheet dict (raw INR)."""
     return sum(float(bs.get(k) or 0) for k in
                ('cash_with_rbi', 'balances_with_banks', 'investments',
-                'advances_net', 'fixed_assets', 'other_assets'))
+                'advances_net', 'fixed_assets', 'intangible_assets', 'other_assets'))
 
 
 def bs_total_deposits(bs):

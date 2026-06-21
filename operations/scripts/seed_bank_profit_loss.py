@@ -91,8 +91,8 @@ def seed(db_path=DB_PATH, verbose=True):
         mod.seed(db_path=db_path, verbose=False)
 
     banks = [dict(r) for r in cur.execute("SELECT bank_id FROM banks").fetchall()]
-    periods = [('FY2024', '2023-04-01', '2024-03-31', 0.88),
-               ('FY2025', '2024-04-01', '2025-03-31', 1.00)]
+    periods = [('FY2019', '2018-04-01', '2019-03-31', 0.88),
+               ('FY2020', '2019-04-01', '2020-03-31', 1.00)]
 
     rows = []
     for b in banks:

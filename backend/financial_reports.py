@@ -31,16 +31,18 @@ def _pct(num, den):
 def _bs_totals(bs):
     deposits = _g(bs, 'deposits_demand') + _g(bs, 'deposits_savings') + _g(bs, 'deposits_term')
     capital = _g(bs, 'equity_capital') + _g(bs, 'reserves_surplus')
+    tangible_equity = capital - _g(bs, 'intangible_assets')
     liabilities_capital = capital + deposits + _g(bs, 'borrowings') + _g(bs, 'other_liabilities')
     assets = (_g(bs, 'cash_with_rbi') + _g(bs, 'balances_with_banks') + _g(bs, 'investments')
-              + _g(bs, 'advances_net') + _g(bs, 'fixed_assets') + _g(bs, 'other_assets'))
-    return deposits, capital, liabilities_capital, assets
+              + _g(bs, 'advances_net') + _g(bs, 'fixed_assets')
+              + _g(bs, 'intangible_assets') + _g(bs, 'other_assets'))
+    return deposits, capital, tangible_equity, liabilities_capital, assets
 
 
 # ── balance sheet ─────────────────────────────────────────────────────────────
 def balance_sheet_view(bs):
     """Structured RBI Schedule III balance sheet (sections of {label, key, value})."""
-    deposits, capital, total_lc, total_assets = _bs_totals(bs)
+    deposits, capital, _tangible, total_lc, total_assets = _bs_totals(bs)
     liabilities = [
         {'label': 'Capital (Equity Share Capital)', 'value': _g(bs, 'equity_capital')},
         {'label': 'Reserves & Surplus', 'value': _g(bs, 'reserves_surplus')},
@@ -57,6 +59,7 @@ def balance_sheet_view(bs):
         {'label': 'Investments', 'value': _g(bs, 'investments')},
         {'label': 'Advances (net)', 'value': _g(bs, 'advances_net')},
         {'label': 'Fixed Assets', 'value': _g(bs, 'fixed_assets')},
+        {'label': 'Intangible Assets', 'value': _g(bs, 'intangible_assets')},
         {'label': 'Other Assets', 'value': _g(bs, 'other_assets')},
     ]
     return {
@@ -64,6 +67,7 @@ def balance_sheet_view(bs):
         'liabilities': liabilities, 'assets': assets,
         'total_liabilities_capital': round(total_lc, 2), 'total_assets': round(total_assets, 2),
         'total_deposits': round(deposits, 2), 'total_capital': round(capital, 2),
+        'tangible_equity': round(_tangible, 2),
         'contingent_liabilities': _g(bs, 'contingent_liabilities'),
         'bills_for_collection': _g(bs, 'bills_for_collection'),
     }
@@ -104,7 +108,7 @@ def profit_loss_view(pl):
 # ── key ratios ─────────────────────────────────────────────────────────────────
 def key_ratios(bs, pl, cap, liq, stats):
     """stats: {gnpa_amount, gross_advances, num_loans, num_npa}."""
-    deposits, capital, _, total_assets = _bs_totals(bs)
+    deposits, capital, tangible_equity, _, total_assets = _bs_totals(bs)
     earning_assets = _g(bs, 'advances_net') + _g(bs, 'investments')
     pat = _g(pl, 'profit_after_tax')
     nii = _g(pl, 'net_interest_income')
@@ -129,7 +133,7 @@ def key_ratios(bs, pl, cap, liq, stats):
         {'label': 'Net Interest Margin (NIM)', 'value': _pct(nii, earning_assets), 'unit': '%', 'section': 'Profitability'},
         {'label': 'Return on Assets (ROA)', 'value': _pct(pat, total_assets), 'unit': '%', 'section': 'Profitability'},
         {'label': 'Return on Equity (ROE)', 'value': _pct(pat, capital), 'unit': '%', 'section': 'Profitability'},
-        {'label': 'Return on Tangible Equity (ROTE)', 'value': _pct(pat, capital), 'unit': '%', 'section': 'Profitability'},
+        {'label': 'Return on Tangible Equity (ROTE)', 'value': _pct(pat, tangible_equity), 'unit': '%', 'section': 'Profitability'},
         {'label': 'Net Profit Margin', 'value': _pct(pat, total_income), 'unit': '%', 'section': 'Profitability'},
         {'label': 'Yield on Advances', 'value': _pct(interest_on_advances, advances_net), 'unit': '%', 'section': 'Profitability'},
         {'label': 'Cost of Funds', 'value': _pct(interest_expended, deposits + borrowings), 'unit': '%', 'section': 'Profitability'},
@@ -150,7 +154,7 @@ def key_ratios(bs, pl, cap, liq, stats):
 # ── performance KPI cards ──────────────────────────────────────────────────────
 def performance_kpis(bs, pl, cap, liq, stats):
     """Headline performance metrics for KPI card display (mix of ₹ and %)."""
-    deposits, capital, _, total_assets = _bs_totals(bs)
+    deposits, capital, tangible_equity, _, total_assets = _bs_totals(bs)
     earning_assets = _g(bs, 'advances_net') + _g(bs, 'investments')
     advances_net = _g(bs, 'advances_net')
     borrowings = _g(bs, 'borrowings')
@@ -170,7 +174,7 @@ def performance_kpis(bs, pl, cap, liq, stats):
          'sub': f"NIM {(_pct(nii, earning_assets) or 0):.2f}% on earning assets"},
         {'label': 'Net Interest Margin (NIM)', 'value': _pct(nii, earning_assets), 'unit': '%',
          'sub': "Interest income on earning assets (advances + investments)"},
-        {'label': 'Return on Tangible Equity (ROTE)', 'value': _pct(pat, capital), 'unit': '%',
+        {'label': 'Return on Tangible Equity (ROTE)', 'value': _pct(pat, tangible_equity), 'unit': '%',
          'sub': f"ROA {(_pct(pat, total_assets) or 0):.2f}% · ROE {(_pct(pat, capital) or 0):.2f}%"},
         {'label': 'Return on Assets (ROA)', 'value': _pct(pat, total_assets), 'unit': '%',
          'sub': f"Total assets ₹{total_assets/1e7:.0f} Cr"},
@@ -186,7 +190,7 @@ def performance_kpis(bs, pl, cap, liq, stats):
 # ── Pillar 3 disclosures ────────────────────────────────────────────────────────
 def pillar3(cap, liq, bs, exposure_mix):
     """Basel III Pillar 3 quantitative disclosure tables."""
-    _, capital, _, total_assets = _bs_totals(bs)
+    _, capital, _tangible, _, total_assets = _bs_totals(bs)
     cet1 = _g(cap, 'tier1_capital')
     return {
         'capital_structure': [

@@ -32,6 +32,10 @@ from datetime import datetime
 _REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 DB_PATH = os.path.join(_REPO_ROOT, 'bank.db')
 
+_MIGRATIONS = [
+    "ALTER TABLE bank_balance_sheet ADD COLUMN intangible_assets REAL DEFAULT 0",
+]
+
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS bank_balance_sheet (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -55,6 +59,8 @@ CREATE TABLE IF NOT EXISTS bank_balance_sheet (
     advances_net REAL,
     fixed_assets REAL,
     other_assets REAL,
+    -- Intangible assets (goodwill, software, brand value — deducted for ROTE)
+    intangible_assets REAL DEFAULT 0,
     -- Off-balance-sheet
     contingent_liabilities REAL,
     bills_for_collection REAL,
@@ -71,6 +77,7 @@ _COLS = ['bank_id', 'period', 'as_on_date', 'currency', 'unit',
          'borrowings', 'other_liabilities',
          'cash_with_rbi', 'balances_with_banks', 'investments',
          'advances_net', 'fixed_assets', 'other_assets',
+         'intangible_assets',
          'contingent_liabilities', 'bills_for_collection',
          'source', 'generated_at']
 
@@ -78,35 +85,52 @@ _COLS = ['bank_id', 'period', 'as_on_date', 'currency', 'unit',
 def _build_sheet(bank_id, period, as_on_date, advances_net, total_deposits, scale, source):
     """Construct one internally-consistent balance sheet (raw INR).
 
+    Strategy: build the liabilities + capital side first (authoritative), then
+    derive balances_with_banks as the plug on the asset side so that
+    Total Assets == Total Liabilities + Capital exactly.
+
     advances_net & total_deposits are the live anchors (scaled for prior years)."""
     A = advances_net * scale
     D = total_deposits * scale
 
-    # ── Assets ──────────────────────────────────────────────────────────────
-    cash_with_rbi       = 0.050 * D            # cash with RBI ~5.0% of NDTL (CRR floor 4.5% + buffer)
-    investments         = 0.27 * D             # SLR/HQLA securities book
-    balances_with_banks = 0.020 * A            # money at call & short notice
-    fixed_assets        = 0.012 * A
-    other_assets        = 0.050 * A
-    total_assets = (cash_with_rbi + balances_with_banks + investments
-                    + A + fixed_assets + other_assets)
-
     # ── Capital base sized to a healthy CRAR (~16% of an ~0.8x-density RWA) ──
-    capital_base = 0.16 * 0.80 * A
+    capital_base     = 0.16 * 0.80 * A
     equity_capital   = 0.20 * capital_base     # paid-up equity share capital
-    reserves_surplus = capital_base - equity_capital
+    reserves_surplus = 0.80 * capital_base     # retained earnings & statutory reserves
 
-    # ── Deposits split (data is savings-only; present a realistic mix) ───────
+    # ── Deposits split ───────────────────────────────────────────────────────
     deposits_demand  = 0.12 * D
     deposits_savings = 0.48 * D
     deposits_term    = D - deposits_demand - deposits_savings
 
-    # ── Other liabilities, then borrowings as the balancing (plug) item ──────
-    other_liabilities = 0.040 * total_assets
-    borrowings = total_assets - (D + capital_base + other_liabilities)
-    if borrowings < 0:                         # well-funded bank → absorb into reserves
-        reserves_surplus += -borrowings
+    # ── Other liabilities (provisioning, payables) — % of deposits ──────────
+    other_liabilities = 0.040 * D
+
+    # ── Borrowings: only if asset requirements exceed deposit + capital funding ─
+    # (computed after asset side; set to 0 for now, resolved below)
+
+    # ── Fixed asset items ────────────────────────────────────────────────────
+    cash_with_rbi     = 0.050 * D             # CRR floor ~4.5% + buffer
+    investments       = 0.270 * D             # SLR / HQLA securities book
+    fixed_assets      = 0.012 * A
+    intangible_assets = 0.030 * capital_base  # software, CBS licences, brand
+    other_assets      = 0.050 * A
+
+    # ── Total liabilities + capital (authoritative) ───────────────────────────
+    total_lc = capital_base + D + other_liabilities
+
+    # ── balances_with_banks is the plug — absorbs any gap so A == L+C ────────
+    fixed_assets_sum = (cash_with_rbi + investments + A
+                        + fixed_assets + intangible_assets + other_assets)
+    gap = total_lc - fixed_assets_sum
+    if gap >= 0:
+        balances_with_banks = gap    # excess funding → interbank placements / call money
         borrowings = 0.0
+    else:
+        balances_with_banks = 0.0
+        borrowings = -gap            # asset-heavy bank → needs wholesale/market borrowing
+
+    total_assets = fixed_assets_sum + balances_with_banks
 
     # ── Off-balance-sheet ────────────────────────────────────────────────────
     contingent_liabilities = 0.60 * total_assets
@@ -123,6 +147,7 @@ def _build_sheet(bank_id, period, as_on_date, advances_net, total_deposits, scal
         'cash_with_rbi': rnd(cash_with_rbi), 'balances_with_banks': rnd(balances_with_banks),
         'investments': rnd(investments), 'advances_net': rnd(A),
         'fixed_assets': rnd(fixed_assets), 'other_assets': rnd(other_assets),
+        'intangible_assets': rnd(intangible_assets),
         'contingent_liabilities': rnd(contingent_liabilities),
         'bills_for_collection': rnd(bills_for_collection),
         'source': source, 'generated_at': datetime.now().isoformat(timespec='seconds'),
@@ -134,12 +159,17 @@ def seed(db_path=DB_PATH, verbose=True):
     conn.row_factory = sqlite3.Row
     cur = conn.cursor()
     cur.executescript(SCHEMA)
+    for sql in _MIGRATIONS:
+        try:
+            cur.execute(sql)
+        except sqlite3.OperationalError:
+            pass  # column already exists
 
     banks = [dict(r) for r in cur.execute("SELECT bank_id, bank_name FROM banks").fetchall()]
     # Two periods: prior FY (scaled down for a trend) and current FY (live-anchored).
     periods = [
-        ('FY2024', '2024-03-31', 0.88, 'synthetic (prior year, scaled)'),
-        ('FY2025', '2025-03-31', 1.00, 'live-anchored (advances=SUM loans, deposits=SUM accounts)'),
+        ('FY2019', '2019-03-31', 0.88, 'synthetic (prior year, scaled)'),
+        ('FY2020', '2020-03-31', 1.00, 'live-anchored (advances=SUM loans, deposits=SUM accounts)'),
     ]
 
     rows = []
@@ -167,14 +197,16 @@ def seed(db_path=DB_PATH, verbose=True):
     if verbose:
         for r in rows:
             ta = (r['cash_with_rbi'] + r['balances_with_banks'] + r['investments']
-                  + r['advances_net'] + r['fixed_assets'] + r['other_assets'])
+                  + r['advances_net'] + r['fixed_assets'] + r['intangible_assets'] + r['other_assets'])
             tl = (r['equity_capital'] + r['reserves_surplus'] + r['deposits_demand']
                   + r['deposits_savings'] + r['deposits_term'] + r['borrowings']
                   + r['other_liabilities'])
-            print(f"{r['bank_id']} {r['period']}: assets Rs {ta:,.0f}  liab+cap Rs {tl:,.0f}  "
-                  f"(diff {ta - tl:,.2f})  | advances {r['advances_net']:,.0f}  "
-                  f"deposits {r['deposits_demand'] + r['deposits_savings'] + r['deposits_term']:,.0f}  "
-                  f"capital {r['equity_capital'] + r['reserves_surplus']:,.0f}")
+            print("{} {}: assets Rs {:,.0f}  liab+cap Rs {:,.0f}  (diff {:.2f})  "
+                  "| advances {:,.0f}  deposits {:,.0f}  capital {:,.0f}".format(
+                      r['bank_id'], r['period'], ta, tl, ta - tl,
+                      r['advances_net'],
+                      r['deposits_demand'] + r['deposits_savings'] + r['deposits_term'],
+                      r['equity_capital'] + r['reserves_surplus']))
     conn.close()
     return rows
 

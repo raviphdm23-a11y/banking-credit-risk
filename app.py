@@ -25,6 +25,11 @@ app.config.from_object(config[config_name])
 # Enable CORS for all routes
 CORS(app, resources={r"/api/*": {"origins": "*"}, r"/operations/api/*": {"origins": "*"}})
 
+# ── Simulation clock (frozen for the Axis Bank experiment) ───────────────────
+# Advance this by saying "the date has changed to X" — never use date.today() for
+# anything that goes into the DB or drives report_date.
+SIM_DATE = '2020-03-31'
+
 # ── Banking Operations (bank.db — direct sqlite3, read-only) ─────────────────
 import sqlite3 as _sqlite3
 
@@ -1869,9 +1874,9 @@ def reg_run_batch():
     """Manually trigger the regulatory batch (also runs daily via APScheduler)."""
     try:
         from operations.scripts.run_regulatory_batch import run_batch
-        results = run_batch(verbose=False)
+        results = run_batch(report_date=SIM_DATE, verbose=False)
         return jsonify({'success': True, 'banks_processed': len(results),
-                        'report_date': __import__('datetime').date.today().isoformat()})
+                        'report_date': SIM_DATE})
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 
@@ -1880,7 +1885,7 @@ def _run_regulatory_batch_job():
     """APScheduler entry point for the daily regulatory batch."""
     try:
         from operations.scripts.run_regulatory_batch import run_batch
-        run_batch(verbose=False)
+        run_batch(report_date=SIM_DATE, verbose=False)
         print('[regulatory] daily batch completed')
     except Exception as e:
         print(f'[regulatory] batch error: {e}')
@@ -2061,10 +2066,10 @@ def ops_loan_classify(loan_id):
 
 
 def _ensure_regulatory_reports():
-    """Run the batch once at startup if today's reports are missing (GCP is ephemeral)."""
+    """Run the batch once at startup if the simulation-date report is missing."""
     try:
         with _ops_conn() as conn:
-            if _reg_latest_date(conn) == __import__('datetime').date.today().isoformat():
+            if _reg_latest_date(conn) == SIM_DATE:
                 return
         _run_regulatory_batch_job()
     except Exception as e:
@@ -2135,7 +2140,7 @@ def _macro_for(conn, code):
     return rows
 
 
-def _fin_gather(conn, bank, period='FY2025'):
+def _fin_gather(conn, bank, period='FY2020'):
     """Gather one bank's stored + computed inputs for the financial reports."""
     from backend import regulatory_engine as _reg
     bid = bank['bank_id']
@@ -2166,7 +2171,7 @@ def _fin_gather(conn, bank, period='FY2025'):
             'stats': stats, 'exposure_mix': list(mix.values())}
 
 
-def _fin_bundle(conn, scope, period='FY2025', as_on='2025-03-31'):
+def _fin_bundle(conn, scope, period='FY2020', as_on='2020-03-31'):
     """Return a report bundle for a bank_id, a region, a country, or the group.
 
     scope:  'CONSOLIDATED' | 'REGION:<region>' | 'COUNTRY:<iso3>' | '<bank_id>'.
@@ -2302,7 +2307,7 @@ def fin_system():
                 snap['net_profit_margin'] = r['value']
             if r.get('label') == 'Cost-to-Income Ratio':
                 snap['cost_to_income'] = r['value']
-    return jsonify({'period': 'FY2025', 'banks': cards, 'consolidated': snap, 'tree': tree})
+    return jsonify({'period': 'FY2020', 'banks': cards, 'consolidated': snap, 'tree': tree})
 
 
 @app.route('/financials/api/region/<region>')
