@@ -26,9 +26,20 @@ app.config.from_object(config[config_name])
 CORS(app, resources={r"/api/*": {"origins": "*"}, r"/operations/api/*": {"origins": "*"}})
 
 # ── Simulation clock (frozen for the Axis Bank experiment) ───────────────────
-# Advance this by saying "the date has changed to X" — never use date.today() for
-# anything that goes into the DB or drives report_date.
-SIM_DATE = '2020-03-31'
+# Single source of truth is simulation_clock.json in the repo root.
+# Advance by editing that file and re-running the seeders + regulatory batch.
+def _load_sim_clock():
+    import json as _json
+    _clk = os.path.join(os.path.dirname(__file__), 'simulation_clock.json')
+    try:
+        with open(_clk) as _f:
+            return _json.load(_f)
+    except Exception:
+        return {'sim_date': '2020-03-31', 'sim_period': 'FY2020'}
+
+_SIM_CLOCK = _load_sim_clock()
+SIM_DATE   = _SIM_CLOCK['sim_date']
+SIM_PERIOD = _SIM_CLOCK.get('sim_period', 'FY2020')
 
 # ── Banking Operations (bank.db — direct sqlite3, read-only) ─────────────────
 import sqlite3 as _sqlite3
@@ -2140,7 +2151,8 @@ def _macro_for(conn, code):
     return rows
 
 
-def _fin_gather(conn, bank, period='FY2020'):
+def _fin_gather(conn, bank, period=None):
+    period = period or SIM_PERIOD
     """Gather one bank's stored + computed inputs for the financial reports."""
     from backend import regulatory_engine as _reg
     bid = bank['bank_id']
@@ -2171,7 +2183,9 @@ def _fin_gather(conn, bank, period='FY2020'):
             'stats': stats, 'exposure_mix': list(mix.values())}
 
 
-def _fin_bundle(conn, scope, period='FY2020', as_on='2020-03-31'):
+def _fin_bundle(conn, scope, period=None, as_on=None):
+    period = period or SIM_PERIOD
+    as_on  = as_on  or SIM_DATE
     """Return a report bundle for a bank_id, a region, a country, or the group.
 
     scope:  'CONSOLIDATED' | 'REGION:<region>' | 'COUNTRY:<iso3>' | '<bank_id>'.

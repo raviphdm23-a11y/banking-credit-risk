@@ -90,7 +90,15 @@ _EXP_COLS = ['cid', 'customer_name', 'loan_id', 'loan_type', 'classification',
              'expected_loss', 'provision']
 
 
-SIM_DATE = '2020-03-31'  # frozen simulation clock for Axis Bank experiment
+def _read_sim_date():
+    import json as _json
+    clk = os.path.join(_REPO_ROOT, 'simulation_clock.json')
+    try:
+        return _json.load(open(clk))['sim_date']
+    except Exception:
+        return '2020-03-31'
+
+SIM_DATE = _read_sim_date()
 
 def run_batch(db_path=DB_PATH, report_date=None, verbose=True):
     report_date = report_date or SIM_DATE

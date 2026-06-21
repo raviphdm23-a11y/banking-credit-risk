@@ -1,0 +1,7 @@
+{
+  "sim_date":      "2020-03-31",
+  "sim_period":    "FY2020",
+  "prior_period":  "FY2019",
+  "description":   "Frozen simulation clock for the Axis Bank (BANK010) experiment. Advance by updating sim_date and sim_period, then re-run the balance sheet, P&L, and regulatory batch seeders.",
+  "last_updated":  "2020-03-31"
+}
