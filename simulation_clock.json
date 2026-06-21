@@ -1,7 +1,8 @@
 {
-  "sim_date":      "2020-03-31",
-  "sim_period":    "FY2020",
-  "prior_period":  "FY2019",
-  "description":   "Frozen simulation clock for the Axis Bank (BANK010) experiment. Advance by updating sim_date and sim_period, then re-run the balance sheet, P&L, and regulatory batch seeders.",
-  "last_updated":  "2020-03-31"
+  "sim_date": "2020-04-30",
+  "sim_period": "APR2020",
+  "prior_period": "FY2020",
+  "description": "Frozen simulation clock for the Axis Bank (BANK010) experiment. Advance by updating sim_date and sim_period, then re-run the balance sheet, P&L, and regulatory batch seeders.",
+  "last_updated": "2020-04-30",
+  "notes": "COVID-19 lockdown month 1. Moratorium on 30% of loans. Repo rate 4.40%. New disbursals frozen except essential sectors."
 }
