@@ -193,8 +193,8 @@ Each month, provisions have three components:
 
 | Initiative | Status | Activation Month | Impact Observed |
 |---|---|---|---|
-| S1 — Moratorium stratification | Pending | August 2020 | — |
-| S2 — Voluntary provision buffer | Pending | August 2020 | — |
+| S1 — Moratorium stratification | **Active** | August 2020 | 413G / 728A / 75R scored |
+| S2 — Voluntary provision buffer | **Active** | August 2020 | Rs3 Cr built in other_liabilities |
 | S3 — TLTRO 2.0 tap | Pending | October 2020 | — |
 | S4 — CASA campaign | Pending | December 2020 | — |
 | S5 — SDL rotation | Pending | November 2020 | — |
@@ -214,7 +214,7 @@ Each month, provisions have three components:
 | MAY2020 | Unlock 1.0; ECLGS launched; repo 4.00% | −6.18 | 20 | 35% | 20 |
 | JUN2020 | Unlock 1.0 full; moratorium opt-outs begin | −4.73 | 28 | 33% | 25 |
 | JUL2020 | Unlock 3.0; Kharif season; final COVID prov | −4.51 | 36 | 31% | 30 |
-| AUG2020 | — | — | — | — | — |
+| AUG2020 | RBI OTR; moratorium ends; S1+S2 activated | +2.42 | 41 | 28% | 22 |
 | SEP2020 | — | — | — | — | — |
 | OCT2020 | — | — | — | — | — |
 | NOV2020 | — | — | — | — | — |
