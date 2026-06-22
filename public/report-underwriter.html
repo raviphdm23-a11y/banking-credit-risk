@@ -99,6 +99,36 @@
       <div id="fiveCsTable"></div>
     </div>
 
+    <!-- 2b. Macro Regime Score -->
+    <div class="report-section" id="macroRegimeSection">
+      <div class="section-title">2b &mdash; Macro Regime Score (Economic Context)</div>
+      <div id="macroRegimePanel" style="display:none">
+        <div style="display:flex;gap:18px;align-items:flex-start;flex-wrap:wrap;margin-bottom:14px">
+          <div id="mrsBadge" style="min-width:160px;padding:16px 22px;border-radius:10px;
+               text-align:center;font-family:system-ui">
+            <div style="font-size:2.4em;font-weight:800;line-height:1" id="mrsScore">0</div>
+            <div style="font-size:0.78em;margin-top:4px;font-weight:600;letter-spacing:.5px" id="mrsLabel">Normal</div>
+            <div style="font-size:0.68em;margin-top:2px;opacity:.8">out of 100</div>
+          </div>
+          <div style="flex:1;min-width:240px">
+            <p id="mrsInterpretation" style="margin:0 0 10px;font-size:0.88em;color:#334155;
+               line-height:1.55;padding:10px 14px;background:#f8fafc;border-radius:6px;
+               border-left:3px solid #94a3b8"></p>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px" id="mrsDeltaGrid"></div>
+          </div>
+        </div>
+        <div style="background:#f1f5f9;border-radius:8px;padding:10px 14px;font-size:0.8em;color:#475569">
+          <strong>How to read:</strong> The Macro Regime Score (0-100) measures how far current
+          economic conditions have shifted from the prior year. A score above 56 signals a
+          COVID/crisis-era regime — the PD you see above is already adjusted for this context.
+          Scores 0-25 = Normal cycle &nbsp;|&nbsp; 26-55 = Moderate stress &nbsp;|&nbsp; 56+ = Severe distress
+        </div>
+      </div>
+      <p id="macroRegimeNA" style="color:#94a3b8;font-size:0.85em">
+        Country macro data unavailable — MRS not computed.
+      </p>
+    </div>
+
     <!-- 3. Peer Comparison -->
     <div class="report-section">
       <div class="section-title">3 &mdash; Your Metrics vs Approved Borrowers</div>
@@ -439,6 +469,9 @@ function renderReport(f, rmCtx) {
   // Section 2: Five C's
   renderFiveCs(f.five_cs);
 
+  // Section 2b: Macro Regime Score
+  renderMacroRegime(f.macro_regime);
+
   // Section 3: Peer health
   ReportCharts.drawFeatureHealth(document.getElementById('healthChart'), f.peer_health || {});
   renderPeerHealthGrid(f.peer_health || {});
@@ -560,6 +593,61 @@ function renderFiveCs(fiveCs) {
     </div>` : '';
 
   tableWrap.innerHTML = commentary;
+}
+
+// ── Macro Regime Score ─────────────────────────────────────────────────────
+
+function renderMacroRegime(mr) {
+  const panel = document.getElementById('macroRegimePanel');
+  const naMsg = document.getElementById('macroRegimeNA');
+  if (!mr || mr.score === undefined) {
+    if (naMsg) naMsg.style.display = '';
+    return;
+  }
+  if (naMsg) naMsg.style.display = 'none';
+  panel.style.display = '';
+
+  const score = mr.score || 0;
+  const badge = document.getElementById('mrsBadge');
+  const scoreEl = document.getElementById('mrsScore');
+  const labelEl = document.getElementById('mrsLabel');
+  scoreEl.textContent = score.toFixed(0);
+  labelEl.textContent = mr.label || 'Normal';
+
+  // Colour the badge by regime
+  if (score <= 25) {
+    badge.style.background = '#f0fdf4'; badge.style.border = '2px solid #16a34a';
+    badge.style.color = '#14532d';
+  } else if (score <= 55) {
+    badge.style.background = '#fffbeb'; badge.style.border = '2px solid #d97706';
+    badge.style.color = '#92400e';
+  } else {
+    badge.style.background = '#fef2f2'; badge.style.border = '2px solid #dc2626';
+    badge.style.color = '#7f1d1d';
+  }
+
+  document.getElementById('mrsInterpretation').textContent = mr.interpretation || '';
+
+  const deltas = [
+    { key: 'delta_gdp_pct',          label: 'GDP Growth shift',   unit: 'pp', good: 'positive' },
+    { key: 'delta_unemployment_pct',  label: 'Unemployment shift', unit: 'pp', good: 'negative' },
+    { key: 'delta_policy_rate_pct',   label: 'Policy Rate shift',  unit: 'pp', good: 'neutral'  },
+    { key: 'delta_cpi_pct',           label: 'CPI Inflation shift',unit: 'pp', good: 'negative' },
+  ];
+  const grid = document.getElementById('mrsDeltaGrid');
+  deltas.forEach(d => {
+    const val = mr[d.key] || 0;
+    const sign  = val >= 0 ? '+' : '';
+    let color = '#64748b';
+    if (d.good === 'positive') color = val > 1 ? '#16a34a' : val < -1 ? '#dc2626' : '#64748b';
+    if (d.good === 'negative') color = val >  1 ? '#dc2626' : val < -1 ? '#16a34a' : '#64748b';
+    grid.innerHTML += `
+      <div style="padding:8px 10px;background:#f8fafc;border-radius:6px;
+                  border-left:3px solid ${color}">
+        <div style="font-size:0.72em;color:#64748b;margin-bottom:2px">${d.label}</div>
+        <div style="font-size:1.05em;font-weight:700;color:${color}">${sign}${val.toFixed(1)} ${d.unit}</div>
+      </div>`;
+  });
 }
 
 // ── Peer Health Grid ───────────────────────────────────────────────────────

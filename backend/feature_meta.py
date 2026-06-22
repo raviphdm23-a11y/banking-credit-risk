@@ -84,16 +84,27 @@ EXTRA_FEATURE_DEFAULTS = {
     "delta_de_ratio":            0.0,   # no change in leverage since origination
     "delta_cibil":               0.0,   # no change in credit score
     "months_since_origination": 24.0,   # typical mid-life loan observation
+    # Macro regime delta features — defaults assume normal-cycle (no regime shift)
+    "delta_gdp_pct":             0.0,   # pp change in GDP growth vs prior year
+    "delta_cpi_pct":             0.0,   # pp change in CPI inflation vs prior year
+    "delta_policy_rate_pct":     0.0,   # pp change in central bank policy rate
+    "delta_unemployment_pct":    0.0,   # pp change in unemployment rate
+    "macro_regime_score":        0.0,   # 0-100 composite distress score (0=normal, 56+=severe)
 }
 
-_MACRO_COLS = ('gdp_growth_pct', 'inflation_cpi_pct', 'policy_rate_pct', 'unemployment_pct')
+_MACRO_COLS = (
+    'gdp_growth_pct', 'inflation_cpi_pct', 'policy_rate_pct', 'unemployment_pct',
+    'delta_gdp_pct', 'delta_cpi_pct', 'delta_policy_rate_pct',
+    'delta_unemployment_pct', 'macro_regime_score',
+)
 
 
 def lookup_country_macro(country_code: str, db_path: str) -> dict:
-    """Return macro feature dict for a given ISO-3 country code from bank.db.
+    """Return macro + regime-delta features for a given ISO-3 country code.
 
-    Queries the latest period in country_macro. Falls back to EXTRA_FEATURE_DEFAULTS
-    values when the country is not found.
+    Queries the latest period in country_macro (which is CY2021 for COVID
+    countries after add_macro_regime_score.py is run). Falls back to
+    EXTRA_FEATURE_DEFAULTS when the country is not found.
     """
     import sqlite3, os
     result = {}
@@ -103,17 +114,22 @@ def lookup_country_macro(country_code: str, db_path: str) -> dict:
         conn = sqlite3.connect(db_path)
         cur = conn.cursor()
         cur.execute(
-            "SELECT gdp_growth_pct, inflation_cpi_pct, policy_rate_pct, unemployment_pct "
+            "SELECT gdp_growth_pct, inflation_cpi_pct, policy_rate_pct, unemployment_pct, "
+            "       delta_gdp_pct, delta_cpi_pct, delta_policy_rate_pct, "
+            "       delta_unemployment_pct, macro_regime_score "
             "FROM country_macro WHERE country_code = ? ORDER BY period DESC LIMIT 1",
             (country_code,)
         )
         row = cur.fetchone()
         conn.close()
         if row:
-            result['gdp_growth_pct']    = float(row[0]) if row[0] is not None else EXTRA_FEATURE_DEFAULTS['gdp_growth_pct']
-            result['inflation_cpi_pct'] = float(row[1]) if row[1] is not None else EXTRA_FEATURE_DEFAULTS['inflation_cpi_pct']
-            result['policy_rate_pct']   = float(row[2]) if row[2] is not None else EXTRA_FEATURE_DEFAULTS['policy_rate_pct']
-            result['unemployment_pct']  = float(row[3]) if row[3] is not None else EXTRA_FEATURE_DEFAULTS['unemployment_pct']
+            keys = [
+                'gdp_growth_pct', 'inflation_cpi_pct', 'policy_rate_pct', 'unemployment_pct',
+                'delta_gdp_pct', 'delta_cpi_pct', 'delta_policy_rate_pct',
+                'delta_unemployment_pct', 'macro_regime_score',
+            ]
+            for i, k in enumerate(keys):
+                result[k] = float(row[i]) if row[i] is not None else EXTRA_FEATURE_DEFAULTS.get(k, 0.0)
     except Exception:
         pass
     return result

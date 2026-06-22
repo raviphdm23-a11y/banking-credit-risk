@@ -69,10 +69,13 @@ FEATURE_COLS  = [
     'loan_purpose_enc', 'cibil_score', 'previous_default_flag',
     'months_as_customer', 'num_late_payments_past_12m',
     'existing_loans_count', 'num_existing_products',
-    # Country macro (4) — from country_macro table via country_code
+    # Country macro levels (4)
     'gdp_growth_pct', 'inflation_cpi_pct', 'policy_rate_pct', 'unemployment_pct',
     # Trend features (3) — direction of travel since loan origination
     'delta_de_ratio', 'delta_cibil', 'months_since_origination',
+    # Macro regime delta features (5) — regime shift detection
+    'delta_gdp_pct', 'delta_cpi_pct', 'delta_policy_rate_pct',
+    'delta_unemployment_pct', 'macro_regime_score',
 ]
 TARGET_COL    = 'default_flag'
 
@@ -135,7 +138,9 @@ def load_from_db():
             "       num_late_payments_past_12m, existing_loans_count, "
             "       num_existing_products, is_rural, country_code, "
             "       gdp_growth_pct, inflation_cpi_pct, policy_rate_pct, unemployment_pct, "
-            "       delta_de_ratio, delta_cibil, months_since_origination "
+            "       delta_de_ratio, delta_cibil, months_since_origination, "
+            "       delta_gdp_pct, delta_cpi_pct, delta_policy_rate_pct, "
+            "       delta_unemployment_pct, macro_regime_score "
             "FROM bank_loan_metrics",
             conn
         )
@@ -144,7 +149,9 @@ def load_from_db():
             return None
         # Fill any missing feature values with column medians
         fill_cols = ('gdp_growth_pct', 'inflation_cpi_pct', 'policy_rate_pct', 'unemployment_pct',
-                     'delta_de_ratio', 'delta_cibil', 'months_since_origination')
+                     'delta_de_ratio', 'delta_cibil', 'months_since_origination',
+                     'delta_gdp_pct', 'delta_cpi_pct', 'delta_policy_rate_pct',
+                     'delta_unemployment_pct', 'macro_regime_score')
         for col in fill_cols:
             if col in df.columns:
                 df[col] = df[col].fillna(df[col].median())

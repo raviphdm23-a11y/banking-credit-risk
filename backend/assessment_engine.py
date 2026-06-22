@@ -128,6 +128,11 @@ class AssessmentEngine:
         counterfactuals = self._counterfact.generate(inputs, attribution)
 
         # 10. Assemble & hash
+        mrs = float(inputs.get('macro_regime_score', 0.0))
+        if   mrs <= 25:  mrs_label = 'Normal'
+        elif mrs <= 55:  mrs_label = 'Moderate Stress'
+        else:            mrs_label = 'Severe Distress'
+
         findings = {
             "report_id":     str(uuid.uuid4()),
             "timestamp":     datetime.now(timezone.utc).isoformat(),
@@ -147,6 +152,19 @@ class AssessmentEngine:
             "five_cs":           five_cs,
             "peer_health":       peer_health,
             "counterfactuals":   counterfactuals,
+            "macro_regime": {
+                "score":                 round(mrs, 1),
+                "label":                 mrs_label,
+                "delta_gdp_pct":         round(float(inputs.get('delta_gdp_pct', 0.0)), 2),
+                "delta_unemployment_pct":round(float(inputs.get('delta_unemployment_pct', 0.0)), 2),
+                "delta_policy_rate_pct": round(float(inputs.get('delta_policy_rate_pct', 0.0)), 2),
+                "delta_cpi_pct":         round(float(inputs.get('delta_cpi_pct', 0.0)), 2),
+                "interpretation": (
+                    "No significant regime shift detected — standard cycle conditions." if mrs <= 25
+                    else "Moderate macro stress — cyclical headwinds elevating default probability." if mrs <= 55
+                    else "Severe macro distress — COVID/crisis-era conditions; PD materially elevated."
+                ),
+            },
         }
         findings["content_hash"] = self._hash(findings)
         return findings

@@ -1,5 +1,324 @@
 [
   {
+    "run_id": "run_20260622_215327",
+    "timestamp": "2026-06-22T21:53:27",
+    "triggered_by": "manual",
+    "status": "success",
+    "files_used": [
+      {
+        "filename": "bank_loan_metrics (bank.db)",
+        "rows": 3800
+      },
+      {
+        "filename": "axis_bank_covid_2020.csv",
+        "rows": 180
+      },
+      {
+        "filename": "indian_banks_synthetic_2024.csv",
+        "rows": 14300
+      }
+    ],
+    "files_skipped": [],
+    "total_rows": 18280,
+    "train_rows": 14624,
+    "test_rows": 3656,
+    "metrics": {
+      "auc_roc": 0.9709,
+      "accuracy": 0.8597,
+      "precision": 0.3435,
+      "recall": 0.935,
+      "f1": 0.5024,
+      "brier_score": 0.052441,
+      "n_test": 3656,
+      "n_defaults": 277,
+      "default_rate": 0.0758
+    },
+    "confusion_matrix": [
+      [
+        2884,
+        495
+      ],
+      [
+        18,
+        259
+      ]
+    ],
+    "model_promoted": true,
+    "duration_seconds": 1.73,
+    "error": null,
+    "promotion_check": {
+      "auc": 0.9709,
+      "n_trained": 14624,
+      "min_rows_floor": 100,
+      "rows_ok": true
+    }
+  },
+  {
+    "run_id": "run_20260622_211656",
+    "timestamp": "2026-06-22T21:16:56",
+    "triggered_by": "manual",
+    "status": "success",
+    "files_used": [
+      {
+        "filename": "bank_loan_metrics (bank.db)",
+        "rows": 3800
+      },
+      {
+        "filename": "axis_bank_covid_2020.csv",
+        "rows": 180
+      },
+      {
+        "filename": "indian_banks_synthetic_2024.csv",
+        "rows": 14300
+      }
+    ],
+    "files_skipped": [],
+    "total_rows": 18280,
+    "train_rows": 14624,
+    "test_rows": 3656,
+    "metrics": {
+      "auc_roc": 0.9704,
+      "accuracy": 0.8569,
+      "precision": 0.3394,
+      "recall": 0.9386,
+      "f1": 0.4986,
+      "brier_score": 0.052833,
+      "n_test": 3656,
+      "n_defaults": 277,
+      "default_rate": 0.0758
+    },
+    "confusion_matrix": [
+      [
+        2873,
+        506
+      ],
+      [
+        17,
+        260
+      ]
+    ],
+    "model_promoted": true,
+    "duration_seconds": 1.6,
+    "error": null,
+    "promotion_check": {
+      "auc": 0.9704,
+      "n_trained": 14624,
+      "min_rows_floor": 100,
+      "rows_ok": true
+    }
+  },
+  {
+    "run_id": "run_20260622_211431",
+    "timestamp": "2026-06-22T21:14:31",
+    "triggered_by": "manual",
+    "status": "success",
+    "files_used": [
+      {
+        "filename": "bank_loan_metrics (bank.db)",
+        "rows": 3800
+      },
+      {
+        "filename": "axis_bank_covid_2020.csv",
+        "rows": 3980
+      }
+    ],
+    "files_skipped": [],
+    "total_rows": 3980,
+    "train_rows": 3184,
+    "test_rows": 796,
+    "metrics": {
+      "auc_roc": 0.7512,
+      "accuracy": 0.8518,
+      "precision": 0.1466,
+      "recall": 0.4722,
+      "f1": 0.2237,
+      "brier_score": 0.049284,
+      "n_test": 796,
+      "n_defaults": 36,
+      "default_rate": 0.0452
+    },
+    "confusion_matrix": [
+      [
+        661,
+        99
+      ],
+      [
+        19,
+        17
+      ]
+    ],
+    "model_promoted": true,
+    "duration_seconds": 1.39,
+    "error": null,
+    "promotion_check": {
+      "auc": 0.7512,
+      "n_trained": 3184,
+      "min_rows_floor": 100,
+      "rows_ok": true
+    }
+  },
+  {
+    "run_id": "run_20260622_211352",
+    "timestamp": "2026-06-22T21:13:52",
+    "triggered_by": "manual",
+    "status": "success",
+    "files_used": [
+      {
+        "filename": "bank_loan_metrics (bank.db)",
+        "rows": 3800
+      },
+      {
+        "filename": "indian_banks_synthetic_2024.csv",
+        "rows": 14300
+      }
+    ],
+    "files_skipped": [
+      {
+        "filename": "axis_bank_covid_2020.csv",
+        "reason": "employment_type_enc has values outside valid range [1.0, 7.0]"
+      }
+    ],
+    "total_rows": 18100,
+    "train_rows": 14480,
+    "test_rows": 3620,
+    "metrics": {
+      "auc_roc": 0.9703,
+      "accuracy": 0.8472,
+      "precision": 0.337,
+      "recall": 0.9446,
+      "f1": 0.4968,
+      "brier_score": 0.05542,
+      "n_test": 3620,
+      "n_defaults": 289,
+      "default_rate": 0.0798
+    },
+    "confusion_matrix": [
+      [
+        2794,
+        537
+      ],
+      [
+        16,
+        273
+      ]
+    ],
+    "model_promoted": true,
+    "duration_seconds": 1.58,
+    "error": null,
+    "promotion_check": {
+      "auc": 0.9703,
+      "n_trained": 14480,
+      "min_rows_floor": 100,
+      "rows_ok": true
+    }
+  },
+  {
+    "run_id": "run_20260622_211202",
+    "timestamp": "2026-06-22T21:12:02",
+    "triggered_by": "manual",
+    "status": "success",
+    "files_used": [
+      {
+        "filename": "bank_loan_metrics (bank.db)",
+        "rows": 3800
+      }
+    ],
+    "files_skipped": [
+      {
+        "filename": "axis_bank_covid_2020.csv",
+        "reason": "employment_type_enc has values outside valid range [1.0, 7.0]"
+      }
+    ],
+    "total_rows": 3800,
+    "train_rows": 3040,
+    "test_rows": 760,
+    "metrics": {
+      "auc_roc": 0.7954,
+      "accuracy": 0.825,
+      "precision": 0.15,
+      "recall": 0.6,
+      "f1": 0.24,
+      "brier_score": 0.049272,
+      "n_test": 760,
+      "n_defaults": 35,
+      "default_rate": 0.0461
+    },
+    "confusion_matrix": [
+      [
+        606,
+        119
+      ],
+      [
+        14,
+        21
+      ]
+    ],
+    "model_promoted": true,
+    "duration_seconds": 1.46,
+    "error": null,
+    "promotion_check": {
+      "auc": 0.7954,
+      "n_trained": 3040,
+      "min_rows_floor": 100,
+      "rows_ok": true
+    }
+  },
+  {
+    "run_id": "run_20260622_211103",
+    "timestamp": "2026-06-22T21:11:03",
+    "triggered_by": "manual",
+    "status": "success",
+    "files_used": [
+      {
+        "filename": "bank_loan_metrics (bank.db)",
+        "rows": 3800
+      },
+      {
+        "filename": "indian_banks_synthetic_2024.csv",
+        "rows": 14300
+      }
+    ],
+    "files_skipped": [
+      {
+        "filename": "axis_bank_covid_2020.csv",
+        "reason": "Missing columns: ['bank_id', 'is_rural', 'loan_id', 'observation_date']"
+      }
+    ],
+    "total_rows": 18100,
+    "train_rows": 14480,
+    "test_rows": 3620,
+    "metrics": {
+      "auc_roc": 0.9703,
+      "accuracy": 0.8472,
+      "precision": 0.337,
+      "recall": 0.9446,
+      "f1": 0.4968,
+      "brier_score": 0.05542,
+      "n_test": 3620,
+      "n_defaults": 289,
+      "default_rate": 0.0798
+    },
+    "confusion_matrix": [
+      [
+        2794,
+        537
+      ],
+      [
+        16,
+        273
+      ]
+    ],
+    "model_promoted": true,
+    "duration_seconds": 3.84,
+    "error": null,
+    "promotion_check": {
+      "auc": 0.9703,
+      "n_trained": 14480,
+      "min_rows_floor": 100,
+      "rows_ok": true
+    }
+  },
+  {
     "run_id": "run_20260619_211947",
     "timestamp": "2026-06-19T21:19:47",
     "triggered_by": "manual",
@@ -1853,276 +2172,5 @@
     "model_promoted": false,
     "duration_seconds": 0.17,
     "error": "Traceback (most recent call last):\n  File \"C:\\Users\\Arnav\\OneDrive\\Desktop\\Daily reading\\Banking_Credit_Risk\\ml_models\\trainer.py\", line 563, in run_training\n    merged, files_used, files_skip, dupes = load_and_merge()\n  File \"C:\\Users\\Arnav\\OneDrive\\Desktop\\Daily reading\\Banking_Credit_Risk\\ml_models\\trainer.py\", line 351, in load_and_merge\n    'No valid training data found. '\nValueError: No valid training data found. bank_loan_metrics table is empty or unavailable, and no CSV files exist in data/training/.\n"
-  },
-  {
-    "run_id": "run_20260615_230606",
-    "timestamp": "2026-06-15T23:06:06",
-    "triggered_by": "context_feature_expansion",
-    "status": "failed",
-    "files_used": [],
-    "files_skipped": [],
-    "total_rows": 0,
-    "train_rows": 0,
-    "test_rows": 0,
-    "metrics": {},
-    "confusion_matrix": [],
-    "model_promoted": false,
-    "duration_seconds": 0.18,
-    "error": "Traceback (most recent call last):\n  File \"C:\\Users\\Arnav\\OneDrive\\Desktop\\Daily reading\\Banking_Credit_Risk\\ml_models\\trainer.py\", line 563, in run_training\n    merged, files_used, files_skip, dupes = load_and_merge()\n  File \"C:\\Users\\Arnav\\OneDrive\\Desktop\\Daily reading\\Banking_Credit_Risk\\ml_models\\trainer.py\", line 351, in load_and_merge\n    'No valid training data found. '\nValueError: No valid training data found. bank_loan_metrics table is empty or unavailable, and no CSV files exist in data/training/.\n"
-  },
-  {
-    "run_id": "run_20260615_174115",
-    "timestamp": "2026-06-15T17:41:15",
-    "triggered_by": "db_source_final",
-    "status": "success",
-    "files_used": [
-      {
-        "filename": "bank_loan_metrics (bank.db)",
-        "rows": 2800
-      }
-    ],
-    "files_skipped": [],
-    "total_rows": 2800,
-    "train_rows": 2240,
-    "test_rows": 560,
-    "metrics": {
-      "r2": 0.6236,
-      "rmse": 0.015511,
-      "mae": 0.01245,
-      "auc_roc": 0.9488,
-      "accuracy": 0.7964,
-      "precision": 0.2292,
-      "recall": 0.9167,
-      "f1": 0.3667
-    },
-    "confusion_matrix": [
-      [
-        413,
-        111
-      ],
-      [
-        3,
-        33
-      ]
-    ],
-    "model_promoted": false,
-    "duration_seconds": 1.09,
-    "error": null
-  },
-  {
-    "run_id": "run_20260615_174043",
-    "timestamp": "2026-06-15T17:40:43",
-    "triggered_by": "db_source_test",
-    "status": "failed",
-    "files_used": [
-      {
-        "filename": "bank_loan_metrics (bank.db)",
-        "rows": 2800
-      }
-    ],
-    "files_skipped": [],
-    "total_rows": 2800,
-    "train_rows": 2240,
-    "test_rows": 560,
-    "metrics": {
-      "r2": 0.6236,
-      "rmse": 0.015511,
-      "mae": 0.01245,
-      "auc_roc": 0.9488,
-      "accuracy": 0.7964,
-      "precision": 0.2292,
-      "recall": 0.9167,
-      "f1": 0.3667
-    },
-    "confusion_matrix": [
-      [
-        413,
-        111
-      ],
-      [
-        3,
-        33
-      ]
-    ],
-    "model_promoted": false,
-    "duration_seconds": 0.33,
-    "error": "Traceback (most recent call last):\n  File \"C:\\Users\\Arnav\\AppData\\Local\\Programs\\Python\\Python37\\lib\\site-packages\\matplotlib\\style\\core.py\", line 127, in use\n    rc = rc_params_from_file(style, use_default_template=False)\n  File \"C:\\Users\\Arnav\\AppData\\Local\\Programs\\Python\\Python37\\lib\\site-packages\\matplotlib\\__init__.py\", line 854, in rc_params_from_file\n    config_from_file = _rc_params_in_file(fname, fail_on_error=fail_on_error)\n  File \"C:\\Users\\Arnav\\AppData\\Local\\Programs\\Python\\Python37\\lib\\site-packages\\matplotlib\\__init__.py\", line 780, in _rc_params_in_file\n    with _open_file_or_url(fname) as fd:\n  File \"C:\\Users\\Arnav\\AppData\\Local\\Programs\\Python\\Python37\\lib\\contextlib.py\", line 112, in __enter__\n    return next(self.gen)\n  File \"C:\\Users\\Arnav\\AppData\\Local\\Programs\\Python\\Python37\\lib\\site-packages\\matplotlib\\__init__.py\", line 757, in _open_file_or_url\n    with open(fname, encoding=encoding) as f:\nFileNotFoundError: [Errno 2] No such file or directory: 'seaborn-v0_8-whitegrid'\n\nThe above exception was the direct cause of the following exception:\n\nTraceback (most recent call last):\n  File \".\\ml_models\\trainer.py\", line 523, in run_training\n    charts = generate_charts(model, X_test, y_test, y_pred, df_test, threshold)\n  File \".\\ml_models\\trainer.py\", line 368, in generate_charts\n    plt.style.use('seaborn-v0_8-whitegrid')\n  File \"C:\\Users\\Arnav\\AppData\\Local\\Programs\\Python\\Python37\\lib\\site-packages\\matplotlib\\style\\core.py\", line 133, in use\n    \"available styles\".format(style)) from err\nOSError: 'seaborn-v0_8-whitegrid' not found in the style library and input is not a valid URL or path; see `style.available` for list of available styles\n"
-  },
-  {
-    "run_id": "run_20260608_221023",
-    "timestamp": "2026-06-08T22:10:23",
-    "triggered_by": "manual",
-    "status": "success",
-    "files_used": [
-      {
-        "filename": "axis_bank_2024.csv",
-        "rows": 2000
-      },
-      {
-        "filename": "bank_of_baroda_2024.csv",
-        "rows": 1800
-      },
-      {
-        "filename": "hdfc_bank_2024.csv",
-        "rows": 2500
-      },
-      {
-        "filename": "icici_bank_2024.csv",
-        "rows": 2800
-      },
-      {
-        "filename": "pnb_2024.csv",
-        "rows": 2200
-      },
-      {
-        "filename": "sbi_2024.csv",
-        "rows": 3000
-      }
-    ],
-    "files_skipped": [],
-    "total_rows": 14300,
-    "train_rows": 11440,
-    "test_rows": 2860,
-    "metrics": {
-      "r2": 0.7013,
-      "rmse": 0.014818,
-      "mae": 0.011877,
-      "auc_roc": 0.9552,
-      "accuracy": 0.8024,
-      "precision": 0.3005,
-      "recall": 0.9558,
-      "f1": 0.4573
-    },
-    "confusion_matrix": [
-      [
-        2057,
-        554
-      ],
-      [
-        11,
-        238
-      ]
-    ],
-    "model_promoted": false,
-    "duration_seconds": 1.77,
-    "error": null
-  },
-  {
-    "run_id": "run_20260607_224357",
-    "timestamp": "2026-06-07T22:43:57",
-    "triggered_by": "manual",
-    "status": "success",
-    "files_used": [
-      {
-        "filename": "axis_bank_2024.csv",
-        "rows": 2000
-      },
-      {
-        "filename": "bank_of_baroda_2024.csv",
-        "rows": 1800
-      },
-      {
-        "filename": "hdfc_bank_2024.csv",
-        "rows": 2500
-      },
-      {
-        "filename": "icici_bank_2024.csv",
-        "rows": 2800
-      },
-      {
-        "filename": "pnb_2024.csv",
-        "rows": 2200
-      },
-      {
-        "filename": "sbi_2024.csv",
-        "rows": 3000
-      }
-    ],
-    "files_skipped": [],
-    "total_rows": 14300,
-    "train_rows": 11440,
-    "test_rows": 2860,
-    "metrics": {
-      "r2": 0.7013,
-      "rmse": 0.014818,
-      "mae": 0.011877,
-      "auc_roc": 0.9552,
-      "accuracy": 0.8024,
-      "precision": 0.3005,
-      "recall": 0.9558,
-      "f1": 0.4573
-    },
-    "confusion_matrix": [
-      [
-        2057,
-        554
-      ],
-      [
-        11,
-        238
-      ]
-    ],
-    "model_promoted": false,
-    "duration_seconds": 1.45,
-    "error": null
-  },
-  {
-    "run_id": "run_20260607_220106",
-    "timestamp": "2026-06-07T22:01:06",
-    "triggered_by": "manual",
-    "status": "success",
-    "files_used": [
-      {
-        "filename": "axis_bank_2024.csv",
-        "rows": 2000
-      },
-      {
-        "filename": "bank_of_baroda_2024.csv",
-        "rows": 1800
-      },
-      {
-        "filename": "hdfc_bank_2024.csv",
-        "rows": 2500
-      },
-      {
-        "filename": "icici_bank_2024.csv",
-        "rows": 2800
-      },
-      {
-        "filename": "pnb_2024.csv",
-        "rows": 2200
-      },
-      {
-        "filename": "sbi_2024.csv",
-        "rows": 3000
-      }
-    ],
-    "files_skipped": [],
-    "total_rows": 14300,
-    "train_rows": 11440,
-    "test_rows": 2860,
-    "metrics": {
-      "r2": 0.7013,
-      "rmse": 0.014818,
-      "mae": 0.011877,
-      "auc_roc": 0.9552,
-      "accuracy": 0.8024,
-      "precision": 0.3005,
-      "recall": 0.9558,
-      "f1": 0.4573
-    },
-    "confusion_matrix": [
-      [
-        2057,
-        554
-      ],
-      [
-        11,
-        238
-      ]
-    ],
-    "model_promoted": false,
-    "duration_seconds": 1.39,
-    "error": null
   }
 ]
