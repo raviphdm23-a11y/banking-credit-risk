@@ -216,7 +216,7 @@ Each month, provisions have three components:
 | JUL2020 | Unlock 3.0; Kharif season; final COVID prov | −4.51 | 36 | 31% | 30 |
 | AUG2020 | RBI OTR; moratorium ends; S1+S2 activated | +2.42 | 41 | 28% | 22 |
 | SEP2020 | Moratorium cliff; 75R NPA + 33 Green slip + 728 OTR restructured | -6.95 | 154 | 0% | 18 |
-| OCT2020 | — | — | — | — | — |
+| OCT2020 | Festive season; OTR holds; ECLGS 2.0; GNPA stabilising | +2.40 | 170 | 0% | 26 |
 | NOV2020 | — | — | — | — | — |
 | DEC2020 | — | — | — | — | — |
 | JAN2021 | — | — | — | — | — |

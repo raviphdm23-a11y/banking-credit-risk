@@ -1,8 +1,8 @@
 {
-  "sim_date": "2020-09-30",
-  "sim_period": "SEP2020",
-  "prior_period": "AUG2020",
+  "sim_date": "2020-10-31",
+  "sim_period": "OCT2020",
+  "prior_period": "SEP2020",
   "description": "Frozen simulation clock for the Axis Bank (BANK010) experiment. Advance by updating sim_date and sim_period, then re-run the balance sheet, P&L, and regulatory batch seeders.",
-  "last_updated": "2020-09-30",
-  "notes": "Moratorium cliff executed. Red: 75 loans to Sub-Standard (Rs16.4 Cr). Green: 380 resumed, 33 slipped. Amber: 728 OTR restructured (Rs145.2 Cr, 5% prov tranche 1). Total NPA: 154 loans Rs34.93 Cr. PAT Rs-6.95 Cr. Moratorium: 0% (moratorium era over)."
+  "last_updated": "2020-10-31",
+  "notes": "Festive season (Navratri/Dussehra). OTR re-defaults: 11 loans. Total NPA: 170 loans Rs39.38 Cr. 26 disbursals (festive vehicle + ECLGS2.0 + home). PAT Rs2.40 Cr. GST crossed Rs1 lakh Cr first time since COVID."
 }
