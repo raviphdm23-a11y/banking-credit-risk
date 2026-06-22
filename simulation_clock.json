@@ -1,8 +1,8 @@
 {
-  "sim_date": "2020-05-31",
-  "sim_period": "MAY2020",
-  "prior_period": "APR2020",
+  "sim_date": "2020-06-30",
+  "sim_period": "JUN2020",
+  "prior_period": "MAY2020",
   "description": "Frozen simulation clock for the Axis Bank (BANK010) experiment. Advance by updating sim_date and sim_period, then re-run the balance sheet, P&L, and regulatory batch seeders.",
-  "last_updated": "2020-05-31",
-  "notes": "Unlock 1.0 begins May 18. RBI repo cut to 4.00% (May 22). MSME ECLGS launched. Moratorium extended to Aug 2020. 6 loans crossed 90 DPD -> fresh NPAs. 20 new disbursals."
+  "last_updated": "2020-06-30",
+  "notes": "Unlock 1.0 full month; Unlock 2.0 announced June 29. RBI repo 4.00% (unchanged). Moratorium opt-outs begin (35% -> 33%). 7 loans upgraded to Doubtful-1 (180+ DPD). 0 new Sub-Standard NPAs. 25 new disbursals (ECLGS surge + housing + vehicle). COVID provision month 3 of 4. PAT negative but loss narrowing."
 }

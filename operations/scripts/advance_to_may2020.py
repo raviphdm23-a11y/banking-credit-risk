@@ -154,9 +154,16 @@ def run(db_path=DB_PATH, verbose=True):
     p(f'    Moratorium end date extended to 2020-08-31')
 
     # ── Step 2: DPD aging + fresh NPA formation ───────────────────────────────
+    # Reset seed-artefact DPD (< 90) on Standard/Performing non-moratorium loans
+    cur.execute("""
+        UPDATE loans SET days_past_due = 0
+        WHERE bank_id=? AND moratorium=0
+          AND days_past_due < 90
+          AND loan_classification IN ('Standard','Performing')
+    """, (BANK_ID,))
     cur.execute("""
         UPDATE loans SET days_past_due = MIN(days_past_due + 30, 210)
-        WHERE bank_id=? AND moratorium=0 AND days_past_due > 0
+        WHERE bank_id=? AND moratorium=0 AND days_past_due >= 90
     """, (BANK_ID,))
 
     # Loans crossing 90 DPD -> Sub-Standard NPA

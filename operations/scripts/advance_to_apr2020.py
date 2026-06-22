@@ -122,10 +122,20 @@ def run(db_path=DB_PATH, verbose=True):
     p(f'    Moratorium book: Rs{sum(l["outstanding"] or 0 for l in loans if l["id"] in moratorium_ids)/1e7:.1f} Cr')
 
     # ── Step 3: Age DPD by 30 days (only non-moratorium loans) ───────────────
+    # First, reset nominal seed-artefact DPD (< 90) on Standard/Performing loans
+    # to 0. The original seeder assigns ~19 DPD to many loans as a billing-cycle
+    # placeholder. Without this, 3 months of +30 aging would push all of them
+    # past 90 simultaneously. COVID stress enters via NPA classification below.
+    cur.execute("""
+        UPDATE loans SET days_past_due = 0
+        WHERE bank_id=? AND moratorium=0
+          AND days_past_due < 90
+          AND loan_classification IN ('Standard','Performing')
+    """, (BANK_ID,))
     cur.execute("""
         UPDATE loans
         SET days_past_due = MIN(days_past_due + 30, 180)
-        WHERE bank_id=? AND moratorium=0 AND days_past_due > 0
+        WHERE bank_id=? AND moratorium=0 AND days_past_due >= 90
     """, (BANK_ID,))
 
     # Reclassify loans that crossed 90 DPD threshold (NPA)
