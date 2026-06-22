@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Performance Analytics — India Banking Intelligence</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.0.1/dist/chartjs-plugin-annotation.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            background: linear-gradient(135deg, #0a0e1a 0%, #0d1b2e 50%, #0a1628 100%);
+            min-height: 100vh;
+            color: #e2e8f0;
+        }
+
+        /* ── Header ── */
+        .top-bar {
+            background: rgba(255,255,255,0.04);
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+            padding: 12px 32px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .logo-group { display: flex; align-items: center; gap: 12px; }
+        .logo-mark {
+            width: 36px; height: 36px;
+            background: linear-gradient(135deg, #f59e0b, #ef4444);
+            border-radius: 9px;
+            display: flex; align-items: center; justify-content: center;
+            font-weight: 800; font-size: 0.85em; color: white;
+        }
+        .logo-name { font-size: 1em; font-weight: 700; color: white; }
+        .logo-sub  { font-size: 0.72em; color: rgba(255,255,255,0.4); }
+        .back-link {
+            color: rgba(255,255,255,0.5);
+            text-decoration: none;
+            font-size: 0.82em;
+            padding: 6px 14px;
+            border: 1px solid rgba(255,255,255,0.12);
+            border-radius: 8px;
+            transition: all 0.2s;
+        }
+        .back-link:hover { color: white; border-color: rgba(255,255,255,0.3); }
+
+        /* ── Controls bar ── */
+        .controls {
+            padding: 20px 32px 0;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+        .controls h1 {
+            font-size: 1.35em;
+            font-weight: 700;
+            color: white;
+            flex: 1;
+        }
+        .controls h1 span {
+            font-size: 0.65em;
+            font-weight: 500;
+            color: rgba(255,255,255,0.4);
+            margin-left: 10px;
+        }
+        select {
+            background: rgba(255,255,255,0.07);
+            border: 1px solid rgba(255,255,255,0.15);
+            color: white;
+            padding: 7px 12px;
+            border-radius: 8px;
+            font-size: 0.84em;
+            cursor: pointer;
+        }
+        select option { background: #1a2035; color: white; }
+        .sim-badge {
+            background: rgba(16,185,129,0.15);
+            border: 1px solid rgba(16,185,129,0.3);
+            color: #10b981;
+            padding: 5px 14px;
+            border-radius: 20px;
+            font-size: 0.78em;
+            font-weight: 600;
+        }
+
+        /* ── KPI delta cards ── */
+        .kpi-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 12px;
+            padding: 20px 32px 0;
+        }
+        .kpi-card {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.09);
+            border-radius: 12px;
+            padding: 14px 16px;
+        }
+        .kpi-label { font-size: 0.7em; color: rgba(255,255,255,0.45); text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 6px; }
+        .kpi-value { font-size: 1.45em; font-weight: 700; color: white; }
+        .kpi-delta { font-size: 0.75em; margin-top: 4px; }
+        .kpi-delta.up   { color: #10b981; }
+        .kpi-delta.down { color: #ef4444; }
+        .kpi-delta.neutral { color: rgba(255,255,255,0.4); }
+
+        /* ── Chart grid ── */
+        .chart-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+            padding: 20px 32px 32px;
+        }
+        .chart-grid .wide { grid-column: 1 / -1; }
+
+        .chart-panel {
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 14px;
+            padding: 20px 22px 16px;
+        }
+        .panel-title {
+            font-size: 0.88em;
+            font-weight: 700;
+            color: rgba(255,255,255,0.85);
+            margin-bottom: 4px;
+        }
+        .panel-sub {
+            font-size: 0.72em;
+            color: rgba(255,255,255,0.35);
+            margin-bottom: 14px;
+        }
+        .chart-wrap { position: relative; height: 240px; }
+        .chart-wrap.tall { height: 280px; }
+
+        /* ── Loading / Error ── */
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 200px;
+            color: rgba(255,255,255,0.35);
+            font-size: 0.9em;
+        }
+        .error-msg {
+            background: rgba(239,68,68,0.1);
+            border: 1px solid rgba(239,68,68,0.25);
+            color: #fca5a5;
+            padding: 12px 18px;
+            border-radius: 8px;
+            margin: 20px 32px;
+            font-size: 0.85em;
+        }
+    </style>
+</head>
+<body>
+
+<!-- Header -->
+<header class="top-bar">
+    <div class="logo-group">
+        <div class="logo-mark">PA</div>
+        <div>
+            <div class="logo-name">Performance Analytics</div>
+            <div class="logo-sub">Time-Series · Regulatory · Financial</div>
+        </div>
+    </div>
+    <a href="/" class="back-link">← Home</a>
+</header>
+
+<!-- Controls -->
+<div class="controls">
+    <h1>Performance Dashboard <span id="simClock"></span></h1>
+    <select id="bankPicker" onchange="loadData()"></select>
+    <div class="sim-badge" id="periodBadge">Loading…</div>
+</div>
+
+<div id="errorBanner" style="display:none" class="error-msg"></div>
+
+<!-- KPI delta row -->
+<div class="kpi-row" id="kpiRow">
+    <div class="kpi-card"><div class="kpi-label">CAR (Latest)</div><div class="kpi-value" id="kCAR">—</div><div class="kpi-delta" id="kCARd">—</div></div>
+    <div class="kpi-card"><div class="kpi-label">CET1 (Latest)</div><div class="kpi-value" id="kCET1">—</div><div class="kpi-delta" id="kCET1d">—</div></div>
+    <div class="kpi-card"><div class="kpi-label">LCR (Latest)</div><div class="kpi-value" id="kLCR">—</div><div class="kpi-delta" id="kLCRd">—</div></div>
+    <div class="kpi-card"><div class="kpi-label">NSFR (Latest)</div><div class="kpi-value" id="kNSFR">—</div><div class="kpi-delta" id="kNSFRd">—</div></div>
+    <div class="kpi-card"><div class="kpi-label">Loan Book</div><div class="kpi-value" id="kLoans">—</div><div class="kpi-delta" id="kLoansd">—</div></div>
+    <div class="kpi-card"><div class="kpi-label">PAT (Latest Period)</div><div class="kpi-value" id="kPAT">—</div><div class="kpi-delta" id="kPATd">—</div></div>
+    <div class="kpi-card"><div class="kpi-label">NPA Count</div><div class="kpi-value" id="kNPA">—</div><div class="kpi-delta" id="kNPAd">—</div></div>
+    <div class="kpi-card"><div class="kpi-label">NIM / ROTE</div><div class="kpi-value" id="kROTE">—</div><div class="kpi-delta" id="kROTEd">—</div></div>
+</div>
+
+<!-- Charts -->
+<div class="chart-grid">
+
+    <!-- 1. Capital Adequacy -->
+    <div class="chart-panel">
+        <div class="panel-title">Capital Adequacy Ratios</div>
+        <div class="panel-sub">CAR · CET1 · Tier-1 (%) — dashed lines = RBI minimums</div>
+        <div class="chart-wrap"><canvas id="chartCAR"></canvas></div>
+    </div>
+
+    <!-- 2. Liquidity Ratios -->
+    <div class="chart-panel">
+        <div class="panel-title">Liquidity Ratios</div>
+        <div class="panel-sub">LCR · NSFR · CRR · SLR (%) — dashed lines = RBI minimums</div>
+        <div class="chart-wrap"><canvas id="chartLiq"></canvas></div>
+    </div>
+
+    <!-- 3. Balance Sheet Growth — wide -->
+    <div class="chart-panel wide">
+        <div class="panel-title">Balance Sheet Growth</div>
+        <div class="panel-sub">Advances · Deposits · Investments · Capital (₹ Cr)</div>
+        <div class="chart-wrap tall"><canvas id="chartBS"></canvas></div>
+    </div>
+
+    <!-- 4. P&L Trend -->
+    <div class="chart-panel">
+        <div class="panel-title">Profit & Loss Trend</div>
+        <div class="panel-sub">NII · Operating Profit · Provisions · PAT (₹ Cr)</div>
+        <div class="chart-wrap"><canvas id="chartPL"></canvas></div>
+    </div>
+
+    <!-- 5. Asset Quality -->
+    <div class="chart-panel">
+        <div class="panel-title">Asset Quality & Provisions</div>
+        <div class="panel-sub">NPA count (bars) · NPA ratio % (line) · Provisions ₹ Cr (line)</div>
+        <div class="chart-wrap"><canvas id="chartNPA"></canvas></div>
+    </div>
+
+    <!-- 6. Income waterfall — wide -->
+    <div class="chart-panel wide">
+        <div class="panel-title">Income & Cost Breakdown</div>
+        <div class="panel-sub">Interest Income · Other Income · Interest Expense · OpEx · Provisions · PAT (₹ Cr, stacked)</div>
+        <div class="chart-wrap tall"><canvas id="chartIncome"></canvas></div>
+    </div>
+
+</div>
+
+<script>
+// ── Shared Chart.js defaults ────────────────────────────────────────────────
+Chart.defaults.color = 'rgba(255,255,255,0.45)';
+Chart.defaults.font.family = "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
+Chart.defaults.font.size = 11;
+
+const GRID  = { color: 'rgba(255,255,255,0.06)' };
+const TICK  = { color: 'rgba(255,255,255,0.35)' };
+const LEGEND= { labels: { color: 'rgba(255,255,255,0.6)', boxWidth: 12, padding: 14 } };
+
+function baseScales(yLabel='', y2Label='') {
+    const sc = {
+        x: { grid: GRID, ticks: TICK },
+        y: { grid: GRID, ticks: TICK, title: { display: !!yLabel, text: yLabel, color: 'rgba(255,255,255,0.4)' } }
+    };
+    if (y2Label) sc.y2 = {
+        position: 'right',
+        grid: { drawOnChartArea: false },
+        ticks: TICK,
+        title: { display: true, text: y2Label, color: 'rgba(255,255,255,0.4)' }
+    };
+    return sc;
+}
+
+function tooltip() {
+    return {
+        backgroundColor: 'rgba(10,14,26,0.92)',
+        borderColor: 'rgba(255,255,255,0.12)',
+        borderWidth: 1,
+        titleColor: 'rgba(255,255,255,0.85)',
+        bodyColor: 'rgba(255,255,255,0.6)',
+        padding: 10,
+    };
+}
+
+// Destroy existing chart before re-rendering
+const _charts = {};
+function mkChart(id, config) {
+    if (_charts[id]) _charts[id].destroy();
+    _charts[id] = new Chart(document.getElementById(id), config);
+}
+
+// ── Delta helper ────────────────────────────────────────────────────────────
+function setKPI(valId, deltaId, value, prev, unit='', decimals=2, higherBetter=true) {
+    const el = document.getElementById(valId);
+    const de = document.getElementById(deltaId);
+    if (el) el.textContent = value !== null ? `${value.toFixed(decimals)}${unit}` : '—';
+    if (de && prev !== null && value !== null) {
+        const d = value - prev;
+        const up = d >= 0;
+        de.textContent = `${up ? '▲' : '▼'} ${Math.abs(d).toFixed(decimals)}${unit} vs prev`;
+        de.className = `kpi-delta ${(up === higherBetter) ? 'up' : 'down'}`;
+    } else if (de) { de.textContent = 'No prior period'; de.className = 'kpi-delta neutral'; }
+}
+
+// ── Threshold annotation line ───────────────────────────────────────────────
+function refLine(value, label, color='rgba(239,68,68,0.7)') {
+    return {
+        type: 'line',
+        yMin: value, yMax: value,
+        borderColor: color,
+        borderWidth: 1.5,
+        borderDash: [5, 4],
+        label: { display: true, content: label, color: color, font: { size: 10 }, position: 'end' }
+    };
+}
+
+// ── Main load ───────────────────────────────────────────────────────────────
+let _data = null;
+
+async function loadBanks() {
+    const resp = await fetch('/analytics/api/banks');
+    const banks = await resp.json();
+    const sel = document.getElementById('bankPicker');
+    sel.innerHTML = banks.map(b =>
+        `<option value="${b.bank_id}" ${b.bank_id==='BANK010'?'selected':''}>${b.bank_name}</option>`
+    ).join('');
+}
+
+async function loadData() {
+    const bankId = document.getElementById('bankPicker').value || 'BANK010';
+    document.getElementById('errorBanner').style.display = 'none';
+    try {
+        const resp = await fetch(`/analytics/api/timeseries?bank_id=${bankId}`);
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        _data = await resp.json();
+        render(_data);
+    } catch(e) {
+        document.getElementById('errorBanner').textContent = `Failed to load data: ${e.message}`;
+        document.getElementById('errorBanner').style.display = 'block';
+    }
+}
+
+function render(d) {
+    // Update header
+    document.getElementById('simClock').textContent = `as of ${d.sim_date}`;
+    document.getElementById('periodBadge').textContent = `SIM: ${d.sim_period}`;
+
+    const thr = d.thresholds;
+    const cap = d.capital;
+    const liq = d.liquidity;
+    const bs  = d.balance;
+    const pl  = d.pl;
+
+    // ── KPI cards ──────────────────────────────────────────────────────────
+    if (cap.length >= 1) {
+        const last = cap[cap.length-1], prev = cap.length>=2 ? cap[cap.length-2] : null;
+        setKPI('kCAR',   'kCARd',   last.car,          prev?.car,          '%');
+        setKPI('kCET1',  'kCET1d',  last.cet1,         prev?.cet1,         '%');
+        setKPI('kLoans', 'kLoansd', last.loan_book_cr,  prev?.loan_book_cr, ' Cr');
+        setKPI('kNPA',   'kNPAd',   last.num_npa,       prev?.num_npa,      '', 0, false);
+    }
+    if (liq.length >= 1) {
+        const last = liq[liq.length-1], prev = liq.length>=2 ? liq[liq.length-2] : null;
+        setKPI('kLCR',  'kLCRd',  last.lcr,  prev?.lcr,  '%', 1);
+        setKPI('kNSFR', 'kNSFRd', last.nsfr, prev?.nsfr, '%', 1);
+    }
+    if (pl.length >= 1) {
+        const last = pl[pl.length-1], prev = pl.length>=2 ? pl[pl.length-2] : null;
+        setKPI('kPAT',  'kPATd',  last.pat_cr, prev?.pat_cr, ' Cr');
+        setKPI('kROTE', 'kROTEd', last.rote,   prev?.rote,   '%');
+    }
+
+    // ── 1. Capital Adequacy ────────────────────────────────────────────────
+    mkChart('chartCAR', {
+        type: 'line',
+        data: {
+            labels: cap.map(r => r.date),
+            datasets: [
+                { label: 'CAR %',   data: cap.map(r=>r.car),  borderColor: '#60a5fa', backgroundColor: 'rgba(96,165,250,0.1)', tension: 0.35, pointRadius: 5, fill: true },
+                { label: 'CET1 %',  data: cap.map(r=>r.cet1), borderColor: '#a78bfa', backgroundColor: 'rgba(167,139,250,0.08)', tension: 0.35, pointRadius: 5, fill: true },
+                { label: 'Tier-1 %',data: cap.map(r=>r.tier1),borderColor: '#34d399', backgroundColor: 'rgba(52,211,153,0.06)',  tension: 0.35, pointRadius: 5, fill: false },
+            ]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: {
+                legend: LEGEND, tooltip: tooltip(),
+                annotation: { annotations: {
+                    carMin:  refLine(thr.car_min,  `CAR min ${thr.car_min}%`),
+                    cet1Min: refLine(thr.cet1_min, `CET1 min ${thr.cet1_min}%`, 'rgba(167,139,250,0.7)'),
+                }}
+            },
+            scales: baseScales('%'),
+        }
+    });
+
+    // ── 2. Liquidity Ratios ────────────────────────────────────────────────
+    mkChart('chartLiq', {
+        type: 'line',
+        data: {
+            labels: liq.map(r => r.date),
+            datasets: [
+                { label: 'LCR %',  data: liq.map(r=>r.lcr),  borderColor: '#fbbf24', backgroundColor: 'rgba(251,191,36,0.1)',  tension: 0.35, pointRadius: 5, fill: true },
+                { label: 'NSFR %', data: liq.map(r=>r.nsfr), borderColor: '#f87171', backgroundColor: 'rgba(248,113,113,0.08)',tension: 0.35, pointRadius: 5, fill: false },
+                { label: 'CRR %',  data: liq.map(r=>r.crr),  borderColor: '#34d399', backgroundColor: 'transparent', tension: 0.35, pointRadius: 5, borderDash: [4,3] },
+                { label: 'SLR %',  data: liq.map(r=>r.slr),  borderColor: '#a78bfa', backgroundColor: 'transparent', tension: 0.35, pointRadius: 5, borderDash: [4,3] },
+            ]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: {
+                legend: LEGEND, tooltip: tooltip(),
+                annotation: { annotations: {
+                    lcrMin:  refLine(thr.lcr_min,  `LCR min ${thr.lcr_min}%`, 'rgba(251,191,36,0.7)'),
+                    nsfrMin: refLine(thr.nsfr_min, `NSFR min ${thr.nsfr_min}%`, 'rgba(248,113,113,0.7)'),
+                    crrMin:  refLine(thr.crr_min,  `CRR min ${thr.crr_min}%`,  'rgba(52,211,153,0.7)'),
+                    slrMin:  refLine(thr.slr_min,  `SLR min ${thr.slr_min}%`,  'rgba(167,139,250,0.7)'),
+                }}
+            },
+            scales: baseScales('%'),
+        }
+    });
+
+    // ── 3. Balance Sheet ───────────────────────────────────────────────────
+    mkChart('chartBS', {
+        type: 'bar',
+        data: {
+            labels: bs.map(r => r.period),
+            datasets: [
+                { label: 'Advances (₹ Cr)',    data: bs.map(r=>r.advances_cr),    backgroundColor: 'rgba(96,165,250,0.75)',  borderRadius: 4 },
+                { label: 'Deposits (₹ Cr)',    data: bs.map(r=>r.deposits_cr),    backgroundColor: 'rgba(52,211,153,0.75)', borderRadius: 4 },
+                { label: 'Investments (₹ Cr)', data: bs.map(r=>r.investments_cr), backgroundColor: 'rgba(251,191,36,0.75)', borderRadius: 4 },
+                { label: 'Capital (₹ Cr)',     data: bs.map(r=>r.capital_cr),     backgroundColor: 'rgba(167,139,250,0.75)',borderRadius: 4 },
+            ]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: { legend: LEGEND, tooltip: tooltip() },
+            scales: { ...baseScales('₹ Cr'), x: { grid: GRID, ticks: TICK } },
+        }
+    });
+
+    // ── 4. P&L ────────────────────────────────────────────────────────────
+    mkChart('chartPL', {
+        type: 'bar',
+        data: {
+            labels: pl.map(r => r.period),
+            datasets: [
+                { label: 'NII (₹ Cr)',         data: pl.map(r=>r.nii_cr),        backgroundColor: 'rgba(96,165,250,0.7)',  borderRadius: 3 },
+                { label: 'Op. Profit (₹ Cr)',  data: pl.map(r=>r.op_profit_cr),  backgroundColor: 'rgba(52,211,153,0.7)', borderRadius: 3 },
+                { label: 'Provisions (₹ Cr)',  data: pl.map(r=>-r.provisions_cr),backgroundColor: 'rgba(248,113,113,0.6)',borderRadius: 3 },
+                { label: 'PAT (₹ Cr)',
+                  type: 'line',
+                  data: pl.map(r=>r.pat_cr),
+                  borderColor: '#fbbf24',
+                  backgroundColor: 'rgba(251,191,36,0.15)',
+                  pointRadius: 6, pointHoverRadius: 8,
+                  tension: 0.3, fill: false,
+                  yAxisID: 'y',
+                },
+            ]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: { legend: LEGEND, tooltip: tooltip() },
+            scales: baseScales('₹ Cr'),
+        }
+    });
+
+    // ── 5. Asset Quality ──────────────────────────────────────────────────
+    mkChart('chartNPA', {
+        type: 'bar',
+        data: {
+            labels: cap.map(r => r.date),
+            datasets: [
+                { label: 'NPA Count',
+                  data: cap.map(r=>r.num_npa),
+                  backgroundColor: 'rgba(248,113,113,0.65)',
+                  borderRadius: 4,
+                  yAxisID: 'y',
+                },
+                { label: 'NPA Ratio %',
+                  type: 'line',
+                  data: cap.map(r=>r.npa_ratio),
+                  borderColor: '#fbbf24',
+                  backgroundColor: 'transparent',
+                  pointRadius: 5, tension: 0.3,
+                  yAxisID: 'y2',
+                },
+                { label: 'Provisions (₹ Cr)',
+                  type: 'line',
+                  data: cap.map(r=>r.provisions_cr),
+                  borderColor: '#a78bfa',
+                  backgroundColor: 'transparent',
+                  pointRadius: 5, tension: 0.3,
+                  yAxisID: 'y2',
+                  borderDash: [5,3],
+                },
+            ]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: { legend: LEGEND, tooltip: tooltip() },
+            scales: {
+                x:  { grid: GRID, ticks: TICK },
+                y:  { grid: GRID, ticks: TICK, title: { display: true, text: 'NPA Count', color: 'rgba(255,255,255,0.4)' } },
+                y2: { position: 'right', grid: { drawOnChartArea: false }, ticks: TICK,
+                      title: { display: true, text: '% / ₹ Cr', color: 'rgba(255,255,255,0.4)' } },
+            }
+        }
+    });
+
+    // ── 6. Income breakdown (stacked) ─────────────────────────────────────
+    mkChart('chartIncome', {
+        type: 'bar',
+        data: {
+            labels: pl.map(r => r.period),
+            datasets: [
+                { label: 'Interest Income',  data: pl.map(r=>r.total_income_cr - r.other_income_cr), backgroundColor: 'rgba(96,165,250,0.8)',  borderRadius: 3, stack: 'income' },
+                { label: 'Other Income',     data: pl.map(r=>r.other_income_cr),  backgroundColor: 'rgba(167,139,250,0.7)', borderRadius: 3, stack: 'income' },
+                { label: 'Interest Exp.',    data: pl.map(r=>-r.interest_exp_cr), backgroundColor: 'rgba(239,68,68,0.65)',  borderRadius: 3, stack: 'cost' },
+                { label: 'OpEx',             data: pl.map(r=>-r.opex_cr),         backgroundColor: 'rgba(251,191,36,0.65)', borderRadius: 3, stack: 'cost' },
+                { label: 'Provisions',       data: pl.map(r=>-r.provisions_cr),   backgroundColor: 'rgba(248,113,113,0.6)', borderRadius: 3, stack: 'cost' },
+                { label: 'PAT',
+                  type: 'line',
+                  data: pl.map(r=>r.pat_cr),
+                  borderColor: '#34d399',
+                  backgroundColor: 'rgba(52,211,153,0.1)',
+                  pointRadius: 7, pointHoverRadius: 9,
+                  tension: 0.3, fill: false,
+                },
+            ]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: { legend: LEGEND, tooltip: tooltip() },
+            scales: {
+                x: { grid: GRID, ticks: TICK, stacked: true },
+                y: { grid: GRID, ticks: TICK, stacked: true, title: { display: true, text: '₹ Cr', color: 'rgba(255,255,255,0.4)' } },
+            }
+        }
+    });
+}
+
+// ── Bootstrap ────────────────────────────────────────────────────────────────
+(async () => {
+    await loadBanks();
+    await loadData();
+})();
+</script>
+</body>
+</html>

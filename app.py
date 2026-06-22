@@ -2629,6 +2629,156 @@ if not app.debug or os.environ.get('WERKZEUG_RUN_MAIN') == 'true':
     _start_scheduler()
 
 # ============================================================================
+# ANALYTICS — Performance Time-Series Dashboard
+# ============================================================================
+
+@app.route('/analytics/')
+@app.route('/analytics')
+def analytics_home():
+    return send_from_directory('public/analytics', 'index.html')
+
+
+@app.route('/analytics/api/timeseries')
+def analytics_timeseries():
+    """
+    Returns all time-series datasets for the performance dashboard.
+    Query params: bank_id (default BANK010)
+    """
+    bank_id = request.args.get('bank_id', 'BANK010')
+    with _ops_conn() as conn:
+        # ── Capital adequacy (from regulatory batch) ──────────────────────
+        cap_rows = [dict(r) for r in conn.execute(
+            """SELECT report_date, car, cet1_ratio, tier1_ratio, leverage_ratio,
+                      total_rwa, loan_book, num_loans, num_npa, total_provisions
+               FROM reg_capital_reports WHERE bank_id=? ORDER BY report_date""",
+            (bank_id,)).fetchall()]
+
+        # ── Liquidity ratios ──────────────────────────────────────────────
+        liq_rows = [dict(r) for r in conn.execute(
+            """SELECT report_date, lcr, nsfr, crr_ratio, slr_ratio, hqla, ndtl
+               FROM reg_liquidity_reports WHERE bank_id=? ORDER BY report_date""",
+            (bank_id,)).fetchall()]
+
+        # ── Balance sheet ─────────────────────────────────────────────────
+        bs_rows = [dict(r) for r in conn.execute(
+            """SELECT period, as_on_date,
+                      advances_net, investments,
+                      deposits_demand+deposits_savings+deposits_term AS deposits,
+                      equity_capital+reserves_surplus AS capital,
+                      cash_with_rbi, balances_with_banks, other_assets,
+                      borrowings, other_liabilities, intangible_assets
+               FROM bank_balance_sheet WHERE bank_id=? ORDER BY as_on_date""",
+            (bank_id,)).fetchall()]
+
+        # ── P&L ───────────────────────────────────────────────────────────
+        pl_rows = [dict(r) for r in conn.execute(
+            """SELECT period, from_date, to_date,
+                      net_interest_income, other_income, total_income,
+                      interest_expended, operating_expenses,
+                      provisions_contingencies, operating_profit,
+                      profit_before_tax, profit_after_tax
+               FROM bank_profit_loss WHERE bank_id=? ORDER BY to_date""",
+            (bank_id,)).fetchall()]
+
+    # ── Derived metrics ───────────────────────────────────────────────────
+    def _cr(v): return round(v / 1e7, 2) if v else 0   # rupees → Cr
+    def _pct(v): return round(v, 2) if v else 0
+
+    capital_series, liquidity_series, balance_series, pl_series = [], [], [], []
+
+    for r in cap_rows:
+        lbook = r.get('loan_book') or 0
+        npa   = r.get('num_npa') or 0
+        loans = r.get('num_loans') or 1
+        capital_series.append({
+            'date':          r['report_date'],
+            'car':           _pct(r.get('car')),
+            'cet1':          _pct(r.get('cet1_ratio')),
+            'tier1':         _pct(r.get('tier1_ratio')),
+            'leverage':      _pct(r.get('leverage_ratio')),
+            'total_rwa_cr':  _cr(r.get('total_rwa')),
+            'loan_book_cr':  _cr(lbook),
+            'num_loans':     loans,
+            'num_npa':       npa,
+            'npa_ratio':     round(npa / loans * 100, 2) if loans else 0,
+            'provisions_cr': _cr(r.get('total_provisions')),
+        })
+
+    for r in liq_rows:
+        liquidity_series.append({
+            'date':      r['report_date'],
+            'lcr':       _pct(r.get('lcr')),
+            'nsfr':      _pct(r.get('nsfr')),
+            'crr':       _pct(r.get('crr_ratio')),
+            'slr':       _pct(r.get('slr_ratio')),
+            'hqla_cr':   _cr(r.get('hqla')),
+            'ndtl_cr':   _cr(r.get('ndtl')),
+        })
+
+    for r in bs_rows:
+        cap  = r.get('capital') or 0
+        intan= r.get('intangible_assets') or 0
+        tang = cap - intan
+        balance_series.append({
+            'period':       r['period'],
+            'date':         r['as_on_date'],
+            'advances_cr':  _cr(r.get('advances_net')),
+            'investments_cr': _cr(r.get('investments')),
+            'deposits_cr':  _cr(r.get('deposits')),
+            'capital_cr':   _cr(cap),
+            'tang_equity_cr': _cr(tang),
+            'cash_cr':      _cr((r.get('cash_with_rbi') or 0) + (r.get('balances_with_banks') or 0)),
+            'borrowings_cr': _cr(r.get('borrowings')),
+        })
+
+    for r in pl_rows:
+        pat  = r.get('profit_after_tax') or 0
+        # match tangible equity from balance sheet by period
+        bs_m = next((b for b in balance_series if b['period'] == r['period']), None)
+        te   = (bs_m['tang_equity_cr'] * 1e7) if bs_m else 1
+        rote = round(pat / te * 100, 2) if te else 0
+        pl_series.append({
+            'period':        r['period'],
+            'date':          r['to_date'],
+            'nii_cr':        _cr(r.get('net_interest_income')),
+            'other_income_cr': _cr(r.get('other_income')),
+            'total_income_cr': _cr(r.get('total_income')),
+            'interest_exp_cr': _cr(r.get('interest_expended')),
+            'opex_cr':       _cr(r.get('operating_expenses')),
+            'provisions_cr': _cr(r.get('provisions_contingencies')),
+            'op_profit_cr':  _cr(r.get('operating_profit')),
+            'pat_cr':        _cr(pat),
+            'rote':          rote,
+        })
+
+    # ── Thresholds for reference lines ───────────────────────────────────
+    thresholds = {
+        'car_min': 11.5, 'cet1_min': 8.0, 'tier1_min': 9.5, 'leverage_min': 3.0,
+        'lcr_min': 100.0, 'nsfr_min': 100.0, 'crr_min': 3.0, 'slr_min': 18.0,
+    }
+
+    return jsonify({
+        'bank_id':   bank_id,
+        'sim_date':  SIM_DATE,
+        'sim_period': SIM_PERIOD,
+        'capital':   capital_series,
+        'liquidity': liquidity_series,
+        'balance':   balance_series,
+        'pl':        pl_series,
+        'thresholds': thresholds,
+    })
+
+
+@app.route('/analytics/api/banks')
+def analytics_banks():
+    """List of banks available for the analytics scope picker."""
+    with _ops_conn() as conn:
+        rows = [dict(r) for r in conn.execute(
+            "SELECT bank_id, bank_name, country_code FROM banks ORDER BY bank_id").fetchall()]
+    return jsonify(rows)
+
+
+# ============================================================================
 # ENTRY POINT
 # ============================================================================
 

@@ -260,6 +260,31 @@
             box-shadow: 0 4px 18px rgba(14,165,164,0.4);
         }
 
+        .dept-card.analytics::before {
+            background: linear-gradient(135deg, rgba(245,158,11,0.14), rgba(239,68,68,0.12));
+        }
+        .dept-card.analytics .dept-icon {
+            background: linear-gradient(135deg, rgba(245,158,11,0.25), rgba(239,68,68,0.22));
+            border: 1px solid rgba(245,158,11,0.32);
+        }
+        .dept-card.analytics .dept-tag {
+            background: rgba(245,158,11,0.18);
+            color: #fcd34d;
+        }
+        .dept-card.analytics .dept-features li::before {
+            content: '';
+            width: 6px;
+            height: 6px;
+            background: #fbbf24;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+        .dept-card.analytics .dept-cta {
+            background: linear-gradient(135deg, #F59E0B, #EF4444);
+            color: white;
+            box-shadow: 0 4px 18px rgba(245,158,11,0.4);
+        }
+
         .dept-card:hover {
             border-color: rgba(255,255,255,0.22);
             transform: translateY(-4px);
@@ -562,6 +587,22 @@
                     <li>Region / country bank segmentation</li>
                 </ul>
                 <span class="dept-cta">Open Reference →</span>
+            </a>
+
+            <!-- Performance Analytics Department -->
+            <a href="/analytics/" class="dept-card analytics">
+                <div class="dept-icon">📈</div>
+                <div class="dept-tag">Analytics</div>
+                <div class="dept-title">Performance Analytics</div>
+                <div class="dept-desc">Time-series dashboard tracking how capital adequacy, liquidity, P&amp;L and asset quality evolve month by month — with RBI minimum reference lines and period-over-period deltas.</div>
+                <ul class="dept-features">
+                    <li>CAR · CET1 · Tier-1 trend vs RBI minimums</li>
+                    <li>LCR · NSFR · CRR · SLR liquidity trajectory</li>
+                    <li>Balance sheet growth — advances, deposits, capital</li>
+                    <li>P&amp;L waterfall — NII, provisions, PAT</li>
+                    <li>NPA count · NPA ratio · provisions over time</li>
+                </ul>
+                <span class="dept-cta">Open Analytics →</span>
             </a>
 
         </div>
