@@ -2755,16 +2755,113 @@ def analytics_timeseries():
     thresholds = {
         'car_min': 11.5, 'cet1_min': 8.0, 'tier1_min': 9.5, 'leverage_min': 3.0,
         'lcr_min': 100.0, 'nsfr_min': 100.0, 'crr_min': 3.0, 'slr_min': 18.0,
+        'nim_min': 2.5, 'ci_max': 60.0,
     }
 
+    # ── Efficiency series (NIM, Cost-to-Income, ROA) ───────────────────────
+    from datetime import datetime as _dt
+    efficiency_series = []
+    for pl_r, bs_r in zip(pl_rows, bs_rows):
+        adv   = bs_r.get('advances_net') or 1
+        nii   = pl_r.get('net_interest_income') or 0
+        oi    = pl_r.get('other_income') or 0
+        opex  = pl_r.get('operating_expenses') or 0
+        pat   = pl_r.get('profit_after_tax') or 0
+        ta    = sum(bs_r.get(k) or 0 for k in
+                   ('cash_with_rbi','balances_with_banks','investments',
+                    'advances_net','fixed_assets','intangible_assets','other_assets'))
+        # annualise monthly figures (monthly periods have from_date != to_date - 28-31 days)
+        from_d = pl_r.get('from_date','')
+        to_d   = pl_r.get('to_date','')
+        try:
+            days = (_dt.strptime(to_d,'%Y-%m-%d') - _dt.strptime(from_d,'%Y-%m-%d')).days
+            scale = 365 / max(days, 1)
+        except Exception:
+            scale = 1
+        nim_ann  = round(nii * scale / adv * 100, 2) if adv else 0
+        ci_ratio = round(opex / (nii + oi) * 100, 2) if (nii + oi) > 0 else 0
+        roa_ann  = round(pat * scale / ta * 100, 2) if ta else 0
+        efficiency_series.append({
+            'period': pl_r['period'],
+            'date':   to_d,
+            'nim':    nim_ann,
+            'cost_to_income': ci_ratio,
+            'roa':    roa_ann,
+        })
+
+    # ── Moratorium time series (from sim_period_metrics) ──────────────────
+    moratorium_series = []
+    try:
+        conn.execute("SELECT 1 FROM sim_period_metrics LIMIT 1")
+        sm_rows = [dict(r) for r in conn.execute(
+            """SELECT period, as_of_date, morat_count, morat_pct, morat_book_cr,
+                      morat_green, morat_amber, morat_red,
+                      gate_gnpa, gate_pat, gate_car, gate_morat, gate_disbursals,
+                      new_disbursals
+               FROM sim_period_metrics WHERE bank_id=? ORDER BY as_of_date""",
+            (bank_id,)).fetchall()]
+        for r in sm_rows:
+            moratorium_series.append({
+                'period':      r['period'],
+                'date':        r['as_of_date'],
+                'count':       r['morat_count'] or 0,
+                'pct':         round(r['morat_pct'] or 0, 1),
+                'book_cr':     round(r['morat_book_cr'] or 0, 1),
+                'green':       r['morat_green'] or 0,
+                'amber':       r['morat_amber'] or 0,
+                'red':         r['morat_red'] or 0,
+                'new_disbursals': r['new_disbursals'] or 0,
+                'gate': {
+                    'gnpa':       r['gate_gnpa'],
+                    'pat':        r['gate_pat'],
+                    'car':        r['gate_car'],
+                    'moratorium': r['gate_morat'],
+                    'disbursals': r['gate_disbursals'],
+                },
+            })
+    except Exception:
+        pass
+
+    # ── Decision gate for latest period ───────────────────────────────────
+    def _gate_score(metric, val):
+        if metric == 'gnpa':    return 'GREEN' if val < 2 else ('AMBER' if val < 4 else 'RED')
+        if metric == 'pat':     return 'GREEN' if val > 0 else ('AMBER' if val > -3 else 'RED')
+        if metric == 'car':     return 'GREEN' if val > 15 else ('AMBER' if val > 13 else 'RED')
+        if metric == 'morat':   return 'GREEN' if val < 15 else ('AMBER' if val < 25 else 'RED')
+        if metric == 'disbur':  return 'GREEN' if val > 25 else ('AMBER' if val > 15 else 'RED')
+        return 'GREEN'
+
+    decision_gate = {}
+    if capital_series and pl_series and moratorium_series:
+        latest_cap   = capital_series[-1]
+        latest_pl    = pl_series[-1]
+        latest_morat = moratorium_series[-1] if moratorium_series else {}
+        nd_count     = latest_morat.get('new_disbursals', 0)
+        decision_gate = {
+            'period': latest_cap['date'],
+            'gnpa':   {'value': latest_cap['npa_ratio'],
+                       'status': _gate_score('gnpa', latest_cap['npa_ratio'])},
+            'pat':    {'value': latest_pl['pat_cr'],
+                       'status': _gate_score('pat', latest_pl['pat_cr'])},
+            'car':    {'value': latest_cap['car'],
+                       'status': _gate_score('car', latest_cap['car'])},
+            'moratorium': {'value': latest_morat.get('pct', 0),
+                           'status': _gate_score('morat', latest_morat.get('pct', 0))},
+            'disbursals': {'value': nd_count,
+                           'status': _gate_score('disbur', nd_count)},
+        }
+
     return jsonify({
-        'bank_id':   bank_id,
-        'sim_date':  SIM_DATE,
+        'bank_id':    bank_id,
+        'sim_date':   SIM_DATE,
         'sim_period': SIM_PERIOD,
-        'capital':   capital_series,
-        'liquidity': liquidity_series,
-        'balance':   balance_series,
-        'pl':        pl_series,
+        'capital':    capital_series,
+        'liquidity':  liquidity_series,
+        'balance':    balance_series,
+        'pl':         pl_series,
+        'efficiency': efficiency_series,
+        'moratorium': moratorium_series,
+        'decision_gate': decision_gate,
         'thresholds': thresholds,
     })
 
