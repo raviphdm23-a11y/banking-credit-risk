@@ -1,5 +1,109 @@
 [
   {
+    "run_id": "run_20260622_234243",
+    "timestamp": "2026-06-22T23:42:43",
+    "triggered_by": "manual",
+    "status": "success",
+    "files_used": [
+      {
+        "filename": "bank_loan_metrics (bank.db)",
+        "rows": 3800
+      },
+      {
+        "filename": "axis_bank_covid_2020.csv",
+        "rows": 180
+      }
+    ],
+    "files_skipped": [],
+    "total_rows": 3980,
+    "train_rows": 3184,
+    "test_rows": 796,
+    "metrics": {
+      "auc_roc": 0.7618,
+      "accuracy": 0.8342,
+      "precision": 0.1418,
+      "recall": 0.5278,
+      "f1": 0.2235,
+      "brier_score": 0.051537,
+      "n_test": 796,
+      "n_defaults": 36,
+      "default_rate": 0.0452
+    },
+    "confusion_matrix": [
+      [
+        645,
+        115
+      ],
+      [
+        17,
+        19
+      ]
+    ],
+    "model_promoted": true,
+    "duration_seconds": 1.46,
+    "error": null,
+    "promotion_check": {
+      "auc": 0.7618,
+      "n_trained": 3184,
+      "min_rows_floor": 100,
+      "rows_ok": true
+    }
+  },
+  {
+    "run_id": "run_20260622_233700",
+    "timestamp": "2026-06-22T23:37:00",
+    "triggered_by": "manual",
+    "status": "success",
+    "files_used": [
+      {
+        "filename": "bank_loan_metrics (bank.db)",
+        "rows": 3800
+      },
+      {
+        "filename": "axis_bank_covid_2020.csv",
+        "rows": 180
+      },
+      {
+        "filename": "indian_banks_synthetic_2024.csv",
+        "rows": 14300
+      }
+    ],
+    "files_skipped": [],
+    "total_rows": 18280,
+    "train_rows": 14624,
+    "test_rows": 3656,
+    "metrics": {
+      "auc_roc": 0.9709,
+      "accuracy": 0.8597,
+      "precision": 0.3435,
+      "recall": 0.935,
+      "f1": 0.5024,
+      "brier_score": 0.052441,
+      "n_test": 3656,
+      "n_defaults": 277,
+      "default_rate": 0.0758
+    },
+    "confusion_matrix": [
+      [
+        2884,
+        495
+      ],
+      [
+        18,
+        259
+      ]
+    ],
+    "model_promoted": true,
+    "duration_seconds": 2.14,
+    "error": null,
+    "promotion_check": {
+      "auc": 0.9709,
+      "n_trained": 14624,
+      "min_rows_floor": 100,
+      "rows_ok": true
+    }
+  },
+  {
     "run_id": "run_20260622_215327",
     "timestamp": "2026-06-22T21:53:27",
     "triggered_by": "manual",
@@ -2140,37 +2244,5 @@
     "model_promoted": true,
     "duration_seconds": 1.33,
     "error": null
-  },
-  {
-    "run_id": "run_20260615_230740",
-    "timestamp": "2026-06-15T23:07:40",
-    "triggered_by": "50_customer_dataset",
-    "status": "failed",
-    "files_used": [],
-    "files_skipped": [],
-    "total_rows": 0,
-    "train_rows": 0,
-    "test_rows": 0,
-    "metrics": {},
-    "confusion_matrix": [],
-    "model_promoted": false,
-    "duration_seconds": 0.17,
-    "error": "Traceback (most recent call last):\n  File \"C:\\Users\\Arnav\\OneDrive\\Desktop\\Daily reading\\Banking_Credit_Risk\\ml_models\\trainer.py\", line 563, in run_training\n    merged, files_used, files_skip, dupes = load_and_merge()\n  File \"C:\\Users\\Arnav\\OneDrive\\Desktop\\Daily reading\\Banking_Credit_Risk\\ml_models\\trainer.py\", line 351, in load_and_merge\n    'No valid training data found. '\nValueError: No valid training data found. bank_loan_metrics table is empty or unavailable, and no CSV files exist in data/training/.\n"
-  },
-  {
-    "run_id": "run_20260615_230652",
-    "timestamp": "2026-06-15T23:06:52",
-    "triggered_by": "50_customer_dataset",
-    "status": "failed",
-    "files_used": [],
-    "files_skipped": [],
-    "total_rows": 0,
-    "train_rows": 0,
-    "test_rows": 0,
-    "metrics": {},
-    "confusion_matrix": [],
-    "model_promoted": false,
-    "duration_seconds": 0.17,
-    "error": "Traceback (most recent call last):\n  File \"C:\\Users\\Arnav\\OneDrive\\Desktop\\Daily reading\\Banking_Credit_Risk\\ml_models\\trainer.py\", line 563, in run_training\n    merged, files_used, files_skip, dupes = load_and_merge()\n  File \"C:\\Users\\Arnav\\OneDrive\\Desktop\\Daily reading\\Banking_Credit_Risk\\ml_models\\trainer.py\", line 351, in load_and_merge\n    'No valid training data found. '\nValueError: No valid training data found. bank_loan_metrics table is empty or unavailable, and no CSV files exist in data/training/.\n"
   }
 ]

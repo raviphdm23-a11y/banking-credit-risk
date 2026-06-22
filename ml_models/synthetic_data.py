@@ -1,7 +1,8 @@
 """
 Synthetic Data Generator for PD Model Training
 Generates realistic credit risk data for Indian banks.
-All banks are consolidated into a single CSV file dropped into data/training/.
+All banks are consolidated into a single CSV file saved into data/synthetic/.
+Synthetic data is NOT used for model training — real bank data only.
 """
 
 import numpy as np
@@ -145,7 +146,7 @@ def _generate_bank_data(bank_cfg, seed=None):
     return df
 
 
-def generate_all(output_dir=None, copy_to_training=True, seed_base=42):
+def generate_all(output_dir=None, copy_to_training=False, seed_base=42):
     """
     Generate a single consolidated synthetic CSV for all Indian banks.
 
@@ -201,4 +202,4 @@ def generate_all(output_dir=None, copy_to_training=True, seed_base=42):
 
 
 if __name__ == '__main__':
-    generate_all()
+    generate_all(copy_to_training=False)
