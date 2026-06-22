@@ -1,8 +1,8 @@
 {
-  "sim_date": "2020-08-31",
-  "sim_period": "AUG2020",
-  "prior_period": "JUL2020",
+  "sim_date": "2020-09-30",
+  "sim_period": "SEP2020",
+  "prior_period": "AUG2020",
   "description": "Frozen simulation clock for the Axis Bank (BANK010) experiment. Advance by updating sim_date and sim_period, then re-run the balance sheet, P&L, and regulatory batch seeders.",
-  "last_updated": "2020-08-31",
-  "notes": "RBI OTR framework announced Aug 6 (window to Dec 31). Moratorium ends Aug 31 \u2014 final month. Moratorium opt-outs: 123 exits (31%->28%). S1 stratification: 413G / 728A / 75R. S2: Rs3 Cr floating provision built. 5 fresh Sub-Standard NPAs; total NPA 41 loans. 22 disbursals (Amber posture \u2014 secured + ECLGS only). PAT Rs2.42 Cr \u2014 POSITIVE \u2014 first since March 2020."
+  "last_updated": "2020-09-30",
+  "notes": "Moratorium cliff executed. Red: 75 loans to Sub-Standard (Rs16.4 Cr). Green: 380 resumed, 33 slipped. Amber: 728 OTR restructured (Rs145.2 Cr, 5% prov tranche 1). Total NPA: 154 loans Rs34.93 Cr. PAT Rs-6.95 Cr. Moratorium: 0% (moratorium era over)."
 }
