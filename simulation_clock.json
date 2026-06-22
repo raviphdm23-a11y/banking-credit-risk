@@ -1,8 +1,8 @@
 {
-  "sim_date": "2020-10-31",
-  "sim_period": "OCT2020",
-  "prior_period": "SEP2020",
+  "sim_date": "2020-11-30",
+  "sim_period": "NOV2020",
+  "prior_period": "OCT2020",
   "description": "Frozen simulation clock for the Axis Bank (BANK010) experiment. Advance by updating sim_date and sim_period, then re-run the balance sheet, P&L, and regulatory batch seeders.",
-  "last_updated": "2020-10-31",
-  "notes": "Festive season (Navratri/Dussehra). OTR re-defaults: 11 loans. Total NPA: 170 loans Rs39.38 Cr. 26 disbursals (festive vehicle + ECLGS2.0 + home). PAT Rs2.40 Cr. GST crossed Rs1 lakh Cr first time since COVID."
+  "last_updated": "2020-11-30",
+  "notes": "Phase 2 launched: S3 TLTRO Rs100Cr @ 4% deployed (12 ECLGS2.0 loans). S5 SDL rotation Rs50Cr G-Secs -> SDLs (+65bps yield). Diwali: 22 retail loans. OTR redefaults: 7. Total NPA: 181 loans Rs42.24 Cr. PAT Rs1.34 Cr. Pfizer vaccine news Nov 9."
 }

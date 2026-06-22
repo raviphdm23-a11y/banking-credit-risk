@@ -195,9 +195,9 @@ Each month, provisions have three components:
 |---|---|---|---|
 | S1 — Moratorium stratification | **Active** | August 2020 | 413G / 728A / 75R scored |
 | S2 — Voluntary provision buffer | **Active** | August 2020 | Rs3 Cr built in other_liabilities |
-| S3 — TLTRO 2.0 tap | Pending | October 2020 | — |
+| S3 — TLTRO 2.0 tap | **Active** | November 2020 | Rs100 Cr @ 4%; deployed into 12 ECLGS2.0 loans; NII +Rs0.04 Cr/month |
 | S4 — CASA campaign | Pending | December 2020 | — |
-| S5 — SDL rotation | Pending | November 2020 | — |
+| S5 — SDL rotation | **Active** | November 2020 | Rs50 Cr G-Secs swapped to SDLs; +Rs0.00 Cr/month |
 | S6 — AT1 bond (contingency) | Pending | January 2021 (if needed) | — |
 
 ---
@@ -217,7 +217,7 @@ Each month, provisions have three components:
 | AUG2020 | RBI OTR; moratorium ends; S1+S2 activated | +2.42 | 41 | 28% | 22 |
 | SEP2020 | Moratorium cliff; 75R NPA + 33 Green slip + 728 OTR restructured | -6.95 | 154 | 0% | 18 |
 | OCT2020 | Festive season; OTR holds; ECLGS 2.0; GNPA stabilising | +2.40 | 170 | 0% | 26 |
-| NOV2020 | — | — | — | — | — |
+| NOV2020 | Phase 2 launch: TLTRO Rs100Cr + SDL rotation; Diwali peak disbursals | +1.34 | 181 | 0% | 34 |
 | DEC2020 | — | — | — | — | — |
 | JAN2021 | — | — | — | — | — |
 
