@@ -78,6 +78,24 @@
 
         .error-msg { background:rgba(239,68,68,.1); border:1px solid rgba(239,68,68,.25); color:#fca5a5; padding:12px 18px; border-radius:8px; margin:20px 32px; font-size:.85em; }
         .section-divider { padding:8px 32px 0; font-size:.75em; font-weight:700; color:rgba(255,255,255,.3); text-transform:uppercase; letter-spacing:1px; border-top:1px solid rgba(255,255,255,.06); margin-top:12px; }
+
+        /* ── Threshold reference table ── */
+        .gate-ref { margin:12px 32px 0; background:rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.08); border-radius:12px; overflow:hidden; }
+        .gate-ref summary { padding:11px 16px; font-size:.78em; font-weight:700; color:rgba(255,255,255,.55); cursor:pointer; user-select:none; list-style:none; display:flex; align-items:center; gap:8px; }
+        .gate-ref summary::before { content:'▶'; font-size:.7em; color:rgba(255,255,255,.3); transition:transform .2s; }
+        .gate-ref[open] summary::before { transform:rotate(90deg); }
+        .gate-ref summary:hover { color:rgba(255,255,255,.8); }
+        .ref-table-wrap { padding:0 16px 14px; overflow-x:auto; }
+        .ref-table { width:100%; border-collapse:collapse; font-size:.76em; }
+        .ref-table th { padding:7px 12px; text-align:left; font-weight:700; font-size:.72em; text-transform:uppercase; letter-spacing:.5px; color:rgba(255,255,255,.4); border-bottom:1px solid rgba(255,255,255,.08); }
+        .ref-table td { padding:8px 12px; border-bottom:1px solid rgba(255,255,255,.05); color:rgba(255,255,255,.75); vertical-align:top; }
+        .ref-table tr:last-child td { border-bottom:none; }
+        .ref-table .metric-name { font-weight:600; color:white; white-space:nowrap; }
+        .ref-table .g { color:#10b981; font-weight:600; }
+        .ref-table .a { color:#f59e0b; font-weight:600; }
+        .ref-table .r { color:#ef4444; font-weight:600; }
+        .ref-table .rationale { color:rgba(255,255,255,.45); font-size:.93em; }
+        .ref-table .action { color:rgba(255,255,255,.55); font-size:.93em; font-style:italic; }
     </style>
 </head>
 <body>
@@ -112,6 +130,67 @@
         <div class="gate-card" id="gDisbur"><div class="gate-label">New Disbursals</div><div class="gate-value">—</div><div class="gate-status">—</div></div>
     </div>
 </div>
+
+<!-- Decision Gate threshold reference -->
+<details class="gate-ref">
+    <summary>Decision Gate — Threshold Reference &amp; Management Actions</summary>
+    <div class="ref-table-wrap">
+        <table class="ref-table">
+            <thead>
+                <tr>
+                    <th>Metric</th>
+                    <th>Green ✅</th>
+                    <th>Amber ⚠️</th>
+                    <th>Red ❌</th>
+                    <th>Why this threshold?</th>
+                    <th>Management action if Red</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td class="metric-name">GNPA Ratio</td>
+                    <td class="g">&lt; 2%</td>
+                    <td class="a">2% – 4%</td>
+                    <td class="r">&gt; 4%</td>
+                    <td class="rationale">RBI's Prompt Corrective Action (PCA) framework triggers enhanced supervision at 6% GNPA. 4% is our internal early-warning ceiling. Industry average for mid-sized Indian banks was ~5–7% in FY2020; below 2% = strong portfolio quality.</td>
+                    <td class="action">Pause all new unsecured disbursals. Review top-10 NPA accounts for recovery action. Raise provision cover to 60%+.</td>
+                </tr>
+                <tr>
+                    <td class="metric-name">Monthly PAT</td>
+                    <td class="g">Positive</td>
+                    <td class="a">−Rs 1 Cr to −Rs 3 Cr</td>
+                    <td class="r">&lt; −Rs 3 Cr</td>
+                    <td class="rationale">Monthly losses erode retained earnings, reducing CET1 organically. Losses &gt; Rs 3 Cr/month annualise to Rs 36 Cr/year — enough to pull CAR below 15% within 18 months given our capital base. Amber zone = provisioning spike; Red = structural NII problem.</td>
+                    <td class="action">Audit provision composition — separate COVID/regulatory one-off from recurring. If recurring loss, freeze discretionary OpEx. Do not initiate TLTRO or CASA campaigns.</td>
+                </tr>
+                <tr>
+                    <td class="metric-name">CAR (CRAR)</td>
+                    <td class="g">&gt; 15%</td>
+                    <td class="a">13% – 15%</td>
+                    <td class="r">&lt; 13%</td>
+                    <td class="rationale">RBI minimum is 11.5%. We set 13% as internal floor (150 bps buffer) to avoid supervisory attention during COVID. 15% Green threshold gives headroom for RWA growth from new disbursals without approaching the floor.</td>
+                    <td class="action">Freeze new lending. Begin AT1 bond shelf-prospectus (S6). Review RWA by exposure class — shift mix toward zero-risk-weight G-Secs temporarily.</td>
+                </tr>
+                <tr>
+                    <td class="metric-name">Moratorium Residual</td>
+                    <td class="g">&lt; 15%</td>
+                    <td class="a">15% – 25%</td>
+                    <td class="r">&gt; 25%</td>
+                    <td class="rationale">Moratorium loans have frozen DPD — no real credit signal. Above 25%, more than 1-in-4 borrowers are effectively unmonitored; NPA risk is hidden, not absent. Below 15%, the cliff risk is manageable with normal provisions. Industry-wide moratorium peaked at ~50%; we target faster exit.</td>
+                    <td class="action">Accelerate borrower outreach — call all Amber accounts. Extend OTR window. Build additional floating provision of Rs 1–2 Cr per month until below 15%.</td>
+                </tr>
+                <tr>
+                    <td class="metric-name">New Disbursals</td>
+                    <td class="g">&gt; 25 loans</td>
+                    <td class="a">15 – 25 loans</td>
+                    <td class="r">&lt; 15 loans</td>
+                    <td class="rationale">Loan book growth drives future NII. Below 15 loans/month, the book begins to shrink in net terms after repayments and prepayments (~20–30 loans retire each month). Above 25 = healthy origination velocity for a mid-sized branch network. Amber = cautious growth; Red = contraction.</td>
+                    <td class="action">Do not force volume. Accept sub-15 if risk is high. Switch mix entirely to guaranteed products (ECLGS) and secured loans (home/vehicle). Avoid unsecured personal loans entirely.</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</details>
 
 <!-- KPI delta row -->
 <div class="kpi-row">
