@@ -274,6 +274,23 @@
 
         .btn-export:hover { background: #256427; }
 
+        .btn-autofill {
+            background: #f59e0b;
+            color: white;
+            border: none;
+            padding: 10px 16px;
+            border-radius: 7px;
+            font-size: 0.9em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-autofill:hover {
+            background: #d97706;
+            transform: translateY(-1px);
+        }
+
         .button-group {
             display: flex;
             gap: 12px;
@@ -991,10 +1008,18 @@
             </div>
         </div>
 
-        <!-- Calculate Button -->
-        <button id="calculateBtn" class="btn-calculate" onclick="calculateAllParameters()">
-            Calculate Risk Parameters
-        </button>
+        <!-- Button Group -->
+        <div class="button-group">
+            <!-- Dev Auto-Fill Button -->
+            <button type="button" class="btn-autofill" onclick="autoFillTestData()" title="Dev: Auto-fill with risky borrower test data">
+                🔧 Auto-Fill Test Data
+            </button>
+
+            <!-- Calculate Button -->
+            <button id="calculateBtn" class="btn-calculate" onclick="calculateAllParameters()" style="flex: 1;">
+                Calculate Risk Parameters
+            </button>
+        </div>
     </div>
 
     <!-- Results Section -->
@@ -1276,6 +1301,54 @@
         }
 
         return ok;
+    }
+
+    // ── Auto-fill with test data (dev button) ─
+    function autoFillTestData() {
+        // Financial Metrics (Section 1)
+        document.getElementById('borrowerId').value = 'DEV-TEST-001';
+        document.getElementById('borrowerName').value = 'Test Borrower Inc.';
+        document.getElementById('sector').value = '01';  // Manufacturing
+        document.getElementById('exposureAmount').value = '5000000';
+        document.getElementById('deRatio').value = '2.5';
+        document.getElementById('interestCoverage').value = '2.5';
+        document.getElementById('profitability').value = '8.0';
+        document.getElementById('liquidityRatio').value = '1.2';
+
+        // AIRB Specific (Section 2)
+        document.getElementById('seniority').value = 'Senior Secured (Other)';
+        document.getElementById('maturity').value = '3.0';
+        document.getElementById('collateralType').value = 'Real Estate';
+        document.getElementById('collateralValue').value = '3000000';
+
+        // KYC Features (Section 3)
+        document.getElementById('kycAge').value = '45';
+        document.getElementById('kycEmploymentType').value = '2';  // Self Employed
+        document.getElementById('kycYearsEmployed').value = '8';
+        document.getElementById('kycAnnualIncome').value = '1500000';
+        document.getElementById('kycFoir').value = '0.45';
+        document.getElementById('kycNumDependents').value = '3';
+        document.getElementById('kycCityTier').value = '2';  // Tier 2
+        document.getElementById('kycEducation').value = '3';  // Graduate
+        document.getElementById('kycResidenceType').value = '1';  // Owned
+        document.getElementById('kycLoanPurpose').value = '2';  // Business Expansion
+        document.getElementById('kycCibilScore').value = '650';
+        document.getElementById('kycPreviousDefault').value = '0';  // No
+        document.getElementById('kycMonthsAsCustomer').value = '12';
+        document.getElementById('kycLatePayments').value = '1';
+        document.getElementById('kycExistingLoans').value = '2';
+        document.getElementById('kycExistingProducts').value = '2';
+        document.getElementById('kycIsRural').value = '0';  // No
+        document.getElementById('kycCountryCode').value = 'IND';
+
+        // Clear any error messages
+        document.querySelectorAll('.error').forEach(el => el.textContent = '');
+
+        // Scroll to top
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+
+        // Show confirmation
+        alert('✅ Test data filled! Click "Calculate Risk Parameters" to proceed.');
     }
 
     // ── Main calculation (PD via ML model, LGD via Flask API, fallback to local) ─
