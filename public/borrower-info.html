@@ -1275,9 +1275,11 @@
     }
 
     function validateInputs() {
+        console.log('[VALIDATE] Starting validation...');
         clearErrors();
         let ok = true;
         const mode = getMode();
+        console.log('[VALIDATE] Mode:', mode);
 
         const borrowerId     = document.getElementById('borrowerId').value.trim();
         const borrowerName   = document.getElementById('borrowerName').value.trim();
@@ -1336,6 +1338,11 @@
             if (!document.getElementById('exposureCategory').value) { setError('exposureCategory', 'Required for SA'); ok = false; }
         }
 
+        if (ok) {
+            console.log('[VALIDATE] All fields valid - ready to calculate');
+        } else {
+            console.log('[VALIDATE] Some fields invalid - check red error messages on form');
+        }
         return ok;
     }
 
@@ -1467,7 +1474,13 @@
 
     // ── Main calculation (PD via ML model, LGD via Flask API, fallback to local) ─
     async function calculateAllParameters() {
-        if (!validateInputs()) return;
+        console.log('[CALCULATE] Function called');
+
+        if (!validateInputs()) {
+            console.log('[VALIDATE] Validation failed - check red error messages on form');
+            return;
+        }
+        console.log('[VALIDATE] Validation passed');
 
         const mode           = getMode();
         const borrowerId     = document.getElementById('borrowerId').value.trim();
