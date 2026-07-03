@@ -1305,50 +1305,60 @@
 
     // ── Auto-fill with test data (dev button) ─
     function autoFillTestData() {
-        // Financial Metrics (Section 1)
-        document.getElementById('borrowerId').value = 'DEV-TEST-001';
-        document.getElementById('borrowerName').value = 'Test Borrower Inc.';
-        document.getElementById('sector').value = '01';  // Manufacturing
-        document.getElementById('exposureAmount').value = '5000000';
-        document.getElementById('deRatio').value = '2.5';
-        document.getElementById('interestCoverage').value = '2.5';
-        document.getElementById('profitability').value = '8.0';
-        document.getElementById('liquidityRatio').value = '1.2';
+        try {
+            // Borrower Details
+            document.getElementById('borrowerId').value = 'DEV-TEST-001';
+            document.getElementById('borrowerName').value = 'Test Borrower Inc.';
+            document.getElementById('sector').value = '01';  // Manufacturing
+            document.getElementById('loanType').value = '01';  // Term Loan
+            document.getElementById('exposureAmount').value = '5000000';
 
-        // AIRB Specific (Section 2)
-        document.getElementById('seniority').value = 'Senior Secured (Other)';
-        document.getElementById('maturity').value = '3.0';
-        document.getElementById('collateralType').value = 'Real Estate';
-        document.getElementById('collateralValue').value = '3000000';
+            // Financial Metrics (Section 1)
+            document.getElementById('debtToEquity').value = '2.5';
+            document.getElementById('interestCoverage').value = '2.5';
+            document.getElementById('profitabilityMargin').value = '8.0';
+            document.getElementById('liquidityRatio').value = '1.2';
+            document.getElementById('ltvRatio').value = '75';
 
-        // KYC Features (Section 3)
-        document.getElementById('kycAge').value = '45';
-        document.getElementById('kycEmploymentType').value = '2';  // Self Employed
-        document.getElementById('kycYearsEmployed').value = '8';
-        document.getElementById('kycAnnualIncome').value = '1500000';
-        document.getElementById('kycFoir').value = '0.45';
-        document.getElementById('kycNumDependents').value = '3';
-        document.getElementById('kycCityTier').value = '2';  // Tier 2
-        document.getElementById('kycEducation').value = '3';  // Graduate
-        document.getElementById('kycResidenceType').value = '1';  // Owned
-        document.getElementById('kycLoanPurpose').value = '2';  // Business Expansion
-        document.getElementById('kycCibilScore').value = '650';
-        document.getElementById('kycPreviousDefault').value = '0';  // No
-        document.getElementById('kycMonthsAsCustomer').value = '12';
-        document.getElementById('kycLatePayments').value = '1';
-        document.getElementById('kycExistingLoans').value = '2';
-        document.getElementById('kycExistingProducts').value = '2';
-        document.getElementById('kycIsRural').value = '0';  // No
-        document.getElementById('kycCountryCode').value = 'IND';
+            // AIRB Specific (Section 2)
+            document.getElementById('seniority').value = 'Senior Secured (Other)';
+            document.getElementById('maturityValue').value = '3.0';
+            document.getElementById('collateralType').value = 'Real Estate';
+            document.getElementById('collateralValue').value = '3000000';
+            document.getElementById('externalRating').value = 'BB';
 
-        // Clear any error messages
-        document.querySelectorAll('.error').forEach(el => el.textContent = '');
+            // KYC Features (Section 3)
+            document.getElementById('kycAge').value = '45';
+            document.getElementById('kycEmploymentType').value = '2';  // Self Employed
+            document.getElementById('kycYearsEmployed').value = '8';
+            document.getElementById('kycAnnualIncome').value = '1500000';
+            document.getElementById('kycFoir').value = '0.45';
+            document.getElementById('kycNumDependents').value = '3';
+            document.getElementById('kycCityTier').value = '2';  // Tier 2
+            document.getElementById('kycEducation').value = '3';  // Graduate
+            document.getElementById('kycResidenceType').value = '1';  // Owned
+            document.getElementById('kycLoanPurpose').value = '2';  // Business Expansion
+            document.getElementById('kycCibilScore').value = '650';
+            document.getElementById('kycPreviousDefault').value = '0';  // No
+            document.getElementById('kycMonthsAsCustomer').value = '12';
+            document.getElementById('kycLatePayments').value = '1';
+            document.getElementById('kycExistingLoans').value = '2';
+            document.getElementById('kycExistingProducts').value = '2';
+            document.getElementById('kycIsRural').value = '0';  // No
+            document.getElementById('country').value = 'IND';
 
-        // Scroll to top
-        window.scrollTo({ top: 0, behavior: 'smooth' });
+            // Clear any error messages
+            document.querySelectorAll('.error').forEach(el => el.textContent = '');
 
-        // Show confirmation
-        alert('✅ Test data filled! Click "Calculate Risk Parameters" to proceed.');
+            // Scroll to top
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+
+            // Show confirmation
+            alert('✅ Test data filled! Now click "Calculate Risk Parameters" to see SHAP analysis.');
+        } catch (error) {
+            console.error('Auto-fill error:', error);
+            alert('❌ Error filling form: ' + error.message + '\n\nCheck browser console (F12) for details.');
+        }
     }
 
     // ── Main calculation (PD via ML model, LGD via Flask API, fallback to local) ─
