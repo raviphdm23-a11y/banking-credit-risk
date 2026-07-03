@@ -100,7 +100,7 @@ def list_versions(case_id: str) -> list:
     return manifest.get("versions", [])
 
 
-def pdf_path(case_id: str, version: str) -> str | None:
+def pdf_path(case_id: str, version: str):
     """Absolute path to a version's PDF, or None if it doesn't exist."""
     p = os.path.join(REPORTS_ROOT, _safe(case_id), _safe(version), "report.pdf")
     return p if os.path.exists(p) else None

@@ -27,6 +27,7 @@ from backend.rating_masterscale import pd_to_grade, grade_description
 from backend.pricing import full_pricing
 from backend.feature_meta import FEATURE_ORDER, FEATURE_META, model_feature_frame, lookup_country_macro
 from backend.explainability import PeerComparison, CounterfactualEngine
+from backend.shap_explainer import create_shap_explainer
 
 # Policy knockout thresholds (hard referral/decline triggers, pre-model)
 _POLICY = {
@@ -55,6 +56,13 @@ class AssessmentEngine:
         self._counterfact  = CounterfactualEngine(model)
         # Pre-build baseline feature dict for marginal attribution
         self._baseline_vals = {f: FEATURE_META[f]["baseline"] for f in FEATURE_ORDER}
+        # Tier 1: Cache learned thresholds for Five C's (computed on first use)
+        self._learned_thresholds = None
+        # Tier 2: SHAP explainer for feature interactions (shared cache)
+        try:
+            self._shap_explainer = create_shap_explainer(model, model_version) if model else None
+        except Exception:
+            self._shap_explainer = None  # Graceful fallback if SHAP unavailable
 
     # -----------------------------------------------------------------------
     # Public entry point
@@ -92,11 +100,14 @@ class AssessmentEngine:
         rating = pd_to_grade(pd_point)
         rating["description"] = grade_description(rating["grade"])
 
-        # 3. Policy knockouts
-        knockouts = self._check_knockouts(inputs, pd_point)
+        # 3. Policy knockouts (Tier 1: now uses uncertainty band)
+        knockouts = self._check_knockouts(inputs, pd_point, pd_low, pd_high)
 
         # 4. Feature attribution (reason codes)
         attribution = self._compute_attribution(inputs, pd_point)
+
+        # 4b. SHAP values & feature interactions (Tier 2)
+        shap_data = self._compute_shap(inputs) if self._shap_explainer else None
 
         # 5. LGD
         lgd_result = AIRBCalculations.calculate_lgd(
@@ -141,6 +152,7 @@ class AssessmentEngine:
             "pd":            pd_result,
             "rating":        rating,
             "attribution":   attribution,
+            "shap":          shap_data,
             "lgd":           lgd_result,
             "ead":           round(ead, 2),
             "rwa":           rwa_result,
@@ -212,6 +224,9 @@ class AssessmentEngine:
 
         Positive contribution → feature is driving PD up (risk factor).
         Negative contribution → feature is suppressing PD (risk mitigant).
+
+        TIER 1 FIX: Now includes XGBoost feature importance and ranks by
+        weighted combination of importance and contribution.
         """
         results = []
         X_full = self._feature_vector(inputs)
@@ -219,6 +234,18 @@ class AssessmentEngine:
             float(np.clip(self._model.predict_proba(X_full)[0, 1], 0.0001, 1.0))
             if self._model else pd_point
         )
+
+        # Get XGBoost feature importance (Tier 1 enhancement)
+        feature_importance = {}
+        if self._model and hasattr(self._model, 'feature_importances_'):
+            importances = self._model.feature_importances_
+            for i, feat in enumerate(FEATURE_ORDER):
+                feature_importance[feat] = float(importances[i]) if i < len(importances) else 0.0
+        else:
+            # Fallback: uniform importance if model doesn't have feature_importances_
+            uniform = 1.0 / len(FEATURE_ORDER)
+            for feat in FEATURE_ORDER:
+                feature_importance[feat] = uniform
 
         for feat in FEATURE_ORDER:
             meta  = FEATURE_META[feat]
@@ -266,6 +293,9 @@ class AssessmentEngine:
                     f"is broadly in line with benchmark ({bench_label})"
                 )
 
+            # Tier 1: Weighted rank = feature importance * absolute contribution
+            weighted_rank = feature_importance[feat] * abs(contribution)
+
             results.append({
                 "feature":        feat,
                 "display_name":   meta["display_name"],
@@ -276,30 +306,50 @@ class AssessmentEngine:
                 "reason_code":    reason_code,
                 "reason_text":    reason_text,
                 "five_c":         meta["five_c"],
+                "xgb_importance": round(feature_importance[feat], 4),
+                "weighted_rank":  round(weighted_rank, 6),
             })
 
-        # Sort by absolute contribution descending (strongest drivers first)
-        results.sort(key=lambda x: abs(x["contribution"]), reverse=True)
+        # Sort by weighted rank descending (Tier 1: importance-aware ranking)
+        results.sort(key=lambda x: x["weighted_rank"], reverse=True)
+
+        # Add rank position
+        for i, r in enumerate(results):
+            r["rank_position"] = i + 1
+
         return results
 
     # -----------------------------------------------------------------------
     # Policy knockouts
     # -----------------------------------------------------------------------
 
-    def _check_knockouts(self, inputs: dict, pd_point: float) -> list:
+    def _check_knockouts(self, inputs: dict, pd_point: float, pd_low: float = None, pd_high: float = None) -> list:
+        """
+        Check for policy knockouts.
+
+        TIER 1 FIX: Now uses pd_low (lower bound of uncertainty band) instead of pd_point
+        for auto-decline and auto-refer rules. This prevents false positives when
+        the point estimate is marginal but uncertainty is wide.
+
+        If pd_low (best-case scenario) still exceeds threshold → truly risky
+        If only pd_point exceeds threshold → might just be model uncertainty
+        """
         knockouts = []
 
-        if pd_point >= _POLICY["auto_decline_pd"]:
+        # Use pd_low if available, otherwise fall back to pd_point
+        pd_for_decision = pd_low if pd_low is not None else pd_point
+
+        if pd_for_decision >= _POLICY["auto_decline_pd"]:
             knockouts.append({
                 "rule":      "PD_EXCEEDS_AUTO_DECLINE",
                 "severity":  "DECLINE",
-                "detail":    f"PD {pd_point*100:.1f}% ≥ {_POLICY['auto_decline_pd']*100:.0f}% threshold",
+                "detail":    f"PD {pd_point*100:.1f}% (band: {pd_low*100:.1f}%-{pd_high*100:.1f}%) exceeds {_POLICY['auto_decline_pd']*100:.0f}% threshold (even best-case scenario is high-risk)",
             })
-        elif pd_point >= _POLICY["auto_refer_pd"]:
+        elif pd_for_decision >= _POLICY["auto_refer_pd"]:
             knockouts.append({
                 "rule":      "PD_EXCEEDS_AUTO_REFER",
                 "severity":  "REFER",
-                "detail":    f"PD {pd_point*100:.1f}% ≥ {_POLICY['auto_refer_pd']*100:.0f}% referral threshold",
+                "detail":    f"PD {pd_point*100:.1f}% (band: {pd_low*100:.1f}%-{pd_high*100:.1f}%) exceeds {_POLICY['auto_refer_pd']*100:.0f}% referral threshold",
             })
 
         ic = float(inputs.get("interest_coverage", 99))
@@ -371,6 +421,13 @@ class AssessmentEngine:
         mat = float(inputs.get("maturity", 2.5))
         bt  = inputs.get("borrower_type", "Corporate")
 
+        # Tier 1: Use learned thresholds instead of hardcoded values
+        learned = self._get_learned_thresholds()
+        ic_threshold = learned.get("interest_coverage", 3.0)
+        de_threshold = learned.get("de_ratio", 2.0)
+        pm_threshold = learned.get("profitability", 8.0)
+        lr_threshold = learned.get("liquidity_ratio", 1.5)
+
         def _score(conditions: list) -> str:
             # conditions is a list of (is_ok: bool) tuples
             good = sum(1 for ok in conditions if ok)
@@ -379,26 +436,26 @@ class AssessmentEngine:
             return "MODERATE"
 
         capacity = {
-            "score": _score([ic >= 3.0, de <= 2.0]),
+            "score": _score([ic >= ic_threshold, de <= de_threshold]),
             "items": [
                 {"label": "Interest Coverage",   "value": f"{ic:.2f}x",
-                 "benchmark": ">= 3.0x",
-                 "assessment": _assess_range(ic, low=3.0, direction="higher")},
+                 "benchmark": f">= {ic_threshold:.2f}x (model-learned)",
+                 "assessment": _assess_range(ic, low=ic_threshold, direction="higher")},
                 {"label": "Debt-to-Equity",      "value": f"{de:.2f}x",
-                 "benchmark": "<= 2.0x",
-                 "assessment": _assess_range(de, high=2.0, direction="lower")},
+                 "benchmark": f"<= {de_threshold:.2f}x (model-learned)",
+                 "assessment": _assess_range(de, high=de_threshold, direction="lower")},
             ],
         }
 
         capital = {
-            "score": _score([pm >= 8.0, lr >= 1.5]),
+            "score": _score([pm >= pm_threshold, lr >= lr_threshold]),
             "items": [
                 {"label": "Net Profit Margin",  "value": f"{pm:.1f}%",
-                 "benchmark": ">= 8%",
-                 "assessment": _assess_range(pm, low=8.0, direction="higher")},
+                 "benchmark": f">= {pm_threshold:.1f}% (model-learned)",
+                 "assessment": _assess_range(pm, low=pm_threshold, direction="higher")},
                 {"label": "Current Ratio",      "value": f"{lr:.2f}x",
-                 "benchmark": ">= 1.5x",
-                 "assessment": _assess_range(lr, low=1.5, direction="higher")},
+                 "benchmark": f">= {lr_threshold:.2f}x (model-learned)",
+                 "assessment": _assess_range(lr, low=lr_threshold, direction="higher")},
             ],
         }
 
@@ -520,6 +577,62 @@ class AssessmentEngine:
         return {"score": score, "items": items}
 
     # -----------------------------------------------------------------------
+    # Tier 1: Learned thresholds from model
+    # -----------------------------------------------------------------------
+
+    def _get_learned_thresholds(self) -> dict:
+        """
+        Tier 1 FIX: Learn feature thresholds from model behavior instead of
+        using hardcoded metadata.
+
+        For key features (de_ratio, interest_coverage), find the value where
+        the model's PD prediction increases significantly from baseline.
+
+        Caches result to avoid recomputation.
+        """
+        if self._learned_thresholds is not None:
+            return self._learned_thresholds
+
+        thresholds = {}
+
+        # If model not available, fall back to defaults
+        if not self._model:
+            return {
+                "de_ratio": 2.0,
+                "interest_coverage": 3.0,
+                "profitability": 8.0,
+                "liquidity_ratio": 1.5,
+            }
+
+        # Learn thresholds by testing where PD doubles from baseline
+        baseline_inputs = dict(self._baseline_vals)
+        X_baseline = model_feature_frame(baseline_inputs, self._model)
+        pd_baseline = float(self._model.predict_proba(X_baseline)[0, 1])
+
+        for feat in ["de_ratio", "interest_coverage", "profitability", "liquidity_ratio"]:
+            meta = FEATURE_META[feat]
+            min_val = meta.get("baseline", 1.0) * 0.5
+            max_val = meta.get("baseline", 1.0) * 3.0
+
+            # Binary search for where PD doubles
+            found_threshold = None
+            for test_val in np.linspace(min_val, max_val, 20):
+                test_inputs = dict(baseline_inputs)
+                test_inputs[feat] = test_val
+                X_test = model_feature_frame(test_inputs, self._model)
+                pd_test = float(self._model.predict_proba(X_test)[0, 1])
+
+                if pd_test >= pd_baseline * 1.5:  # PD increased by 50%
+                    found_threshold = test_val
+                    break
+
+            # Use learned threshold, or fall back to metadata baseline
+            thresholds[feat] = found_threshold if found_threshold else meta.get("baseline", 1.0)
+
+        self._learned_thresholds = thresholds
+        return thresholds
+
+    # -----------------------------------------------------------------------
     # Recommendation
     # -----------------------------------------------------------------------
 
@@ -631,6 +744,30 @@ class AssessmentEngine:
         }
         canonical = json.dumps(payload, sort_keys=True, ensure_ascii=True)
         return hashlib.sha256(canonical.encode()).hexdigest()
+
+    def _compute_shap(self, inputs: dict) -> dict:
+        """
+        TIER 2: Compute SHAP values and feature interactions.
+
+        Returns dict with:
+        - base_value: baseline PD from model
+        - feature_contributions: SHAP value per feature
+        - interactions: top 3 feature interactions
+        - summary: one-line executive summary
+        - model_version, computed_at, cached: metadata
+
+        Returns None if SHAP explainer unavailable.
+        """
+        if not self._shap_explainer:
+            return None
+
+        try:
+            return self._shap_explainer.explain_assessment(inputs, use_cache=True)
+        except Exception as e:
+            # Log error but don't block assessment
+            import sys
+            print(f"Warning: SHAP computation failed: {e}", file=sys.stderr)
+            return None
 
 
 # ---------------------------------------------------------------------------
