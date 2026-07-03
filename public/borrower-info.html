@@ -291,6 +291,30 @@
             transform: translateY(-1px);
         }
 
+        .btn-scenario-healthy {
+            background: #10b981;
+            color: white;
+        }
+
+        .btn-scenario-healthy:hover {
+            background: #059669;
+        }
+
+        .btn-scenario-risky {
+            background: #ef4444;
+            color: white;
+        }
+
+        .btn-scenario-risky:hover {
+            background: #dc2626;
+        }
+
+        .scenario-info {
+            font-size: 0.8em;
+            color: #666;
+            margin-top: 4px;
+        }
+
         .button-group {
             display: flex;
             gap: 12px;
@@ -1010,15 +1034,27 @@
 
         <!-- Button Group -->
         <div class="button-group">
-            <!-- Dev Auto-Fill Button -->
-            <button type="button" class="btn-autofill" onclick="autoFillTestData()" title="Dev: Auto-fill with risky borrower test data">
-                🔧 Auto-Fill Test Data
-            </button>
+            <!-- Dev Scenario Buttons -->
+            <div style="display: flex; gap: 8px; flex-wrap: wrap; flex: 1;">
+                <button type="button" class="btn-autofill btn-scenario-healthy" onclick="autoFillScenario('healthy')" title="Healthy borrower - Low risk">
+                    Healthy Borrower
+                </button>
+                <button type="button" class="btn-autofill" onclick="autoFillScenario('medium')" title="Medium risk borrower">
+                    Medium Risk
+                </button>
+                <button type="button" class="btn-autofill btn-scenario-risky" onclick="autoFillScenario('risky')" title="Risky borrower - High risk">
+                    Risky Borrower
+                </button>
+            </div>
 
             <!-- Calculate Button -->
-            <button id="calculateBtn" class="btn-calculate" onclick="calculateAllParameters()" style="flex: 1;">
+            <button id="calculateBtn" class="btn-calculate" onclick="calculateAllParameters()" style="flex: 0 0 auto;">
                 Calculate Risk Parameters
             </button>
+        </div>
+
+        <div style="font-size: 0.75em; color: #999; margin-top: 8px;">
+            Dev: Click a scenario button to auto-fill test data for different borrower profiles
         </div>
     </div>
 
@@ -1303,21 +1339,84 @@
         return ok;
     }
 
-    // ── Auto-fill with test data (dev button) ─
-    function autoFillTestData() {
+    // ── Auto-fill with test data scenarios ─
+    function autoFillScenario(scenario) {
         try {
+            let scenarioData = {
+                healthy: {
+                    // Healthy/Low-Risk Borrower (Expected: APPROVE)
+                    borrowerId: 'DEV-HEALTHY-001',
+                    borrowerName: 'Healthy Corp Ltd.',
+                    debtToEquity: 1.0,        // Low debt
+                    interestCoverage: 10.0,   // High coverage
+                    profitabilityMargin: 15.0, // High profitability
+                    liquidityRatio: 2.0,      // Strong liquidity
+                    kycAge: 50,
+                    kycEmploymentType: 1,     // Salaried
+                    kycYearsEmployed: 15,
+                    kycAnnualIncome: 3000000, // High income
+                    kycFoir: 0.25,            // Low obligation ratio
+                    kycCibilScore: 750,       // Excellent credit
+                    kycLatePayments: 0,       // No late payments
+                    kycMonthsAsCustomer: 36,
+                    scenarioLabel: 'Healthy Borrower (Expected: APPROVE)'
+                },
+                medium: {
+                    // Medium-Risk Borrower (Expected: REFER)
+                    borrowerId: 'DEV-MEDIUM-002',
+                    borrowerName: 'Test Borrower Inc.',
+                    debtToEquity: 2.5,        // Moderate debt
+                    interestCoverage: 2.5,    // Moderate coverage
+                    profitabilityMargin: 8.0, // Modest profitability
+                    liquidityRatio: 1.2,      // Adequate liquidity
+                    kycAge: 45,
+                    kycEmploymentType: 2,     // Self Employed
+                    kycYearsEmployed: 8,
+                    kycAnnualIncome: 1500000, // Moderate income
+                    kycFoir: 0.45,            // Moderate obligation ratio
+                    kycCibilScore: 650,       // Fair credit
+                    kycLatePayments: 1,       // 1 late payment
+                    kycMonthsAsCustomer: 12,
+                    scenarioLabel: 'Medium Risk Borrower (Expected: REFER)'
+                },
+                risky: {
+                    // Risky/High-Risk Borrower (Expected: DECLINE)
+                    borrowerId: 'DEV-RISKY-003',
+                    borrowerName: 'Struggling Business Ltd.',
+                    debtToEquity: 5.0,        // High debt
+                    interestCoverage: 1.0,    // Low coverage
+                    profitabilityMargin: -5.0, // Loss making
+                    liquidityRatio: 0.5,      // Poor liquidity
+                    kycAge: 35,
+                    kycEmploymentType: 3,     // Unemployed/Self-Employed
+                    kycYearsEmployed: 2,
+                    kycAnnualIncome: 800000,  // Low income
+                    kycFoir: 0.75,            // High obligation ratio
+                    kycCibilScore: 550,       // Poor credit
+                    kycLatePayments: 5,       // Multiple late payments
+                    kycMonthsAsCustomer: 6,
+                    scenarioLabel: 'Risky Borrower (Expected: DECLINE)'
+                }
+            };
+
+            let data = scenarioData[scenario];
+            if (!data) {
+                alert('Invalid scenario selected');
+                return;
+            }
+
             // Borrower Details
-            document.getElementById('borrowerId').value = 'DEV-TEST-001';
-            document.getElementById('borrowerName').value = 'Test Borrower Inc.';
+            document.getElementById('borrowerId').value = data.borrowerId;
+            document.getElementById('borrowerName').value = data.borrowerName;
             document.getElementById('sector').value = '01';  // Manufacturing
             document.getElementById('loanType').value = '01';  // Term Loan
             document.getElementById('exposureAmount').value = '5000000';
 
             // Financial Metrics (Section 1)
-            document.getElementById('debtToEquity').value = '2.5';
-            document.getElementById('interestCoverage').value = '2.5';
-            document.getElementById('profitabilityMargin').value = '8.0';
-            document.getElementById('liquidityRatio').value = '1.2';
+            document.getElementById('debtToEquity').value = data.debtToEquity;
+            document.getElementById('interestCoverage').value = data.interestCoverage;
+            document.getElementById('profitabilityMargin').value = data.profitabilityMargin;
+            document.getElementById('liquidityRatio').value = data.liquidityRatio;
             document.getElementById('ltvRatio').value = '75';
 
             // AIRB Specific (Section 2)
@@ -1325,25 +1424,25 @@
             document.getElementById('maturityValue').value = '3.0';
             document.getElementById('collateralType').value = 'Real Estate';
             document.getElementById('collateralValue').value = '3000000';
-            document.getElementById('externalRating').value = 'BB';
+            document.getElementById('externalRating').value = scenario === 'healthy' ? 'AAA' : (scenario === 'medium' ? 'BB' : 'D');
 
             // KYC Features (Section 3)
-            document.getElementById('kycAge').value = '45';
-            document.getElementById('kycEmploymentType').value = '2';  // Self Employed
-            document.getElementById('kycYearsEmployed').value = '8';
-            document.getElementById('kycAnnualIncome').value = '1500000';
-            document.getElementById('kycFoir').value = '0.45';
-            document.getElementById('kycNumDependents').value = '3';
-            document.getElementById('kycCityTier').value = '2';  // Tier 2
-            document.getElementById('kycEducation').value = '3';  // Graduate
-            document.getElementById('kycResidenceType').value = '1';  // Owned
+            document.getElementById('kycAge').value = data.kycAge;
+            document.getElementById('kycEmploymentType').value = data.kycEmploymentType;
+            document.getElementById('kycYearsEmployed').value = data.kycYearsEmployed;
+            document.getElementById('kycAnnualIncome').value = data.kycAnnualIncome;
+            document.getElementById('kycFoir').value = data.kycFoir;
+            document.getElementById('kycNumDependents').value = scenario === 'healthy' ? 2 : (scenario === 'medium' ? 3 : 5);
+            document.getElementById('kycCityTier').value = scenario === 'healthy' ? 1 : 2;  // Tier 1 for healthy
+            document.getElementById('kycEducation').value = scenario === 'healthy' ? 4 : (scenario === 'medium' ? 3 : 2);  // Higher education for healthy
+            document.getElementById('kycResidenceType').value = scenario === 'healthy' ? 1 : (scenario === 'medium' ? 1 : 2);  // Owned for healthy, Rented for risky
             document.getElementById('kycLoanPurpose').value = '2';  // Business Expansion
-            document.getElementById('kycCibilScore').value = '650';
-            document.getElementById('kycPreviousDefault').value = '0';  // No
-            document.getElementById('kycMonthsAsCustomer').value = '12';
-            document.getElementById('kycLatePayments').value = '1';
-            document.getElementById('kycExistingLoans').value = '2';
-            document.getElementById('kycExistingProducts').value = '2';
+            document.getElementById('kycCibilScore').value = data.kycCibilScore;
+            document.getElementById('kycPreviousDefault').value = scenario === 'risky' ? '1' : '0';
+            document.getElementById('kycMonthsAsCustomer').value = data.kycMonthsAsCustomer;
+            document.getElementById('kycLatePayments').value = data.kycLatePayments;
+            document.getElementById('kycExistingLoans').value = scenario === 'healthy' ? 1 : (scenario === 'medium' ? 2 : 4);
+            document.getElementById('kycExistingProducts').value = scenario === 'healthy' ? 2 : (scenario === 'medium' ? 2 : 1);
             document.getElementById('kycIsRural').value = '0';  // No
             document.getElementById('country').value = 'IND';
 
@@ -1353,12 +1452,17 @@
             // Scroll to top
             window.scrollTo({ top: 0, behavior: 'smooth' });
 
-            // Show confirmation
-            alert('✅ Test data filled! Now click "Calculate Risk Parameters" to see SHAP analysis.');
+            // Show confirmation with scenario info
+            alert('✅ ' + data.scenarioLabel + '\n\nTest data filled! Now click "Calculate Risk Parameters" to see SHAP analysis.');
         } catch (error) {
             console.error('Auto-fill error:', error);
             alert('❌ Error filling form: ' + error.message + '\n\nCheck browser console (F12) for details.');
         }
+    }
+
+    // ── Backward compatibility ─
+    function autoFillTestData() {
+        autoFillScenario('medium');
     }
 
     // ── Main calculation (PD via ML model, LGD via Flask API, fallback to local) ─
