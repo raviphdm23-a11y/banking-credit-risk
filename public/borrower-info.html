@@ -1656,9 +1656,10 @@
                 <tr><td>Sector Adjustment (${sector})</td><td>${lgdResult.components.sectorAdj.toFixed(2)}</td><td>Industry</td></tr>
                 <tr class="total"><td>Final LGD</td><td>${lgdResult.lgd.toFixed(2)}%</td><td></td></tr>`;
 
+            let adjCollateral = 0;  // Declare outside if for use in EAD section
             if (collateralValue > 0 && collateralType !== 'None') {
                 haircutResult = calculateHaircut(collateralType);
-                const adjCollateral = collateralValue * (1 - haircutResult.haircutDecimal);
+                adjCollateral = collateralValue * (1 - haircutResult.haircutDecimal);
                 adjustedExposure = Math.max(exposureAmount - adjCollateral, 0);
 
                 document.getElementById('haircutResultCard').style.display = 'block';
