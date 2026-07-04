@@ -2726,10 +2726,12 @@ def analytics_timeseries():
     """
     Returns all time-series datasets for the performance dashboard.
     Query params: bank_id (default BANK001 - HDFC Bank)
+    Uses latest available data, not hardcoded simulation date.
     """
     bank_id = request.args.get('bank_id', 'BANK001')
     with _ops_conn() as conn:
         # ── Capital adequacy (from regulatory batch) ──────────────────────
+        # Use ALL available data, sorted by date (not filtered to SIM_DATE)
         cap_rows = [dict(r) for r in conn.execute(
             """SELECT report_date, car, cet1_ratio, tier1_ratio, leverage_ratio,
                       total_rwa, loan_book, num_loans, num_npa, total_provisions
