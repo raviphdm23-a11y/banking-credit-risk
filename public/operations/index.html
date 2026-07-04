@@ -1206,22 +1206,34 @@ async function loadLiveData(){
     fetch('/operations/api/banks').then(r=>r.json()).catch(()=>[]),
     fetch('/operations/api/transactions-summary').then(r=>r.json()).catch(()=>({totalCount:0, totalVolume:0, txnByHour:[], txnByType:{}, txnByDate:{}, recentTxns:[]}))
   ]);
-  const details = await Promise.all(
-    list.map(c => fetch('/operations/api/customers/' + c.id).then(r=>r.json()).catch(()=>null))
-  );
-  DB = { customers:[], accounts:[], loans:[], transactions:[], risk:[], banks: banks||[], txnSummary: txnSummary };
-  details.forEach(d=>{
-    if(!d || !d.customer) return;
-    DB.customers.push(d.customer);
-    (d.accounts||[]).forEach(a=>DB.accounts.push(a));
-    (d.loans||[]).forEach(l=>DB.loans.push(l));
-    // OPTIMIZATION: Don't load all transactions from individual customers
-    // Use pre-computed aggregates from /transactions-summary instead
-    // (d.transactions||[]).forEach(t=>DB.transactions.push(t));
-    (d.risk||[]).forEach(r=>{ if(r.pd==null && r.pd_score!=null) r.pd = r.pd_score; DB.risk.push(r); });
-  });
-  // Populate transactions from pre-computed summary
+  // OPTIMIZATION: Seed DB.customers with the FULL list immediately (correct count,
+  // works for sidebar) instead of relying only on the fragile per-customer detail
+  // fetch below. Browsers cap concurrent connections per host (~6), so firing
+  // 1500+ parallel detail requests silently drops many (caught -> null) and the
+  // count/side-effects (accounts, loans) undercount. Batch the detail fetches
+  // instead of firing them all at once, and merge full data back in as it arrives.
+  DB = { customers:[...list], accounts:[], loans:[], transactions:[], risk:[], banks: banks||[], txnSummary: txnSummary };
   DB.transactions = txnSummary.recentTxns || [];
+
+  const BATCH_SIZE = 25;
+  const fullCustomers = new Map();
+  for (let i = 0; i < list.length; i += BATCH_SIZE) {
+    const batch = list.slice(i, i + BATCH_SIZE);
+    const details = await Promise.all(
+      batch.map(c => fetch('/operations/api/customers/' + c.id).then(r=>r.json()).catch(()=>null))
+    );
+    details.forEach(d=>{
+      if(!d || !d.customer) return;
+      fullCustomers.set(d.customer.id, d.customer);
+      (d.accounts||[]).forEach(a=>DB.accounts.push(a));
+      (d.loans||[]).forEach(l=>DB.loans.push(l));
+      (d.risk||[]).forEach(r=>{ if(r.pd==null && r.pd_score!=null) r.pd = r.pd_score; DB.risk.push(r); });
+    });
+  }
+  // Replace the lightweight list entries with full customer detail where we got it;
+  // keep the lightweight entry (still has id/first/last/city) for any that failed,
+  // so the count and sidebar remain complete either way.
+  DB.customers = DB.customers.map(c => fullCustomers.get(c.id) || c);
 }
 
 // ── UTILS ─────────────────────────────────────────────────────────────────────
