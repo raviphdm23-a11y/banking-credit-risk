@@ -786,21 +786,34 @@ def admin_status():
         except Exception as e:
             print(f"[ADMIN] Warning: Could not query enriched transactions: {e}")
 
-        # Count CSV supplementary files
-        csv_files = scan_training_folder()
-        csv_rows = sum(f['row_count'] for f in csv_files if f['row_count'] > 0)
+        # Count CSV supplementary files only (in data/training/)
+        import glob
+        csv_rows = 0
+        csv_file_count = 0
+        training_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'data', 'training')
+        os.makedirs(training_dir, exist_ok=True)
+        for path in glob.glob(os.path.join(training_dir, '*.csv')):
+            try:
+                csv_rows += sum(1 for _ in open(path)) - 1
+                csv_file_count += 1
+            except Exception:
+                pass
 
         # Total rows = enriched transactions (primary) + CSV files (supplementary)
         total_rows_available = enriched_txn_count + csv_rows
+
+        # Files count: 1 for enriched_transactions (primary) + CSV files (supplementary)
+        files_count = (1 if enriched_txn_count > 0 else 0) + csv_file_count
 
         return jsonify({
             'model_metadata':    meta,
             'last_run':          last_run,
             'training_running':  is_training_running(),
-            'files_in_training': (1 if enriched_txn_count > 0 else 0) + len(csv_files),
+            'files_in_training': files_count,
             'total_rows_available': total_rows_available,
             'enriched_transaction_rows': enriched_txn_count,
             'csv_rows': csv_rows,
+            'csv_files_count': csv_file_count,
             'schedule':          hp.get('schedule', {}),
         }), 200
     except Exception as e:
