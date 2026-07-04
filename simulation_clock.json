@@ -1,8 +1,8 @@
 {
-  "sim_date": "2020-11-30",
-  "sim_period": "NOV2020",
-  "prior_period": "OCT2020",
+  "sim_date": "2020-12-31",
+  "sim_period": "DEC2020",
+  "prior_period": "NOV2020",
   "description": "Frozen simulation clock for the Axis Bank (BANK010) experiment. Advance by updating sim_date and sim_period, then re-run the balance sheet, P&L, and regulatory batch seeders.",
-  "last_updated": "2020-11-30",
-  "notes": "Phase 2 launched: S3 TLTRO Rs100Cr @ 4% deployed (12 ECLGS2.0 loans). S5 SDL rotation Rs50Cr G-Secs -> SDLs (+65bps yield). Diwali: 22 retail loans. OTR redefaults: 7. Total NPA: 181 loans Rs42.24 Cr. PAT Rs1.34 Cr. Pfizer vaccine news Nov 9."
+  "last_updated": "2020-12-31",
+  "notes": "December 2020: Retail loan recovery post-Diwali. T+1 settlement norms effective. NSFR binding Dec 1. Year-end funding squeeze typical. Vaccination rollout begins Dec 16. GNPA stable at 2.4%. CAR 16.2%."
 }

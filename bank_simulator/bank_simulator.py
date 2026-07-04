@@ -229,10 +229,44 @@ with tab1:
     h1,h2,h3,h4 = st.columns(4)
     h1.markdown(kcard("Total Funding = Assets", f"₹{total_funding:,.0f}", "Equity + Liabilities","#4da6ff"), unsafe_allow_html=True)
     h2.markdown(kcard("Equity & Reserves", f"₹{equity:,.0f}", f"{equity/total_funding*100:.1f}% of funding","#00c48c"), unsafe_allow_html=True)
-    h3.markdown(kcard("Total Liabilities", f"₹{total_liabilities:,.0f}", f"Dep ₹{total_deposits:,.0f} + Borr ₹{total_borrowings:,.0f}","#4da6ff"), unsafe_allow_html=True)
+    h3.markdown(kcard("Total Liabilities", f"₹{total_liabilities:,.0f}", f"Dep ₹{total_deposits:,.0f} + Borr ₹{total_borrowings:,.0f} + Tier2 ₹{tier2_instr:,.0f}","#4da6ff"), unsafe_allow_html=True)
     h4.markdown(kcard("Unallocated (Residual Cash)", f"{'−' if unallocated<0 else '+'}₹{abs(unallocated):,.0f}", "Over-allocated" if over_alloc else "Parked as cash at RBI", alloc_color), unsafe_allow_html=True)
     if over_alloc:
         st.error(f"⚠️ Asset allocation exceeds total funding by ₹{abs(unallocated):,.0f} Cr.")
+    st.divider()
+
+    st.markdown("### 📖 Balance Sheet Statement")
+    bs1, bs2 = st.columns(2)
+    with bs1:
+        st.markdown("**ASSETS**")
+        asset_rows = [
+            {"Line Item": "Cash & Balances with RBI", "₹ Cr": cash_rbi + max(0, unallocated)},
+            {"Line Item": "Investments (G-Secs / Bonds)", "₹ Cr": investments},
+            {"Line Item": "Loans & Advances", "₹ Cr": total_loans},
+            {"Line Item": "Fixed Assets & Other Assets", "₹ Cr": fixed_other},
+        ]
+        st.dataframe(pd.DataFrame(asset_rows).assign(**{"₹ Cr": lambda d: d["₹ Cr"].map(lambda v: f"{v:,.0f}")}),
+                     use_container_width=True, hide_index=True)
+        st.markdown(f"**TOTAL ASSETS &nbsp;&nbsp; ₹{total_assets:,.0f} Cr**")
+    with bs2:
+        st.markdown("**LIABILITIES & EQUITY**")
+        liab_rows = [
+            {"Line Item": "Savings Deposits (CASA)", "₹ Cr": savings_dep},
+            {"Line Item": "Current Deposits (CASA)", "₹ Cr": current_dep},
+            {"Line Item": "Term Deposits < 1 yr", "₹ Cr": term_dep_st},
+            {"Line Item": "Term Deposits > 1 yr", "₹ Cr": term_dep_lt},
+            {"Line Item": "Short-term Borrowings", "₹ Cr": borrowings_st},
+            {"Line Item": "Long-term Borrowings", "₹ Cr": borrowings_lt},
+            {"Line Item": "Tier 2 Instruments", "₹ Cr": tier2_instr},
+            {"Line Item": "Equity & Reserves (CET1)", "₹ Cr": equity},
+        ]
+        st.dataframe(pd.DataFrame(liab_rows).assign(**{"₹ Cr": lambda d: d["₹ Cr"].map(lambda v: f"{v:,.0f}")}),
+                     use_container_width=True, hide_index=True)
+        st.markdown(f"**TOTAL LIABILITIES + EQUITY &nbsp;&nbsp; ₹{total_liabilities + equity:,.0f} Cr**")
+    if abs(total_assets - (total_liabilities + equity)) < 1:
+        st.success(f"✅ Balances: Assets ₹{total_assets:,.0f} Cr = Liabilities + Equity ₹{total_liabilities + equity:,.0f} Cr")
+    else:
+        st.error(f"⚠️ Does not balance: Assets ₹{total_assets:,.0f} Cr ≠ Liabilities + Equity ₹{total_liabilities + equity:,.0f} Cr")
     st.divider()
 
     st.markdown("### 🔵 Regulatory Compliance")

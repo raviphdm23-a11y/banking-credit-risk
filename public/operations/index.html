@@ -812,9 +812,10 @@ body{
 
 .kpi-grid{
   display:grid;
-  grid-template-columns:repeat(4,1fr);
+  grid-template-columns:repeat(5,1fr);
   gap:16px;
 }
+@media(max-width:1200px){.kpi-grid{grid-template-columns:repeat(3,1fr)}}
 @media(max-width:900px){.kpi-grid{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:500px){.kpi-grid{grid-template-columns:1fr}}
 
@@ -1604,7 +1605,7 @@ function destroyDashCharts(){
 }
 
 // ── SHOW DASHBOARD ────────────────────────────────────────────────────────────
-function showDashboard(){
+async function showDashboard(){
   // Deselect customer cards
   document.querySelectorAll('.cust-card').forEach(el=>el.classList.remove('active'));
   document.getElementById('dashNav').classList.add('active');
@@ -1619,9 +1620,18 @@ function showDashboard(){
   destroyDashCharts();
   if(radarChart){radarChart.destroy();radarChart=null;}
 
+  // Fetch system dashboard for RWA data
+  let sysDashboard = {};
+  try {
+    const res = await fetch('/operations/api/system-dashboard');
+    sysDashboard = await res.json();
+  } catch (e) {
+    console.log('Could not fetch system dashboard:', e);
+  }
+
   setTimeout(()=>{
     content.innerHTML='';
-    content.appendChild(buildKPIs());
+    content.appendChild(buildKPIs(sysDashboard));
     content.appendChild(buildDashCharts());
     content.appendChild(buildBreakdownRow());
     content.appendChild(buildTxnDateTable());
@@ -1633,7 +1643,7 @@ function showDashboard(){
 }
 
 // ── KPI CARDS ─────────────────────────────────────────────────────────────────
-function buildKPIs(){
+function buildKPIs(sysDashboard = {}){
   const totalDeposits = DB.accounts.reduce((s,a)=>s+a.balance,0);
   const totalLoans    = DB.loans.reduce((s,l)=>s+l.outstanding,0);
   const totalPrincipal= DB.loans.reduce((s,l)=>s+l.principal,0);
@@ -1641,6 +1651,7 @@ function buildKPIs(){
   const totalTxns     = DB.transactions.length;
   const totalTxnVol   = DB.transactions.reduce((s,t)=>s+t.amount,0);
   const activeLoans   = DB.loans.filter(l=>l.status==='Active').length;
+  const totalRWA      = sysDashboard?.kpis?.totalRWA || 0;
 
   const wrap = document.createElement('div');
   wrap.innerHTML=`
@@ -1668,6 +1679,13 @@ function buildKPIs(){
       <div class="kpi-trend warn">⚠ ${nDefault} stressed ${nDefault===1?'loan':'loans'}</div>
     </div>
     <div class="kpi-card blue">
+      <span class="kpi-icon">⚖️</span>
+      <div class="kpi-label">Total RWA</div>
+      <div class="kpi-value" title="${inr(totalRWA)}">${inrShort(totalRWA)}</div>
+      <div class="kpi-sub">Risk-Weighted Assets</div>
+      <div class="kpi-trend up">📊 Capital Planning</div>
+    </div>
+    <div class="kpi-card" style="border-color:#E0E7FF">
       <span class="kpi-icon">🔄</span>
       <div class="kpi-label">Total Transactions</div>
       <div class="kpi-value">${totalTxns}</div>

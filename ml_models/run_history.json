@@ -1,5 +1,97 @@
 [
   {
+    "run_id": "run_20260702_045113",
+    "timestamp": "2026-07-02T04:51:13",
+    "triggered_by": "cli",
+    "status": "success",
+    "files_used": [
+      {
+        "filename": "bank_loan_metrics (bank.db)",
+        "rows": 3812
+      }
+    ],
+    "files_skipped": [],
+    "total_rows": 3812,
+    "train_rows": 3049,
+    "test_rows": 763,
+    "metrics": {
+      "auc_roc": 0.7362,
+      "accuracy": 0.8729,
+      "precision": 0.1515,
+      "recall": 0.5357,
+      "f1": 0.2362,
+      "brier_score": 0.042461,
+      "n_test": 763,
+      "n_defaults": 28,
+      "default_rate": 0.0367
+    },
+    "confusion_matrix": [
+      [
+        651,
+        84
+      ],
+      [
+        13,
+        15
+      ]
+    ],
+    "model_promoted": true,
+    "duration_seconds": 2.86,
+    "error": null,
+    "promotion_check": {
+      "auc": 0.7362,
+      "n_trained": 3049,
+      "min_rows_floor": 100,
+      "rows_ok": true
+    }
+  },
+  {
+    "run_id": "run_20260625_213155",
+    "timestamp": "2026-06-25T21:31:55",
+    "triggered_by": "manual",
+    "status": "success",
+    "files_used": [
+      {
+        "filename": "bank_loan_metrics (bank.db)",
+        "rows": 3810
+      }
+    ],
+    "files_skipped": [],
+    "total_rows": 3810,
+    "train_rows": 3048,
+    "test_rows": 762,
+    "metrics": {
+      "auc_roc": 0.6988,
+      "accuracy": 0.8727,
+      "precision": 0.1562,
+      "recall": 0.4839,
+      "f1": 0.2362,
+      "brier_score": 0.047294,
+      "n_test": 762,
+      "n_defaults": 31,
+      "default_rate": 0.0407
+    },
+    "confusion_matrix": [
+      [
+        650,
+        81
+      ],
+      [
+        16,
+        15
+      ]
+    ],
+    "model_promoted": true,
+    "duration_seconds": 1.2,
+    "error": null,
+    "promotion_check": {
+      "auc": 0.6988,
+      "n_trained": 3048,
+      "min_rows_floor": 100,
+      "rows_ok": true
+    }
+  },
+  {
     "run_id": "run_20260622_234243",
     "timestamp": "2026-06-22T23:42:43",
     "triggered_by": "manual",
@@ -2160,89 +2252,6 @@
     ],
     "model_promoted": false,
     "duration_seconds": 0.83,
-    "error": null
-  },
-  {
-    "run_id": "run_20260615_232334",
-    "timestamp": "2026-06-15T23:23:34",
-    "triggered_by": "manual",
-    "status": "success",
-    "files_used": [
-      {
-        "filename": "bank_loan_metrics (bank.db)",
-        "rows": 50
-      }
-    ],
-    "files_skipped": [
-      {
-        "filename": "indian_banks_synthetic_2024.csv",
-        "reason": "Missing columns: ['age', 'annual_income', 'cibil_score', 'city_tier_enc', 'education_enc', 'employment_type_enc', 'existing_loans_count', 'foir', 'is_rural', 'loan_purpose_enc', 'months_as_customer', 'num_dependents', 'num_existing_products', 'num_late_payments_past_12m', 'previous_default_flag', 'residence_type_enc', 'years_employed']"
-      }
-    ],
-    "total_rows": 50,
-    "train_rows": 40,
-    "test_rows": 10,
-    "metrics": {
-      "r2": 0.9142,
-      "rmse": 0.043701,
-      "mae": 0.035947,
-      "auc_roc": 1.0,
-      "accuracy": 0.1,
-      "precision": 0.1,
-      "recall": 1.0,
-      "f1": 0.1818
-    },
-    "confusion_matrix": [
-      [
-        0,
-        9
-      ],
-      [
-        0,
-        1
-      ]
-    ],
-    "model_promoted": false,
-    "duration_seconds": 0.91,
-    "error": null
-  },
-  {
-    "run_id": "run_20260615_230820",
-    "timestamp": "2026-06-15T23:08:20",
-    "triggered_by": "50_customer_dataset",
-    "status": "success",
-    "files_used": [
-      {
-        "filename": "bank_loan_metrics (bank.db)",
-        "rows": 50
-      }
-    ],
-    "files_skipped": [],
-    "total_rows": 50,
-    "train_rows": 40,
-    "test_rows": 10,
-    "metrics": {
-      "r2": 0.9142,
-      "rmse": 0.043701,
-      "mae": 0.035947,
-      "auc_roc": 1.0,
-      "accuracy": 0.1,
-      "precision": 0.1,
-      "recall": 1.0,
-      "f1": 0.1818
-    },
-    "confusion_matrix": [
-      [
-        0,
-        9
-      ],
-      [
-        0,
-        1
-      ]
-    ],
-    "model_promoted": true,
-    "duration_seconds": 1.33,
     "error": null
   }
 ]
