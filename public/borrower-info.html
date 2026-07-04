@@ -1064,12 +1064,38 @@
             <h2>Calculated Risk Parameters</h2>
 
             <div class="result-grid">
+                <!-- PD Comparison Card - shows all methods -->
+                <div class="result-card result-card-full" id="pdComparisonCard" style="margin-bottom: 20px; border: 2px solid #2563eb; background: linear-gradient(135deg, rgba(37,99,235,0.05) 0%, rgba(37,99,235,0.02) 100%);">
+                    <h4 style="color: #1e40af; margin-bottom: 16px;">Probability of Default (PD) — All Methods</h4>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
+                        <!-- ML Method -->
+                        <div style="padding: 14px; background: white; border-radius: 10px; border-left: 4px solid #10b981; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                            <div style="font-size: 0.85em; font-weight: 600; color: #059669; margin-bottom: 6px;">ML (Machine Learning)</div>
+                            <div style="font-size: 1.8em; font-weight: 700; color: #1e40af;" id="pdML">--</div>
+                            <div style="font-size: 0.75em; color: #888; margin-top: 4px;" id="pdMLBand">--</div>
+                        </div>
+                        <!-- AIRB Method -->
+                        <div style="padding: 14px; background: white; border-radius: 10px; border-left: 4px solid #f59e0b; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                            <div style="font-size: 0.85em; font-weight: 600; color: #d97706; margin-bottom: 6px;">AIRB (Advanced)</div>
+                            <div style="font-size: 1.8em; font-weight: 700; color: #1e40af;" id="pdAIRB">--</div>
+                            <div style="font-size: 0.75em; color: #888; margin-top: 4px;" id="pdAIRBBand">--</div>
+                        </div>
+                        <!-- Standardized Method -->
+                        <div style="padding: 14px; background: white; border-radius: 10px; border-left: 4px solid #6366f1; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                            <div style="font-size: 0.85em; font-weight: 600; color: #4f46e5; margin-bottom: 6px;">Standardized (SA)</div>
+                            <div style="font-size: 1.8em; font-weight: 700; color: #1e40af;" id="pdSA">--</div>
+                            <div style="font-size: 0.75em; color: #888; margin-top: 4px;" id="pdSABand">--</div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- PD card (always shown) -->
                 <div class="result-card" id="pdResultCard">
                     <h4>
-                        Probability of Default (PD)
+                        Probability of Default (PD) — Detailed Breakdown
                         <span id="pdRiskBadge" class="risk-badge risk-low">Low</span>
                     </h4>
+                    <div style="font-size: 0.85em; color: #666; margin-bottom: 12px; font-style: italic;" id="pdMethodUsed">Using ML method</div>
                     <div class="result-value" id="pdValue">--</div>
                     <table class="component-table">
                         <thead><tr><th>Component</th><th>Value (%)</th><th>Driver</th></tr></thead>
@@ -1262,6 +1288,24 @@
         if (pd < 15) return 'risk-medium';
         if (pd < 30) return 'risk-high';
         return 'risk-very-high';
+    }
+
+    // ── Map external rating to PD for Standardized Approach ────────────────────
+    function getRatingToPDMapping(rating) {
+        const ratingToPD = {
+            'AAA': 0.10,
+            'AA':  0.20,
+            'A':   0.50,
+            'BBB': 1.00,
+            'BB':  3.00,
+            'B':   5.00,
+            'CCC': 10.00,
+            'CC':  20.00,
+            'C':   35.00,
+            'D':   50.00,
+            'Unrated': 2.50
+        };
+        return ratingToPD[rating] || 2.50;
     }
 
     // ── Validation ────────────────────────────────────────────────────────────
@@ -1522,13 +1566,40 @@
         calcBtn.disabled = true;
 
         try {
-        // PD via ML model (Flask /api/predict-pd-ml), falls back to local rule-based
-        let pdResult = await calculatePDFromAPI(de, ic, pm, lr, 'ml', kyc);
-        if (!pdResult) {
+        // Calculate PD using all three methods
+
+        // 1. ML Method
+        let pdResultML = await calculatePDFromAPI(de, ic, pm, lr, 'ml', kyc);
+        if (!pdResultML) {
             console.warn('ML API unavailable, using local rule-based PD calculation');
-            pdResult = calculatePD(de, ic, pm, lr);
+            pdResultML = calculatePD(de, ic, pm, lr);
         }
-        const pd = pdResult.pd;
+        const pdML = pdResultML.pd;
+
+        // 2. AIRB Method (rule-based, always available)
+        let pdResultAIRB = calculatePD(de, ic, pm, lr);
+        const pdAIRB = pdResultAIRB.pd;
+
+        // 3. Standardized Approach Method (based on external rating)
+        const externalRating = document.getElementById('externalRating').value;
+        const pdSA = getRatingToPDMapping(externalRating);
+
+        // Display all three methods in comparison card
+        document.getElementById('pdML').textContent = pdML.toFixed(2) + '%';
+        document.getElementById('pdMLBand').textContent = 'Rating: ' + getRiskLevel(pdML);
+
+        document.getElementById('pdAIRB').textContent = pdAIRB.toFixed(2) + '%';
+        document.getElementById('pdAIRBBand').textContent = 'Rating: ' + getRiskLevel(pdAIRB);
+
+        document.getElementById('pdSA').textContent = pdSA.toFixed(2) + '%';
+        document.getElementById('pdSABand').textContent = 'From: ' + externalRating;
+
+        // Use ML as primary method
+        const pd = pdML;
+        const pdResult = pdResultML;
+
+        // Update method indicator
+        document.getElementById('pdMethodUsed').textContent = 'Primary Method: ML (Machine Learning) | AIRB: ' + pdAIRB.toFixed(2) + '% | SA: ' + pdSA.toFixed(2) + '%';
 
         // PD card
         document.getElementById('pdValue').textContent = pd.toFixed(2) + '%';
