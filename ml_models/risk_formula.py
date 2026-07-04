@@ -159,13 +159,16 @@ def simple_default_rate_model(annual_income, age, macro_regime_score, rng):
     Simple, independent default-rate model (NOT derived from risk features).
 
     This creates default probability based ONLY on:
-    - Income level (proxy for repayment capacity)
-    - Age/maturity
+    - Income level (small effect, FLAT across buckets)
+    - Age/maturity (small effect)
     - Macro regime (economic cycle)
-    - Random noise
+    - Random noise (LARGE, dominant effect)
 
     NOT on financial ratios, CIBIL, or any features that the model will learn.
     This breaks the deterministic feature→default relationship.
+
+    The key: RANDOM NOISE dominates income/age, so no income bucket can be
+    perfectly separable.
 
     Args:
         annual_income: annual income (numeric)
@@ -176,33 +179,27 @@ def simple_default_rate_model(annual_income, age, macro_regime_score, rng):
     Returns:
         float: default probability (0.0-1.0) independent of risk features
     """
-    # Base default rate: ~2%
-    pd = 0.02
+    # Base default rate: ~2-3%
+    pd = 0.025
 
-    # Income effect: lower income → higher default risk
-    # Piecewise: <300k → +3%, 300-500k → +1%, 500-1M → 0%, >1M → -0.5%
-    if annual_income < 300000:
-        pd += 0.03
-    elif annual_income < 500000:
-        pd += 0.01
-    elif annual_income > 1000000:
-        pd -= 0.005
+    # Income effect: MINIMAL, just slight trend
+    # Range: +0.5% to -0.5% (small enough that noise dominates)
+    income_effect = -0.005 * np.log(max(annual_income, 100000) / 1000000)  # log scale, small effect
+    pd += income_effect
 
-    # Age effect: younger → higher risk (proxy for maturity)
-    if age < 30:
-        pd += 0.01
-    elif age > 55:
-        pd += 0.005
+    # Age effect: tiny
+    age_effect = (age - 40) * 0.0002  # very small: ±0.004 across full age range
+    pd += age_effect
 
-    # Macro regime effect (independent of feature-level PD)
-    # Expansion: lower defaults, Contraction: higher defaults
+    # Macro regime effect (economic cycle)
     pd *= macro_regime_score
 
-    # Random noise: ±50% to break perfect separability
-    noise = rng.normal(1.0, 0.3)  # mean=1.0, std=0.3
+    # DOMINANT effect: Random noise (±100% multiplier)
+    # This ensures all income buckets have overlapping distributions
+    noise = rng.lognormal(0, 0.5)  # lognormal: mean≈1.65, std≈1.67, range [0.01, 5+]
     pd *= noise
 
-    return float(np.clip(pd, 0.001, 0.15))  # cap at 15% max
+    return float(np.clip(pd, 0.0001, 0.15))  # cap at 15% max
 
 
 def calibrate_pd_threshold_per_bank(current_default_rate, target_npa_rate):

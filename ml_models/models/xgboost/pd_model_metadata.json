@@ -1,8 +1,8 @@
 {
   "model_type": "XGBoost",
   "algorithm": "xgboost",
-  "version": "run_20260704_203802",
-  "date_trained": "2026-07-04T20:38:02",
+  "version": "run_20260704_205245",
+  "date_trained": "2026-07-04T20:52:45",
   "triggered_by": "manual",
   "features": [
     "de_ratio",
@@ -20,7 +20,6 @@
     "residence_type_enc",
     "loan_purpose_enc",
     "cibil_score",
-    "previous_default_flag",
     "months_as_customer",
     "num_late_payments_past_12m",
     "existing_loans_count",
@@ -38,18 +37,18 @@
     "delta_unemployment_pct",
     "macro_regime_score"
   ],
-  "n_features": 32,
+  "n_features": 31,
   "target": "default_flag",
   "metrics": {
     "auc_roc": 1.0,
-    "accuracy": 0.9984,
-    "precision": 0.9755,
+    "accuracy": 1.0,
+    "precision": 1.0,
     "recall": 1.0,
-    "f1": 0.9876,
-    "brier_score": 0.001986,
+    "f1": 1.0,
+    "brier_score": 6.2e-05,
     "n_test": 11244,
-    "n_defaults": 717,
-    "default_rate": 0.0638
+    "n_defaults": 483,
+    "default_rate": 0.043
   },
   "hyperparameters": {
     "n_estimators": 100,
@@ -66,8 +65,8 @@
   },
   "n_train": 44974,
   "rows_trained": 44974,
-  "n_defaults_train": 2869,
-  "scale_pos_weight": 14.68,
+  "n_defaults_train": 1657,
+  "scale_pos_weight": 26.14,
   "threshold": 0.25,
   "currency": "INR",
   "note": "XGBoost binary classifier; target=default_flag (RBI 90-day NPA rule)"

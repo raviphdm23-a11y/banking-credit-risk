@@ -1,5 +1,250 @@
 [
   {
+    "run_id": "run_20260704_205245",
+    "timestamp": "2026-07-04T20:52:45",
+    "triggered_by": "manual",
+    "data_source": "enriched_transactions (TRANSACTION-LEVEL)",
+    "use_transaction_level": true,
+    "model_type": "xgboost",
+    "status": "success",
+    "files_used": [
+      {
+        "filename": "enriched_transactions (bank.db - TRANSACTION LEVEL)",
+        "rows": 56218
+      }
+    ],
+    "files_skipped": [],
+    "total_rows": 56218,
+    "train_rows": 44974,
+    "test_rows": 11244,
+    "metrics": {
+      "auc_roc": 1.0,
+      "accuracy": 1.0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "brier_score": 6.2e-05,
+      "n_test": 11244,
+      "n_defaults": 483,
+      "default_rate": 0.043
+    },
+    "confusion_matrix": [
+      [
+        10761,
+        0
+      ],
+      [
+        0,
+        483
+      ]
+    ],
+    "model_promoted": false,
+    "duration_seconds": 4.28,
+    "error": null,
+    "promotion_check": {
+      "auc": 1.0,
+      "n_trained": 44974,
+      "min_rows_floor": 100,
+      "rows_ok": true
+    }
+  },
+  {
+    "run_id": "run_20260704_205219",
+    "timestamp": "2026-07-04T20:52:19",
+    "triggered_by": "manual",
+    "data_source": "enriched_transactions (TRANSACTION-LEVEL)",
+    "use_transaction_level": true,
+    "model_type": "xgboost",
+    "status": "success",
+    "files_used": [
+      {
+        "filename": "enriched_transactions (bank.db - TRANSACTION LEVEL)",
+        "rows": 56218
+      }
+    ],
+    "files_skipped": [],
+    "total_rows": 56218,
+    "train_rows": 44974,
+    "test_rows": 11244,
+    "metrics": {
+      "auc_roc": 1.0,
+      "accuracy": 1.0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "brier_score": 7.7e-05,
+      "n_test": 11244,
+      "n_defaults": 483,
+      "default_rate": 0.043
+    },
+    "confusion_matrix": [
+      [
+        10761,
+        0
+      ],
+      [
+        0,
+        483
+      ]
+    ],
+    "model_promoted": false,
+    "duration_seconds": 3.14,
+    "error": null,
+    "promotion_check": {
+      "auc": 1.0,
+      "n_trained": 44974,
+      "min_rows_floor": 100,
+      "rows_ok": true
+    }
+  },
+  {
+    "run_id": "run_20260704_205208",
+    "timestamp": "2026-07-04T20:52:08",
+    "triggered_by": "manual",
+    "data_source": "enriched_transactions (TRANSACTION-LEVEL)",
+    "use_transaction_level": true,
+    "model_type": "xgboost",
+    "status": "success",
+    "files_used": [
+      {
+        "filename": "enriched_transactions (bank.db - TRANSACTION LEVEL)",
+        "rows": 56218
+      }
+    ],
+    "files_skipped": [],
+    "total_rows": 56218,
+    "train_rows": 44974,
+    "test_rows": 11244,
+    "metrics": {
+      "auc_roc": 1.0,
+      "accuracy": 1.0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "brier_score": 7.7e-05,
+      "n_test": 11244,
+      "n_defaults": 483,
+      "default_rate": 0.043
+    },
+    "confusion_matrix": [
+      [
+        10761,
+        0
+      ],
+      [
+        0,
+        483
+      ]
+    ],
+    "model_promoted": false,
+    "duration_seconds": 4.25,
+    "error": null,
+    "promotion_check": {
+      "auc": 1.0,
+      "n_trained": 44974,
+      "min_rows_floor": 100,
+      "rows_ok": true
+    }
+  },
+  {
+    "run_id": "run_20260704_205117",
+    "timestamp": "2026-07-04T20:51:17",
+    "triggered_by": "manual",
+    "data_source": "enriched_transactions (TRANSACTION-LEVEL)",
+    "use_transaction_level": true,
+    "model_type": "xgboost",
+    "status": "success",
+    "files_used": [
+      {
+        "filename": "enriched_transactions (bank.db - TRANSACTION LEVEL)",
+        "rows": 56218
+      }
+    ],
+    "files_skipped": [],
+    "total_rows": 56218,
+    "train_rows": 44974,
+    "test_rows": 11244,
+    "metrics": {
+      "auc_roc": 1.0,
+      "accuracy": 1.0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "brier_score": 7.7e-05,
+      "n_test": 11244,
+      "n_defaults": 483,
+      "default_rate": 0.043
+    },
+    "confusion_matrix": [
+      [
+        10761,
+        0
+      ],
+      [
+        0,
+        483
+      ]
+    ],
+    "model_promoted": false,
+    "duration_seconds": 4.14,
+    "error": null,
+    "promotion_check": {
+      "auc": 1.0,
+      "n_trained": 44974,
+      "min_rows_floor": 100,
+      "rows_ok": true
+    }
+  },
+  {
+    "run_id": "run_20260704_204807",
+    "timestamp": "2026-07-04T20:48:07",
+    "triggered_by": "manual",
+    "data_source": "enriched_transactions (TRANSACTION-LEVEL)",
+    "use_transaction_level": true,
+    "model_type": "xgboost",
+    "status": "success",
+    "files_used": [
+      {
+        "filename": "enriched_transactions (bank.db - TRANSACTION LEVEL)",
+        "rows": 56218
+      }
+    ],
+    "files_skipped": [],
+    "total_rows": 56218,
+    "train_rows": 44974,
+    "test_rows": 11244,
+    "metrics": {
+      "auc_roc": 1.0,
+      "accuracy": 1.0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "brier_score": 7e-06,
+      "n_test": 11244,
+      "n_defaults": 217,
+      "default_rate": 0.0193
+    },
+    "confusion_matrix": [
+      [
+        11027,
+        0
+      ],
+      [
+        0,
+        217
+      ]
+    ],
+    "model_promoted": false,
+    "duration_seconds": 2.77,
+    "error": null,
+    "promotion_check": {
+      "auc": 1.0,
+      "n_trained": 44974,
+      "min_rows_floor": 100,
+      "rows_ok": true
+    }
+  },
+  {
     "run_id": "run_20260704_203802",
     "timestamp": "2026-07-04T20:38:02",
     "triggered_by": "manual",
@@ -1705,268 +1950,6 @@
     "promotion_check": {
       "auc": 0.6988,
       "n_trained": 3048,
-      "min_rows_floor": 100,
-      "rows_ok": true
-    }
-  },
-  {
-    "run_id": "run_20260622_234243",
-    "timestamp": "2026-06-22T23:42:43",
-    "triggered_by": "manual",
-    "status": "success",
-    "files_used": [
-      {
-        "filename": "bank_loan_metrics (bank.db)",
-        "rows": 3800
-      },
-      {
-        "filename": "axis_bank_covid_2020.csv",
-        "rows": 180
-      }
-    ],
-    "files_skipped": [],
-    "total_rows": 3980,
-    "train_rows": 3184,
-    "test_rows": 796,
-    "metrics": {
-      "auc_roc": 0.7618,
-      "accuracy": 0.8342,
-      "precision": 0.1418,
-      "recall": 0.5278,
-      "f1": 0.2235,
-      "brier_score": 0.051537,
-      "n_test": 796,
-      "n_defaults": 36,
-      "default_rate": 0.0452
-    },
-    "confusion_matrix": [
-      [
-        645,
-        115
-      ],
-      [
-        17,
-        19
-      ]
-    ],
-    "model_promoted": true,
-    "duration_seconds": 1.46,
-    "error": null,
-    "promotion_check": {
-      "auc": 0.7618,
-      "n_trained": 3184,
-      "min_rows_floor": 100,
-      "rows_ok": true
-    }
-  },
-  {
-    "run_id": "run_20260622_233700",
-    "timestamp": "2026-06-22T23:37:00",
-    "triggered_by": "manual",
-    "status": "success",
-    "files_used": [
-      {
-        "filename": "bank_loan_metrics (bank.db)",
-        "rows": 3800
-      },
-      {
-        "filename": "axis_bank_covid_2020.csv",
-        "rows": 180
-      },
-      {
-        "filename": "indian_banks_synthetic_2024.csv",
-        "rows": 14300
-      }
-    ],
-    "files_skipped": [],
-    "total_rows": 18280,
-    "train_rows": 14624,
-    "test_rows": 3656,
-    "metrics": {
-      "auc_roc": 0.9709,
-      "accuracy": 0.8597,
-      "precision": 0.3435,
-      "recall": 0.935,
-      "f1": 0.5024,
-      "brier_score": 0.052441,
-      "n_test": 3656,
-      "n_defaults": 277,
-      "default_rate": 0.0758
-    },
-    "confusion_matrix": [
-      [
-        2884,
-        495
-      ],
-      [
-        18,
-        259
-      ]
-    ],
-    "model_promoted": true,
-    "duration_seconds": 2.14,
-    "error": null,
-    "promotion_check": {
-      "auc": 0.9709,
-      "n_trained": 14624,
-      "min_rows_floor": 100,
-      "rows_ok": true
-    }
-  },
-  {
-    "run_id": "run_20260622_215327",
-    "timestamp": "2026-06-22T21:53:27",
-    "triggered_by": "manual",
-    "status": "success",
-    "files_used": [
-      {
-        "filename": "bank_loan_metrics (bank.db)",
-        "rows": 3800
-      },
-      {
-        "filename": "axis_bank_covid_2020.csv",
-        "rows": 180
-      },
-      {
-        "filename": "indian_banks_synthetic_2024.csv",
-        "rows": 14300
-      }
-    ],
-    "files_skipped": [],
-    "total_rows": 18280,
-    "train_rows": 14624,
-    "test_rows": 3656,
-    "metrics": {
-      "auc_roc": 0.9709,
-      "accuracy": 0.8597,
-      "precision": 0.3435,
-      "recall": 0.935,
-      "f1": 0.5024,
-      "brier_score": 0.052441,
-      "n_test": 3656,
-      "n_defaults": 277,
-      "default_rate": 0.0758
-    },
-    "confusion_matrix": [
-      [
-        2884,
-        495
-      ],
-      [
-        18,
-        259
-      ]
-    ],
-    "model_promoted": true,
-    "duration_seconds": 1.73,
-    "error": null,
-    "promotion_check": {
-      "auc": 0.9709,
-      "n_trained": 14624,
-      "min_rows_floor": 100,
-      "rows_ok": true
-    }
-  },
-  {
-    "run_id": "run_20260622_211656",
-    "timestamp": "2026-06-22T21:16:56",
-    "triggered_by": "manual",
-    "status": "success",
-    "files_used": [
-      {
-        "filename": "bank_loan_metrics (bank.db)",
-        "rows": 3800
-      },
-      {
-        "filename": "axis_bank_covid_2020.csv",
-        "rows": 180
-      },
-      {
-        "filename": "indian_banks_synthetic_2024.csv",
-        "rows": 14300
-      }
-    ],
-    "files_skipped": [],
-    "total_rows": 18280,
-    "train_rows": 14624,
-    "test_rows": 3656,
-    "metrics": {
-      "auc_roc": 0.9704,
-      "accuracy": 0.8569,
-      "precision": 0.3394,
-      "recall": 0.9386,
-      "f1": 0.4986,
-      "brier_score": 0.052833,
-      "n_test": 3656,
-      "n_defaults": 277,
-      "default_rate": 0.0758
-    },
-    "confusion_matrix": [
-      [
-        2873,
-        506
-      ],
-      [
-        17,
-        260
-      ]
-    ],
-    "model_promoted": true,
-    "duration_seconds": 1.6,
-    "error": null,
-    "promotion_check": {
-      "auc": 0.9704,
-      "n_trained": 14624,
-      "min_rows_floor": 100,
-      "rows_ok": true
-    }
-  },
-  {
-    "run_id": "run_20260622_211431",
-    "timestamp": "2026-06-22T21:14:31",
-    "triggered_by": "manual",
-    "status": "success",
-    "files_used": [
-      {
-        "filename": "bank_loan_metrics (bank.db)",
-        "rows": 3800
-      },
-      {
-        "filename": "axis_bank_covid_2020.csv",
-        "rows": 3980
-      }
-    ],
-    "files_skipped": [],
-    "total_rows": 3980,
-    "train_rows": 3184,
-    "test_rows": 796,
-    "metrics": {
-      "auc_roc": 0.7512,
-      "accuracy": 0.8518,
-      "precision": 0.1466,
-      "recall": 0.4722,
-      "f1": 0.2237,
-      "brier_score": 0.049284,
-      "n_test": 796,
-      "n_defaults": 36,
-      "default_rate": 0.0452
-    },
-    "confusion_matrix": [
-      [
-        661,
-        99
-      ],
-      [
-        19,
-        17
-      ]
-    ],
-    "model_promoted": true,
-    "duration_seconds": 1.39,
-    "error": null,
-    "promotion_check": {
-      "auc": 0.7512,
-      "n_trained": 3184,
       "min_rows_floor": 100,
       "rows_ok": true
     }

@@ -65,8 +65,8 @@ FEATURE_COLS  = [
     # KYC — character & capacity (9)
     'age', 'employment_type_enc', 'years_employed', 'annual_income',
     'foir', 'num_dependents', 'city_tier_enc', 'education_enc', 'residence_type_enc',
-    # KYC — context (7)
-    'loan_purpose_enc', 'cibil_score', 'previous_default_flag',
+    # KYC — context (7) - REMOVED: previous_default_flag (potential leakage)
+    'loan_purpose_enc', 'cibil_score',
     'months_as_customer', 'num_late_payments_past_12m',
     'existing_loans_count', 'num_existing_products',
     # Country macro levels (4)
