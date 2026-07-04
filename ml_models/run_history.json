@@ -1,5 +1,53 @@
 [
   {
+    "run_id": "run_20260704_183654",
+    "timestamp": "2026-07-04T18:36:54",
+    "triggered_by": "manual",
+    "data_source": "enriched_transactions (TRANSACTION-LEVEL)",
+    "use_transaction_level": true,
+    "status": "success",
+    "files_used": [
+      {
+        "filename": "enriched_transactions (bank.db - TRANSACTION LEVEL)",
+        "rows": 56218
+      }
+    ],
+    "files_skipped": [],
+    "total_rows": 56218,
+    "train_rows": 44974,
+    "test_rows": 11244,
+    "metrics": {
+      "auc_roc": 1.0,
+      "accuracy": 1.0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "brier_score": 0.0,
+      "n_test": 11244,
+      "n_defaults": 187,
+      "default_rate": 0.0166
+    },
+    "confusion_matrix": [
+      [
+        11057,
+        0
+      ],
+      [
+        0,
+        187
+      ]
+    ],
+    "model_promoted": true,
+    "duration_seconds": 2.55,
+    "error": null,
+    "promotion_check": {
+      "auc": 1.0,
+      "n_trained": 44974,
+      "min_rows_floor": 100,
+      "rows_ok": true
+    }
+  },
+  {
     "run_id": "run_20260704_144754",
     "timestamp": "2026-07-04T14:47:54",
     "triggered_by": "manual",
@@ -1799,52 +1847,6 @@
       "n_trained": 294,
       "min_rows_floor": 100,
       "rows_ok": true
-    }
-  },
-  {
-    "run_id": "run_20260619_063750",
-    "timestamp": "2026-06-19T06:37:50",
-    "triggered_by": "manual_reseed_foreign_banks",
-    "status": "success",
-    "files_used": [
-      {
-        "filename": "bank_loan_metrics (bank.db)",
-        "rows": 50
-      }
-    ],
-    "files_skipped": [],
-    "total_rows": 50,
-    "train_rows": 40,
-    "test_rows": 10,
-    "metrics": {
-      "auc_roc": 0.5,
-      "accuracy": 0.9,
-      "precision": 0.0,
-      "recall": 0.0,
-      "f1": 0.0,
-      "brier_score": 0.095119,
-      "n_test": 10,
-      "n_defaults": 1,
-      "default_rate": 0.1
-    },
-    "confusion_matrix": [
-      [
-        9,
-        0
-      ],
-      [
-        1,
-        0
-      ]
-    ],
-    "model_promoted": false,
-    "duration_seconds": 0.85,
-    "error": null,
-    "promotion_check": {
-      "auc": 0.5,
-      "n_trained": 40,
-      "min_rows_floor": 100,
-      "rows_ok": false
     }
   }
 ]

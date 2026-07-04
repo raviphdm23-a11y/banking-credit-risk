@@ -792,8 +792,33 @@ def admin_status():
 def admin_data_sources():
     if not _check_admin_auth(): return _admin_auth_error()
     try:
+        import sqlite3
         from ml_models.trainer import scan_training_folder
-        files = scan_training_folder()
+
+        files = []
+
+        # Add enriched_transactions as primary data source
+        try:
+            conn = sqlite3.connect(_OPS_DB_PATH)
+            cursor = conn.cursor()
+            cursor.execute("SELECT COUNT(*) FROM transactions WHERE default_flag IS NOT NULL AND cust_age IS NOT NULL AND cust_annual_income IS NOT NULL AND loan_de_ratio IS NOT NULL AND loan_interest_coverage IS NOT NULL AND loan_classification IS NOT NULL")
+            enriched_count = cursor.fetchone()[0]
+            conn.close()
+
+            files.append({
+                'filename': 'enriched_transactions (bank.db)',
+                'source': 'database',
+                'row_count': enriched_count,
+                'size_kb': 0,
+                'modified': '(current)'
+            })
+        except Exception as e:
+            print(f"[ADMIN] Warning: Could not query enriched_transactions: {e}")
+
+        # Add CSV files from data/training/ if any
+        csv_files = scan_training_folder()
+        files.extend(csv_files)
+
         return jsonify({'files': files, 'total_files': len(files),
                         'total_rows': sum(f['row_count'] for f in files if f['row_count'] > 0)}), 200
     except Exception as e:

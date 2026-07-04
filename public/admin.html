@@ -206,7 +206,8 @@
   <div class="card">
     <h3>&#128193; Training Data Sources</h3>
     <p style="color:var(--sub);font-size:13px;margin-bottom:16px">
-      <b>Primary:</b> <code>bank_loan_metrics</code> table in <code>bank.db</code> — loaded automatically on every training run.<br>
+      <b>Primary:</b> <code>enriched_transactions</code> table in <code>bank.db</code> — transaction-level ML-enriched features (56+ columns per transaction) loaded automatically on every training run.<br>
+      <b>Legacy (Backup):</b> <code>bank_loan_metrics</code> (customer-level) — only used if transaction-level training is disabled.<br>
       <b>Supplementary:</b> CSV files placed in <code>data/training/</code> — merged with the DB rows and archived after a successful run.
     </p>
     <div id="filesTable"><p style="color:var(--sub)">Loading...</p></div>
