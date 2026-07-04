@@ -1,8 +1,8 @@
 {
   "model_type": "Logistic Regression",
   "algorithm": "logistic_regression",
-  "version": "run_20260704_192557",
-  "date_trained": "2026-07-04T19:25:57",
+  "version": "run_20260704_203108",
+  "date_trained": "2026-07-04T20:31:08",
   "triggered_by": "manual",
   "features": [
     "de_ratio",
@@ -41,15 +41,15 @@
   "n_features": 32,
   "target": "default_flag",
   "metrics": {
-    "auc_roc": 1.0,
-    "accuracy": 1.0,
-    "precision": 1.0,
+    "auc_roc": 0.9576,
+    "accuracy": 0.8386,
+    "precision": 0.0773,
     "recall": 1.0,
-    "f1": 1.0,
-    "brier_score": 0.0,
+    "f1": 0.1435,
+    "brier_score": 0.08598,
     "n_test": 11244,
-    "n_defaults": 187,
-    "default_rate": 0.0166
+    "n_defaults": 152,
+    "default_rate": 0.0135
   },
   "hyperparameters": {
     "C": 1.0,
@@ -61,8 +61,8 @@
   },
   "n_train": 44974,
   "rows_trained": 44974,
-  "n_defaults_train": 689,
-  "scale_pos_weight": 64.27,
+  "n_defaults_train": 639,
+  "scale_pos_weight": 69.38,
   "threshold": 0.25,
   "currency": "INR",
   "note": "Logistic Regression binary classifier; target=default_flag (RBI 90-day NPA rule)"

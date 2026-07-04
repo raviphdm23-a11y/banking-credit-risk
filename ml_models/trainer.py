@@ -446,10 +446,13 @@ def load_and_merge(use_transaction_level=False):
 
     merged = pd.concat(frames, ignore_index=True)
 
-    # Deduplicate on loan_id (keep first occurrence)
-    before = len(merged)
-    merged = merged.drop_duplicates(subset='loan_id', keep='first')
-    dupes  = before - len(merged)
+    # Deduplicate ONLY for customer-level data (bank_loan_metrics)
+    # Transaction-level data should NOT be deduplicated - each transaction is a separate sample
+    dupes = 0
+    if not use_transaction_level:
+        before = len(merged)
+        merged = merged.drop_duplicates(subset='loan_id', keep='first')
+        dupes  = before - len(merged)
 
     if len(merged) < 50:
         raise ValueError('Only {} rows after deduplication; minimum 50 required'.format(len(merged)))
