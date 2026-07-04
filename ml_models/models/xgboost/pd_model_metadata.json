@@ -1,8 +1,8 @@
 {
   "model_type": "XGBoost",
   "algorithm": "xgboost",
-  "version": "run_20260704_205516",
-  "date_trained": "2026-07-04T20:55:16",
+  "version": "run_20260704_211817",
+  "date_trained": "2026-07-04T21:18:17",
   "triggered_by": "manual",
   "features": [
     "de_ratio",
@@ -45,10 +45,10 @@
     "precision": 1.0,
     "recall": 1.0,
     "f1": 1.0,
-    "brier_score": 1e-05,
-    "n_test": 11244,
-    "n_defaults": 193,
-    "default_rate": 0.0172
+    "brier_score": 0.000175,
+    "n_test": 234,
+    "n_defaults": 7,
+    "default_rate": 0.0299
   },
   "hyperparameters": {
     "n_estimators": 100,
@@ -63,10 +63,10 @@
     "scale_pos_weight": 45,
     "random_state": 42
   },
-  "n_train": 44974,
-  "rows_trained": 44974,
-  "n_defaults_train": 820,
-  "scale_pos_weight": 53.85,
+  "n_train": 932,
+  "rows_trained": 932,
+  "n_defaults_train": 18,
+  "scale_pos_weight": 50.78,
   "threshold": 0.25,
   "currency": "INR",
   "note": "XGBoost binary classifier; target=default_flag (RBI 90-day NPA rule)"
