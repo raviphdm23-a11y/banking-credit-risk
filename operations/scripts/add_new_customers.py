@@ -8,10 +8,17 @@ bank_loan_metrics row per customer (the 21-feature + target row the PD trainer
 consumes). pd_observed / default_flag are generated with a realistic
 relationship to the risk drivers so the model has genuine signal to learn from.
 
+Uses shared risk_formula module for consistency with seed_real_bank.py and
+seed_global_customers.py (no drift between seeding scripts).
+
 Run:  python operations/scripts/add_new_customers.py [N]
 """
 import os, sys, sqlite3, random
 from datetime import date, datetime
+import numpy as np
+
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
+from ml_models.risk_formula import true_pd_nonlinear, sample_correlated_features, add_measurement_noise
 
 random.seed(2026)
 DB = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', 'bank.db')
@@ -83,11 +90,50 @@ def main():
         deps = random.randint(0, 4); months_cust = random.randint(3, 180)
         ex_loans = random.randint(0, 4); ex_products = random.randint(1, 6)
 
-        # PD generated from the drivers (gives the model real signal)
-        risk = (0.01 + max(0, (750 - cibil)) / 900.0 + de * 0.025
-                + max(0, 3 - ic) * 0.05 + max(0, foir - 0.40) * 0.6
-                + prev_def * 0.20 + late * 0.03 + (0.05 if profit < 0 else 0))
-        pd_obs = round(min(0.95, max(0.005, risk)), 4)
+        # ── Realistic credit quality: continuous features + shared formula ────
+        # Replace bimodal bucket logic with continuous sampling + shared true_pd_nonlinear
+        good = random.random() < 0.55
+        rng = np.random.default_rng(seed=random.randint(1, 1000000))
+
+        if good:
+            # Good customer: higher income, better ratios
+            de_true     = float(rng.exponential(scale=0.7).clip(0.1, 2.5))
+            ic_true     = float(rng.gamma(shape=3.0, scale=2.5).clip(3.5, 15.0))
+            profit_true = float(rng.normal(loc=15.0, scale=8.0).clip(5.0, 60.0))
+            liq_true    = float(rng.gamma(shape=4.0, scale=0.5).clip(1.3, 4.0))
+            income      = random.randint(900000, 4500000)
+            late        = 0
+            prev_def    = 0
+        else:
+            # At-risk customer: lower income, weaker ratios
+            de_true     = float(rng.exponential(scale=1.5).clip(2.0, 8.0))
+            ic_true     = float(rng.gamma(shape=2.0, scale=1.0).clip(1.0, 3.5))
+            profit_true = float(rng.normal(loc=-1.0, scale=10.0).clip(-50.0, 10.0))
+            liq_true    = float(rng.gamma(shape=2.0, scale=0.3).clip(0.5, 2.0))
+            income      = random.randint(300000, 1500000)
+            late        = random.randint(1, 6)
+            prev_def    = 1 if random.random() < 0.4 else 0
+
+        # CIBIL correlated with income and tenure
+        cibil_base = 680 + (np.log(max(income, 100000)) - 12.5) * 30 + years_emp * 2
+        cibil_true = int(cibil_base + rng.normal(0, 20).clip(300, 900))
+
+        foir_true = float(rng.beta(2.2, 3.5).clip(0.05, 0.75))
+
+        # Add measurement noise (observed ≠ true)
+        noisy = add_measurement_noise(
+            rng, de_true, ic_true, profit_true, liq_true,
+            income, years_emp, foir_true
+        )
+        de      = round(noisy['de_ratio'], 2)
+        ic      = round(noisy['int_coverage'], 2)
+        profit  = round(noisy['profitability'], 1)
+        liq     = round(noisy['liquidity_ratio'], 2)
+        cibil   = int(noisy['cibil_score'] if noisy.get('cibil_score') else cibil_true)
+        foir    = round(noisy['foir'], 2)
+
+        # Compute PD using shared formula (stable regime, no macro effects)
+        pd_obs = round(true_pd_nonlinear(de, ic, profit, liq, cibil, foir, regime_multiplier=1.0), 4)
         default_flag = 1 if random.random() < pd_obs else 0
 
         # facility

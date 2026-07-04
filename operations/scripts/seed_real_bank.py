@@ -36,8 +36,13 @@ Example:
 
 import os, sys, json, sqlite3, random, subprocess, argparse
 from datetime import date, datetime, timedelta
+import numpy as np
 
 sys.stdout.reconfigure(encoding='utf-8')
+
+# Import shared risk formula (same formula for all seeding)
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
+from ml_models.risk_formula import true_pd_nonlinear, sample_correlated_features, add_measurement_noise
 
 REPO = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 DB   = os.path.join(REPO, 'bank.db')
@@ -364,27 +369,53 @@ def seed(profile: dict, scale: dict, n_loan: int, n_dep_only: int,
         ex_products  = random.randint(1, 5)
         deps         = random.randint(0, 4)
 
-        # -- NPA / credit quality (deterministic: use pre-assigned slots)
-        cls_pos = cls_counter.get(cls, 0) - 1  # 0-based position within this class
-        is_npa  = (lid is not None) and (cls in npa_slots) and (cls_pos in npa_slots[cls])
-        if is_npa:
-            de = round(random.uniform(3.0, 7.0), 2);  ic     = round(random.uniform(0.8, 2.4), 2)
-            profit = round(random.uniform(-8, 5), 1);  liq    = round(random.uniform(0.6, 1.2), 2)
-            cibil  = random.randint(550, 680);         foir   = round(random.uniform(0.50, 0.85), 2)
-            late   = random.randint(2, 8);             prev_def = 1 if random.random() < 0.6 else 0
-        else:
-            de = round(random.uniform(0.4, 2.0), 2);  ic     = round(random.uniform(3.5, 14.0), 2)
-            profit = round(random.uniform(6, 25), 1);  liq    = round(random.uniform(1.3, 3.0), 2)
-            cibil  = random.randint(710, 830);         foir   = round(random.uniform(0.18, 0.44), 2)
-            late   = 0;                                prev_def = 0
+        # -- Realistic credit quality: continuous features + probabilistic defaults
+        rng = np.random.default_rng(seed=random.randint(1, 1000000))
 
-        risk    = (0.01 + max(0, (750 - cibil)) / 900 + de * 0.025
-                   + max(0, 3 - ic) * 0.05 + max(0, foir - 0.40) * 0.6
-                   + prev_def * 0.20 + late * 0.03 + (0.05 if profit < 0 else 0))
-        pd_obs  = round(min(0.95, max(0.005, risk)), 4)
-        df      = 1 if is_npa else 0
-        prior_de    = round(random.uniform(0.4, 2.0), 4)
-        prior_cibil = random.randint(710, 830)
+        # Sample continuous features with realistic distributions (not bimodal buckets)
+        de_true      = float(rng.exponential(scale=1.0).clip(0.1, 6.0))
+        ic_true      = float(rng.gamma(shape=3.0, scale=2.0).clip(0.5, 15.0))
+        profit_true  = float(rng.normal(loc=10.0, scale=12.0).clip(-50.0, 60.0))
+        liq_true     = float(rng.gamma(shape=4.0, scale=0.4).clip(0.3, 4.0))
+
+        # CIBIL correlated with income and tenure
+        cibil_base = 680 + (np.log(max(income, 100000)) - 12.5) * 30 + years_emp * 2
+        cibil_true = int(cibil_base + rng.normal(0, 20).clip(300, 900))
+
+        foir_true = float(rng.beta(2.2, 3.5).clip(0.05, 0.75))
+
+        # Add measurement noise to observed values (banks don't see true values)
+        noisy = add_measurement_noise(
+            rng, de_true, ic_true, profit_true, liq_true,
+            income, years_emp, foir_true
+        )
+        de      = round(noisy['de_ratio'], 2)
+        ic      = round(noisy['int_coverage'], 2)
+        profit  = round(noisy['profitability'], 1)
+        liq     = round(noisy['liquidity_ratio'], 2)
+        cibil   = int(noisy['cibil_score'] if noisy.get('cibil_score') else cibil_true)
+        foir    = round(noisy['foir'], 2)
+
+        # Payment history: late payments correlation with credit quality
+        if cibil < 600:
+            late = random.randint(2, 8)
+            prev_def = 1 if random.random() < 0.6 else 0
+        else:
+            late = 0
+            prev_def = 0
+
+        # Compute PD using shared non-linear formula (stable regime, no macro multiplier)
+        pd_score = true_pd_nonlinear(de, ic, profit, liq, cibil, foir, regime_multiplier=1.0)
+
+        # Sample default probabilistically (Bernoulli trial with PD as probability)
+        # This replaces the old deterministic "is_npa → df=1" logic
+        df = int(rng.binomial(1, p=pd_score))
+        pd_obs = round(pd_score, 4)
+
+        # prior_de and prior_cibil: derive as trend, not independent random
+        # Prior = current + small trend noise (customer improving or declining ~5%)
+        prior_de    = round(de * (1 + float(rng.normal(0, 0.05))).clip(0.1, 10.0), 4)
+        prior_cibil = int(cibil * (1 + float(rng.normal(0, 0.05))).clip(300, 900))
 
         ltype_pool   = LOAN_TYPES_BY_CLASS.get(cls or 'RETAIL_OTHER', [('Personal Loan', 1)])
         ltype, purp_enc = random.choice(ltype_pool)

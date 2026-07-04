@@ -36,9 +36,15 @@ import os
 import sqlite3
 import random
 from datetime import date, datetime
+import numpy as np
 
 _REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 DB_PATH = os.path.join(_REPO_ROOT, 'bank.db')
+
+# Import shared risk formula (consistent with seed_real_bank.py and add_new_customers.py)
+import sys
+sys.path.insert(0, _REPO_ROOT)
+from ml_models.risk_formula import true_pd_nonlinear, sample_correlated_features, add_measurement_noise
 
 # ── per-bank config: customer count, branch code stem, name/city pools, sizes ──
 # (loan principal & account balance ranges in raw ₹; tuned so advances/deposits
@@ -160,21 +166,50 @@ def _seed_bank(cur, bank_id, cfg, today):
         city, state = random.choice(cfg['cities'])
         tier = random.choice([1, 1, 2])
 
+        # ── Realistic credit quality: continuous features + shared formula ────
         good = random.random() < 0.82          # ~18% distressed
-        if good:
-            de = round(random.uniform(0.5, 1.8), 2); ic = round(random.uniform(4.0, 12.0), 2)
-            profit = round(random.uniform(8, 22), 1); liq = round(random.uniform(1.4, 2.8), 2)
-            cibil = random.randint(720, 820); foir = round(random.uniform(0.20, 0.42), 2)
-            late = 0; prev_def = 0; income = random.randint(1_200_000, 6_000_000)
-        else:
-            de = round(random.uniform(3.0, 7.0), 2); ic = round(random.uniform(0.8, 2.4), 2)
-            profit = round(random.uniform(-8, 5), 1); liq = round(random.uniform(0.6, 1.2), 2)
-            cibil = random.randint(540, 690); foir = round(random.uniform(0.50, 0.85), 2)
-            late = random.randint(2, 8); prev_def = 1 if random.random() < 0.5 else 0
-            income = random.randint(500_000, 2_000_000)
+        rng = np.random.default_rng(seed=random.randint(1, 1000000))
 
+        if good:
+            # Good customer: higher income, better ratios
+            de_true     = float(rng.exponential(scale=0.7).clip(0.1, 2.5))
+            ic_true     = float(rng.gamma(shape=3.0, scale=2.5).clip(3.5, 15.0))
+            profit_true = float(rng.normal(loc=15.0, scale=8.0).clip(5.0, 60.0))
+            liq_true    = float(rng.gamma(shape=4.0, scale=0.5).clip(1.3, 4.0))
+            income      = random.randint(1_200_000, 6_000_000)
+            late        = 0
+            prev_def    = 0
+        else:
+            # At-risk customer: lower income, weaker ratios
+            de_true     = float(rng.exponential(scale=1.5).clip(2.0, 8.0))
+            ic_true     = float(rng.gamma(shape=2.0, scale=1.0).clip(1.0, 3.5))
+            profit_true = float(rng.normal(loc=-1.0, scale=10.0).clip(-50.0, 10.0))
+            liq_true    = float(rng.gamma(shape=2.0, scale=0.3).clip(0.5, 2.0))
+            income      = random.randint(500_000, 2_000_000)
+            late        = random.randint(2, 8)
+            prev_def    = 1 if random.random() < 0.5 else 0
+
+        # CIBIL correlated with income and tenure
         age = random.randint(25, 62)
         years_emp = round(random.uniform(1, min(age - 22, 30)), 1)
+        cibil_base = 680 + (np.log(max(income, 100000)) - 12.5) * 30 + years_emp * 2
+        cibil_true = int(cibil_base + rng.normal(0, 20).clip(300, 900))
+
+        foir_true = float(rng.beta(2.2, 3.5).clip(0.05, 0.75))
+
+        # Add measurement noise (observed ≠ true)
+        noisy = add_measurement_noise(
+            rng, de_true, ic_true, profit_true, liq_true,
+            income, years_emp, foir_true
+        )
+        de      = round(noisy['de_ratio'], 2)
+        ic      = round(noisy['int_coverage'], 2)
+        profit  = round(noisy['profitability'], 1)
+        liq     = round(noisy['liquidity_ratio'], 2)
+        cibil   = int(noisy['cibil_score'] if noisy.get('cibil_score') else cibil_true)
+        foir    = round(noisy['foir'], 2)
+
+        # Employment and other attributes
         emp_enc = random.randint(1, 7); edu_enc = random.randint(3, 6); res_enc = random.randint(1, 4)
         ltype, purpose_enc = random.choice(RISKY_LOANS if not good else LOAN_TYPES)
         emp_label = EMP_LABELS[emp_enc - 1]
@@ -182,11 +217,8 @@ def _seed_bank(cur, bank_id, cfg, today):
         deps = random.randint(0, 4); months_cust = random.randint(6, 200)
         ex_loans = random.randint(0, 4); ex_products = random.randint(1, 6)
 
-        # PD from drivers
-        risk = (0.01 + max(0, (750 - cibil)) / 900.0 + de * 0.025
-                + max(0, 3 - ic) * 0.05 + max(0, foir - 0.40) * 0.6
-                + prev_def * 0.20 + late * 0.03 + (0.05 if profit < 0 else 0))
-        pd_obs = round(min(0.95, max(0.005, risk)), 4)
+        # Compute PD using shared formula (stable regime, no macro effects)
+        pd_obs = round(true_pd_nonlinear(de, ic, profit, liq, cibil, foir, regime_multiplier=1.0), 4)
         default_flag = 1 if random.random() < pd_obs else 0
 
         principal = random.randint(p_lo // 100000, p_hi // 100000) * 100000
