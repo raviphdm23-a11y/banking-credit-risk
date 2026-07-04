@@ -253,6 +253,15 @@
         .collapsible.open .toggle-arrow {
             transform:rotate(180deg);
         }
+
+        .mini-btn {
+            padding:4px 10px !important; font-size:.7em !important; background:rgba(96,165,250,.6) !important;
+            border:1px solid rgba(96,165,250,.4) !important;
+        }
+
+        .mini-btn:hover {
+            background:rgba(96,165,250,.8) !important;
+        }
     </style>
 </head>
 <body>
@@ -279,7 +288,11 @@
         <div class="collapsible open">
             <div class="collapsible-header" onclick="toggleCollapsible(this)">
                 <span>🏛️ Bank & Status Filters</span>
-                <span class="toggle-arrow">▼</span>
+                <div style="display:flex; gap:8px; align-items:center;">
+                    <button class="mini-btn" onclick="event.stopPropagation(); document.getElementById('bankFilter').querySelectorAll('option').forEach(o => o.selected = !o.selected)">Toggle Banks</button>
+                    <button class="mini-btn" onclick="event.stopPropagation(); toggleAllCheckboxes('customerStatusFilter')">Toggle Status</button>
+                    <span class="toggle-arrow">▼</span>
+                </div>
             </div>
             <div class="collapsible-content">
                 <div class="filter-grid">
@@ -318,7 +331,12 @@
         <div class="collapsible open">
             <div class="collapsible-header" onclick="toggleCollapsible(this)">
                 <span>👤 Demographics</span>
-                <span class="toggle-arrow">▼</span>
+                <div style="display:flex; gap:8px; align-items:center;">
+                    <button class="mini-btn" onclick="event.stopPropagation(); toggleAllCheckboxes('employmentFilter')">Toggle Employ.</button>
+                    <button class="mini-btn" onclick="event.stopPropagation(); toggleAllCheckboxes('educationFilter')">Toggle Edu.</button>
+                    <button class="mini-btn" onclick="event.stopPropagation(); toggleAllCheckboxes('cityTierFilter')">Toggle Tiers</button>
+                    <span class="toggle-arrow">▼</span>
+                </div>
             </div>
             <div class="collapsible-content">
                 <div class="filter-grid">
@@ -370,7 +388,10 @@
         <div class="collapsible open">
             <div class="collapsible-header" onclick="toggleCollapsible(this)">
                 <span>💰 Financial Metrics</span>
-                <span class="toggle-arrow">▼</span>
+                <div style="display:flex; gap:8px; align-items:center;">
+                    <button class="mini-btn" onclick="event.stopPropagation(); toggleAllCheckboxes('loanPurposeFilter')">Toggle Purpose</button>
+                    <span class="toggle-arrow">▼</span>
+                </div>
             </div>
             <div class="collapsible-content">
                 <div class="filter-grid">
@@ -552,10 +573,10 @@ async function loadFilterMetadata() {
 }
 
 function populateFilters() {
-    // Banks
+    // Banks - select all by default
     const bankSelect = document.getElementById('bankFilter');
     bankSelect.innerHTML = filterMetadata.banks
-        .map(b => `<option value="${b.bank_id}">${b.bank_name}</option>`)
+        .map(b => `<option value="${b.bank_id}" selected>${b.bank_name}</option>`)
         .join('');
 
     // Customer statuses
@@ -581,11 +602,17 @@ function populateCheckboxGroup(elementId, items) {
     container.innerHTML = items
         .map((item, i) => `
             <label class="checkbox-item">
-                <input type="checkbox" id="${elementId}_${i}" value="${item}">
+                <input type="checkbox" id="${elementId}_${i}" value="${item}" checked>
                 <span class="checkbox-label">${item}</span>
             </label>
         `)
         .join('');
+}
+
+function toggleAllCheckboxes(elementId) {
+    const checkboxes = document.querySelectorAll(`#${elementId} input[type="checkbox"]`);
+    const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+    checkboxes.forEach(cb => cb.checked = !allChecked);
 }
 
 async function applyFilters() {
