@@ -1,5 +1,23 @@
 [
   {
+    "run_id": "run_20260704_142938",
+    "timestamp": "2026-07-04T14:29:38",
+    "triggered_by": "manual",
+    "data_source": "enriched_transactions (TRANSACTION-LEVEL)",
+    "use_transaction_level": true,
+    "status": "failed",
+    "files_used": [],
+    "files_skipped": [],
+    "total_rows": 0,
+    "train_rows": 0,
+    "test_rows": 0,
+    "metrics": {},
+    "confusion_matrix": [],
+    "model_promoted": false,
+    "duration_seconds": 0.01,
+    "error": "Traceback (most recent call last):\n  File \"C:\\Users\\Arnav\\OneDrive\\Desktop\\Axis_bank_credit_risk_analysis\\ml_models\\trainer.py\", line 773, in run_training\n    merged, files_used, files_skip, dupes = load_and_merge(use_transaction_level=use_transaction_level)\n  File \"C:\\Users\\Arnav\\OneDrive\\Desktop\\Axis_bank_credit_risk_analysis\\ml_models\\trainer.py\", line 476, in load_and_merge\n    raise ValueError(\nValueError: No valid training data found. Check enriched_transactions or bank_loan_metrics table, and ensure data/training/ contains CSV files if needed.\n"
+  },
+  {
     "run_id": "run_20260704_142834",
     "timestamp": "2026-07-04T14:28:34",
     "triggered_by": "manual",
@@ -2091,57 +2109,6 @@
       "n_trained": 129,
       "min_rows_floor": 100,
       "auc_ok": false,
-      "rows_ok": true
-    }
-  },
-  {
-    "run_id": "run_20260618_184910",
-    "timestamp": "2026-06-18T18:49:10",
-    "triggered_by": "manual",
-    "status": "success",
-    "files_used": [
-      {
-        "filename": "bank_loan_metrics (bank.db)",
-        "rows": 162
-      },
-      {
-        "filename": "indian_banks_synthetic_2024.csv",
-        "rows": 14300
-      }
-    ],
-    "files_skipped": [],
-    "total_rows": 14462,
-    "train_rows": 11569,
-    "test_rows": 2893,
-    "metrics": {
-      "r2": 0.7865,
-      "rmse": 0.025447,
-      "mae": 0.013686,
-      "auc_roc": 0.9761,
-      "accuracy": 0.6142,
-      "precision": 0.1783,
-      "recall": 0.9959,
-      "f1": 0.3025
-    },
-    "confusion_matrix": [
-      [
-        1535,
-        1115
-      ],
-      [
-        1,
-        242
-      ]
-    ],
-    "model_promoted": true,
-    "duration_seconds": 1.25,
-    "error": null,
-    "promotion_check": {
-      "auc": 0.9761,
-      "min_auc_floor": 0.75,
-      "n_trained": 11569,
-      "min_rows_floor": 500,
-      "auc_ok": true,
       "rows_ok": true
     }
   }
