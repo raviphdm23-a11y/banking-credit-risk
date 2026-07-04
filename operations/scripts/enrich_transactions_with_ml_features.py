@@ -173,10 +173,11 @@ def enrich_transaction(conn, txn_id):
     # Get loan info (if any loan active on this date)
     cursor.execute("""
         SELECT l.id, m.de, m.intcov, m.profit, m.liq, m.prior_de, m.prior_cibil,
-               m.pd_score, l.loan_classification, l.exposure_class, l.loan_purpose,
+               m.pd_score, l.loan_classification, l.exposure_class, k.loan_purpose,
                l.disbursed
         FROM loans l
         LEFT JOIN credit_risk_metrics m ON l.id = m.lid
+        LEFT JOIN customer_kyc k ON l.cid = k.cid
         WHERE l.cid = ? AND l.disbursed <= ? AND (l.maturity > ? OR l.status = 'Active')
         ORDER BY l.disbursed DESC LIMIT 1
     """, (cid, txn_date, txn_date))
