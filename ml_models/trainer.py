@@ -338,7 +338,7 @@ def load_from_enriched_transactions():
     Load transaction-level enriched data from transactions table.
     Returns DataFrame with all enriched ML features.
     """
-    conn = sqlite3.connect(DB_PATH)
+    conn = sqlite3.connect(BANK_DB_PATH)
 
     query = """
         SELECT

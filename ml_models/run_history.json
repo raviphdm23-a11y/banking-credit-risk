@@ -1,5 +1,23 @@
 [
   {
+    "run_id": "run_20260704_144303",
+    "timestamp": "2026-07-04T14:43:03",
+    "triggered_by": "manual",
+    "data_source": "enriched_transactions (TRANSACTION-LEVEL)",
+    "use_transaction_level": true,
+    "status": "failed",
+    "files_used": [],
+    "files_skipped": [],
+    "total_rows": 0,
+    "train_rows": 0,
+    "test_rows": 0,
+    "metrics": {},
+    "confusion_matrix": [],
+    "model_promoted": false,
+    "duration_seconds": 0.0,
+    "error": "Traceback (most recent call last):\n  File \"C:\\Users\\Arnav\\OneDrive\\Desktop\\Axis_bank_credit_risk_analysis\\ml_models\\trainer.py\", line 736, in run_training\n    merged, files_used, files_skip, dupes = load_and_merge(use_transaction_level=use_transaction_level)\n  File \"C:\\Users\\Arnav\\OneDrive\\Desktop\\Axis_bank_credit_risk_analysis\\ml_models\\trainer.py\", line 405, in load_and_merge\n    txn_df = load_from_enriched_transactions()\n  File \"C:\\Users\\Arnav\\OneDrive\\Desktop\\Axis_bank_credit_risk_analysis\\ml_models\\trainer.py\", line 341, in load_from_enriched_transactions\n    conn = sqlite3.connect(DB_PATH)\nNameError: name 'DB_PATH' is not defined\n"
+  },
+  {
     "run_id": "run_20260704_143943",
     "timestamp": "2026-07-04T14:39:43",
     "triggered_by": "manual",
@@ -1895,51 +1913,6 @@
     "promotion_check": {
       "auc": 0.8701,
       "n_trained": 465,
-      "min_rows_floor": 100,
-      "rows_ok": true
-    }
-  },
-  {
-    "run_id": "run_20260618_224038",
-    "timestamp": "2026-06-18T22:40:38",
-    "triggered_by": "manual",
-    "status": "success",
-    "files_used": [
-      {
-        "filename": "bank_loan_metrics (bank.db)",
-        "rows": 552
-      }
-    ],
-    "files_skipped": [],
-    "total_rows": 552,
-    "train_rows": 441,
-    "test_rows": 111,
-    "metrics": {
-      "r2": 0.9816,
-      "rmse": 0.043632,
-      "mae": 0.026012,
-      "auc_roc": 0.8395,
-      "accuracy": 0.7207,
-      "precision": 0.4694,
-      "recall": 0.8214,
-      "f1": 0.5974
-    },
-    "confusion_matrix": [
-      [
-        57,
-        26
-      ],
-      [
-        5,
-        23
-      ]
-    ],
-    "model_promoted": true,
-    "duration_seconds": 0.8,
-    "error": null,
-    "promotion_check": {
-      "auc": 0.8395,
-      "n_trained": 441,
       "min_rows_floor": 100,
       "rows_ok": true
     }
