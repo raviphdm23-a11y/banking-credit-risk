@@ -424,16 +424,18 @@ def load_and_merge(use_transaction_level=False):
                 files_skip.append({'filename': 'bank_loan_metrics (bank.db)', 'reason': err})
 
     # --- Supplementary source: CSV files in data/training/ ---
-    # Include CSVs for BOTH transaction-level and customer-level (to mix real + synthetic)
-    csv_sources = [s for s in scan_training_folder() if s.get('source') == 'csv']
-    for f in csv_sources:
-        ok, err, rows = validate_file(f['filepath'])
-        if ok:
-            df = pd.read_csv(f['filepath'])
-            frames.append(df)
-            files_used.append({'filename': f['filename'], 'rows': rows})
-        else:
-            files_skip.append({'filename': f['filename'], 'reason': err})
+    # Only merge CSVs with customer-level data (not transaction-level)
+    # Transaction-level data is now realistic at the source (seed scripts + migration)
+    if not use_transaction_level:
+        csv_sources = [s for s in scan_training_folder() if s.get('source') == 'csv']
+        for f in csv_sources:
+            ok, err, rows = validate_file(f['filepath'])
+            if ok:
+                df = pd.read_csv(f['filepath'])
+                frames.append(df)
+                files_used.append({'filename': f['filename'], 'rows': rows})
+            else:
+                files_skip.append({'filename': f['filename'], 'reason': err})
 
     if not frames:
         raise ValueError(
