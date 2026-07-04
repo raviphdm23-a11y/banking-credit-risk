@@ -2421,7 +2421,7 @@ def fin_system():
                 snap['net_profit_margin'] = r['value']
             if r.get('label') == 'Cost-to-Income Ratio':
                 snap['cost_to_income'] = r['value']
-    return jsonify({'period': 'FY2020', 'banks': cards, 'consolidated': snap, 'tree': tree})
+    return jsonify({'period': SIM_PERIOD, 'banks': cards, 'consolidated': snap, 'tree': tree})
 
 
 @app.route('/financials/api/region/<region>')

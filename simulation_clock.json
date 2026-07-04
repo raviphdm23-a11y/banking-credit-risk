@@ -1,8 +1,8 @@
 {
-  "sim_date": "2020-12-31",
-  "sim_period": "DEC2020",
-  "prior_period": "NOV2020",
-  "description": "Frozen simulation clock for the Axis Bank (BANK010) experiment. Advance by updating sim_date and sim_period, then re-run the balance sheet, P&L, and regulatory batch seeders.",
-  "last_updated": "2020-12-31",
-  "notes": "December 2020: Retail loan recovery post-Diwali. T+1 settlement norms effective. NSFR binding Dec 1. Year-end funding squeeze typical. Vaccination rollout begins Dec 16. GNPA stable at 2.4%. CAR 16.2%."
+  "sim_date": "2025-03-31",
+  "sim_period": "FY2025",
+  "prior_period": "FY2024",
+  "description": "Updated simulation clock to match actual financial data (FY2024/FY2025). All 9 banks have live-anchored financials.",
+  "last_updated": "2026-06-19",
+  "notes": "FY2025: All 9 global banks with real ledger-anchored balance sheets and P&L. Advances net from actual loans, deposits from actual accounts. CAR/LCR/NSFR computed from live data."
 }
