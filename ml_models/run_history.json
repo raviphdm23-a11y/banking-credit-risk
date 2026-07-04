@@ -1,5 +1,405 @@
 [
   {
+    "run_id": "run_20260704_192356",
+    "timestamp": "2026-07-04T19:23:56",
+    "triggered_by": "manual",
+    "data_source": "enriched_transactions (TRANSACTION-LEVEL)",
+    "use_transaction_level": true,
+    "model_type": "logistic_regression",
+    "status": "success",
+    "files_used": [
+      {
+        "filename": "enriched_transactions (bank.db - TRANSACTION LEVEL)",
+        "rows": 56218
+      }
+    ],
+    "files_skipped": [],
+    "total_rows": 56218,
+    "train_rows": 44974,
+    "test_rows": 11244,
+    "metrics": {
+      "auc_roc": 1.0,
+      "accuracy": 1.0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "brier_score": 0.0,
+      "n_test": 11244,
+      "n_defaults": 187,
+      "default_rate": 0.0166
+    },
+    "confusion_matrix": [
+      [
+        11057,
+        0
+      ],
+      [
+        0,
+        187
+      ]
+    ],
+    "model_promoted": true,
+    "duration_seconds": 2.44,
+    "error": null,
+    "promotion_check": {
+      "auc": 1.0,
+      "n_trained": 44974,
+      "min_rows_floor": 100,
+      "rows_ok": true
+    }
+  },
+  {
+    "run_id": "run_20260704_192334",
+    "timestamp": "2026-07-04T19:23:34",
+    "triggered_by": "manual",
+    "data_source": "enriched_transactions (TRANSACTION-LEVEL)",
+    "use_transaction_level": true,
+    "model_type": "xgboost",
+    "status": "success",
+    "files_used": [
+      {
+        "filename": "enriched_transactions (bank.db - TRANSACTION LEVEL)",
+        "rows": 56218
+      },
+      {
+        "filename": "realistic_synthetic_data.csv",
+        "rows": 14300
+      }
+    ],
+    "files_skipped": [],
+    "total_rows": 70518,
+    "train_rows": 56414,
+    "test_rows": 14104,
+    "metrics": {
+      "auc_roc": 0.9528,
+      "accuracy": 0.8208,
+      "precision": 0.152,
+      "recall": 0.9869,
+      "f1": 0.2634,
+      "brier_score": 0.073102,
+      "n_test": 14104,
+      "n_defaults": 458,
+      "default_rate": 0.0325
+    },
+    "confusion_matrix": [
+      [
+        11124,
+        2522
+      ],
+      [
+        6,
+        452
+      ]
+    ],
+    "model_promoted": false,
+    "duration_seconds": 3.08,
+    "error": null,
+    "promotion_check": {
+      "auc": 0.9528,
+      "n_trained": 56414,
+      "min_rows_floor": 100,
+      "rows_ok": true
+    }
+  },
+  {
+    "run_id": "run_20260704_192237",
+    "timestamp": "2026-07-04T19:22:37",
+    "triggered_by": "manual",
+    "data_source": "enriched_transactions (TRANSACTION-LEVEL)",
+    "use_transaction_level": true,
+    "model_type": "logistic_regression",
+    "status": "success",
+    "files_used": [
+      {
+        "filename": "enriched_transactions (bank.db - TRANSACTION LEVEL)",
+        "rows": 56218
+      }
+    ],
+    "files_skipped": [],
+    "total_rows": 56218,
+    "train_rows": 44974,
+    "test_rows": 11244,
+    "metrics": {
+      "auc_roc": 1.0,
+      "accuracy": 1.0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "brier_score": 0.0,
+      "n_test": 11244,
+      "n_defaults": 187,
+      "default_rate": 0.0166
+    },
+    "confusion_matrix": [
+      [
+        11057,
+        0
+      ],
+      [
+        0,
+        187
+      ]
+    ],
+    "model_promoted": true,
+    "duration_seconds": 2.2,
+    "error": null,
+    "promotion_check": {
+      "auc": 1.0,
+      "n_trained": 44974,
+      "min_rows_floor": 100,
+      "rows_ok": true
+    }
+  },
+  {
+    "run_id": "run_20260704_192217",
+    "timestamp": "2026-07-04T19:22:17",
+    "triggered_by": "manual",
+    "data_source": "enriched_transactions (TRANSACTION-LEVEL)",
+    "use_transaction_level": true,
+    "model_type": "xgboost",
+    "status": "success",
+    "files_used": [
+      {
+        "filename": "enriched_transactions (bank.db - TRANSACTION LEVEL)",
+        "rows": 56218
+      }
+    ],
+    "files_skipped": [],
+    "total_rows": 56218,
+    "train_rows": 44974,
+    "test_rows": 11244,
+    "metrics": {
+      "auc_roc": 1.0,
+      "accuracy": 1.0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "brier_score": 0.0,
+      "n_test": 11244,
+      "n_defaults": 187,
+      "default_rate": 0.0166
+    },
+    "confusion_matrix": [
+      [
+        11057,
+        0
+      ],
+      [
+        0,
+        187
+      ]
+    ],
+    "model_promoted": false,
+    "duration_seconds": 2.33,
+    "error": null,
+    "promotion_check": {
+      "auc": 1.0,
+      "n_trained": 44974,
+      "min_rows_floor": 100,
+      "rows_ok": true
+    }
+  },
+  {
+    "run_id": "run_20260704_192117",
+    "timestamp": "2026-07-04T19:21:17",
+    "triggered_by": "manual",
+    "data_source": "enriched_transactions (TRANSACTION-LEVEL)",
+    "use_transaction_level": true,
+    "model_type": "logistic_regression",
+    "status": "success",
+    "files_used": [
+      {
+        "filename": "enriched_transactions (bank.db - TRANSACTION LEVEL)",
+        "rows": 56218
+      }
+    ],
+    "files_skipped": [],
+    "total_rows": 56218,
+    "train_rows": 44974,
+    "test_rows": 11244,
+    "metrics": {
+      "auc_roc": 1.0,
+      "accuracy": 1.0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "brier_score": 0.0,
+      "n_test": 11244,
+      "n_defaults": 187,
+      "default_rate": 0.0166
+    },
+    "confusion_matrix": [
+      [
+        11057,
+        0
+      ],
+      [
+        0,
+        187
+      ]
+    ],
+    "model_promoted": true,
+    "duration_seconds": 1.56,
+    "error": null,
+    "promotion_check": {
+      "auc": 1.0,
+      "n_trained": 44974,
+      "min_rows_floor": 100,
+      "rows_ok": true
+    }
+  },
+  {
+    "run_id": "run_20260704_192040",
+    "timestamp": "2026-07-04T19:20:40",
+    "triggered_by": "manual",
+    "data_source": "enriched_transactions (TRANSACTION-LEVEL)",
+    "use_transaction_level": true,
+    "model_type": "xgboost",
+    "status": "success",
+    "files_used": [
+      {
+        "filename": "enriched_transactions (bank.db - TRANSACTION LEVEL)",
+        "rows": 56218
+      },
+      {
+        "filename": "realistic_synthetic_data.csv",
+        "rows": 14300
+      }
+    ],
+    "files_skipped": [],
+    "total_rows": 70518,
+    "train_rows": 56414,
+    "test_rows": 14104,
+    "metrics": {
+      "auc_roc": 0.9528,
+      "accuracy": 0.8208,
+      "precision": 0.152,
+      "recall": 0.9869,
+      "f1": 0.2634,
+      "brier_score": 0.073102,
+      "n_test": 14104,
+      "n_defaults": 458,
+      "default_rate": 0.0325
+    },
+    "confusion_matrix": [
+      [
+        11124,
+        2522
+      ],
+      [
+        6,
+        452
+      ]
+    ],
+    "model_promoted": false,
+    "duration_seconds": 2.39,
+    "error": null,
+    "promotion_check": {
+      "auc": 0.9528,
+      "n_trained": 56414,
+      "min_rows_floor": 100,
+      "rows_ok": true
+    }
+  },
+  {
+    "run_id": "run_20260704_191927",
+    "timestamp": "2026-07-04T19:19:27",
+    "triggered_by": "manual",
+    "data_source": "enriched_transactions (TRANSACTION-LEVEL)",
+    "use_transaction_level": true,
+    "model_type": "logistic_regression",
+    "status": "success",
+    "files_used": [
+      {
+        "filename": "enriched_transactions (bank.db - TRANSACTION LEVEL)",
+        "rows": 56218
+      }
+    ],
+    "files_skipped": [],
+    "total_rows": 56218,
+    "train_rows": 44974,
+    "test_rows": 11244,
+    "metrics": {
+      "auc_roc": 1.0,
+      "accuracy": 1.0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "brier_score": 0.0,
+      "n_test": 11244,
+      "n_defaults": 187,
+      "default_rate": 0.0166
+    },
+    "confusion_matrix": [
+      [
+        11057,
+        0
+      ],
+      [
+        0,
+        187
+      ]
+    ],
+    "model_promoted": true,
+    "duration_seconds": 2.18,
+    "error": null,
+    "promotion_check": {
+      "auc": 1.0,
+      "n_trained": 44974,
+      "min_rows_floor": 100,
+      "rows_ok": true
+    }
+  },
+  {
+    "run_id": "run_20260704_191912",
+    "timestamp": "2026-07-04T19:19:12",
+    "triggered_by": "manual",
+    "data_source": "enriched_transactions (TRANSACTION-LEVEL)",
+    "use_transaction_level": true,
+    "model_type": "xgboost",
+    "status": "success",
+    "files_used": [
+      {
+        "filename": "enriched_transactions (bank.db - TRANSACTION LEVEL)",
+        "rows": 56218
+      }
+    ],
+    "files_skipped": [],
+    "total_rows": 56218,
+    "train_rows": 44974,
+    "test_rows": 11244,
+    "metrics": {
+      "auc_roc": 1.0,
+      "accuracy": 1.0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "brier_score": 0.0,
+      "n_test": 11244,
+      "n_defaults": 187,
+      "default_rate": 0.0166
+    },
+    "confusion_matrix": [
+      [
+        11057,
+        0
+      ],
+      [
+        0,
+        187
+      ]
+    ],
+    "model_promoted": false,
+    "duration_seconds": 2.4,
+    "error": null,
+    "promotion_check": {
+      "auc": 1.0,
+      "n_trained": 44974,
+      "min_rows_floor": 100,
+      "rows_ok": true
+    }
+  },
+  {
     "run_id": "run_20260704_191659",
     "timestamp": "2026-07-04T19:16:59",
     "triggered_by": "manual",
@@ -1568,299 +1968,6 @@
     "error": null,
     "promotion_check": {
       "auc": 0.9777,
-      "n_trained": 1126,
-      "min_rows_floor": 100,
-      "rows_ok": true
-    }
-  },
-  {
-    "run_id": "run_20260619_083856",
-    "timestamp": "2026-06-19T08:38:56",
-    "triggered_by": "manual",
-    "status": "success",
-    "files_used": [
-      {
-        "filename": "bank_loan_metrics (bank.db)",
-        "rows": 1408
-      }
-    ],
-    "files_skipped": [],
-    "total_rows": 1408,
-    "train_rows": 1126,
-    "test_rows": 282,
-    "metrics": {
-      "auc_roc": 1.0,
-      "accuracy": 1.0,
-      "precision": 1.0,
-      "recall": 1.0,
-      "f1": 1.0,
-      "brier_score": 0.000387,
-      "n_test": 282,
-      "n_defaults": 38,
-      "default_rate": 0.1348
-    },
-    "confusion_matrix": [
-      [
-        244,
-        0
-      ],
-      [
-        0,
-        38
-      ]
-    ],
-    "model_promoted": true,
-    "duration_seconds": 1.11,
-    "error": null,
-    "promotion_check": {
-      "auc": 1.0,
-      "n_trained": 1126,
-      "min_rows_floor": 100,
-      "rows_ok": true
-    }
-  },
-  {
-    "run_id": "run_20260619_083825",
-    "timestamp": "2026-06-19T08:38:25",
-    "triggered_by": "manual",
-    "status": "failed",
-    "files_used": [
-      {
-        "filename": "bank_loan_metrics (bank.db)",
-        "rows": 1408
-      }
-    ],
-    "files_skipped": [],
-    "total_rows": 1408,
-    "train_rows": 0,
-    "test_rows": 0,
-    "metrics": {},
-    "confusion_matrix": [],
-    "model_promoted": false,
-    "duration_seconds": 0.03,
-    "error": "Traceback (most recent call last):\n  File \"C:\\Users\\Arnav\\OneDrive\\Desktop\\Daily reading\\Banking_Credit_Risk\\.\\ml_models\\trainer.py\", line 652, in run_training\n    X = merged[FEATURE_COLS]\n  File \"C:\\Users\\Arnav\\OneDrive\\Desktop\\Daily reading\\Banking_Credit_Risk\\venv310\\lib\\site-packages\\pandas\\core\\frame.py\", line 4119, in __getitem__\n    indexer = self.columns._get_indexer_strict(key, \"columns\")[1]\n  File \"C:\\Users\\Arnav\\OneDrive\\Desktop\\Daily reading\\Banking_Credit_Risk\\venv310\\lib\\site-packages\\pandas\\core\\indexes\\base.py\", line 6212, in _get_indexer_strict\n    self._raise_if_missing(keyarr, indexer, axis_name)\n  File \"C:\\Users\\Arnav\\OneDrive\\Desktop\\Daily reading\\Banking_Credit_Risk\\venv310\\lib\\site-packages\\pandas\\core\\indexes\\base.py\", line 6264, in _raise_if_missing\n    raise KeyError(f\"{not_found} not in index\")\nKeyError: \"['delta_de_ratio', 'delta_cibil', 'months_since_origination'] not in index\"\n"
-  },
-  {
-    "run_id": "run_20260619_080801",
-    "timestamp": "2026-06-19T08:08:01",
-    "triggered_by": "manual",
-    "status": "success",
-    "files_used": [
-      {
-        "filename": "bank_loan_metrics (bank.db)",
-        "rows": 1408
-      }
-    ],
-    "files_skipped": [],
-    "total_rows": 1408,
-    "train_rows": 1126,
-    "test_rows": 282,
-    "metrics": {
-      "auc_roc": 0.9703,
-      "accuracy": 0.9433,
-      "precision": 0.72,
-      "recall": 0.9474,
-      "f1": 0.8182,
-      "brier_score": 0.039786,
-      "n_test": 282,
-      "n_defaults": 38,
-      "default_rate": 0.1348
-    },
-    "confusion_matrix": [
-      [
-        230,
-        14
-      ],
-      [
-        2,
-        36
-      ]
-    ],
-    "model_promoted": true,
-    "duration_seconds": 0.99,
-    "error": null,
-    "promotion_check": {
-      "auc": 0.9703,
-      "n_trained": 1126,
-      "min_rows_floor": 100,
-      "rows_ok": true
-    }
-  },
-  {
-    "run_id": "run_20260619_080712",
-    "timestamp": "2026-06-19T08:07:12",
-    "triggered_by": "manual",
-    "status": "success",
-    "files_used": [
-      {
-        "filename": "bank_loan_metrics (bank.db)",
-        "rows": 1408
-      }
-    ],
-    "files_skipped": [],
-    "total_rows": 1408,
-    "train_rows": 1126,
-    "test_rows": 282,
-    "metrics": {
-      "auc_roc": 0.9703,
-      "accuracy": 0.9433,
-      "precision": 0.7115,
-      "recall": 0.9737,
-      "f1": 0.8222,
-      "brier_score": 0.039786,
-      "n_test": 282,
-      "n_defaults": 38,
-      "default_rate": 0.1348
-    },
-    "confusion_matrix": [
-      [
-        229,
-        15
-      ],
-      [
-        1,
-        37
-      ]
-    ],
-    "model_promoted": true,
-    "duration_seconds": 1.02,
-    "error": null,
-    "promotion_check": {
-      "auc": 0.9703,
-      "n_trained": 1126,
-      "min_rows_floor": 100,
-      "rows_ok": true
-    }
-  },
-  {
-    "run_id": "run_20260619_080410",
-    "timestamp": "2026-06-19T08:04:10",
-    "triggered_by": "manual",
-    "status": "success",
-    "files_used": [
-      {
-        "filename": "bank_loan_metrics (bank.db)",
-        "rows": 1408
-      }
-    ],
-    "files_skipped": [],
-    "total_rows": 1408,
-    "train_rows": 1126,
-    "test_rows": 282,
-    "metrics": {
-      "auc_roc": 0.9757,
-      "accuracy": 0.9468,
-      "precision": 0.7255,
-      "recall": 0.9737,
-      "f1": 0.8315,
-      "brier_score": 0.038302,
-      "n_test": 282,
-      "n_defaults": 38,
-      "default_rate": 0.1348
-    },
-    "confusion_matrix": [
-      [
-        230,
-        14
-      ],
-      [
-        1,
-        37
-      ]
-    ],
-    "model_promoted": true,
-    "duration_seconds": 0.95,
-    "error": null,
-    "promotion_check": {
-      "auc": 0.9757,
-      "n_trained": 1126,
-      "min_rows_floor": 100,
-      "rows_ok": true
-    }
-  },
-  {
-    "run_id": "run_20260619_080321",
-    "timestamp": "2026-06-19T08:03:21",
-    "triggered_by": "manual",
-    "status": "failed",
-    "files_used": [
-      {
-        "filename": "bank_loan_metrics (bank.db)",
-        "rows": 1408
-      }
-    ],
-    "files_skipped": [],
-    "total_rows": 1408,
-    "train_rows": 0,
-    "test_rows": 0,
-    "metrics": {},
-    "confusion_matrix": [],
-    "model_promoted": false,
-    "duration_seconds": 0.03,
-    "error": "Traceback (most recent call last):\n  File \"C:\\Users\\Arnav\\OneDrive\\Desktop\\Daily reading\\Banking_Credit_Risk\\.\\ml_models\\trainer.py\", line 683, in run_training\n    X = merged[FEATURE_COLS]\n  File \"C:\\Users\\Arnav\\OneDrive\\Desktop\\Daily reading\\Banking_Credit_Risk\\venv310\\lib\\site-packages\\pandas\\core\\frame.py\", line 4119, in __getitem__\n    indexer = self.columns._get_indexer_strict(key, \"columns\")[1]\n  File \"C:\\Users\\Arnav\\OneDrive\\Desktop\\Daily reading\\Banking_Credit_Risk\\venv310\\lib\\site-packages\\pandas\\core\\indexes\\base.py\", line 6212, in _get_indexer_strict\n    self._raise_if_missing(keyarr, indexer, axis_name)\n  File \"C:\\Users\\Arnav\\OneDrive\\Desktop\\Daily reading\\Banking_Credit_Risk\\venv310\\lib\\site-packages\\pandas\\core\\indexes\\base.py\", line 6264, in _raise_if_missing\n    raise KeyError(f\"{not_found} not in index\")\nKeyError: \"['gdp_growth_pct', 'inflation_cpi_pct', 'policy_rate_pct', 'unemployment_pct'] not in index\"\n"
-  },
-  {
-    "run_id": "run_20260619_080313",
-    "timestamp": "2026-06-19T08:03:13",
-    "triggered_by": "manual",
-    "status": "failed",
-    "files_used": [
-      {
-        "filename": "bank_loan_metrics (bank.db)",
-        "rows": 1408
-      }
-    ],
-    "files_skipped": [],
-    "total_rows": 1408,
-    "train_rows": 0,
-    "test_rows": 0,
-    "metrics": {},
-    "confusion_matrix": [],
-    "model_promoted": false,
-    "duration_seconds": 0.12,
-    "error": "Traceback (most recent call last):\n  File \"C:\\Users\\Arnav\\OneDrive\\Desktop\\Daily reading\\Banking_Credit_Risk\\.\\ml_models\\trainer.py\", line 683, in run_training\n    X = merged[FEATURE_COLS]\n  File \"C:\\Users\\Arnav\\OneDrive\\Desktop\\Daily reading\\Banking_Credit_Risk\\venv310\\lib\\site-packages\\pandas\\core\\frame.py\", line 4119, in __getitem__\n    indexer = self.columns._get_indexer_strict(key, \"columns\")[1]\n  File \"C:\\Users\\Arnav\\OneDrive\\Desktop\\Daily reading\\Banking_Credit_Risk\\venv310\\lib\\site-packages\\pandas\\core\\indexes\\base.py\", line 6212, in _get_indexer_strict\n    self._raise_if_missing(keyarr, indexer, axis_name)\n  File \"C:\\Users\\Arnav\\OneDrive\\Desktop\\Daily reading\\Banking_Credit_Risk\\venv310\\lib\\site-packages\\pandas\\core\\indexes\\base.py\", line 6264, in _raise_if_missing\n    raise KeyError(f\"{not_found} not in index\")\nKeyError: \"['gdp_growth_pct', 'inflation_cpi_pct', 'policy_rate_pct', 'unemployment_pct'] not in index\"\n"
-  },
-  {
-    "run_id": "run_20260619_074740",
-    "timestamp": "2026-06-19T07:47:40",
-    "triggered_by": "peer_benchmark_autorefresh_test",
-    "status": "success",
-    "files_used": [
-      {
-        "filename": "bank_loan_metrics (bank.db)",
-        "rows": 1408
-      }
-    ],
-    "files_skipped": [],
-    "total_rows": 1408,
-    "train_rows": 1126,
-    "test_rows": 282,
-    "metrics": {
-      "auc_roc": 0.9749,
-      "accuracy": 0.9468,
-      "precision": 0.7255,
-      "recall": 0.9737,
-      "f1": 0.8315,
-      "brier_score": 0.039195,
-      "n_test": 282,
-      "n_defaults": 38,
-      "default_rate": 0.1348
-    },
-    "confusion_matrix": [
-      [
-        230,
-        14
-      ],
-      [
-        1,
-        37
-      ]
-    ],
-    "model_promoted": true,
-    "duration_seconds": 0.97,
-    "error": null,
-    "promotion_check": {
-      "auc": 0.9749,
       "n_trained": 1126,
       "min_rows_floor": 100,
       "rows_ok": true
