@@ -264,9 +264,9 @@ def enrich_transaction(conn, txn_id):
         'macro_policy_rate_pct': macro.get('policy_rate_pct'),
         'macro_unemployment_pct': macro.get('unemployment_pct'),
 
-        # Delta features
-        'delta_de_ratio': macro.get('delta_gdp_pct'),  # Placeholder - needs calculation
-        'delta_cibil': None,  # Calculated from prior_cibil vs cibil_score
+        # Delta features (trend signals: current - prior)
+        'delta_de_ratio': round((loan.get('de_ratio') or 0) - (loan.get('prior_de') or 0), 4) if loan.get('de_ratio') and loan.get('prior_de') else None,
+        'delta_cibil': int((kyc.get('cibil_score') or 0) - (loan.get('prior_cibil') or 0)) if kyc.get('cibil_score') and loan.get('prior_cibil') else None,
         'delta_gdp_pct': macro.get('delta_gdp_pct'),
         'delta_cpi_pct': macro.get('delta_cpi_pct'),
         'delta_policy_rate_pct': macro.get('delta_policy_rate_pct'),
