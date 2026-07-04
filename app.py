@@ -416,7 +416,8 @@ def predict_pd_ml():
         df_features = model_feature_frame(data, _pd_model)
         features = df_features.values
 
-        pd_decimal = float(_pd_model.predict(features)[0])
+        # Use predict_proba to get probability of default (class 1)
+        pd_decimal = float(_pd_model.predict_proba(features)[0][1])
         pd_decimal = max(0.0001, min(1.0, pd_decimal))
 
         breakdown = {
