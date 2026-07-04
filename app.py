@@ -2742,45 +2742,88 @@ def analytics_home():
 def analytics_timeseries():
     """
     Returns all time-series datasets for the performance dashboard.
-    Query params: bank_id (default BANK001 - HDFC Bank)
+    Query params: bank_id (default BANK001 - HDFC Bank) or 'CONSOLIDATED' for group total
     Uses latest available data, not hardcoded simulation date.
     """
     bank_id = request.args.get('bank_id', 'BANK001')
+    is_consolidated = bank_id == 'CONSOLIDATED'
     with _ops_conn() as conn:
         # ── Capital adequacy (from regulatory batch) ──────────────────────
         # Use ALL available data, sorted by date (not filtered to SIM_DATE)
-        cap_rows = [dict(r) for r in conn.execute(
-            """SELECT report_date, car, cet1_ratio, tier1_ratio, leverage_ratio,
-                      total_rwa, loan_book, num_loans, num_npa, total_provisions
-               FROM reg_capital_reports WHERE bank_id=? ORDER BY report_date""",
-            (bank_id,)).fetchall()]
+        if is_consolidated:
+            cap_rows = [dict(r) for r in conn.execute(
+                """SELECT report_date,
+                          AVG(car) as car, AVG(cet1_ratio) as cet1_ratio,
+                          AVG(tier1_ratio) as tier1_ratio, AVG(leverage_ratio) as leverage_ratio,
+                          SUM(total_rwa) as total_rwa, SUM(loan_book) as loan_book,
+                          SUM(num_loans) as num_loans, SUM(num_npa) as num_npa,
+                          SUM(total_provisions) as total_provisions
+                   FROM reg_capital_reports GROUP BY report_date ORDER BY report_date""").fetchall()]
+        else:
+            cap_rows = [dict(r) for r in conn.execute(
+                """SELECT report_date, car, cet1_ratio, tier1_ratio, leverage_ratio,
+                          total_rwa, loan_book, num_loans, num_npa, total_provisions
+                   FROM reg_capital_reports WHERE bank_id=? ORDER BY report_date""",
+                (bank_id,)).fetchall()]
 
         # ── Liquidity ratios ──────────────────────────────────────────────
-        liq_rows = [dict(r) for r in conn.execute(
-            """SELECT report_date, lcr, nsfr, crr_ratio, slr_ratio, hqla, ndtl
-               FROM reg_liquidity_reports WHERE bank_id=? ORDER BY report_date""",
-            (bank_id,)).fetchall()]
+        if is_consolidated:
+            liq_rows = [dict(r) for r in conn.execute(
+                """SELECT report_date, AVG(lcr) as lcr, AVG(nsfr) as nsfr,
+                          AVG(crr_ratio) as crr_ratio, AVG(slr_ratio) as slr_ratio,
+                          SUM(hqla) as hqla, SUM(ndtl) as ndtl
+                   FROM reg_liquidity_reports GROUP BY report_date ORDER BY report_date""").fetchall()]
+        else:
+            liq_rows = [dict(r) for r in conn.execute(
+                """SELECT report_date, lcr, nsfr, crr_ratio, slr_ratio, hqla, ndtl
+                   FROM reg_liquidity_reports WHERE bank_id=? ORDER BY report_date""",
+                (bank_id,)).fetchall()]
 
         # ── Balance sheet ─────────────────────────────────────────────────
-        bs_rows = [dict(r) for r in conn.execute(
-            """SELECT period, as_on_date,
-                      advances_net, investments,
-                      deposits_demand+deposits_savings+deposits_term AS deposits,
-                      equity_capital+reserves_surplus AS capital,
-                      cash_with_rbi, balances_with_banks, other_assets,
-                      borrowings, other_liabilities, intangible_assets
-               FROM bank_balance_sheet WHERE bank_id=? ORDER BY as_on_date""",
-            (bank_id,)).fetchall()]
+        if is_consolidated:
+            bs_rows = [dict(r) for r in conn.execute(
+                """SELECT period, as_on_date,
+                          SUM(advances_net) as advances_net, SUM(investments) as investments,
+                          SUM(deposits_demand+deposits_savings+deposits_term) AS deposits,
+                          SUM(equity_capital+reserves_surplus) AS capital,
+                          SUM(cash_with_rbi) as cash_with_rbi, SUM(balances_with_banks) as balances_with_banks,
+                          SUM(other_assets) as other_assets,
+                          SUM(borrowings) as borrowings, SUM(other_liabilities) as other_liabilities,
+                          SUM(intangible_assets) as intangible_assets
+                   FROM bank_balance_sheet GROUP BY period, as_on_date ORDER BY as_on_date""").fetchall()]
+        else:
+            bs_rows = [dict(r) for r in conn.execute(
+                """SELECT period, as_on_date,
+                          advances_net, investments,
+                          deposits_demand+deposits_savings+deposits_term AS deposits,
+                          equity_capital+reserves_surplus AS capital,
+                          cash_with_rbi, balances_with_banks, other_assets,
+                          borrowings, other_liabilities, intangible_assets
+                   FROM bank_balance_sheet WHERE bank_id=? ORDER BY as_on_date""",
+                (bank_id,)).fetchall()]
 
         # ── P&L ───────────────────────────────────────────────────────────
-        pl_rows = [dict(r) for r in conn.execute(
-            """SELECT period, from_date, to_date,
-                      net_interest_income, other_income, total_income,
-                      interest_expended, operating_expenses,
-                      provisions_contingencies, operating_profit,
-                      profit_before_tax, profit_after_tax
-               FROM bank_profit_loss WHERE bank_id=? ORDER BY to_date""",
-            (bank_id,)).fetchall()]
+        if is_consolidated:
+            pl_rows = [dict(r) for r in conn.execute(
+                """SELECT period, from_date, to_date,
+                          SUM(net_interest_income) as net_interest_income,
+                          SUM(other_income) as other_income, SUM(total_income) as total_income,
+                          SUM(interest_expended) as interest_expended,
+                          SUM(operating_expenses) as operating_expenses,
+                          SUM(provisions_contingencies) as provisions_contingencies,
+                          SUM(operating_profit) as operating_profit,
+                          SUM(profit_before_tax) as profit_before_tax,
+                          SUM(profit_after_tax) as profit_after_tax
+                   FROM bank_profit_loss GROUP BY period, from_date, to_date ORDER BY to_date""").fetchall()]
+        else:
+            pl_rows = [dict(r) for r in conn.execute(
+                """SELECT period, from_date, to_date,
+                          net_interest_income, other_income, total_income,
+                          interest_expended, operating_expenses,
+                          provisions_contingencies, operating_profit,
+                          profit_before_tax, profit_after_tax
+                   FROM bank_profit_loss WHERE bank_id=? ORDER BY to_date""",
+                (bank_id,)).fetchall()]
 
     # ── Derived metrics ───────────────────────────────────────────────────
     def _cr(v): return round(v / 1e7, 2) if v else 0   # rupees → Cr
@@ -2895,13 +2938,30 @@ def analytics_timeseries():
     moratorium_series = []
     try:
         conn.execute("SELECT 1 FROM sim_period_metrics LIMIT 1")
-        sm_rows = [dict(r) for r in conn.execute(
-            """SELECT period, as_of_date, morat_count, morat_pct, morat_book_cr,
-                      morat_green, morat_amber, morat_red,
-                      gate_gnpa, gate_pat, gate_car, gate_morat, gate_disbursals,
-                      new_disbursals
-               FROM sim_period_metrics WHERE bank_id=? ORDER BY as_of_date""",
-            (bank_id,)).fetchall()]
+        if is_consolidated:
+            sm_rows = [dict(r) for r in conn.execute(
+                """SELECT period, as_of_date,
+                          SUM(morat_count) as morat_count,
+                          AVG(morat_pct) as morat_pct,
+                          SUM(morat_book_cr) as morat_book_cr,
+                          SUM(morat_green) as morat_green, SUM(morat_amber) as morat_amber,
+                          SUM(morat_red) as morat_red,
+                          (SELECT AVG(gate_gnpa) FROM sim_period_metrics WHERE period=t.period) as gate_gnpa,
+                          (SELECT AVG(gate_pat) FROM sim_period_metrics WHERE period=t.period) as gate_pat,
+                          (SELECT AVG(gate_car) FROM sim_period_metrics WHERE period=t.period) as gate_car,
+                          (SELECT AVG(gate_morat) FROM sim_period_metrics WHERE period=t.period) as gate_morat,
+                          (SELECT AVG(gate_disbursals) FROM sim_period_metrics WHERE period=t.period) as gate_disbursals,
+                          SUM(new_disbursals) as new_disbursals
+                   FROM sim_period_metrics t
+                   GROUP BY period, as_of_date ORDER BY as_of_date""").fetchall()]
+        else:
+            sm_rows = [dict(r) for r in conn.execute(
+                """SELECT period, as_of_date, morat_count, morat_pct, morat_book_cr,
+                          morat_green, morat_amber, morat_red,
+                          gate_gnpa, gate_pat, gate_car, gate_morat, gate_disbursals,
+                          new_disbursals
+                   FROM sim_period_metrics WHERE bank_id=? ORDER BY as_of_date""",
+                (bank_id,)).fetchall()]
         for r in sm_rows:
             moratorium_series.append({
                 'period':      r['period'],
@@ -2966,7 +3026,8 @@ def analytics_timeseries():
         latest_date = max(r['date'] for r in pl_series)
 
     return jsonify({
-        'bank_id':    bank_id,
+        'bank_id':    'CONSOLIDATED' if is_consolidated else bank_id,
+        'bank_name':  'Group Consolidated' if is_consolidated else bank_id,
         'sim_date':   latest_date,  # Use latest date from actual data
         'sim_period': SIM_PERIOD,
         'capital':    capital_series,

@@ -336,9 +336,12 @@ async function loadBanks() {
     const resp  = await fetch('/analytics/api/banks');
     const banks = await resp.json();
     const sel   = document.getElementById('bankPicker');
-    sel.innerHTML = banks.map(b =>
-        `<option value="${b.bank_id}" ${b.bank_id==='BANK001'?'selected':''}>${b.bank_name}</option>`
-    ).join('');
+    sel.innerHTML = `<option value="CONSOLIDATED">🌍 Group Consolidated</option>` +
+        banks.map(b =>
+            `<option value="${b.bank_id}" ${b.bank_id==='BANK001'?'selected':''}>${b.bank_name}</option>`
+        ).join('');
+    // Select consolidated by default
+    sel.value = 'CONSOLIDATED';
 }
 
 async function loadData() {
