@@ -373,16 +373,16 @@ def seed(profile: dict, scale: dict, n_loan: int, n_dep_only: int,
         rng = np.random.default_rng(seed=random.randint(1, 1000000))
 
         # Sample continuous features with realistic distributions (not bimodal buckets)
-        de_true      = float(rng.exponential(scale=1.0).clip(0.1, 6.0))
-        ic_true      = float(rng.gamma(shape=3.0, scale=2.0).clip(0.5, 15.0))
-        profit_true  = float(rng.normal(loc=10.0, scale=12.0).clip(-50.0, 60.0))
-        liq_true     = float(rng.gamma(shape=4.0, scale=0.4).clip(0.3, 4.0))
+        de_true      = float(np.clip(rng.exponential(scale=1.0), 0.1, 6.0))
+        ic_true      = float(np.clip(rng.gamma(shape=3.0, scale=2.0), 0.5, 15.0))
+        profit_true  = float(np.clip(rng.normal(loc=10.0, scale=12.0), -50.0, 60.0))
+        liq_true     = float(np.clip(rng.gamma(shape=4.0, scale=0.4), 0.3, 4.0))
 
         # CIBIL correlated with income and tenure
         cibil_base = 680 + (np.log(max(income, 100000)) - 12.5) * 30 + years_emp * 2
-        cibil_true = int(cibil_base + rng.normal(0, 20).clip(300, 900))
+        cibil_true = int(np.clip(cibil_base + rng.normal(0, 20), 300, 900))
 
-        foir_true = float(rng.beta(2.2, 3.5).clip(0.05, 0.75))
+        foir_true = float(np.clip(rng.beta(2.2, 3.5), 0.05, 0.75))
 
         # Add measurement noise to observed values (banks don't see true values)
         noisy = add_measurement_noise(
@@ -407,7 +407,7 @@ def seed(profile: dict, scale: dict, n_loan: int, n_dep_only: int,
         # CHANGED: Use simple default model (income/age/macro only) NOT feature-derived
         # This breaks the feature→default determinism that caused AUC=1.0
         # Features are still realistic (continuous, correlated, noisy) but defaults are independent
-        pd_score = simple_default_rate_model(income, age, macro_regime=1.0, rng=rng)
+        pd_score = simple_default_rate_model(income, age, macro_regime_score=1.0, rng=rng)
 
         # Sample default probabilistically (Bernoulli trial with PD as probability)
         df = int(rng.binomial(1, p=pd_score))
@@ -415,8 +415,8 @@ def seed(profile: dict, scale: dict, n_loan: int, n_dep_only: int,
 
         # prior_de and prior_cibil: derive as trend, not independent random
         # Prior = current + small trend noise (customer improving or declining ~5%)
-        prior_de    = round(de * (1 + float(rng.normal(0, 0.05))).clip(0.1, 10.0), 4)
-        prior_cibil = int(cibil * (1 + float(rng.normal(0, 0.05))).clip(300, 900))
+        prior_de    = round(np.clip(de * (1 + float(rng.normal(0, 0.05))), 0.1, 10.0), 4)
+        prior_cibil = int(np.clip(cibil * (1 + float(rng.normal(0, 0.05))), 300, 900))
 
         ltype_pool   = LOAN_TYPES_BY_CLASS.get(cls or 'RETAIL_OTHER', [('Personal Loan', 1)])
         ltype, purp_enc = random.choice(ltype_pool)
@@ -438,7 +438,7 @@ def seed(profile: dict, scale: dict, n_loan: int, n_dep_only: int,
             'Services' if cls not in ('RETAIL_MORTGAGES', None) else 'Real Estate',
             years_emp, income, 0, foir, RES_LABELS[res_enc - 1],
             round(random.uniform(1, 15), 1), f"TIER{tier}", 0,
-            'HIGH' if is_npa else 'LOW', now, now,
+            'HIGH' if df else 'LOW', now, now,
             months_cust, ex_products, ex_loans, purp_str, prev_def,
             cibil, late, state, 0))
 
@@ -484,7 +484,7 @@ def seed(profile: dict, scale: dict, n_loan: int, n_dep_only: int,
                            random.randint(1, 12), random.randint(1, 28)).isoformat()
             mat_yr  = today.year + tenure // 12
             mat     = date(min(mat_yr, 2099), random.randint(1, 12), 28).isoformat()
-            classif = 'NPA' if is_npa else 'Standard'
+            classif = 'NPA' if df else 'Standard'
             ltv     = round(random.uniform(0.55, 0.78), 2) if cls == 'RETAIL_MORTGAGES' else None
             ext_rat = (random.choice(['AA', 'A', 'A', 'BBB', 'BBB', 'BB'])
                        if cls == 'CORPORATE' else None)
@@ -497,7 +497,7 @@ def seed(profile: dict, scale: dict, n_loan: int, n_dep_only: int,
 
             crm_records.append((
                 bank_id, lid, de, ic, profit, liq, df, pd_obs,
-                1 if is_npa else 0, '2025-Q1', obs, prior_de, prior_cibil))
+                df, '2025-Q1', obs, prior_de, prior_cibil))
 
             blm_records.append((
                 bank_id, profile['bank_name'], lid,
