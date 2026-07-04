@@ -333,48 +333,104 @@ def validate_file(filepath):
 
 # ── Step 3: Load & merge ──────────────────────────────────────────────────────
 
-def load_and_merge():
+def load_from_enriched_transactions():
     """
-    Load training data from two sources and merge them:
-      1. bank_loan_metrics table in bank.db  (primary, always checked)
-      2. CSV files dropped into data/training/ (supplementary)
+    Load transaction-level enriched data from transactions table.
+    Returns DataFrame with all enriched ML features.
+    """
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        query = """
+            SELECT
+                id as loan_id, cust_age, cust_annual_income, cust_cibil_score,
+                loan_de_ratio, loan_interest_coverage, loan_profitability, loan_liquidity_ratio,
+                loan_pd_score, loan_classification,
+                macro_gdp_growth_pct, macro_inflation_cpi_pct, macro_policy_rate_pct,
+                macro_unemployment_pct,
+                delta_de_ratio, delta_cibil, delta_gdp_pct, macro_regime_score,
+                months_since_origination,
+                employment_type_enc, city_tier_enc, education_enc, residence_type_enc,
+                loan_purpose_enc, loan_classification_enc,
+                default_flag
+            FROM transactions
+            WHERE default_flag IS NOT NULL
+                AND cust_age IS NOT NULL
+                AND cust_annual_income IS NOT NULL
+        """
+        df = pd.read_sql(query, con=conn)
+        conn.close()
+
+        if df is None or len(df) == 0:
+            return None
+
+        return df
+    except Exception as e:
+        print(f"Error loading enriched transactions: {e}")
+        return None
+
+
+def load_and_merge(use_transaction_level=False):
+    """
+    Load training data from available sources.
+    If use_transaction_level=True: Load from enriched transactions table (84K rows)
+    If use_transaction_level=False: Load from bank_loan_metrics (customer-level, 1.1K rows)
+
     Returns (DataFrame, files_used, files_skipped, dupes).
     """
     frames     = []
     files_used = []
     files_skip = []
 
-    # --- Primary source: SQLite bank_loan_metrics table ---
-    db_df = load_from_db()
-    if db_df is not None:
-        ok, err = _validate_dataframe(db_df, 'bank_loan_metrics')
-        if ok:
-            frames.append(db_df)
-            files_used.append({'filename': 'bank_loan_metrics (bank.db)', 'rows': len(db_df)})
-        else:
-            files_skip.append({'filename': 'bank_loan_metrics (bank.db)', 'reason': err})
+    # --- Primary source: Transaction-level enriched data (NEW) ---
+    if use_transaction_level:
+        txn_df = load_from_enriched_transactions()
+        if txn_df is not None:
+            ok, err = _validate_dataframe(txn_df, 'enriched_transactions')
+            if ok:
+                frames.append(txn_df)
+                files_used.append({
+                    'filename': 'enriched_transactions (bank.db - TRANSACTION LEVEL)',
+                    'rows': len(txn_df)
+                })
+            else:
+                files_skip.append({
+                    'filename': 'enriched_transactions (bank.db)',
+                    'reason': err
+                })
+
+    # --- Primary source: SQLite bank_loan_metrics table (LEGACY) ---
+    if not use_transaction_level:
+        db_df = load_from_db()
+        if db_df is not None:
+            ok, err = _validate_dataframe(db_df, 'bank_loan_metrics')
+            if ok:
+                frames.append(db_df)
+                files_used.append({'filename': 'bank_loan_metrics (bank.db - CUSTOMER LEVEL)', 'rows': len(db_df)})
+            else:
+                files_skip.append({'filename': 'bank_loan_metrics (bank.db)', 'reason': err})
 
     # --- Supplementary source: CSV files in data/training/ ---
-    csv_sources = [s for s in scan_training_folder() if s.get('source') == 'csv']
-    for f in csv_sources:
-        ok, err, rows = validate_file(f['filepath'])
-        if ok:
-            df = pd.read_csv(f['filepath'])
-            frames.append(df)
-            files_used.append({'filename': f['filename'], 'rows': rows})
-        else:
-            files_skip.append({'filename': f['filename'], 'reason': err})
+    if not use_transaction_level:  # Only merge CSVs with customer-level data
+        csv_sources = [s for s in scan_training_folder() if s.get('source') == 'csv']
+        for f in csv_sources:
+            ok, err, rows = validate_file(f['filepath'])
+            if ok:
+                df = pd.read_csv(f['filepath'])
+                frames.append(df)
+                files_used.append({'filename': f['filename'], 'rows': rows})
+            else:
+                files_skip.append({'filename': f['filename'], 'reason': err})
 
     if not frames:
         raise ValueError(
             'No valid training data found. '
-            'bank_loan_metrics table is empty or unavailable, '
-            'and no CSV files exist in data/training/.'
+            'Check enriched_transactions or bank_loan_metrics table, '
+            'and ensure data/training/ contains CSV files if needed.'
         )
 
     merged = pd.concat(frames, ignore_index=True)
 
-    # Deduplicate on loan_id (keep first occurrence — DB takes priority)
+    # Deduplicate on loan_id (keep first occurrence)
     before = len(merged)
     merged = merged.drop_duplicates(subset='loan_id', keep='first')
     dupes  = before - len(merged)
@@ -613,9 +669,15 @@ def _refresh_peer_benchmarks(df):
 
 # ── Main training orchestrator ────────────────────────────────────────────────
 
-def run_training(triggered_by='manual'):
+def run_training(triggered_by='manual', use_transaction_level=True):
     """
     Full training pipeline.
+
+    Args:
+        triggered_by (str): 'manual', 'scheduler', etc.
+        use_transaction_level (bool): If True, use enriched transactions table (84K rows)
+                                       If False, use bank_loan_metrics table (1.1K rows)
+
     Returns a run record dict (same structure as stored in run_history.json).
     Raises RuntimeError if another run is already in progress.
     """
@@ -629,10 +691,14 @@ def run_training(triggered_by='manual'):
     started   = time.time()
     timestamp = datetime.now().isoformat(timespec='seconds')
 
+    data_source = "enriched_transactions (TRANSACTION-LEVEL)" if use_transaction_level else "bank_loan_metrics (CUSTOMER-LEVEL)"
+
     record = {
         'run_id':        run_id,
         'timestamp':     timestamp,
         'triggered_by':  triggered_by,
+        'data_source':   data_source,
+        'use_transaction_level': use_transaction_level,
         'status':        'failed',
         'files_used':    [],
         'files_skipped': [],
@@ -652,8 +718,8 @@ def run_training(triggered_by='manual'):
         test_size = float(hp['training'].get('test_size', 0.20))
         min_rows_floor= int(hp['training'].get('min_rows_floor', 100))
 
-        # Load data
-        merged, files_used, files_skip, dupes = load_and_merge()
+        # Load data (now with transaction-level option)
+        merged, files_used, files_skip, dupes = load_and_merge(use_transaction_level=use_transaction_level)
         record['files_used']    = files_used
         record['files_skipped'] = files_skip
         record['total_rows']    = len(merged)

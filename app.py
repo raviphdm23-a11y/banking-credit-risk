@@ -897,9 +897,13 @@ def admin_trigger_train():
         if is_training_running():
             return jsonify({'error': 'Training already in progress'}), 409
 
+        # Get data source preference from request (default to transaction-level)
+        data = request.get_json() or {}
+        use_transaction_level = data.get('use_transaction_level', True)
+
         def _run():
             global _pd_model
-            result = run_training(triggered_by='manual')
+            result = run_training(triggered_by='manual', use_transaction_level=use_transaction_level)
             if result['status'] == 'success' and (result['model_promoted'] or _pd_model is None):
                 try:
                     import joblib
@@ -1106,15 +1110,17 @@ def admin_audit_log():
 _scheduler = None
 
 def _scheduled_training():
-    """Called by APScheduler — runs training and reloads model if promoted or previously unavailable."""
+    """Called by APScheduler — runs training on enriched transactions and reloads model if promoted or previously unavailable."""
     global _pd_model
     try:
         from ml_models.trainer import run_training
         import joblib
-        result = run_training(triggered_by='schedule')
+        # Use transaction-level training by default (84K rows vs 1.1K rows)
+        result = run_training(triggered_by='schedule', use_transaction_level=True)
         if result.get('model_promoted') or _pd_model is None:
             _pd_model = joblib.load(_MODEL_PATH)
             _assessment_engine.__init__(_pd_model, _get_model_version(), db_path=_OPS_DB_PATH)
+            print(f"[ML] Model trained on {result.get('train_rows', 0)} rows from enriched transactions")
     except Exception as e:
         print(f"Scheduled training error: {e}")
 

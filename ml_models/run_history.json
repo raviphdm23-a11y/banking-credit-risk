@@ -1,5 +1,51 @@
 [
   {
+    "run_id": "run_20260704_142221",
+    "timestamp": "2026-07-04T14:22:21",
+    "triggered_by": "manual",
+    "status": "success",
+    "files_used": [
+      {
+        "filename": "bank_loan_metrics (bank.db)",
+        "rows": 1166
+      }
+    ],
+    "files_skipped": [],
+    "total_rows": 1166,
+    "train_rows": 932,
+    "test_rows": 234,
+    "metrics": {
+      "auc_roc": 1.0,
+      "accuracy": 1.0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "brier_score": 0.000384,
+      "n_test": 234,
+      "n_defaults": 7,
+      "default_rate": 0.0299
+    },
+    "confusion_matrix": [
+      [
+        227,
+        0
+      ],
+      [
+        0,
+        7
+      ]
+    ],
+    "model_promoted": true,
+    "duration_seconds": 1.23,
+    "error": null,
+    "promotion_check": {
+      "auc": 1.0,
+      "n_trained": 932,
+      "min_rows_floor": 100,
+      "rows_ok": true
+    }
+  },
+  {
     "run_id": "run_20260704_114757",
     "timestamp": "2026-07-04T11:47:57",
     "triggered_by": "manual",
@@ -2214,50 +2260,6 @@
     ],
     "model_promoted": true,
     "duration_seconds": 1.22,
-    "error": null
-  },
-  {
-    "run_id": "run_20260616_175850",
-    "timestamp": "2026-06-16T17:58:50",
-    "triggered_by": "manual-expanded-dataset",
-    "status": "success",
-    "files_used": [
-      {
-        "filename": "bank_loan_metrics (bank.db)",
-        "rows": 64
-      }
-    ],
-    "files_skipped": [
-      {
-        "filename": "indian_banks_synthetic_2024.csv",
-        "reason": "Missing columns: ['age', 'annual_income', 'cibil_score', 'city_tier_enc', 'education_enc', 'employment_type_enc', 'existing_loans_count', 'foir', 'is_rural', 'loan_purpose_enc', 'months_as_customer', 'num_dependents', 'num_existing_products', 'num_late_payments_past_12m', 'previous_default_flag', 'residence_type_enc', 'years_employed']"
-      }
-    ],
-    "total_rows": 64,
-    "train_rows": 51,
-    "test_rows": 13,
-    "metrics": {
-      "r2": 0.8778,
-      "rmse": 0.098447,
-      "mae": 0.086579,
-      "auc_roc": 0.9545,
-      "accuracy": 0.1538,
-      "precision": 0.1538,
-      "recall": 1.0,
-      "f1": 0.2667
-    },
-    "confusion_matrix": [
-      [
-        0,
-        11
-      ],
-      [
-        0,
-        2
-      ]
-    ],
-    "model_promoted": true,
-    "duration_seconds": 0.86,
     "error": null
   }
 ]
