@@ -188,8 +188,12 @@ def enrich_transaction(conn, txn_id):
                  'loan_purpose', 'disbursed']
     loan = dict(zip(loan_cols, loan_row)) if loan_row else {}
 
-    # Get macro data for transaction date and country
-    country_code = kyc.get('country_code', 'IN')
+    # Get macro data for transaction date and country.
+    # customer_kyc has no country_code column - the bank's own country_code
+    # (banks.country_code, e.g. 'IND'/'USA'/'GBR') is the correct source.
+    cursor.execute("SELECT country_code FROM banks WHERE bank_id = ?", (bank_id,))
+    bank_row = cursor.fetchone()
+    country_code = bank_row[0] if bank_row and bank_row[0] else 'IND'
     cursor.execute("""
         SELECT gdp_growth_pct, inflation_cpi_pct, policy_rate_pct, unemployment_pct,
                delta_gdp_pct, delta_cpi_pct, delta_policy_rate_pct, delta_unemployment_pct,

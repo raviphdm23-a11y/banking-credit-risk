@@ -1,5 +1,342 @@
 [
   {
+    "run_id": "run_20260704_232458",
+    "timestamp": "2026-07-04T23:24:58",
+    "triggered_by": "manual",
+    "data_source": "bank_loan_metrics (CUSTOMER-LEVEL)",
+    "use_transaction_level": false,
+    "model_type": "xgboost",
+    "status": "success",
+    "files_used": [
+      {
+        "filename": "bank_loan_metrics (bank.db - CUSTOMER LEVEL)",
+        "rows": 1350
+      }
+    ],
+    "files_skipped": [],
+    "total_rows": 1097,
+    "train_rows": 877,
+    "test_rows": 220,
+    "metrics": {
+      "auc_roc": 1.0,
+      "accuracy": 0.9909,
+      "precision": 0.5,
+      "recall": 1.0,
+      "f1": 0.6667,
+      "brier_score": 0.004392,
+      "n_test": 220,
+      "n_defaults": 2,
+      "default_rate": 0.0091
+    },
+    "confusion_matrix": [
+      [
+        216,
+        2
+      ],
+      [
+        0,
+        2
+      ]
+    ],
+    "model_promoted": false,
+    "duration_seconds": 0.78,
+    "error": null,
+    "split_strategy": "row_level_random",
+    "promotion_check": {
+      "auc": 1.0,
+      "n_trained": 877,
+      "min_rows_floor": 100,
+      "rows_ok": true
+    }
+  },
+  {
+    "run_id": "run_20260704_232458",
+    "timestamp": "2026-07-04T23:24:58",
+    "triggered_by": "manual",
+    "data_source": "bank_loan_metrics (CUSTOMER-LEVEL)",
+    "use_transaction_level": false,
+    "model_type": "xgboost",
+    "status": "success",
+    "files_used": [
+      {
+        "filename": "bank_loan_metrics (bank.db - CUSTOMER LEVEL)",
+        "rows": 1350
+      }
+    ],
+    "files_skipped": [],
+    "total_rows": 1097,
+    "train_rows": 877,
+    "test_rows": 220,
+    "metrics": {
+      "auc_roc": 0.4587,
+      "accuracy": 0.9864,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0,
+      "brier_score": 0.011093,
+      "n_test": 220,
+      "n_defaults": 2,
+      "default_rate": 0.0091
+    },
+    "confusion_matrix": [
+      [
+        217,
+        1
+      ],
+      [
+        2,
+        0
+      ]
+    ],
+    "model_promoted": false,
+    "duration_seconds": 0.87,
+    "error": null,
+    "split_strategy": "row_level_random",
+    "promotion_check": {
+      "auc": 0.4587,
+      "n_trained": 877,
+      "min_rows_floor": 100,
+      "rows_ok": true
+    }
+  },
+  {
+    "run_id": "run_20260704_232455",
+    "timestamp": "2026-07-04T23:24:55",
+    "triggered_by": "manual",
+    "data_source": "bank_loan_metrics (CUSTOMER-LEVEL)",
+    "use_transaction_level": false,
+    "model_type": "xgboost",
+    "status": "success",
+    "files_used": [
+      {
+        "filename": "bank_loan_metrics (bank.db - CUSTOMER LEVEL)",
+        "rows": 1350
+      }
+    ],
+    "files_skipped": [],
+    "total_rows": 1097,
+    "train_rows": 877,
+    "test_rows": 220,
+    "metrics": {
+      "auc_roc": 0.8264,
+      "accuracy": 0.9864,
+      "precision": 0.5,
+      "recall": 0.3333,
+      "f1": 0.4,
+      "brier_score": 0.010816,
+      "n_test": 220,
+      "n_defaults": 3,
+      "default_rate": 0.0136
+    },
+    "confusion_matrix": [
+      [
+        216,
+        1
+      ],
+      [
+        2,
+        1
+      ]
+    ],
+    "model_promoted": false,
+    "duration_seconds": 2.61,
+    "error": null,
+    "split_strategy": "row_level_random",
+    "promotion_check": {
+      "auc": 0.8264,
+      "n_trained": 877,
+      "min_rows_floor": 100,
+      "rows_ok": true
+    }
+  },
+  {
+    "run_id": "run_20260704_232426",
+    "timestamp": "2026-07-04T23:24:26",
+    "triggered_by": "manual",
+    "data_source": "bank_loan_metrics (CUSTOMER-LEVEL)",
+    "use_transaction_level": false,
+    "model_type": "xgboost",
+    "status": "success",
+    "files_used": [
+      {
+        "filename": "bank_loan_metrics (bank.db - CUSTOMER LEVEL)",
+        "rows": 1350
+      }
+    ],
+    "files_skipped": [],
+    "total_rows": 1097,
+    "train_rows": 877,
+    "test_rows": 220,
+    "metrics": {
+      "auc_roc": 0.7546,
+      "accuracy": 0.9864,
+      "precision": 0.3333,
+      "recall": 0.5,
+      "f1": 0.4,
+      "brier_score": 0.009265,
+      "n_test": 220,
+      "n_defaults": 2,
+      "default_rate": 0.0091
+    },
+    "confusion_matrix": [
+      [
+        216,
+        2
+      ],
+      [
+        1,
+        1
+      ]
+    ],
+    "model_promoted": false,
+    "duration_seconds": 2.65,
+    "error": null,
+    "split_strategy": "row_level_random",
+    "promotion_check": {
+      "auc": 0.7546,
+      "n_trained": 877,
+      "min_rows_floor": 100,
+      "rows_ok": true
+    }
+  },
+  {
+    "run_id": "run_20260704_231433",
+    "timestamp": "2026-07-04T23:14:33",
+    "triggered_by": "manual",
+    "data_source": "enriched_transactions (TRANSACTION-LEVEL)",
+    "use_transaction_level": true,
+    "model_type": "xgboost",
+    "status": "success",
+    "files_used": [
+      {
+        "filename": "enriched_transactions (bank.db - TRANSACTION LEVEL)",
+        "rows": 83669
+      }
+    ],
+    "files_skipped": [],
+    "total_rows": 83669,
+    "train_rows": 67066,
+    "test_rows": 16603,
+    "metrics": {
+      "auc_roc": 0.4669,
+      "accuracy": 0.9724,
+      "precision": 1.0,
+      "recall": 0.376,
+      "f1": 0.5465,
+      "brier_score": 0.032678,
+      "n_test": 16603,
+      "n_defaults": 734,
+      "default_rate": 0.0442
+    },
+    "confusion_matrix": [
+      [
+        15869,
+        0
+      ],
+      [
+        458,
+        276
+      ]
+    ],
+    "model_promoted": false,
+    "duration_seconds": 3.8,
+    "error": null,
+    "split_strategy": "grouped_by_loan",
+    "promotion_check": {
+      "auc": 0.4669,
+      "n_trained": 67066,
+      "min_rows_floor": 100,
+      "rows_ok": true
+    }
+  },
+  {
+    "run_id": "run_20260704_231300",
+    "timestamp": "2026-07-04T23:13:00",
+    "triggered_by": "manual",
+    "data_source": "enriched_transactions (TRANSACTION-LEVEL)",
+    "use_transaction_level": true,
+    "model_type": "xgboost",
+    "status": "success",
+    "files_used": [
+      {
+        "filename": "enriched_transactions (bank.db - TRANSACTION LEVEL)",
+        "rows": 83669
+      }
+    ],
+    "files_skipped": [],
+    "total_rows": 83669,
+    "train_rows": 66935,
+    "test_rows": 16734,
+    "metrics": {
+      "auc_roc": 1.0,
+      "accuracy": 1.0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "brier_score": 4e-06,
+      "n_test": 16734,
+      "n_defaults": 319,
+      "default_rate": 0.0191
+    },
+    "confusion_matrix": [
+      [
+        16415,
+        0
+      ],
+      [
+        0,
+        319
+      ]
+    ],
+    "model_promoted": false,
+    "duration_seconds": 3.7,
+    "error": null,
+    "promotion_check": {
+      "auc": 1.0,
+      "n_trained": 66935,
+      "min_rows_floor": 100,
+      "rows_ok": true
+    }
+  },
+  {
+    "run_id": "run_20260704_230343",
+    "timestamp": "2026-07-04T23:03:43",
+    "triggered_by": "manual",
+    "data_source": "enriched_transactions (TRANSACTION-LEVEL)",
+    "use_transaction_level": true,
+    "model_type": "xgboost",
+    "status": "failed",
+    "files_used": [],
+    "files_skipped": [],
+    "total_rows": 0,
+    "train_rows": 0,
+    "test_rows": 0,
+    "metrics": {},
+    "confusion_matrix": [],
+    "model_promoted": false,
+    "duration_seconds": 0.01,
+    "error": "Traceback (most recent call last):\n  File \"C:\\Users\\Arnav\\OneDrive\\Desktop\\Axis_bank_credit_risk_analysis\\venv310\\lib\\site-packages\\pandas\\io\\sql.py\", line 2664, in execute\n    cur.execute(sql, *args)\nsqlite3.OperationalError: no such column: t.cust_age\n\nThe above exception was the direct cause of the following exception:\n\nTraceback (most recent call last):\n  File \"C:\\Users\\Arnav\\OneDrive\\Desktop\\Axis_bank_credit_risk_analysis\\ml_models\\trainer.py\", line 795, in run_training\n    merged, files_used, files_skip, dupes = load_and_merge(use_transaction_level=use_transaction_level)\n  File \"C:\\Users\\Arnav\\OneDrive\\Desktop\\Axis_bank_credit_risk_analysis\\ml_models\\trainer.py\", line 405, in load_and_merge\n    txn_df = load_from_enriched_transactions()\n  File \"C:\\Users\\Arnav\\OneDrive\\Desktop\\Axis_bank_credit_risk_analysis\\ml_models\\trainer.py\", line 379, in load_from_enriched_transactions\n    df = pd.read_sql(query, con=conn)\n  File \"C:\\Users\\Arnav\\OneDrive\\Desktop\\Axis_bank_credit_risk_analysis\\venv310\\lib\\site-packages\\pandas\\io\\sql.py\", line 708, in read_sql\n    return pandas_sql.read_query(\n  File \"C:\\Users\\Arnav\\OneDrive\\Desktop\\Axis_bank_credit_risk_analysis\\venv310\\lib\\site-packages\\pandas\\io\\sql.py\", line 2728, in read_query\n    cursor = self.execute(sql, params)\n  File \"C:\\Users\\Arnav\\OneDrive\\Desktop\\Axis_bank_credit_risk_analysis\\venv310\\lib\\site-packages\\pandas\\io\\sql.py\", line 2676, in execute\n    raise ex from exc\npandas.errors.DatabaseError: Execution failed on sql '\n        SELECT\n            t.id as loan_id, t.bank_id,\n            t.cust_age as age, t.cust_annual_income as annual_income,\n            t.cust_cibil_score as cibil_score, t.cust_is_rural as is_rural,\n            t.cust_years_employed as years_employed, t.cust_foir_declared as foir,\n            t.cust_num_dependents as num_dependents,\n            COALESCE(k.months_as_customer, 0) as months_as_customer,\n            COALESCE(k.num_late_payments_past_12m, 0) as num_late_payments_past_12m,\n            COALESCE(k.num_existing_products, 1) as num_existing_products,\n            t.loan_de_ratio as de_ratio, t.loan_interest_coverage as interest_coverage,\n            t.loan_profitability as profitability, t.loan_liquidity_ratio as liquidity_ratio,\n            t.loan_pd_score, t.loan_classification,\n            t.macro_gdp_growth_pct as gdp_growth_pct, t.macro_inflation_cpi_pct as inflation_cpi_pct,\n            t.macro_policy_rate_pct as policy_rate_pct,\n            t.macro_unemployment_pct as unemployment_pct,\n            t.delta_de_ratio, t.delta_cibil, t.delta_gdp_pct, t.macro_regime_score,\n            t.months_since_origination,\n            t.employment_type_enc, t.city_tier_enc, t.education_enc, t.residence_type_enc,\n            t.loan_purpose_enc, t.loan_classification_enc,\n            t.default_flag,\n            t.date as observation_date,\n            t.delta_cpi_pct, t.delta_policy_rate_pct, t.delta_unemployment_pct,\n            0 as previous_default_flag,\n            1 as existing_loans_count\n        FROM transactions t\n        LEFT JOIN accounts a ON t.aid = a.id\n        LEFT JOIN customer_kyc k ON a.cid = k.cid\n        WHERE t.default_flag IS NOT NULL\n            AND t.cust_age IS NOT NULL\n            AND t.cust_annual_income IS NOT NULL\n            AND t.loan_de_ratio IS NOT NULL\n            AND t.loan_interest_coverage IS NOT NULL\n            AND t.loan_classification IS NOT NULL\n    ': no such column: t.cust_age\n"
+  },
+  {
+    "run_id": "run_20260704_230324",
+    "timestamp": "2026-07-04T23:03:24",
+    "triggered_by": "manual",
+    "data_source": "enriched_transactions (TRANSACTION-LEVEL)",
+    "use_transaction_level": true,
+    "model_type": "logistic_regression",
+    "status": "failed",
+    "files_used": [],
+    "files_skipped": [],
+    "total_rows": 0,
+    "train_rows": 0,
+    "test_rows": 0,
+    "metrics": {},
+    "confusion_matrix": [],
+    "model_promoted": false,
+    "duration_seconds": 0.02,
+    "error": "Traceback (most recent call last):\n  File \"C:\\Users\\Arnav\\OneDrive\\Desktop\\Axis_bank_credit_risk_analysis\\venv310\\lib\\site-packages\\pandas\\io\\sql.py\", line 2664, in execute\n    cur.execute(sql, *args)\nsqlite3.OperationalError: no such column: t.cust_age\n\nThe above exception was the direct cause of the following exception:\n\nTraceback (most recent call last):\n  File \"C:\\Users\\Arnav\\OneDrive\\Desktop\\Axis_bank_credit_risk_analysis\\ml_models\\trainer.py\", line 795, in run_training\n    merged, files_used, files_skip, dupes = load_and_merge(use_transaction_level=use_transaction_level)\n  File \"C:\\Users\\Arnav\\OneDrive\\Desktop\\Axis_bank_credit_risk_analysis\\ml_models\\trainer.py\", line 405, in load_and_merge\n    txn_df = load_from_enriched_transactions()\n  File \"C:\\Users\\Arnav\\OneDrive\\Desktop\\Axis_bank_credit_risk_analysis\\ml_models\\trainer.py\", line 379, in load_from_enriched_transactions\n    df = pd.read_sql(query, con=conn)\n  File \"C:\\Users\\Arnav\\OneDrive\\Desktop\\Axis_bank_credit_risk_analysis\\venv310\\lib\\site-packages\\pandas\\io\\sql.py\", line 708, in read_sql\n    return pandas_sql.read_query(\n  File \"C:\\Users\\Arnav\\OneDrive\\Desktop\\Axis_bank_credit_risk_analysis\\venv310\\lib\\site-packages\\pandas\\io\\sql.py\", line 2728, in read_query\n    cursor = self.execute(sql, params)\n  File \"C:\\Users\\Arnav\\OneDrive\\Desktop\\Axis_bank_credit_risk_analysis\\venv310\\lib\\site-packages\\pandas\\io\\sql.py\", line 2676, in execute\n    raise ex from exc\npandas.errors.DatabaseError: Execution failed on sql '\n        SELECT\n            t.id as loan_id, t.bank_id,\n            t.cust_age as age, t.cust_annual_income as annual_income,\n            t.cust_cibil_score as cibil_score, t.cust_is_rural as is_rural,\n            t.cust_years_employed as years_employed, t.cust_foir_declared as foir,\n            t.cust_num_dependents as num_dependents,\n            COALESCE(k.months_as_customer, 0) as months_as_customer,\n            COALESCE(k.num_late_payments_past_12m, 0) as num_late_payments_past_12m,\n            COALESCE(k.num_existing_products, 1) as num_existing_products,\n            t.loan_de_ratio as de_ratio, t.loan_interest_coverage as interest_coverage,\n            t.loan_profitability as profitability, t.loan_liquidity_ratio as liquidity_ratio,\n            t.loan_pd_score, t.loan_classification,\n            t.macro_gdp_growth_pct as gdp_growth_pct, t.macro_inflation_cpi_pct as inflation_cpi_pct,\n            t.macro_policy_rate_pct as policy_rate_pct,\n            t.macro_unemployment_pct as unemployment_pct,\n            t.delta_de_ratio, t.delta_cibil, t.delta_gdp_pct, t.macro_regime_score,\n            t.months_since_origination,\n            t.employment_type_enc, t.city_tier_enc, t.education_enc, t.residence_type_enc,\n            t.loan_purpose_enc, t.loan_classification_enc,\n            t.default_flag,\n            t.date as observation_date,\n            t.delta_cpi_pct, t.delta_policy_rate_pct, t.delta_unemployment_pct,\n            0 as previous_default_flag,\n            1 as existing_loans_count\n        FROM transactions t\n        LEFT JOIN accounts a ON t.aid = a.id\n        LEFT JOIN customer_kyc k ON a.cid = k.cid\n        WHERE t.default_flag IS NOT NULL\n            AND t.cust_age IS NOT NULL\n            AND t.cust_annual_income IS NOT NULL\n            AND t.loan_de_ratio IS NOT NULL\n            AND t.loan_interest_coverage IS NOT NULL\n            AND t.loan_classification IS NOT NULL\n    ': no such column: t.cust_age\n"
+  },
+  {
     "run_id": "run_20260704_224829",
     "timestamp": "2026-07-04T22:48:29",
     "triggered_by": "manual",
@@ -1737,219 +2074,5 @@
       "min_rows_floor": 100,
       "rows_ok": true
     }
-  },
-  {
-    "run_id": "run_20260704_183654",
-    "timestamp": "2026-07-04T18:36:54",
-    "triggered_by": "manual",
-    "data_source": "enriched_transactions (TRANSACTION-LEVEL)",
-    "use_transaction_level": true,
-    "status": "success",
-    "files_used": [
-      {
-        "filename": "enriched_transactions (bank.db - TRANSACTION LEVEL)",
-        "rows": 56218
-      }
-    ],
-    "files_skipped": [],
-    "total_rows": 56218,
-    "train_rows": 44974,
-    "test_rows": 11244,
-    "metrics": {
-      "auc_roc": 1.0,
-      "accuracy": 1.0,
-      "precision": 1.0,
-      "recall": 1.0,
-      "f1": 1.0,
-      "brier_score": 0.0,
-      "n_test": 11244,
-      "n_defaults": 187,
-      "default_rate": 0.0166
-    },
-    "confusion_matrix": [
-      [
-        11057,
-        0
-      ],
-      [
-        0,
-        187
-      ]
-    ],
-    "model_promoted": true,
-    "duration_seconds": 2.55,
-    "error": null,
-    "promotion_check": {
-      "auc": 1.0,
-      "n_trained": 44974,
-      "min_rows_floor": 100,
-      "rows_ok": true
-    }
-  },
-  {
-    "run_id": "run_20260704_144754",
-    "timestamp": "2026-07-04T14:47:54",
-    "triggered_by": "manual",
-    "data_source": "enriched_transactions (TRANSACTION-LEVEL)",
-    "use_transaction_level": true,
-    "status": "success",
-    "files_used": [
-      {
-        "filename": "enriched_transactions (bank.db - TRANSACTION LEVEL)",
-        "rows": 56218
-      }
-    ],
-    "files_skipped": [],
-    "total_rows": 56218,
-    "train_rows": 44974,
-    "test_rows": 11244,
-    "metrics": {
-      "auc_roc": 1.0,
-      "accuracy": 1.0,
-      "precision": 1.0,
-      "recall": 1.0,
-      "f1": 1.0,
-      "brier_score": 0.0,
-      "n_test": 11244,
-      "n_defaults": 187,
-      "default_rate": 0.0166
-    },
-    "confusion_matrix": [
-      [
-        11057,
-        0
-      ],
-      [
-        0,
-        187
-      ]
-    ],
-    "model_promoted": true,
-    "duration_seconds": 1.56,
-    "error": null,
-    "promotion_check": {
-      "auc": 1.0,
-      "n_trained": 44974,
-      "min_rows_floor": 100,
-      "rows_ok": true
-    }
-  },
-  {
-    "run_id": "run_20260704_144717",
-    "timestamp": "2026-07-04T14:47:17",
-    "triggered_by": "manual",
-    "data_source": "enriched_transactions (TRANSACTION-LEVEL)",
-    "use_transaction_level": true,
-    "status": "failed",
-    "files_used": [
-      {
-        "filename": "enriched_transactions (bank.db - TRANSACTION LEVEL)",
-        "rows": 56218
-      }
-    ],
-    "files_skipped": [],
-    "total_rows": 56218,
-    "train_rows": 44974,
-    "test_rows": 11244,
-    "metrics": {},
-    "confusion_matrix": [],
-    "model_promoted": false,
-    "duration_seconds": 0.64,
-    "error": "Traceback (most recent call last):\n  File \"C:\\Users\\Arnav\\OneDrive\\Desktop\\Axis_bank_credit_risk_analysis\\venv310\\lib\\site-packages\\xgboost\\data.py\", line 408, in pandas_feature_info\n    new_feature_types.append(_pandas_dtype_mapper[dtype.name])\nKeyError: 'object'\n\nDuring handling of the above exception, another exception occurred:\n\nTraceback (most recent call last):\n  File \"C:\\Users\\Arnav\\OneDrive\\Desktop\\Axis_bank_credit_risk_analysis\\ml_models\\trainer.py\", line 762, in run_training\n    model = train_model(X_train, y_train, hp)\n  File \"C:\\Users\\Arnav\\OneDrive\\Desktop\\Axis_bank_credit_risk_analysis\\ml_models\\trainer.py\", line 486, in train_model\n    model.fit(X_train, y_train)\n  File \"C:\\Users\\Arnav\\OneDrive\\Desktop\\Axis_bank_credit_risk_analysis\\venv310\\lib\\site-packages\\xgboost\\core.py\", line 751, in inner_f\n    return func(**kwargs)\n  File \"C:\\Users\\Arnav\\OneDrive\\Desktop\\Axis_bank_credit_risk_analysis\\venv310\\lib\\site-packages\\xgboost\\sklearn.py\", line 1787, in fit\n    train_dmatrix, evals = _wrap_evaluation_matrices(\n  File \"C:\\Users\\Arnav\\OneDrive\\Desktop\\Axis_bank_credit_risk_analysis\\venv310\\lib\\site-packages\\xgboost\\sklearn.py\", line 700, in _wrap_evaluation_matrices\n    train_dmatrix = create_dmatrix(\n  File \"C:\\Users\\Arnav\\OneDrive\\Desktop\\Axis_bank_credit_risk_analysis\\venv310\\lib\\site-packages\\xgboost\\sklearn.py\", line 1257, in _create_dmatrix\n    return QuantileDMatrix(\n  File \"C:\\Users\\Arnav\\OneDrive\\Desktop\\Axis_bank_credit_risk_analysis\\venv310\\lib\\site-packages\\xgboost\\core.py\", line 751, in inner_f\n    return func(**kwargs)\n  File \"C:\\Users\\Arnav\\OneDrive\\Desktop\\Axis_bank_credit_risk_analysis\\venv310\\lib\\site-packages\\xgboost\\core.py\", line 1719, in __init__\n    self._init(\n  File \"C:\\Users\\Arnav\\OneDrive\\Desktop\\Axis_bank_credit_risk_analysis\\venv310\\lib\\site-packages\\xgboost\\core.py\", line 1783, in _init\n    it.reraise()\n  File \"C:\\Users\\Arnav\\OneDrive\\Desktop\\Axis_bank_credit_risk_analysis\\venv310\\lib\\site-packages\\xgboost\\core.py\", line 594, in reraise\n    raise exc  # pylint: disable=raising-bad-type\n  File \"C:\\Users\\Arnav\\OneDrive\\Desktop\\Axis_bank_credit_risk_analysis\\venv310\\lib\\site-packages\\xgboost\\core.py\", line 575, in _handle_exception\n    return fn()\n  File \"C:\\Users\\Arnav\\OneDrive\\Desktop\\Axis_bank_credit_risk_analysis\\venv310\\lib\\site-packages\\xgboost\\core.py\", line 662, in <lambda>\n    return self._handle_exception(lambda: int(self.next(input_data)), 0)\n  File \"C:\\Users\\Arnav\\OneDrive\\Desktop\\Axis_bank_credit_risk_analysis\\venv310\\lib\\site-packages\\xgboost\\data.py\", line 1642, in next\n    input_data(**self.kwargs)\n  File \"C:\\Users\\Arnav\\OneDrive\\Desktop\\Axis_bank_credit_risk_analysis\\venv310\\lib\\site-packages\\xgboost\\core.py\", line 751, in inner_f\n    return func(**kwargs)\n  File \"C:\\Users\\Arnav\\OneDrive\\Desktop\\Axis_bank_credit_risk_analysis\\venv310\\lib\\site-packages\\xgboost\\core.py\", line 642, in input_data\n    new, feature_names, feature_types = _proxy_transform(\n  File \"C:\\Users\\Arnav\\OneDrive\\Desktop\\Axis_bank_credit_risk_analysis\\venv310\\lib\\site-packages\\xgboost\\data.py\", line 1695, in _proxy_transform\n    df, feature_names, feature_types = _transform_pandas_df(\n  File \"C:\\Users\\Arnav\\OneDrive\\Desktop\\Axis_bank_credit_risk_analysis\\venv310\\lib\\site-packages\\xgboost\\data.py\", line 668, in _transform_pandas_df\n    feature_names, feature_types = pandas_feature_info(\n  File \"C:\\Users\\Arnav\\OneDrive\\Desktop\\Axis_bank_credit_risk_analysis\\venv310\\lib\\site-packages\\xgboost\\data.py\", line 410, in pandas_feature_info\n    _invalid_dataframe_dtype(data)\n  File \"C:\\Users\\Arnav\\OneDrive\\Desktop\\Axis_bank_credit_risk_analysis\\venv310\\lib\\site-packages\\xgboost\\data.py\", line 373, in _invalid_dataframe_dtype\n    raise ValueError(msg)\nValueError: DataFrame.dtypes for data must be int, float, bool or category. When categorical type is supplied, the experimental DMatrix parameter`enable_categorical` must be set to `True`.  Invalid columns:gdp_growth_pct: object, inflation_cpi_pct: object, policy_rate_pct: object, unemployment_pct: object, delta_de_ratio: object, delta_cibil: object, delta_gdp_pct: object, delta_cpi_pct: object, delta_policy_rate_pct: object, delta_unemployment_pct: object, macro_regime_score: object\n"
-  },
-  {
-    "run_id": "run_20260704_144545",
-    "timestamp": "2026-07-04T14:45:45",
-    "triggered_by": "manual",
-    "data_source": "enriched_transactions (TRANSACTION-LEVEL)",
-    "use_transaction_level": true,
-    "status": "failed",
-    "files_used": [
-      {
-        "filename": "enriched_transactions (bank.db - TRANSACTION LEVEL)",
-        "rows": 56218
-      }
-    ],
-    "files_skipped": [],
-    "total_rows": 56218,
-    "train_rows": 44974,
-    "test_rows": 11244,
-    "metrics": {},
-    "confusion_matrix": [],
-    "model_promoted": false,
-    "duration_seconds": 0.72,
-    "error": "Traceback (most recent call last):\n  File \"C:\\Users\\Arnav\\OneDrive\\Desktop\\Axis_bank_credit_risk_analysis\\venv310\\lib\\site-packages\\xgboost\\data.py\", line 408, in pandas_feature_info\n    new_feature_types.append(_pandas_dtype_mapper[dtype.name])\nKeyError: 'object'\n\nDuring handling of the above exception, another exception occurred:\n\nTraceback (most recent call last):\n  File \"C:\\Users\\Arnav\\OneDrive\\Desktop\\Axis_bank_credit_risk_analysis\\ml_models\\trainer.py\", line 756, in run_training\n    model = train_model(X_train, y_train, hp)\n  File \"C:\\Users\\Arnav\\OneDrive\\Desktop\\Axis_bank_credit_risk_analysis\\ml_models\\trainer.py\", line 486, in train_model\n    model.fit(X_train, y_train)\n  File \"C:\\Users\\Arnav\\OneDrive\\Desktop\\Axis_bank_credit_risk_analysis\\venv310\\lib\\site-packages\\xgboost\\core.py\", line 751, in inner_f\n    return func(**kwargs)\n  File \"C:\\Users\\Arnav\\OneDrive\\Desktop\\Axis_bank_credit_risk_analysis\\venv310\\lib\\site-packages\\xgboost\\sklearn.py\", line 1787, in fit\n    train_dmatrix, evals = _wrap_evaluation_matrices(\n  File \"C:\\Users\\Arnav\\OneDrive\\Desktop\\Axis_bank_credit_risk_analysis\\venv310\\lib\\site-packages\\xgboost\\sklearn.py\", line 700, in _wrap_evaluation_matrices\n    train_dmatrix = create_dmatrix(\n  File \"C:\\Users\\Arnav\\OneDrive\\Desktop\\Axis_bank_credit_risk_analysis\\venv310\\lib\\site-packages\\xgboost\\sklearn.py\", line 1257, in _create_dmatrix\n    return QuantileDMatrix(\n  File \"C:\\Users\\Arnav\\OneDrive\\Desktop\\Axis_bank_credit_risk_analysis\\venv310\\lib\\site-packages\\xgboost\\core.py\", line 751, in inner_f\n    return func(**kwargs)\n  File \"C:\\Users\\Arnav\\OneDrive\\Desktop\\Axis_bank_credit_risk_analysis\\venv310\\lib\\site-packages\\xgboost\\core.py\", line 1719, in __init__\n    self._init(\n  File \"C:\\Users\\Arnav\\OneDrive\\Desktop\\Axis_bank_credit_risk_analysis\\venv310\\lib\\site-packages\\xgboost\\core.py\", line 1783, in _init\n    it.reraise()\n  File \"C:\\Users\\Arnav\\OneDrive\\Desktop\\Axis_bank_credit_risk_analysis\\venv310\\lib\\site-packages\\xgboost\\core.py\", line 594, in reraise\n    raise exc  # pylint: disable=raising-bad-type\n  File \"C:\\Users\\Arnav\\OneDrive\\Desktop\\Axis_bank_credit_risk_analysis\\venv310\\lib\\site-packages\\xgboost\\core.py\", line 575, in _handle_exception\n    return fn()\n  File \"C:\\Users\\Arnav\\OneDrive\\Desktop\\Axis_bank_credit_risk_analysis\\venv310\\lib\\site-packages\\xgboost\\core.py\", line 662, in <lambda>\n    return self._handle_exception(lambda: int(self.next(input_data)), 0)\n  File \"C:\\Users\\Arnav\\OneDrive\\Desktop\\Axis_bank_credit_risk_analysis\\venv310\\lib\\site-packages\\xgboost\\data.py\", line 1642, in next\n    input_data(**self.kwargs)\n  File \"C:\\Users\\Arnav\\OneDrive\\Desktop\\Axis_bank_credit_risk_analysis\\venv310\\lib\\site-packages\\xgboost\\core.py\", line 751, in inner_f\n    return func(**kwargs)\n  File \"C:\\Users\\Arnav\\OneDrive\\Desktop\\Axis_bank_credit_risk_analysis\\venv310\\lib\\site-packages\\xgboost\\core.py\", line 642, in input_data\n    new, feature_names, feature_types = _proxy_transform(\n  File \"C:\\Users\\Arnav\\OneDrive\\Desktop\\Axis_bank_credit_risk_analysis\\venv310\\lib\\site-packages\\xgboost\\data.py\", line 1695, in _proxy_transform\n    df, feature_names, feature_types = _transform_pandas_df(\n  File \"C:\\Users\\Arnav\\OneDrive\\Desktop\\Axis_bank_credit_risk_analysis\\venv310\\lib\\site-packages\\xgboost\\data.py\", line 668, in _transform_pandas_df\n    feature_names, feature_types = pandas_feature_info(\n  File \"C:\\Users\\Arnav\\OneDrive\\Desktop\\Axis_bank_credit_risk_analysis\\venv310\\lib\\site-packages\\xgboost\\data.py\", line 410, in pandas_feature_info\n    _invalid_dataframe_dtype(data)\n  File \"C:\\Users\\Arnav\\OneDrive\\Desktop\\Axis_bank_credit_risk_analysis\\venv310\\lib\\site-packages\\xgboost\\data.py\", line 373, in _invalid_dataframe_dtype\n    raise ValueError(msg)\nValueError: DataFrame.dtypes for data must be int, float, bool or category. When categorical type is supplied, the experimental DMatrix parameter`enable_categorical` must be set to `True`.  Invalid columns:gdp_growth_pct: object, inflation_cpi_pct: object, policy_rate_pct: object, unemployment_pct: object, delta_de_ratio: object, delta_cibil: object, delta_gdp_pct: object, delta_cpi_pct: object, delta_policy_rate_pct: object, delta_unemployment_pct: object, macro_regime_score: object\n"
-  },
-  {
-    "run_id": "run_20260704_144417",
-    "timestamp": "2026-07-04T14:44:17",
-    "triggered_by": "manual",
-    "data_source": "enriched_transactions (TRANSACTION-LEVEL)",
-    "use_transaction_level": true,
-    "status": "failed",
-    "files_used": [],
-    "files_skipped": [],
-    "total_rows": 0,
-    "train_rows": 0,
-    "test_rows": 0,
-    "metrics": {},
-    "confusion_matrix": [],
-    "model_promoted": false,
-    "duration_seconds": 0.59,
-    "error": "Traceback (most recent call last):\n  File \"C:\\Users\\Arnav\\OneDrive\\Desktop\\Axis_bank_credit_risk_analysis\\ml_models\\trainer.py\", line 736, in run_training\n    merged, files_used, files_skip, dupes = load_and_merge(use_transaction_level=use_transaction_level)\n  File \"C:\\Users\\Arnav\\OneDrive\\Desktop\\Axis_bank_credit_risk_analysis\\ml_models\\trainer.py\", line 409, in load_and_merge\n    print(f\"[TRAIN] \u2713 SUCCESS: Loaded {len(txn_df):,} enriched transactions\")\n  File \"C:\\Users\\Arnav\\AppData\\Local\\Programs\\Python\\Python310\\lib\\encodings\\cp1252.py\", line 19, in encode\n    return codecs.charmap_encode(input,self.errors,encoding_table)[0]\nUnicodeEncodeError: 'charmap' codec can't encode character '\\u2713' in position 8: character maps to <undefined>\n"
-  },
-  {
-    "run_id": "run_20260704_144303",
-    "timestamp": "2026-07-04T14:43:03",
-    "triggered_by": "manual",
-    "data_source": "enriched_transactions (TRANSACTION-LEVEL)",
-    "use_transaction_level": true,
-    "status": "failed",
-    "files_used": [],
-    "files_skipped": [],
-    "total_rows": 0,
-    "train_rows": 0,
-    "test_rows": 0,
-    "metrics": {},
-    "confusion_matrix": [],
-    "model_promoted": false,
-    "duration_seconds": 0.0,
-    "error": "Traceback (most recent call last):\n  File \"C:\\Users\\Arnav\\OneDrive\\Desktop\\Axis_bank_credit_risk_analysis\\ml_models\\trainer.py\", line 736, in run_training\n    merged, files_used, files_skip, dupes = load_and_merge(use_transaction_level=use_transaction_level)\n  File \"C:\\Users\\Arnav\\OneDrive\\Desktop\\Axis_bank_credit_risk_analysis\\ml_models\\trainer.py\", line 405, in load_and_merge\n    txn_df = load_from_enriched_transactions()\n  File \"C:\\Users\\Arnav\\OneDrive\\Desktop\\Axis_bank_credit_risk_analysis\\ml_models\\trainer.py\", line 341, in load_from_enriched_transactions\n    conn = sqlite3.connect(DB_PATH)\nNameError: name 'DB_PATH' is not defined\n"
-  },
-  {
-    "run_id": "run_20260704_143943",
-    "timestamp": "2026-07-04T14:39:43",
-    "triggered_by": "manual",
-    "data_source": "enriched_transactions (TRANSACTION-LEVEL)",
-    "use_transaction_level": true,
-    "status": "failed",
-    "files_used": [],
-    "files_skipped": [],
-    "total_rows": 0,
-    "train_rows": 0,
-    "test_rows": 0,
-    "metrics": {},
-    "confusion_matrix": [],
-    "model_promoted": false,
-    "duration_seconds": 0.0,
-    "error": "Traceback (most recent call last):\n  File \"C:\\Users\\Arnav\\OneDrive\\Desktop\\Axis_bank_credit_risk_analysis\\ml_models\\trainer.py\", line 736, in run_training\n    merged, files_used, files_skip, dupes = load_and_merge(use_transaction_level=use_transaction_level)\n  File \"C:\\Users\\Arnav\\OneDrive\\Desktop\\Axis_bank_credit_risk_analysis\\ml_models\\trainer.py\", line 404, in load_and_merge\n    txn_df = load_from_enriched_transactions()\n  File \"C:\\Users\\Arnav\\OneDrive\\Desktop\\Axis_bank_credit_risk_analysis\\ml_models\\trainer.py\", line 341, in load_from_enriched_transactions\n    conn = sqlite3.connect(DB_PATH)\nNameError: name 'DB_PATH' is not defined\n"
-  },
-  {
-    "run_id": "run_20260704_143824",
-    "timestamp": "2026-07-04T14:38:24",
-    "triggered_by": "manual",
-    "data_source": "enriched_transactions (TRANSACTION-LEVEL)",
-    "use_transaction_level": true,
-    "status": "failed",
-    "files_used": [],
-    "files_skipped": [],
-    "total_rows": 0,
-    "train_rows": 0,
-    "test_rows": 0,
-    "metrics": {},
-    "confusion_matrix": [],
-    "model_promoted": false,
-    "duration_seconds": 0.0,
-    "error": "Traceback (most recent call last):\n  File \"C:\\Users\\Arnav\\OneDrive\\Desktop\\Axis_bank_credit_risk_analysis\\ml_models\\trainer.py\", line 736, in run_training\n    merged, files_used, files_skip, dupes = load_and_merge(use_transaction_level=use_transaction_level)\n  File \"C:\\Users\\Arnav\\OneDrive\\Desktop\\Axis_bank_credit_risk_analysis\\ml_models\\trainer.py\", line 404, in load_and_merge\n    txn_df = load_from_enriched_transactions()\n  File \"C:\\Users\\Arnav\\OneDrive\\Desktop\\Axis_bank_credit_risk_analysis\\ml_models\\trainer.py\", line 341, in load_from_enriched_transactions\n    conn = sqlite3.connect(DB_PATH)\nNameError: name 'DB_PATH' is not defined\n"
   }
 ]

@@ -23,7 +23,7 @@ import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 
 from xgboost import XGBClassifier
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import train_test_split, GroupShuffleSplit
 from sklearn.metrics import (
     roc_auc_score, accuracy_score, precision_score,
     recall_score, f1_score, confusion_matrix, brier_score_loss,
@@ -76,6 +76,13 @@ FEATURE_COLS  = [
     # Macro regime delta features (5) — regime shift detection
     'delta_gdp_pct', 'delta_cpi_pct', 'delta_policy_rate_pct',
     'delta_unemployment_pct', 'macro_regime_score',
+    # Transaction-derived behavioral features (8) — genuine payment-behavior
+    # signal aggregated from each loan's own account transaction history
+    # (operations/scripts/build_behavioral_features.py). One row per loan,
+    # same grain as the rest of bank_loan_metrics, so no group-leakage risk
+    # the way raw per-transaction training rows had.
+    'emi_miss_ratio', 'income_miss_ratio', 'income_cv', 'income_to_declared_ratio',
+    'balance_cv', 'max_gap_days', 'n_transactions', 'avg_balance',
 ]
 TARGET_COL    = 'default_flag'
 
@@ -140,18 +147,28 @@ def load_from_db():
             "       gdp_growth_pct, inflation_cpi_pct, policy_rate_pct, unemployment_pct, "
             "       delta_de_ratio, delta_cibil, months_since_origination, "
             "       delta_gdp_pct, delta_cpi_pct, delta_policy_rate_pct, "
-            "       delta_unemployment_pct, macro_regime_score "
+            "       delta_unemployment_pct, macro_regime_score, "
+            "       emi_miss_ratio, income_miss_ratio, income_cv, "
+            "       income_to_declared_ratio, balance_cv, max_gap_days, "
+            "       n_transactions, avg_balance "
             "FROM bank_loan_metrics",
             conn
         )
         conn.close()
         if len(df) == 0:
             return None
-        # Fill any missing feature values with column medians
+        # Fill any missing feature values with column medians. Loans with no
+        # transaction history (behavioral columns NULL) get the population
+        # median for the miss-ratio/volatility features - a neutral "unknown,
+        # assume typical" value rather than 0, which would look artificially
+        # clean/risk-free next to loans that do have observed history.
         fill_cols = ('gdp_growth_pct', 'inflation_cpi_pct', 'policy_rate_pct', 'unemployment_pct',
                      'delta_de_ratio', 'delta_cibil', 'months_since_origination',
                      'delta_gdp_pct', 'delta_cpi_pct', 'delta_policy_rate_pct',
-                     'delta_unemployment_pct', 'macro_regime_score')
+                     'delta_unemployment_pct', 'macro_regime_score',
+                     'emi_miss_ratio', 'income_miss_ratio', 'income_cv',
+                     'income_to_declared_ratio', 'balance_cv', 'max_gap_days',
+                     'n_transactions', 'avg_balance')
         for col in fill_cols:
             if col in df.columns:
                 df[col] = df[col].fillna(df[col].median())
@@ -343,6 +360,7 @@ def load_from_enriched_transactions():
     query = """
         SELECT
             t.id as loan_id, t.bank_id,
+            t.loan_id_ref as group_id,
             t.cust_age as age, t.cust_annual_income as annual_income,
             t.cust_cibil_score as cibil_score, t.cust_is_rural as is_rural,
             t.cust_years_employed as years_employed, t.cust_foir_declared as foir,
@@ -815,10 +833,30 @@ def run_training(triggered_by='manual', use_transaction_level=True, model_type='
             X = numeric_X
 
         model_hp = hp.get('models', {}).get(model_type, hp.get('model', {}))
-        X_train, X_test, y_train, y_test = train_test_split(
-            X, y, test_size=test_size,
-            random_state=int(model_hp.get('random_state', 42))
-        )
+        random_state = int(model_hp.get('random_state', 42))
+
+        # Transaction-level rows are NOT independent samples: every transaction
+        # for a given loan shares (near-)identical static features (CIBIL,
+        # income, DE ratio, ...), differing only in date/amount/macro trend.
+        # A plain row-level train_test_split lets ~80% of each loan's rows
+        # leak into train and ~20% into test, so the model just memorizes each
+        # loan's feature fingerprint instead of generalizing - which is exactly
+        # what was producing AUC=1.0 on transaction-level training. Split by
+        # loan (group_id) instead, so an entire loan's rows land on one side
+        # only, and report which split strategy was actually used.
+        group_col = 'group_id' if 'group_id' in merged.columns else None
+        if group_col is not None and merged[group_col].notna().any():
+            groups = merged[group_col].fillna(merged.index.to_series().astype(str))
+            gss = GroupShuffleSplit(n_splits=1, test_size=test_size, random_state=random_state)
+            train_idx, test_idx = next(gss.split(X, y, groups=groups))
+            X_train, X_test = X.iloc[train_idx], X.iloc[test_idx]
+            y_train, y_test = y.iloc[train_idx], y.iloc[test_idx]
+            record['split_strategy'] = 'grouped_by_loan'
+        else:
+            X_train, X_test, y_train, y_test = train_test_split(
+                X, y, test_size=test_size, random_state=random_state
+            )
+            record['split_strategy'] = 'row_level_random'
         df_test = merged.loc[X_test.index]
         record['train_rows'] = len(X_train)
         record['test_rows']  = len(X_test)
