@@ -232,6 +232,31 @@
             display: block;
         }
 
+        .subsection {
+            display: none;
+        }
+
+        .subsection.active {
+            display: block;
+        }
+
+        .sub-toggle-btn {
+            padding: 8px 15px;
+            border: 2px solid #667eea;
+            background: white;
+            color: #667eea;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            font-size: 0.9em;
+        }
+
+        .sub-toggle-btn.active {
+            background: #667eea;
+            color: white;
+        }
+
         .note {
             background: #f0f7ff;
             border-left: 4px solid #667eea;
@@ -289,6 +314,13 @@
 
         <!-- CONSOLIDATED VIEW -->
         <div id="consolidated-view" class="section active">
+            <div class="view-toggle" style="margin-bottom: 20px;">
+                <button class="toggle-btn sub-toggle-btn active" onclick="switchSubView('overview')">Overview</button>
+                <button class="toggle-btn sub-toggle-btn" onclick="switchSubView('deltas')">Delta Columns</button>
+            </div>
+
+            <!-- OVERVIEW SUBSECTION -->
+            <div id="overview-subsection" class="subsection active">
             <!-- Summary Cards -->
             <div class="summary-cards">
                 <div class="card">
@@ -372,6 +404,8 @@
                     </table>
                 </div>
             </div>
+            </div>
+            <!-- Close overview subsection -->
         </div>
 
         <!-- BANK-WISE VIEW -->
@@ -411,6 +445,103 @@
                     <canvas id="bank-cibil-chart"></canvas>
                 </div>
             </div>
+            </div>
+
+            <!-- DELTA COLUMNS SUBSECTION -->
+            <div id="deltas-subsection" class="subsection">
+                <div class="note">
+                    <strong>About Delta Columns:</strong> Delta columns measure CHANGE in metrics from loan origination to current observation. For example, if a borrower had D/E=1.2 when they got the loan and D/E=1.8 today, delta_de_ratio = +0.6. Positive deltas for D/E and negative deltas for CIBIL are warning signs!
+                </div>
+
+                <div class="summary-cards">
+                    <div class="card">
+                        <h3>Avg Delta D/E Ratio</h3>
+                        <div class="card-value" id="delta-de-avg">--</div>
+                        <div class="card-subtext" id="delta-de-text"></div>
+                    </div>
+                    <div class="card">
+                        <h3>Avg Delta CIBIL</h3>
+                        <div class="card-value" id="delta-cibil-avg">--</div>
+                        <div class="card-subtext" id="delta-cibil-text"></div>
+                    </div>
+                    <div class="card">
+                        <h3>Avg Months Since Origination</h3>
+                        <div class="card-value" id="months-avg">--</div>
+                        <div class="card-subtext" id="months-text"></div>
+                    </div>
+                </div>
+
+                <div class="grid-2">
+                    <div class="chart-container">
+                        <h3>Delta D/E Ratio Distribution</h3>
+                        <canvas id="delta-de-chart"></canvas>
+                    </div>
+                    <div class="chart-container">
+                        <h3>Delta D/E Ratio - Default Rate by Bucket</h3>
+                        <canvas id="delta-de-default-chart"></canvas>
+                    </div>
+                </div>
+
+                <div class="grid-2">
+                    <div class="chart-container">
+                        <h3>Delta CIBIL Score Distribution</h3>
+                        <canvas id="delta-cibil-chart"></canvas>
+                    </div>
+                    <div class="chart-container">
+                        <h3>Delta CIBIL - Default Rate by Bucket</h3>
+                        <canvas id="delta-cibil-default-chart"></canvas>
+                    </div>
+                </div>
+
+                <div class="grid-2">
+                    <div class="chart-container">
+                        <h3>Months Since Origination Distribution</h3>
+                        <canvas id="months-chart"></canvas>
+                    </div>
+                    <div class="chart-container">
+                        <h3>Loan Age - Default Rate by Period</h3>
+                        <canvas id="months-default-chart"></canvas>
+                    </div>
+                </div>
+
+                <div class="grid-2" style="margin-top: 30px;">
+                    <div class="chart-container">
+                        <h3>Healthy vs Default - Delta Metrics</h3>
+                        <table class="metric-table">
+                            <thead>
+                                <tr>
+                                    <th>Metric</th>
+                                    <th>Healthy Avg</th>
+                                    <th>Default Avg</th>
+                                    <th>Difference</th>
+                                </tr>
+                            </thead>
+                            <tbody id="delta-metrics-comparison">
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="chart-container">
+                        <h3>Key Insights</h3>
+                        <div style="padding: 10px; font-size: 0.95em; line-height: 1.6;">
+                            <p><strong>Delta D/E Ratio:</strong></p>
+                            <p>Healthy: -0.04 (slightly reducing debt)<br>
+                            Default: +3.60 (dramatically increasing debt)<br>
+                            <span style="color: #e74c3c; font-weight: bold;">Difference: 3.64x worse!</span></p>
+
+                            <p style="margin-top: 15px;"><strong>Delta CIBIL:</strong></p>
+                            <p>Healthy: +0.28 (slightly improving credit)<br>
+                            Default: -163 (severely declining credit)<br>
+                            <span style="color: #e74c3c; font-weight: bold;">Difference: -163 points!</span></p>
+
+                            <p style="margin-top: 15px;"><strong>Interpretation:</strong></p>
+                            <p>Borrowers who default show RAPID DETERIORATION in both leverage and credit quality - these are the strongest warning signs!</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Close consolidated view -->
         </div>
     </div>
 
@@ -421,9 +552,17 @@
 
         function switchView(view) {
             document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
-            document.querySelectorAll('.toggle-btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.toggle-btn:not(.sub-toggle-btn)').forEach(b => b.classList.remove('active'));
 
             document.getElementById(`${view}-view`).classList.add('active');
+            event.target.classList.add('active');
+        }
+
+        function switchSubView(subview) {
+            document.querySelectorAll('.subsection').forEach(s => s.classList.remove('active'));
+            document.querySelectorAll('.sub-toggle-btn').forEach(b => b.classList.remove('active'));
+
+            document.getElementById(`${subview}-subsection`).classList.add('active');
             event.target.classList.add('active');
         }
 
@@ -652,6 +791,101 @@
                 data: banks.map(b => b.avg_cibil),
                 colors: '#3498db'
             });
+
+            // Render delta charts
+            renderDeltaCharts();
+        }
+
+        function renderDeltaCharts() {
+            const dm = vizData.delta_metrics;
+
+            // Update delta summary cards
+            document.getElementById('delta-de-avg').textContent = dm.delta_de_ratio.stats.mean.toFixed(2);
+            document.getElementById('delta-de-text').textContent = `Healthy: ${dm.delta_de_ratio.stats.healthy_mean.toFixed(2)} | Default: ${dm.delta_de_ratio.stats.default_mean.toFixed(2)}`;
+
+            document.getElementById('delta-cibil-avg').textContent = dm.delta_cibil.stats.mean.toFixed(0);
+            document.getElementById('delta-cibil-text').textContent = `Healthy: ${dm.delta_cibil.stats.healthy_mean.toFixed(0)} | Default: ${dm.delta_cibil.stats.default_mean.toFixed(0)}`;
+
+            document.getElementById('months-avg').textContent = dm.months_since_origination.stats.mean.toFixed(1);
+            document.getElementById('months-text').textContent = `Healthy: ${dm.months_since_origination.stats.healthy_mean.toFixed(1)} | Default: ${dm.months_since_origination.stats.default_mean.toFixed(1)}`;
+
+            // Delta D/E Distribution
+            createChart('delta-de-chart', 'bar', {
+                labels: Object.keys(dm.delta_de_ratio.distribution),
+                data: Object.values(dm.delta_de_ratio.distribution),
+                colors: '#f39c12'
+            });
+
+            // Delta D/E Default Rates
+            const deRates = Object.values(dm.delta_de_ratio.default_rates);
+            createChart('delta-de-default-chart', 'bar', {
+                labels: Object.keys(dm.delta_de_ratio.default_rates),
+                data: deRates,
+                colors: deRates.map(rate => rate > 5 ? '#e74c3c' : rate > 2 ? '#f39c12' : '#27ae60')
+            });
+
+            // Delta CIBIL Distribution
+            createChart('delta-cibil-chart', 'bar', {
+                labels: Object.keys(dm.delta_cibil.distribution),
+                data: Object.values(dm.delta_cibil.distribution),
+                colors: '#9b59b6'
+            });
+
+            // Delta CIBIL Default Rates
+            const cibilRates = Object.values(dm.delta_cibil.default_rates);
+            createChart('delta-cibil-default-chart', 'bar', {
+                labels: Object.keys(dm.delta_cibil.default_rates),
+                data: cibilRates,
+                colors: cibilRates.map(rate => rate > 5 ? '#e74c3c' : rate > 2 ? '#f39c12' : '#27ae60')
+            });
+
+            // Months Since Origination Distribution
+            createChart('months-chart', 'bar', {
+                labels: Object.keys(dm.months_since_origination.distribution),
+                data: Object.values(dm.months_since_origination.distribution),
+                colors: '#3498db'
+            });
+
+            // Months Default Rates
+            const monthsRates = Object.values(dm.months_since_origination.default_rates);
+            createChart('months-default-chart', 'bar', {
+                labels: Object.keys(dm.months_since_origination.default_rates),
+                data: monthsRates,
+                colors: monthsRates.map(rate => rate > 5 ? '#e74c3c' : rate > 2 ? '#f39c12' : '#27ae60')
+            });
+
+            // Render delta metrics comparison
+            const deltaMetrics = [
+                {
+                    name: 'Delta D/E Ratio',
+                    healthy: dm.delta_de_ratio.stats.healthy_mean.toFixed(4),
+                    default: dm.delta_de_ratio.stats.default_mean.toFixed(4),
+                    diff: (dm.delta_de_ratio.stats.default_mean - dm.delta_de_ratio.stats.healthy_mean).toFixed(4)
+                },
+                {
+                    name: 'Delta CIBIL',
+                    healthy: dm.delta_cibil.stats.healthy_mean.toFixed(0),
+                    default: dm.delta_cibil.stats.default_mean.toFixed(0),
+                    diff: (dm.delta_cibil.stats.default_mean - dm.delta_cibil.stats.healthy_mean).toFixed(0)
+                },
+                {
+                    name: 'Months Since Origination',
+                    healthy: dm.months_since_origination.stats.healthy_mean.toFixed(1),
+                    default: dm.months_since_origination.stats.default_mean.toFixed(1),
+                    diff: (dm.months_since_origination.stats.default_mean - dm.months_since_origination.stats.healthy_mean).toFixed(1)
+                }
+            ];
+
+            const html = deltaMetrics.map(m => `
+                <tr>
+                    <td class="metric-name">${m.name}</td>
+                    <td class="metric-value">${m.healthy}</td>
+                    <td class="metric-value metric-bad">${m.default}</td>
+                    <td class="metric-value">${m.diff}</td>
+                </tr>
+            `).join('');
+
+            document.getElementById('delta-metrics-comparison').innerHTML = html;
         }
 
         function downloadReport() {
