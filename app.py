@@ -80,8 +80,11 @@ _assessment_engine = _AssessmentEngine(_pd_model, _get_model_version(), db_path=
 _report_cache: dict = {}
 
 # ── File-based persistence paths ───────────────────────────────────────────
-_REPORTS_DIR   = os.path.join(os.path.dirname(__file__), 'data', 'reports')
-_AUDIT_LOG_PATH = os.path.join(os.path.dirname(__file__), 'data', 'audit_log.json')
+# On GCP App Engine, /workspace is read-only, so use /tmp for ephemeral data
+_ON_GAE = os.environ.get('GAE_APPLICATION') is not None
+_BASE_DATA_DIR = '/tmp/data' if _ON_GAE else os.path.join(os.path.dirname(__file__), 'data')
+_REPORTS_DIR   = os.path.join(_BASE_DATA_DIR, 'reports')
+_AUDIT_LOG_PATH = os.path.join(_BASE_DATA_DIR, 'audit_log.json')
 _audit_lock = threading.Lock()
 
 os.makedirs(_REPORTS_DIR, exist_ok=True)
