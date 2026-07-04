@@ -13,9 +13,9 @@
         }
 
         .container {
-            max-width:900px; margin:0 auto;
+            max-width:1200px; margin:0 auto;
             background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08);
-            border-radius:14px; padding:32px;
+            border-radius:14px; padding:32px; overflow-y:auto; max-height:95vh;
         }
 
         .header {
@@ -36,6 +36,25 @@
             font-size:.85em; color:rgba(255,255,255,.5);
         }
 
+        .mode-tabs {
+            display:flex; gap:12px; margin-bottom:24px; border-bottom:1px solid rgba(255,255,255,.1);
+            padding-bottom:16px;
+        }
+
+        .mode-tab {
+            padding:8px 16px; background:transparent; border:none; color:rgba(255,255,255,.5);
+            cursor:pointer; font-size:.9em; font-weight:600; transition:all .2s;
+            border-bottom:2px solid transparent;
+        }
+
+        .mode-tab.active {
+            color:white; border-bottom-color:rgba(96,165,250,0.8);
+        }
+
+        .mode-tab:hover {
+            color:rgba(255,255,255,.8);
+        }
+
         .section {
             margin-bottom:28px;
         }
@@ -45,21 +64,58 @@
             text-transform:uppercase; letter-spacing:.8px; margin-bottom:14px;
         }
 
-        .search-box {
-            display:flex; gap:10px; margin-bottom:16px;
+        .filter-grid {
+            display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr));
+            gap:16px; margin-bottom:20px;
         }
 
-        input[type="text"], select {
-            background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.15);
-            color:white; padding:10px 14px; border-radius:8px; font-size:.85em; flex:1;
+        .filter-group {
+            background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.08);
+            border-radius:10px; padding:14px;
         }
 
-        input[type="text"]::placeholder {
-            color:rgba(255,255,255,.3);
+        .filter-label {
+            font-size:.75em; font-weight:700; color:rgba(255,255,255,.6);
+            text-transform:uppercase; letter-spacing:.5px; margin-bottom:8px; display:block;
         }
 
-        input[type="text"]:focus, select:focus {
+        select, input[type="text"] {
+            width:100%; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.15);
+            color:white; padding:8px 12px; border-radius:6px; font-size:.85em;
+        }
+
+        select:focus, input[type="text"]:focus {
             outline:none; border-color:rgba(96,165,250,.6); background:rgba(96,165,250,.08);
+        }
+
+        .checkbox-group {
+            display:flex; flex-direction:column; gap:8px;
+        }
+
+        .checkbox-item {
+            display:flex; align-items:center; gap:8px;
+            padding:6px 0;
+        }
+
+        input[type="checkbox"] {
+            width:16px; height:16px; cursor:pointer; accent-color:rgba(96,165,250,1);
+        }
+
+        .checkbox-label {
+            font-size:.85em; color:rgba(255,255,255,.7); cursor:pointer; flex:1;
+        }
+
+        .range-inputs {
+            display:grid; grid-template-columns:1fr 1fr; gap:8px;
+        }
+
+        input[type="number"] {
+            background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.15);
+            color:white; padding:8px; border-radius:6px; font-size:.8em;
+        }
+
+        .button-group {
+            display:flex; gap:12px; margin-bottom:24px; flex-wrap:wrap;
         }
 
         button {
@@ -68,7 +124,7 @@
             cursor:pointer; transition:all .2s;
         }
 
-        button:hover {
+        button:hover:not(:disabled) {
             background:rgba(96,165,250,1); transform:translateY(-1px);
         }
 
@@ -76,93 +132,12 @@
             background:rgba(255,255,255,0.1); border:1px solid rgba(255,255,255,.15);
         }
 
-        button.secondary:hover {
+        button.secondary:hover:not(:disabled) {
             background:rgba(255,255,255,0.15); border-color:rgba(255,255,255,.3);
         }
 
         button:disabled {
             opacity:.5; cursor:not-allowed;
-        }
-
-        .customer-list {
-            background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.08);
-            border-radius:10px; max-height:400px; overflow-y:auto;
-        }
-
-        .customer-item {
-            padding:12px 16px; border-bottom:1px solid rgba(255,255,255,0.04);
-            cursor:pointer; transition:all .15s;
-            display:flex; justify-content:space-between; align-items:center;
-        }
-
-        .customer-item:hover {
-            background:rgba(96,165,250,0.08);
-        }
-
-        .customer-item.selected {
-            background:rgba(96,165,250,0.15); border-left:3px solid rgba(96,165,250,0.8);
-            padding-left:13px;
-        }
-
-        .customer-info {
-            flex:1;
-        }
-
-        .customer-name {
-            font-weight:600; color:white; font-size:.88em; margin-bottom:3px;
-        }
-
-        .customer-meta {
-            font-size:.75em; color:rgba(255,255,255,.4);
-        }
-
-        .data-preview {
-            background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.08);
-            border-radius:10px; padding:16px; margin-bottom:16px; display:none;
-        }
-
-        .data-preview.active {
-            display:block;
-        }
-
-        .preview-grid {
-            display:grid; grid-template-columns:repeat(2,1fr); gap:16px; margin-bottom:16px;
-        }
-
-        .preview-card {
-            background:rgba(255,255,255,0.03); padding:12px; border-radius:6px;
-            border-left:3px solid rgba(96,165,250,0.5);
-        }
-
-        .preview-label {
-            font-size:.75em; color:rgba(255,255,255,.45); text-transform:uppercase;
-            letter-spacing:.5px; margin-bottom:4px;
-        }
-
-        .preview-value {
-            font-size:.95em; color:white; font-weight:500;
-        }
-
-        .export-actions {
-            display:flex; gap:10px; margin-bottom:24px;
-        }
-
-        .loading {
-            display:none; font-size:.85em; color:rgba(255,255,255,.5);
-        }
-
-        .loading.active {
-            display:inline;
-        }
-
-        .spinner {
-            display:inline-block; width:12px; height:12px; border:2px solid rgba(96,165,250,.3);
-            border-top:2px solid rgba(96,165,250,1); border-radius:50%;
-            animation:spin .6s linear infinite; margin-right:6px; vertical-align:middle;
-        }
-
-        @keyframes spin {
-            to { transform:rotate(360deg); }
         }
 
         .message {
@@ -181,16 +156,102 @@
             background:rgba(239,68,68,.12); border:1px solid rgba(239,68,68,.25); color:#fca5a5;
         }
 
-        .empty-state {
-            padding:40px 20px; text-align:center; color:rgba(255,255,255,.45);
+        .message.info {
+            background:rgba(96,165,250,.12); border:1px solid rgba(96,165,250,.25); color:#93c5fd;
         }
 
-        .summary-stat {
-            display:inline-block; margin-right:20px; font-size:.85em;
+        .results-preview {
+            background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.08);
+            border-radius:10px; padding:16px; display:none;
+        }
+
+        .results-preview.active {
+            display:block;
+        }
+
+        .result-stat {
+            display:inline-block; margin-right:24px; margin-bottom:12px;
+        }
+
+        .stat-label {
+            font-size:.75em; color:rgba(255,255,255,.4); text-transform:uppercase;
+            letter-spacing:.5px;
         }
 
         .stat-value {
-            font-weight:700; color:white; font-size:1.2em;
+            font-size:1.4em; font-weight:700; color:white; margin-top:4px;
+        }
+
+        .customer-grid {
+            background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.08);
+            border-radius:10px; max-height:500px; overflow-y:auto; margin-top:16px;
+        }
+
+        .customer-row {
+            padding:12px 16px; border-bottom:1px solid rgba(255,255,255,0.04);
+            display:flex; justify-content:space-between; align-items:center; font-size:.85em;
+        }
+
+        .customer-row:hover {
+            background:rgba(96,165,250,0.08);
+        }
+
+        .customer-col {
+            flex:1; color:rgba(255,255,255,.6);
+        }
+
+        .customer-col-name {
+            color:white; font-weight:500;
+        }
+
+        .spinner {
+            display:inline-block; width:12px; height:12px; border:2px solid rgba(96,165,250,.3);
+            border-top:2px solid rgba(96,165,250,1); border-radius:50%;
+            animation:spin .6s linear infinite; margin-right:6px; vertical-align:middle;
+        }
+
+        @keyframes spin {
+            to { transform:rotate(360deg); }
+        }
+
+        .mode-content {
+            display:none;
+        }
+
+        .mode-content.active {
+            display:block;
+        }
+
+        .collapsible {
+            background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.08);
+            border-radius:8px; margin-bottom:16px;
+            padding: 0;
+        }
+
+        .collapsible-header {
+            padding:12px 16px; cursor:pointer; display:flex; justify-content:space-between;
+            align-items:center; font-weight:600;
+        }
+
+        .collapsible-header:hover {
+            background:rgba(96,165,250,0.08);
+        }
+
+        .collapsible-content {
+            display:none; padding:16px; border-top:1px solid rgba(255,255,255,0.08);
+        }
+
+        .collapsible.open .collapsible-content {
+            display:block;
+        }
+
+        .toggle-arrow {
+            transition:transform .2s;
+            font-size:.9em;
+        }
+
+        .collapsible.open .toggle-arrow {
+            transform:rotate(180deg);
         }
     </style>
 </head>
@@ -201,295 +262,558 @@
         <div class="logo-mark">📊</div>
         <div>
             <h1>Customer Data Export</h1>
-            <div class="subtitle">Extract and download complete customer profile with all transactions</div>
+            <div class="subtitle">Advanced filtering to export customer profiles and transaction data</div>
         </div>
     </div>
 
-    <!-- Message display -->
-    <div id="message" class="message"></div>
-
-    <!-- Search & Filter Section -->
-    <div class="section">
-        <div class="section-title">Search Customers</div>
-        <div class="search-box">
-            <input type="text" id="searchInput" placeholder="Search by name, email, phone, or customer ID...">
-            <select id="bankFilter">
-                <option value="">All Banks</option>
-            </select>
-            <button onclick="searchCustomers()">Search</button>
-        </div>
+    <div class="mode-tabs">
+        <button class="mode-tab active" onclick="switchMode('bulk')">📦 Bulk Export (Groups)</button>
+        <button class="mode-tab" onclick="switchMode('single')">👤 Single Customer</button>
     </div>
 
-    <!-- Customer List -->
-    <div class="section">
-        <div class="section-title">Available Customers <span id="customerCount"></span></div>
-        <div class="customer-list" id="customerList">
-            <div class="empty-state">
-                <p>Click Search to load customers</p>
+    <!-- BULK EXPORT MODE -->
+    <div id="bulk-mode" class="mode-content active">
+        <div id="message" class="message"></div>
+
+        <!-- BASIC FILTERS -->
+        <div class="collapsible open">
+            <div class="collapsible-header" onclick="toggleCollapsible(this)">
+                <span>🏛️ Bank & Status Filters</span>
+                <span class="toggle-arrow">▼</span>
+            </div>
+            <div class="collapsible-content">
+                <div class="filter-grid">
+                    <div class="filter-group">
+                        <label class="filter-label">Banks</label>
+                        <select id="bankFilter" multiple size="5">
+                            <option selected disabled>Loading...</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label class="filter-label">Customer Status</label>
+                        <div class="checkbox-group" id="customerStatusFilter"></div>
+                    </div>
+                    <div class="filter-group">
+                        <label class="filter-label">Has Loan</label>
+                        <div class="checkbox-group">
+                            <label class="checkbox-item">
+                                <input type="checkbox" id="hasLoan">
+                                <span class="checkbox-label">Only customers with loans</span>
+                            </label>
+                            <label class="checkbox-item">
+                                <input type="checkbox" id="hasActiveLoan">
+                                <span class="checkbox-label">Only with active loans</span>
+                            </label>
+                            <label class="checkbox-item">
+                                <input type="checkbox" id="hasNPA">
+                                <span class="checkbox-label">Only with NPA loans</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
-    </div>
 
-    <!-- Data Preview -->
-    <div id="dataPreview" class="data-preview">
-        <div class="section-title">Customer Data Summary</div>
-        <div class="preview-grid">
-            <div class="preview-card">
-                <div class="preview-label">Customer ID</div>
-                <div class="preview-value" id="prevId">—</div>
+        <!-- DEMOGRAPHIC FILTERS -->
+        <div class="collapsible open">
+            <div class="collapsible-header" onclick="toggleCollapsible(this)">
+                <span>👤 Demographics</span>
+                <span class="toggle-arrow">▼</span>
             </div>
-            <div class="preview-card">
-                <div class="preview-label">Full Name</div>
-                <div class="preview-value" id="prevName">—</div>
-            </div>
-            <div class="preview-card">
-                <div class="preview-label">CIBIL Score</div>
-                <div class="preview-value" id="prevCibil">—</div>
-            </div>
-            <div class="preview-card">
-                <div class="preview-label">Annual Income</div>
-                <div class="preview-value" id="prevIncome">—</div>
-            </div>
-            <div class="preview-card">
-                <div class="preview-label">Status</div>
-                <div class="preview-value" id="prevStatus">—</div>
-            </div>
-            <div class="preview-card">
-                <div class="preview-label">Months as Customer</div>
-                <div class="preview-value" id="prevMonths">—</div>
+            <div class="collapsible-content">
+                <div class="filter-grid">
+                    <div class="filter-group">
+                        <label class="filter-label">Age Range</label>
+                        <div class="range-inputs">
+                            <input type="number" id="ageMin" placeholder="Min" min="18" max="150" value="18">
+                            <input type="number" id="ageMax" placeholder="Max" min="18" max="150" value="150">
+                        </div>
+                    </div>
+                    <div class="filter-group">
+                        <label class="filter-label">Employment Type</label>
+                        <div class="checkbox-group" id="employmentFilter"></div>
+                    </div>
+                    <div class="filter-group">
+                        <label class="filter-label">Education Level</label>
+                        <div class="checkbox-group" id="educationFilter"></div>
+                    </div>
+                    <div class="filter-group">
+                        <label class="filter-label">City Tier</label>
+                        <div class="checkbox-group" id="cityTierFilter"></div>
+                    </div>
+                    <div class="filter-group">
+                        <label class="filter-label">Residence Type</label>
+                        <div class="checkbox-group" id="residenceFilter"></div>
+                    </div>
+                    <div class="filter-group">
+                        <label class="filter-label">Urban/Rural</label>
+                        <div class="checkbox-group">
+                            <label class="checkbox-item">
+                                <input type="radio" name="urban_rural" value="">
+                                <span class="checkbox-label">All</span>
+                            </label>
+                            <label class="checkbox-item">
+                                <input type="radio" name="urban_rural" value="urban">
+                                <span class="checkbox-label">Urban</span>
+                            </label>
+                            <label class="checkbox-item">
+                                <input type="radio" name="urban_rural" value="rural">
+                                <span class="checkbox-label">Rural</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
 
-        <div style="margin-bottom:16px; padding:12px; background:rgba(255,255,255,0.02); border-radius:6px;">
-            <div style="font-size:.85em; color:rgba(255,255,255,.6); margin-bottom:8px;">
-                <strong>Available Data:</strong>
+        <!-- FINANCIAL FILTERS -->
+        <div class="collapsible open">
+            <div class="collapsible-header" onclick="toggleCollapsible(this)">
+                <span>💰 Financial Metrics</span>
+                <span class="toggle-arrow">▼</span>
             </div>
+            <div class="collapsible-content">
+                <div class="filter-grid">
+                    <div class="filter-group">
+                        <label class="filter-label">CIBIL Score Range</label>
+                        <div class="range-inputs">
+                            <input type="number" id="cibilMin" placeholder="Min" min="0" max="999" value="0">
+                            <input type="number" id="cibilMax" placeholder="Max" min="0" max="999" value="999">
+                        </div>
+                    </div>
+                    <div class="filter-group">
+                        <label class="filter-label">Annual Income (₹)</label>
+                        <div class="range-inputs">
+                            <input type="number" id="incomeMin" placeholder="Min" value="0">
+                            <input type="number" id="incomeMax" placeholder="Max" value="999999999">
+                        </div>
+                    </div>
+                    <div class="filter-group">
+                        <label class="filter-label">Loan Purpose</label>
+                        <div class="checkbox-group" id="loanPurposeFilter"></div>
+                    </div>
+                    <div class="filter-group">
+                        <label class="filter-label">Months as Customer</label>
+                        <select id="monthsCustomerRange">
+                            <option value="">All time periods</option>
+                            <option value="0-6">< 6 months (New)</option>
+                            <option value="6-12">6-12 months</option>
+                            <option value="12-36">1-3 years</option>
+                            <option value="36-60">3-5 years</option>
+                            <option value="60-600">5+ years</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- RISK FILTERS -->
+        <div class="collapsible open">
+            <div class="collapsible-header" onclick="toggleCollapsible(this)">
+                <span>⚠️ Risk Profile</span>
+                <span class="toggle-arrow">▼</span>
+            </div>
+            <div class="collapsible-content">
+                <div class="filter-grid">
+                    <div class="filter-group">
+                        <label class="filter-label">Late Payments</label>
+                        <div class="checkbox-group">
+                            <label class="checkbox-item">
+                                <input type="checkbox" id="previousDefault">
+                                <span class="checkbox-label">Previous default flag</span>
+                            </label>
+                        </div>
+                    </div>
+                    <div class="filter-group">
+                        <label class="filter-label">Risk Level (by late payments)</label>
+                        <select id="riskLevel">
+                            <option value="">All risk levels</option>
+                            <option value="low">Low Risk (No late payments)</option>
+                            <option value="medium">Medium Risk (1-2 late payments)</option>
+                            <option value="high">High Risk (3+ late payments)</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ACTIONS -->
+        <div class="button-group">
+            <button onclick="applyFilters()">🔍 Apply Filters & Preview</button>
+            <button class="secondary" onclick="resetFilters()">↻ Reset All Filters</button>
+            <button class="secondary" onclick="exportAsJSON()" id="exportJsonBtn" disabled>📥 Download JSON</button>
+            <button class="secondary" onclick="exportAsCSV()" id="exportCsvBtn" disabled>📊 Download CSV</button>
+        </div>
+
+        <!-- RESULTS -->
+        <div id="resultsPreview" class="results-preview">
+            <div class="section-title">📋 Results Preview</div>
             <div>
-                <span class="summary-stat">
-                    Accounts: <span class="stat-value" id="statAccounts">0</span>
-                </span>
-                <span class="summary-stat">
-                    Loans: <span class="stat-value" id="statLoans">0</span>
-                </span>
-                <span class="summary-stat">
-                    Transactions: <span class="stat-value" id="statTransactions">0</span>
-                </span>
+                <div class="result-stat">
+                    <div class="stat-label">Total Customers</div>
+                    <div class="stat-value" id="totalCustomers">0</div>
+                </div>
+                <div class="result-stat">
+                    <div class="stat-label">With Loans</div>
+                    <div class="stat-value" id="withLoans">0</div>
+                </div>
+                <div class="result-stat">
+                    <div class="stat-label">Avg CIBIL</div>
+                    <div class="stat-value" id="avgCibil">0</div>
+                </div>
+                <div class="result-stat">
+                    <div class="stat-label">Avg Income</div>
+                    <div class="stat-value" id="avgIncome">0</div>
+                </div>
+            </div>
+            <div class="customer-grid">
+                <div class="customer-row" style="background:rgba(96,165,250,0.1); font-weight:600;">
+                    <div class="customer-col" style="flex:1.5;">Customer Name</div>
+                    <div class="customer-col">CIBIL</div>
+                    <div class="customer-col">Income</div>
+                    <div class="customer-col">Loans</div>
+                    <div class="customer-col">Status</div>
+                </div>
+                <div id="customersList"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SINGLE CUSTOMER MODE -->
+    <div id="single-mode" class="mode-content">
+        <div class="section">
+            <div class="section-title">Search Customer</div>
+            <div style="display:flex; gap:10px; margin-bottom:16px;">
+                <input type="text" id="searchInput" placeholder="Search by name, email, phone, or customer ID...">
+                <button onclick="searchCustomer()">Search</button>
             </div>
         </div>
 
-        <div class="export-actions">
-            <button onclick="downloadJSON()">📥 Download JSON</button>
-            <button class="secondary" onclick="downloadCSV()">📊 Download CSV (Summary)</button>
-            <button class="secondary" onclick="copyToClipboard()">📋 Copy to Clipboard</button>
-            <div class="loading" id="exportLoading">
-                <span class="spinner"></span>Preparing export...
+        <div class="section" id="singleResultSection" style="display:none;">
+            <div class="section-title">Customer Details</div>
+            <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:16px; margin-bottom:16px;">
+                <div class="filter-group">
+                    <div class="filter-label">Customer ID</div>
+                    <div style="color:white; font-weight:500;" id="singleCid">—</div>
+                </div>
+                <div class="filter-group">
+                    <div class="filter-label">Name</div>
+                    <div style="color:white; font-weight:500;" id="singleName">—</div>
+                </div>
+                <div class="filter-group">
+                    <div class="filter-label">CIBIL Score</div>
+                    <div style="color:white; font-weight:500;" id="singleCibil">—</div>
+                </div>
+                <div class="filter-group">
+                    <div class="filter-label">Accounts</div>
+                    <div style="color:white; font-weight:500;" id="singleAccounts">0</div>
+                </div>
+                <div class="filter-group">
+                    <div class="filter-label">Loans</div>
+                    <div style="color:white; font-weight:500;" id="singleLoans">0</div>
+                </div>
+                <div class="filter-group">
+                    <div class="filter-label">Transactions</div>
+                    <div style="color:white; font-weight:500;" id="singleTransactions">0</div>
+                </div>
+            </div>
+            <div style="display:flex; gap:10px;">
+                <button onclick="downloadSingleJSON()" id="singleJsonBtn">📥 Download JSON</button>
+                <button class="secondary" onclick="downloadSingleCSV()" id="singleCsvBtn">📊 Download CSV</button>
             </div>
         </div>
     </div>
 </div>
 
 <script>
-let currentCustomer = null;
-let allCustomers = [];
+let filterMetadata = {};
+let currentResults = null;
 
-// Load banks on page load
-async function loadBanks() {
+function switchMode(mode) {
+    document.querySelectorAll('.mode-content').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('.mode-tab').forEach(el => el.classList.remove('active'));
+
+    document.getElementById(mode + '-mode').classList.add('active');
+    event.target.classList.add('active');
+}
+
+function toggleCollapsible(header) {
+    header.parentElement.classList.toggle('open');
+}
+
+async function loadFilterMetadata() {
     try {
-        const resp = await fetch('/analytics/api/banks');
-        const banks = await resp.json();
-        const select = document.getElementById('bankFilter');
-        banks.forEach(b => {
-            const opt = document.createElement('option');
-            opt.value = b.bank_id;
-            opt.textContent = b.bank_name;
-            select.appendChild(opt);
-        });
+        const resp = await fetch('/api/customer-export-filters');
+        filterMetadata = await resp.json();
+        populateFilters();
     } catch(e) {
-        console.error('Failed to load banks:', e);
+        showMessage('Failed to load filters: ' + e.message, 'error');
     }
 }
 
-async function searchCustomers() {
-    const query = document.getElementById('searchInput').value.trim();
-    const bankFilter = document.getElementById('bankFilter').value;
+function populateFilters() {
+    // Banks
+    const bankSelect = document.getElementById('bankFilter');
+    bankSelect.innerHTML = filterMetadata.banks
+        .map(b => `<option value="${b.bank_id}">${b.bank_name}</option>`)
+        .join('');
 
-    if (!query && !bankFilter) {
-        showMessage('Enter search term or select bank', 'error');
+    // Customer statuses
+    populateCheckboxGroup('customerStatusFilter', filterMetadata.customer_statuses);
+    // Employment types
+    populateCheckboxGroup('employmentFilter', filterMetadata.employment_types);
+    // Education levels
+    populateCheckboxGroup('educationFilter', filterMetadata.education_levels);
+    // City tiers
+    populateCheckboxGroup('cityTierFilter', filterMetadata.city_tiers);
+    // Residence types
+    populateCheckboxGroup('residenceFilter', filterMetadata.residence_types);
+    // Loan purposes
+    populateCheckboxGroup('loanPurposeFilter', filterMetadata.loan_purposes);
+}
+
+function populateCheckboxGroup(elementId, items) {
+    const container = document.getElementById(elementId);
+    if (!items || items.length === 0) {
+        container.innerHTML = '<div style="font-size:.75em; color:rgba(255,255,255,.4);">No options</div>';
         return;
     }
+    container.innerHTML = items
+        .map((item, i) => `
+            <label class="checkbox-item">
+                <input type="checkbox" id="${elementId}_${i}" value="${item}">
+                <span class="checkbox-label">${item}</span>
+            </label>
+        `)
+        .join('');
+}
 
-    showLoading(true);
+async function applyFilters() {
+    showMessage('', '');
+    const banks = Array.from(document.getElementById('bankFilter').selectedOptions).map(o => o.value);
+    const employmentTypes = Array.from(document.querySelectorAll('#employmentFilter input[type="checkbox"]:checked')).map(c => c.value);
+    const educationLevels = Array.from(document.querySelectorAll('#educationFilter input[type="checkbox"]:checked')).map(c => c.value);
+    const cityTiers = Array.from(document.querySelectorAll('#cityTierFilter input[type="checkbox"]:checked')).map(c => c.value);
+    const residenceTypes = Array.from(document.querySelectorAll('#residenceFilter input[type="checkbox"]:checked')).map(c => c.value);
+    const loanPurposes = Array.from(document.querySelectorAll('#loanPurposeFilter input[type="checkbox"]:checked')).map(c => c.value);
+    const customerStatuses = Array.from(document.querySelectorAll('#customerStatusFilter input[type="checkbox"]:checked')).map(c => c.value);
+
+    const params = new URLSearchParams();
+    banks.forEach(b => params.append('bank', b));
+    employmentTypes.forEach(e => params.append('employment_type', e));
+    educationLevels.forEach(e => params.append('education_level', e));
+    cityTiers.forEach(c => params.append('city_tier', c));
+    residenceTypes.forEach(r => params.append('residence_type', r));
+    loanPurposes.forEach(p => params.append('loan_purpose', p));
+    customerStatuses.forEach(s => params.append('customer_status', s));
+
+    params.append('cibil_min', document.getElementById('cibilMin').value || 0);
+    params.append('cibil_max', document.getElementById('cibilMax').value || 999);
+    params.append('income_min', document.getElementById('incomeMin').value || 0);
+    params.append('income_max', document.getElementById('incomeMax').value || 999999999);
+    params.append('age_min', document.getElementById('ageMin').value || 18);
+    params.append('age_max', document.getElementById('ageMax').value || 150);
+    params.append('has_loan', document.getElementById('hasLoan').checked);
+    params.append('has_active_loan', document.getElementById('hasActiveLoan').checked);
+    params.append('has_npa', document.getElementById('hasNPA').checked);
+    params.append('previous_default', document.getElementById('previousDefault').checked);
+
+    const urbanRural = document.querySelector('input[name="urban_rural"]:checked').value;
+    if (urbanRural) params.append('is_rural', urbanRural === 'rural');
+
     try {
-        // Use operations API to search customers
-        const resp = await fetch('/operations/api/customers');
-        const customers = await resp.json();
-
-        let filtered = customers;
-        if (bankFilter) {
-            filtered = filtered.filter(c => c.bank_id === bankFilter);
-        }
-        if (query) {
-            const q = query.toLowerCase();
-            filtered = filtered.filter(c => {
-                const full = `${c.first || ''} ${c.last || ''} ${c.email || ''} ${c.phone || ''} ${c.id || ''}`.toLowerCase();
-                return full.includes(q);
-            });
-        }
-
-        allCustomers = filtered;
-        displayCustomers(filtered);
-        document.getElementById('customerCount').textContent = `(${filtered.length})`;
+        const resp = await fetch(`/api/customer-bulk-export?${params}`);
+        currentResults = await resp.json();
+        displayResults();
     } catch(e) {
-        showMessage('Failed to search customers: ' + e.message, 'error');
-    } finally {
-        showLoading(false);
+        showMessage('Failed to fetch results: ' + e.message, 'error');
     }
 }
 
-function displayCustomers(customers) {
-    const list = document.getElementById('customerList');
-    if (customers.length === 0) {
-        list.innerHTML = '<div class="empty-state">No customers found</div>';
+function displayResults() {
+    if (!currentResults || currentResults.total_customers === 0) {
+        showMessage('No customers match the selected filters', 'info');
+        document.getElementById('resultsPreview').classList.remove('active');
+        document.getElementById('exportJsonBtn').disabled = true;
+        document.getElementById('exportCsvBtn').disabled = true;
         return;
     }
 
-    list.innerHTML = customers.map(c => `
-        <div class="customer-item" onclick="selectCustomer('${c.id}')">
-            <div class="customer-info">
-                <div class="customer-name">${c.first} ${c.last}</div>
-                <div class="customer-meta">
-                    ID: ${c.id} · ${c.email} · Joined: ${c.joined}
-                </div>
-            </div>
-            <div style="color:rgba(255,255,255,.3); font-size:.75em;">
-                ${c.status}
-            </div>
+    document.getElementById('resultsPreview').classList.add('active');
+    document.getElementById('totalCustomers').textContent = currentResults.total_customers;
+
+    // Calculate statistics
+    const customers = currentResults.customers;
+    const withLoans = customers.filter(c => c.loan_count > 0).length;
+    const cibils = customers.map(c => c.cibil_score).filter(c => c);
+    const incomes = customers.map(c => c.annual_income).filter(c => c);
+
+    document.getElementById('withLoans').textContent = withLoans;
+    document.getElementById('avgCibil').textContent = cibils.length > 0 ?
+        (cibils.reduce((a,b) => a+b, 0) / cibils.length).toFixed(0) : '—';
+    document.getElementById('avgIncome').textContent = incomes.length > 0 ?
+        '₹' + (incomes.reduce((a,b) => a+b, 0) / incomes.length / 100000).toFixed(1) + 'L' : '—';
+
+    // Display customer list
+    const customersList = document.getElementById('customersList');
+    customersList.innerHTML = customers.slice(0, 100).map(c => `
+        <div class="customer-row">
+            <div class="customer-col customer-col-name">${c.first} ${c.last}</div>
+            <div class="customer-col">${c.cibil_score || '—'}</div>
+            <div class="customer-col">₹${c.annual_income ? (c.annual_income/100000).toFixed(1) + 'L' : '—'}</div>
+            <div class="customer-col">${c.loan_count}</div>
+            <div class="customer-col">${c.status}</div>
         </div>
     `).join('');
+
+    document.getElementById('exportJsonBtn').disabled = false;
+    document.getElementById('exportCsvBtn').disabled = false;
+
+    showMessage(`Found ${currentResults.total_customers} customers matching your filters`, 'success');
 }
 
-async function selectCustomer(cid) {
-    showLoading(true);
-    try {
-        const resp = await fetch(`/api/customer-export/${cid}`);
-        if (!resp.ok) throw new Error('Customer not found');
+function exportAsJSON() {
+    if (!currentResults) return;
 
-        currentCustomer = await resp.json();
-        updatePreview();
-        document.getElementById('dataPreview').classList.add('active');
-
-        // Highlight selected row
-        document.querySelectorAll('.customer-item').forEach(el => {
-            el.classList.remove('selected');
-        });
-        event.target.closest('.customer-item')?.classList.add('selected');
-
-        showMessage(`Loaded ${cid}`, 'success');
-    } catch(e) {
-        showMessage('Failed to load customer data: ' + e.message, 'error');
-    } finally {
-        showLoading(false);
-    }
-}
-
-function updatePreview() {
-    if (!currentCustomer) return;
-
-    const c = currentCustomer.customer;
-    const k = currentCustomer.kyc;
-    const a = currentCustomer.accounts || [];
-    const l = currentCustomer.loans || [];
-    const t = currentCustomer.transactions || {};
-
-    document.getElementById('prevId').textContent = c.id;
-    document.getElementById('prevName').textContent = c.name;
-    document.getElementById('prevCibil').textContent = k.cibil_score || '—';
-    document.getElementById('prevIncome').textContent = k.annual_income ?
-        `₹${(k.annual_income/1e5).toFixed(1)} Lakh` : '—';
-    document.getElementById('prevStatus').textContent = c.status;
-    document.getElementById('prevMonths').textContent = k.months_as_customer || '—';
-
-    document.getElementById('statAccounts').textContent = a.length;
-    document.getElementById('statLoans').textContent = l.length;
-    document.getElementById('statTransactions').textContent = t.total_count || 0;
-}
-
-function downloadJSON() {
-    if (!currentCustomer) return;
-
-    const dataStr = JSON.stringify(currentCustomer, null, 2);
-    const blob = new Blob([dataStr], {type: 'application/json'});
+    const jsonStr = JSON.stringify(currentResults, null, 2);
+    const blob = new Blob([jsonStr], {type: 'application/json'});
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `customer_${currentCustomer.customer.id}_${new Date().toISOString().split('T')[0]}.json`;
+    link.download = `bulk_customers_${new Date().toISOString().split('T')[0]}.json`;
     link.click();
     URL.revokeObjectURL(url);
 
     showMessage('JSON downloaded successfully', 'success');
 }
 
-function downloadCSV() {
-    if (!currentCustomer) return;
+function exportAsCSV() {
+    if (!currentResults || currentResults.customers.length === 0) return;
 
-    const c = currentCustomer.customer;
-    const k = currentCustomer.kyc;
-    const t = currentCustomer.transactions.data || [];
+    let csv = 'Customer Export\n';
+    csv += `Export Date,${new Date().toISOString()}\n`;
+    csv += `Total Customers,${currentResults.total_customers}\n\n`;
 
-    // Customer summary
-    let csv = 'Customer Data Export\n';
-    csv += `Export Date,${currentCustomer.export_date}\n\n`;
+    csv += 'CUSTOMER DATA\n';
+    csv += 'ID,First Name,Last Name,Email,Phone,Status,CIBIL,Annual Income (₹),Age,Months Customer,Loan Count,Total Outstanding,NPA Count\n';
 
-    csv += 'CUSTOMER INFO\n';
-    csv += 'ID,Name,DOB,Email,Phone,City,Status,Joined\n';
-    csv += `"${c.id}","${c.name}","${c.dob}","${c.email}","${c.phone}","${c.city}","${c.status}","${c.joined_date}"\n\n`;
-
-    csv += 'KYC DATA\n';
-    csv += 'Age,Annual Income,CIBIL Score,Employment,Years Employed,Months as Customer\n';
-    csv += `${k.age},"₹${k.annual_income}",${k.cibil_score},"${k.employment_type}",${k.years_employed},${k.months_as_customer}\n\n`;
-
-    csv += 'TRANSACTIONS\n';
-    csv += 'Date,Time,Type,Amount,Description,Account ID\n';
-    t.forEach(tx => {
-        csv += `"${tx.date}","${tx.time}","${tx.type}","${tx.amount}","${tx.desc}","${tx.aid}"\n`;
+    currentResults.customers.forEach(c => {
+        csv += `"${c.id}","${c.first}","${c.last}","${c.email}","${c.phone}","${c.status}",${c.cibil_score || ''},${c.annual_income || ''},${c.age || ''},${c.months_as_customer || ''},${c.loan_count},${c.total_outstanding || ''},${c.npa_count || ''}\n`;
     });
 
     const blob = new Blob([csv], {type: 'text/csv'});
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `customer_${c.id}_summary_${new Date().toISOString().split('T')[0]}.csv`;
+    link.download = `bulk_customers_${new Date().toISOString().split('T')[0]}.csv`;
     link.click();
     URL.revokeObjectURL(url);
 
     showMessage('CSV downloaded successfully', 'success');
 }
 
-function copyToClipboard() {
-    if (!currentCustomer) return;
-    const text = JSON.stringify(currentCustomer, null, 2);
-    navigator.clipboard.writeText(text).then(() => {
-        showMessage('Data copied to clipboard', 'success');
-    }).catch(err => {
-        showMessage('Failed to copy: ' + err.message, 'error');
+function resetFilters() {
+    document.getElementById('bankFilter').selectedIndex = -1;
+    document.querySelectorAll('input[type="checkbox"]').forEach(c => c.checked = false);
+    document.getElementById('cibilMin').value = 0;
+    document.getElementById('cibilMax').value = 999;
+    document.getElementById('incomeMin').value = 0;
+    document.getElementById('incomeMax').value = 999999999;
+    document.getElementById('ageMin').value = 18;
+    document.getElementById('ageMax').value = 150;
+    document.getElementById('monthsCustomerRange').value = '';
+    document.getElementById('riskLevel').value = '';
+    document.getElementById('resultsPreview').classList.remove('active');
+    showMessage('', '');
+}
+
+async function searchCustomer() {
+    const query = document.getElementById('searchInput').value.trim();
+    if (!query) {
+        showMessage('Enter a search term', 'error');
+        return;
+    }
+
+    try {
+        const resp = await fetch(`/api/customer-export/${query}`);
+        if (!resp.ok) throw new Error('Customer not found');
+
+        const data = await resp.json();
+        const c = data.customer;
+        const k = data.kyc;
+
+        document.getElementById('singleCid').textContent = c.id;
+        document.getElementById('singleName').textContent = c.name;
+        document.getElementById('singleCibil').textContent = k.cibil_score || '—';
+        document.getElementById('singleAccounts').textContent = data.accounts.length;
+        document.getElementById('singleLoans').textContent = data.loans.length;
+        document.getElementById('singleTransactions').textContent = data.transactions.total_count;
+
+        document.getElementById('singleResultSection').style.display = 'block';
+        document.getElementById('singleJsonBtn').onclick = () => downloadSingleJSON(data);
+        document.getElementById('singleCsvBtn').onclick = () => downloadSingleCSV(data);
+
+        showMessage(`Loaded ${c.id}`, 'success');
+    } catch(e) {
+        showMessage('Customer not found: ' + e.message, 'error');
+        document.getElementById('singleResultSection').style.display = 'none';
+    }
+}
+
+function downloadSingleJSON(data) {
+    const jsonStr = JSON.stringify(data, null, 2);
+    const blob = new Blob([jsonStr], {type: 'application/json'});
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `customer_${data.customer.id}.json`;
+    link.click();
+    URL.revokeObjectURL(url);
+}
+
+function downloadSingleCSV(data) {
+    const c = data.customer;
+    const k = data.kyc;
+    const txns = data.transactions.data || [];
+
+    let csv = 'Customer Profile\n';
+    csv += `Export Date,${new Date().toISOString()}\n\n`;
+    csv += 'CUSTOMER INFO\n';
+    csv += `"${c.id}","${c.name}","${c.email}","${c.phone}","${c.city}"\n\n`;
+    csv += 'KYC DATA\n';
+    csv += `Age,CIBIL,Income,Employment,Years Employed\n`;
+    csv += `${k.age},${k.cibil_score},"₹${k.annual_income}","${k.employment_type}",${k.years_employed}\n\n`;
+    csv += 'TRANSACTIONS\n';
+    csv += 'Date,Time,Type,Amount,Balance After\n';
+    txns.forEach(tx => {
+        csv += `"${tx.date}","${tx.time}","${tx.type}",${tx.amount},${tx.balance_after}\n`;
     });
+
+    const blob = new Blob([csv], {type: 'text/csv'});
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `customer_${c.id}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
 }
 
 function showMessage(msg, type) {
-    const el = document.getElementById('message');
-    el.textContent = msg;
-    el.className = `message active ${type}`;
-    setTimeout(() => {
-        el.classList.remove('active');
-    }, 4000);
-}
+    const el = document.getElementById('message') || document.getElementById('singlemode').querySelector('#message');
+    if (!el) return;
 
-function showLoading(show) {
-    document.getElementById('exportLoading').classList.toggle('active', show);
+    const messageEl = document.getElementById('message');
+    if (messageEl) {
+        messageEl.textContent = msg;
+        messageEl.className = `message ${type} ${msg ? 'active' : ''}`;
+        if (msg) setTimeout(() => {
+            messageEl.classList.remove('active');
+        }, 4000);
+    }
 }
 
 // Initialize
-document.addEventListener('DOMContentLoaded', loadBanks);
+document.addEventListener('DOMContentLoaded', loadFilterMetadata);
 </script>
 
 </body>

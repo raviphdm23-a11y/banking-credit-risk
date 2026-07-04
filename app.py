@@ -1547,6 +1547,202 @@ def api_customer_lookup(cid):
     })
 
 
+@app.route('/api/customer-export-filters')
+def api_customer_export_filters():
+    """Get available filter values for bulk customer export."""
+    with _ops_conn() as conn:
+        # Get unique values for each filter
+        filters_data = {
+            'banks': _rows_to_list(conn.execute(
+                'SELECT DISTINCT bank_id, bank_name FROM banks ORDER BY bank_name').fetchall()),
+            'employment_types': sorted(set(
+                r[0] for r in conn.execute('SELECT DISTINCT employment_type FROM customer_kyc WHERE employment_type IS NOT NULL').fetchall()
+                if r[0])),
+            'education_levels': sorted(set(
+                r[0] for r in conn.execute('SELECT DISTINCT education_level FROM customer_kyc WHERE education_level IS NOT NULL').fetchall()
+                if r[0])),
+            'city_tiers': sorted(set(
+                r[0] for r in conn.execute('SELECT DISTINCT city_tier FROM customer_kyc WHERE city_tier IS NOT NULL').fetchall()
+                if r[0])),
+            'loan_purposes': sorted(set(
+                r[0] for r in conn.execute('SELECT DISTINCT loan_purpose FROM customer_kyc WHERE loan_purpose IS NOT NULL').fetchall()
+                if r[0])),
+            'residence_types': sorted(set(
+                r[0] for r in conn.execute('SELECT DISTINCT residence_type FROM customer_kyc WHERE residence_type IS NOT NULL').fetchall()
+                if r[0])),
+            'account_statuses': sorted(set(
+                r[0] for r in conn.execute('SELECT DISTINCT status FROM accounts WHERE status IS NOT NULL').fetchall()
+                if r[0])),
+            'customer_statuses': sorted(set(
+                r[0] for r in conn.execute('SELECT DISTINCT status FROM customers WHERE status IS NOT NULL').fetchall()
+                if r[0])),
+            'loan_statuses': sorted(set(
+                r[0] for r in conn.execute('SELECT DISTINCT status FROM loans WHERE status IS NOT NULL').fetchall()
+                if r[0])),
+            'loan_classifications': sorted(set(
+                r[0] for r in conn.execute('SELECT DISTINCT loan_classification FROM loans WHERE loan_classification IS NOT NULL').fetchall()
+                if r[0])),
+            'cibil_ranges': [
+                {'label': 'Poor (0-600)', 'min': 0, 'max': 600},
+                {'label': 'Fair (600-750)', 'min': 600, 'max': 750},
+                {'label': 'Good (750-800)', 'min': 750, 'max': 800},
+                {'label': 'Excellent (800+)', 'min': 800, 'max': 999},
+            ],
+            'income_ranges': [
+                {'label': '<5 Lakh', 'min': 0, 'max': 500000},
+                {'label': '5-10 Lakh', 'min': 500000, 'max': 1000000},
+                {'label': '10-25 Lakh', 'min': 1000000, 'max': 2500000},
+                {'label': '25-50 Lakh', 'min': 2500000, 'max': 5000000},
+                {'label': '50+ Lakh', 'min': 5000000, 'max': 999999999},
+            ],
+            'age_ranges': [
+                {'label': '18-30 (Young)', 'min': 18, 'max': 30},
+                {'label': '30-45 (Middle-aged)', 'min': 30, 'max': 45},
+                {'label': '45-60 (Senior)', 'min': 45, 'max': 60},
+                {'label': '60+ (Retired)', 'min': 60, 'max': 150},
+            ],
+            'months_customer_ranges': [
+                {'label': '<6 months (New)', 'min': 0, 'max': 6},
+                {'label': '6-12 months', 'min': 6, 'max': 12},
+                {'label': '1-3 years', 'min': 12, 'max': 36},
+                {'label': '3-5 years', 'min': 36, 'max': 60},
+                {'label': '5+ years', 'min': 60, 'max': 600},
+            ],
+            'default_risk_levels': [
+                {'label': 'Low Risk (No late payments)', 'value': 'low'},
+                {'label': 'Medium Risk (1-2 late payments)', 'value': 'medium'},
+                {'label': 'High Risk (3+ late payments)', 'value': 'high'},
+            ],
+        }
+    return jsonify(filters_data)
+
+
+@app.route('/api/customer-bulk-export')
+def api_customer_bulk_export():
+    """Bulk export customers matching filter criteria."""
+    # Get filter parameters
+    banks = request.args.getlist('bank')
+    employment_types = request.args.getlist('employment_type')
+    education_levels = request.args.getlist('education_level')
+    city_tiers = request.args.getlist('city_tier')
+    loan_purposes = request.args.getlist('loan_purpose')
+    residence_types = request.args.getlist('residence_type')
+    customer_statuses = request.args.getlist('customer_status')
+    loan_statuses = request.args.getlist('loan_status')
+    cibil_min = request.args.get('cibil_min', type=int, default=0)
+    cibil_max = request.args.get('cibil_max', type=int, default=999)
+    income_min = request.args.get('income_min', type=int, default=0)
+    income_max = request.args.get('income_max', type=int, default=999999999)
+    age_min = request.args.get('age_min', type=int, default=0)
+    age_max = request.args.get('age_max', type=int, default=150)
+    has_loan = request.args.get('has_loan') == 'true'
+    has_active_loan = request.args.get('has_active_loan') == 'true'
+    has_npa = request.args.get('has_npa') == 'true'
+    previous_default = request.args.get('previous_default') == 'true'
+    is_rural = request.args.get('is_rural')
+    limit = request.args.get('limit', type=int, default=1000)
+
+    with _ops_conn() as conn:
+        # Build dynamic query with filters
+        query = """
+            SELECT DISTINCT c.id, c.first, c.last, c.email, c.phone, c.status,
+                   k.cibil_score, k.annual_income, k.age, k.employment_type,
+                   k.months_as_customer, k.num_late_payments_past_12m,
+                   COUNT(DISTINCT l.id) as loan_count,
+                   SUM(l.outstanding) as total_outstanding,
+                   COUNT(CASE WHEN l.loan_classification='NPA' THEN 1 END) as npa_count
+            FROM customers c
+            LEFT JOIN customer_kyc k ON c.id = k.cid
+            LEFT JOIN loans l ON c.id = l.cid
+            WHERE 1=1
+        """
+        params = []
+
+        # Apply filters
+        if banks:
+            placeholders = ','.join('?' * len(banks))
+            query += f" AND c.bank_id IN ({placeholders})"
+            params.extend(banks)
+
+        if customer_statuses:
+            placeholders = ','.join('?' * len(customer_statuses))
+            query += f" AND c.status IN ({placeholders})"
+            params.extend(customer_statuses)
+
+        if employment_types:
+            placeholders = ','.join('?' * len(employment_types))
+            query += f" AND k.employment_type IN ({placeholders})"
+            params.extend(employment_types)
+
+        if education_levels:
+            placeholders = ','.join('?' * len(education_levels))
+            query += f" AND k.education_level IN ({placeholders})"
+            params.extend(education_levels)
+
+        if city_tiers:
+            placeholders = ','.join('?' * len(city_tiers))
+            query += f" AND k.city_tier IN ({placeholders})"
+            params.extend(city_tiers)
+
+        if residence_types:
+            placeholders = ','.join('?' * len(residence_types))
+            query += f" AND k.residence_type IN ({placeholders})"
+            params.extend(residence_types)
+
+        if loan_purposes:
+            placeholders = ','.join('?' * len(loan_purposes))
+            query += f" AND k.loan_purpose IN ({placeholders})"
+            params.extend(loan_purposes)
+
+        if is_rural is not None:
+            query += f" AND k.is_rural = ?"
+            params.append(1 if is_rural == 'true' else 0)
+
+        # Range filters
+        query += f" AND k.cibil_score BETWEEN ? AND ?"
+        params.extend([cibil_min, cibil_max])
+
+        query += f" AND k.annual_income BETWEEN ? AND ?"
+        params.extend([income_min, income_max])
+
+        query += f" AND k.age BETWEEN ? AND ?"
+        params.extend([age_min, age_max])
+
+        # Loan status filters
+        if has_loan:
+            query += " AND EXISTS (SELECT 1 FROM loans WHERE loans.cid = c.id)"
+
+        if has_active_loan:
+            query += " AND EXISTS (SELECT 1 FROM loans WHERE loans.cid = c.id AND loans.status = 'Active')"
+
+        if has_npa:
+            query += " AND EXISTS (SELECT 1 FROM loans WHERE loans.cid = c.id AND loans.loan_classification = 'NPA')"
+
+        if previous_default:
+            query += " AND k.previous_default_flag = 1"
+
+        # Group and order
+        query += " GROUP BY c.id ORDER BY c.id LIMIT ?"
+        params.append(limit)
+
+        results = _rows_to_list(conn.execute(query, params).fetchall())
+
+    return jsonify({
+        'total_customers': len(results),
+        'customers': results,
+        'filters_applied': {
+            'banks': banks,
+            'customer_statuses': customer_statuses,
+            'employment_types': employment_types,
+            'education_levels': education_levels,
+            'city_tiers': city_tiers,
+            'cibil_range': [cibil_min, cibil_max],
+            'income_range': [income_min, income_max],
+            'age_range': [age_min, age_max],
+        }
+    })
+
+
 @app.route('/api/customer-export/<cid>')
 def api_customer_export(cid):
     """Export comprehensive customer data including transactions in JSON format."""
