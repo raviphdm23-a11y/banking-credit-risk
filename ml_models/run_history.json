@@ -1,5 +1,103 @@
 [
   {
+    "run_id": "run_20260704_205516",
+    "timestamp": "2026-07-04T20:55:16",
+    "triggered_by": "manual",
+    "data_source": "enriched_transactions (TRANSACTION-LEVEL)",
+    "use_transaction_level": true,
+    "model_type": "xgboost",
+    "status": "success",
+    "files_used": [
+      {
+        "filename": "enriched_transactions (bank.db - TRANSACTION LEVEL)",
+        "rows": 56218
+      }
+    ],
+    "files_skipped": [],
+    "total_rows": 56218,
+    "train_rows": 44974,
+    "test_rows": 11244,
+    "metrics": {
+      "auc_roc": 1.0,
+      "accuracy": 1.0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "brier_score": 1e-05,
+      "n_test": 11244,
+      "n_defaults": 193,
+      "default_rate": 0.0172
+    },
+    "confusion_matrix": [
+      [
+        11051,
+        0
+      ],
+      [
+        0,
+        193
+      ]
+    ],
+    "model_promoted": false,
+    "duration_seconds": 4.75,
+    "error": null,
+    "promotion_check": {
+      "auc": 1.0,
+      "n_trained": 44974,
+      "min_rows_floor": 100,
+      "rows_ok": true
+    }
+  },
+  {
+    "run_id": "run_20260704_205406",
+    "timestamp": "2026-07-04T20:54:06",
+    "triggered_by": "manual",
+    "data_source": "enriched_transactions (TRANSACTION-LEVEL)",
+    "use_transaction_level": true,
+    "model_type": "xgboost",
+    "status": "success",
+    "files_used": [
+      {
+        "filename": "enriched_transactions (bank.db - TRANSACTION LEVEL)",
+        "rows": 56218
+      }
+    ],
+    "files_skipped": [],
+    "total_rows": 56218,
+    "train_rows": 44974,
+    "test_rows": 11244,
+    "metrics": {
+      "auc_roc": 1.0,
+      "accuracy": 1.0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "brier_score": 1e-06,
+      "n_test": 11244,
+      "n_defaults": 145,
+      "default_rate": 0.0129
+    },
+    "confusion_matrix": [
+      [
+        11099,
+        0
+      ],
+      [
+        0,
+        145
+      ]
+    ],
+    "model_promoted": false,
+    "duration_seconds": 4.04,
+    "error": null,
+    "promotion_check": {
+      "auc": 1.0,
+      "n_trained": 44974,
+      "min_rows_floor": 100,
+      "rows_ok": true
+    }
+  },
+  {
     "run_id": "run_20260704_205245",
     "timestamp": "2026-07-04T20:52:45",
     "triggered_by": "manual",
@@ -1858,98 +1956,6 @@
     "promotion_check": {
       "auc": 1.0,
       "n_trained": 932,
-      "min_rows_floor": 100,
-      "rows_ok": true
-    }
-  },
-  {
-    "run_id": "run_20260702_045113",
-    "timestamp": "2026-07-02T04:51:13",
-    "triggered_by": "cli",
-    "status": "success",
-    "files_used": [
-      {
-        "filename": "bank_loan_metrics (bank.db)",
-        "rows": 3812
-      }
-    ],
-    "files_skipped": [],
-    "total_rows": 3812,
-    "train_rows": 3049,
-    "test_rows": 763,
-    "metrics": {
-      "auc_roc": 0.7362,
-      "accuracy": 0.8729,
-      "precision": 0.1515,
-      "recall": 0.5357,
-      "f1": 0.2362,
-      "brier_score": 0.042461,
-      "n_test": 763,
-      "n_defaults": 28,
-      "default_rate": 0.0367
-    },
-    "confusion_matrix": [
-      [
-        651,
-        84
-      ],
-      [
-        13,
-        15
-      ]
-    ],
-    "model_promoted": true,
-    "duration_seconds": 2.86,
-    "error": null,
-    "promotion_check": {
-      "auc": 0.7362,
-      "n_trained": 3049,
-      "min_rows_floor": 100,
-      "rows_ok": true
-    }
-  },
-  {
-    "run_id": "run_20260625_213155",
-    "timestamp": "2026-06-25T21:31:55",
-    "triggered_by": "manual",
-    "status": "success",
-    "files_used": [
-      {
-        "filename": "bank_loan_metrics (bank.db)",
-        "rows": 3810
-      }
-    ],
-    "files_skipped": [],
-    "total_rows": 3810,
-    "train_rows": 3048,
-    "test_rows": 762,
-    "metrics": {
-      "auc_roc": 0.6988,
-      "accuracy": 0.8727,
-      "precision": 0.1562,
-      "recall": 0.4839,
-      "f1": 0.2362,
-      "brier_score": 0.047294,
-      "n_test": 762,
-      "n_defaults": 31,
-      "default_rate": 0.0407
-    },
-    "confusion_matrix": [
-      [
-        650,
-        81
-      ],
-      [
-        16,
-        15
-      ]
-    ],
-    "model_promoted": true,
-    "duration_seconds": 1.2,
-    "error": null,
-    "promotion_check": {
-      "auc": 0.6988,
-      "n_trained": 3048,
       "min_rows_floor": 100,
       "rows_ok": true
     }
