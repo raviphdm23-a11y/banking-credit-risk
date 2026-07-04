@@ -2936,9 +2936,20 @@ def analytics_timeseries():
                            'status': _gate_score('disbur', nd_count)},
         }
 
+    # Use latest date from actual data, not hardcoded SIM_DATE
+    latest_date = SIM_DATE
+    if capital_series:
+        latest_date = max(r['date'] for r in capital_series)
+    elif liquidity_series:
+        latest_date = max(r['date'] for r in liquidity_series)
+    elif balance_series:
+        latest_date = max(r['date'] for r in balance_series)
+    elif pl_series:
+        latest_date = max(r['date'] for r in pl_series)
+
     return jsonify({
         'bank_id':    bank_id,
-        'sim_date':   SIM_DATE,
+        'sim_date':   latest_date,  # Use latest date from actual data
         'sim_period': SIM_PERIOD,
         'capital':    capital_series,
         'liquidity':  liquidity_series,
