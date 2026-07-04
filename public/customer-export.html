@@ -645,14 +645,19 @@ async function applyFilters() {
     params.append('has_npa', document.getElementById('hasNPA').checked);
     params.append('previous_default', document.getElementById('previousDefault').checked);
 
-    const urbanRural = document.querySelector('input[name="urban_rural"]:checked').value;
-    if (urbanRural) params.append('is_rural', urbanRural === 'rural');
+    const urbanRuralElement = document.querySelector('input[name="urban_rural"]:checked');
+    if (urbanRuralElement) {
+        const urbanRural = urbanRuralElement.value;
+        if (urbanRural) params.append('is_rural', urbanRural === 'rural');
+    }
 
     try {
         const resp = await fetch(`/api/customer-bulk-export?${params}`);
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
         currentResults = await resp.json();
         displayResults();
     } catch(e) {
+        console.error('Filter error:', e);
         showMessage('Failed to fetch results: ' + e.message, 'error');
     }
 }
@@ -826,14 +831,13 @@ function downloadSingleCSV(data) {
 }
 
 function showMessage(msg, type) {
-    const el = document.getElementById('message') || document.getElementById('singlemode').querySelector('#message');
-    if (!el) return;
-
     const messageEl = document.getElementById('message');
-    if (messageEl) {
-        messageEl.textContent = msg;
-        messageEl.className = `message ${type} ${msg ? 'active' : ''}`;
-        if (msg) setTimeout(() => {
+    if (!messageEl) return;
+
+    messageEl.textContent = msg;
+    messageEl.className = `message ${type} ${msg ? 'active' : ''}`;
+    if (msg && type) {
+        setTimeout(() => {
             messageEl.classList.remove('active');
         }, 4000);
     }
