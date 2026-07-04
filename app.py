@@ -2917,7 +2917,8 @@ def analytics_timeseries():
         return 'GREEN'
 
     decision_gate = {}
-    if capital_series and pl_series and moratorium_series:
+    # Build decision gate from available capital and P&L data (moratorium data optional)
+    if capital_series and pl_series:
         latest_cap   = capital_series[-1]
         latest_pl    = pl_series[-1]
         latest_morat = moratorium_series[-1] if moratorium_series else {}
