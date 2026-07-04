@@ -2094,6 +2094,82 @@ def ops_system_dashboard():
     return jsonify(payload)
 
 
+# ============================================================================
+# OPTIMIZED TRANSACTION AGGREGATES (Pre-computed in SQL, not in memory)
+# ============================================================================
+@app.route('/operations/api/transactions-summary')
+def ops_transactions_summary():
+    """
+    Returns pre-computed transaction aggregates instead of loading all raw transactions.
+    Computes everything in SQL for massive performance gain.
+    """
+    with _ops_conn() as conn:
+        # Total count and volume
+        totals = conn.execute('''
+            SELECT COUNT(*) as total_count, SUM(amount) as total_volume
+            FROM transactions
+        ''').fetchone()
+        total_count = totals[0] or 0
+        total_volume = float(totals[1] or 0)
+
+        # By hour (24 buckets)
+        hour_data = conn.execute('''
+            SELECT CAST(SUBSTR(time, 1, 2) AS INTEGER) as hour, COUNT(*) as count
+            FROM transactions
+            WHERE time IS NOT NULL
+            GROUP BY hour
+            ORDER BY hour
+        ''').fetchall()
+        hour_buckets = [0] * 24
+        for hour, count in hour_data:
+            if 0 <= hour < 24:
+                hour_buckets[hour] = count
+
+        # By type
+        type_data = _rows_to_list(conn.execute('''
+            SELECT type, COUNT(*) as count, SUM(amount) as volume
+            FROM transactions
+            GROUP BY type
+            ORDER BY volume DESC
+        ''').fetchall())
+        by_type = {row['type']: row['volume'] for row in type_data}
+
+        # By date (last 30 days)
+        date_data = _rows_to_list(conn.execute('''
+            SELECT date, COUNT(*) as count, SUM(amount) as volume
+            FROM transactions
+            WHERE date IS NOT NULL
+            GROUP BY date
+            ORDER BY date DESC
+            LIMIT 30
+        ''').fetchall())
+        by_date = {}
+        for row in date_data:
+            by_date[row['date']] = {'count': row['count'], 'volume': float(row['volume'] or 0)}
+
+        # Recent transactions (last 100 for display)
+        recent = _rows_to_list(conn.execute('''
+            SELECT id, bank_id, aid, date, time, type, amount, desc
+            FROM transactions
+            ORDER BY date DESC, time DESC
+            LIMIT 100
+        ''').fetchall())
+
+    return jsonify({
+        'totalCount': total_count,
+        'totalVolume': total_volume,
+        'txnByHour': hour_buckets,
+        'txnByType': by_type,
+        'txnByDate': by_date,
+        'recentTxns': recent,
+        'summary': {
+            'message': 'Pre-computed aggregates from SQL (optimized)',
+            'dataPoints': len(recent) + 24 + len(by_type) + len(by_date),
+            'compression': f'{total_count} transactions → {len(recent) + 24 + len(by_type) + len(by_date)} data points'
+        }
+    })
+
+
 def _ops_build_payload(bank_dict, customers, accounts, loans, transactions):
     loan_map = {}
     for l in loans:
