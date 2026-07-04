@@ -1415,9 +1415,10 @@
             // Borrower Details
             document.getElementById('borrowerId').value = data.borrowerId;
             document.getElementById('borrowerName').value = data.borrowerName;
-            document.getElementById('sector').value = '01';  // Manufacturing
-            document.getElementById('loanType').value = '01';  // Term Loan
+            document.getElementById('sector').value = 'Manufacturing';  // Sector name, not code
+            document.getElementById('loanType').value = scenario === 'healthy' ? 'Term Loan Long' : (scenario === 'medium' ? 'Term Loan Short' : 'Working Capital');  // Loan type based on scenario
             document.getElementById('exposureAmount').value = '5000000';
+            document.getElementById('exposureClass').value = 'CORPORATE';  // Required for SA mode
 
             // Financial Metrics (Section 1)
             document.getElementById('debtToEquity').value = data.debtToEquity;
