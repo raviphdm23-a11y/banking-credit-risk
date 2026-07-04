@@ -1553,7 +1553,10 @@ def ops_system_dashboard():
         customers    = _rows_to_list(conn.execute('SELECT * FROM customers').fetchall())
         accounts     = _rows_to_list(conn.execute('SELECT * FROM accounts').fetchall())
         loans        = _rows_to_list(conn.execute('SELECT * FROM loans').fetchall())
-        transactions = _rows_to_list(conn.execute('SELECT * FROM transactions').fetchall())
+        # OPTIMIZATION: Load only recent transactions for display (not all 88K+)
+        transactions = _rows_to_list(conn.execute(
+            'SELECT * FROM transactions ORDER BY date DESC, time DESC LIMIT 10000'
+        ).fetchall())
         # RWA per bank from latest regulatory report
         rwa_rows = _rows_to_list(conn.execute(
             "SELECT bank_id, credit_rwa FROM reg_capital_reports r1 "
@@ -1561,42 +1564,78 @@ def ops_system_dashboard():
         ).fetchall())
     rwa_map = {r['bank_id']: (r['credit_rwa'] or 0) for r in rwa_rows}
 
+    # OPTIMIZATION: Aggregate loan/customer data using SQL
+    with _ops_conn() as conn:
+        loan_stats = _rows_to_list(conn.execute('''
+            SELECT bank_id,
+                   COUNT(*) as loan_count,
+                   SUM(outstanding) as total_advances,
+                   SUM(CASE WHEN loan_classification='NPA' THEN outstanding ELSE 0 END) as npa_amount,
+                   SUM(CASE WHEN loan_classification='NPA' THEN 1 ELSE 0 END) as npa_count
+            FROM loans
+            GROUP BY bank_id
+        ''').fetchall())
+
+        account_stats = _rows_to_list(conn.execute('''
+            SELECT bank_id, COUNT(*) as acc_count, SUM(balance) as total_deposits
+            FROM accounts
+            GROUP BY bank_id
+        ''').fetchall())
+
+        customer_stats = _rows_to_list(conn.execute('''
+            SELECT bank_id, COUNT(*) as customer_count
+            FROM customers
+            GROUP BY bank_id
+        ''').fetchall())
+
+    # Build lookup maps
+    loan_map = {l['bank_id']: l for l in loan_stats}
+    acct_map = {a['bank_id']: a for a in account_stats}
+    cust_map = {c['bank_id']: c for c in customer_stats}
+
+    # Build bank summary using aggregated data
     bank_summary = []
     for b in banks:
-        bid       = b['bank_id']
-        b_accs    = [a for a in accounts if a['bank_id'] == bid]
-        b_loans   = [l for l in loans    if l['bank_id'] == bid]
-        npa_loans = [l for l in b_loans  if (l.get('loan_classification') or '') == 'NPA']
-        advances  = sum(float(l.get('outstanding') or 0) for l in b_loans)
-        npa_amt   = sum(float(l.get('outstanding') or 0) for l in npa_loans)
-        n_loans   = len(b_loans)
+        bid = b['bank_id']
+        ls = loan_map.get(bid, {})
+        ac = acct_map.get(bid, {})
+        cs = cust_map.get(bid, {})
+
+        n_loans = ls.get('loan_count', 0) or 0
+        npa_amt = float(ls.get('npa_amount') or 0)
+        advances = float(ls.get('total_advances') or 0)
+        npa_count = ls.get('npa_count', 0) or 0
+
         bank_summary.append({
             'bank_id':      bid,
             'bank_name':    b['bank_name'],
-            'customers':    sum(1 for c in customers if c['bank_id'] == bid),
-            'accounts':     len(b_accs),
-            'deposits':     sum(float(a.get('balance') or 0) for a in b_accs),
+            'customers':    cs.get('customer_count', 0),
+            'accounts':     ac.get('acc_count', 0),
+            'deposits':     float(ac.get('total_deposits', 0) or 0),
             'loans':        n_loans,
-            'npas':         len(npa_loans),
-            'npaCountPct':  round(len(npa_loans) / n_loans * 100, 2) if n_loans else 0,
+            'npas':         npa_count,
+            'npaCountPct':  round(npa_count / n_loans * 100, 2) if n_loans else 0,
             'npaAmount':    npa_amt,
             'npaAmountPct': round(npa_amt / advances * 100, 2) if advances else 0,
-            'advances':  advances,
-            'rwa':       rwa_map.get(bid, 0),
+            'advances':     advances,
+            'rwa':          rwa_map.get(bid, 0),
         })
+
     payload = _ops_build_payload(None, customers, accounts, loans, transactions)
     payload['title'] = 'India Banking System — All Banks Combined'
     payload['banks'] = bank_summary
-    # Aggregate system-level totals
-    npa_loans = [l for l in loans if (l.get('loan_classification') or '') == 'NPA']
-    total_loans   = len(loans)
-    total_advances = sum(float(l.get('outstanding') or 0) for l in loans)
-    npa_amount    = sum(float(l.get('outstanding') or 0) for l in npa_loans)
+
+    # Aggregate system-level totals from SQL aggregations
+    total_loans = sum(l.get('loan_count', 0) for l in loan_stats)
+    total_advances = sum(float(l.get('total_advances', 0) or 0) for l in loan_stats)
+    total_npa_amount = sum(float(l.get('npa_amount', 0) or 0) for l in loan_stats)
+    total_npas = sum(l.get('npa_count', 0) for l in loan_stats)
+
     payload['kpis']['totalLoans']      = total_loans
-    payload['kpis']['totalNPAs']       = len(npa_loans)
-    payload['kpis']['totalNPAAmount']  = npa_amount
-    payload['kpis']['npaCountPct']     = round(len(npa_loans) / total_loans * 100, 2) if total_loans else 0
-    payload['kpis']['npaAmountPct']    = round(npa_amount / total_advances * 100, 2) if total_advances else 0
+    payload['kpis']['totalNPAs']       = total_npas
+    payload['kpis']['totalNPAAmount']  = total_npa_amount
+    payload['kpis']['npaCountPct']     = round(total_npas / total_loans * 100, 2) if total_loans else 0
+    payload['kpis']['npaAmountPct']    = round(total_npa_amount / total_advances * 100, 2) if total_advances else 0
     payload['kpis']['totalAdvances']   = total_advances
     payload['kpis']['totalRWA']        = sum(rwa_map.values())
     return jsonify(payload)
