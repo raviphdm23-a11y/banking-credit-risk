@@ -1,0 +1,196 @@
+{
+  "bank_stats": [
+    {
+      "bank_name": "Bank of Baroda",
+      "loan_count": 142,
+      "default_count": 4,
+      "default_rate": 0.0282,
+      "avg_cibil": 765.1197,
+      "avg_de": 1.2449,
+      "avg_coverage": 8.316,
+      "avg_profit": 15.0113,
+      "avg_liquidity": 2.132,
+      "default_rate_pct": 2.82
+    },
+    {
+      "bank_name": "Barclays Bank PLC",
+      "loan_count": 112,
+      "default_count": 4,
+      "default_rate": 0.0357,
+      "avg_cibil": 761.5536,
+      "avg_de": 1.2994,
+      "avg_coverage": 8.6651,
+      "avg_profit": 14.4179,
+      "avg_liquidity": 2.1379,
+      "default_rate_pct": 3.57
+    },
+    {
+      "bank_name": "Commonwealth Bank of Australia",
+      "loan_count": 170,
+      "default_count": 0,
+      "default_rate": 0.0,
+      "avg_cibil": 770.1059,
+      "avg_de": 1.1823,
+      "avg_coverage": 8.6086,
+      "avg_profit": 15.4553,
+      "avg_liquidity": 2.0748,
+      "default_rate_pct": 0.0
+    },
+    {
+      "bank_name": "DBS Bank Ltd",
+      "loan_count": 120,
+      "default_count": 1,
+      "default_rate": 0.0083,
+      "avg_cibil": 771.125,
+      "avg_de": 1.1802,
+      "avg_coverage": 8.3952,
+      "avg_profit": 15.3017,
+      "avg_liquidity": 2.1045,
+      "default_rate_pct": 0.83
+    },
+    {
+      "bank_name": "Emirates NBD PJSC",
+      "loan_count": 104,
+      "default_count": 5,
+      "default_rate": 0.0481,
+      "avg_cibil": 764.9231,
+      "avg_de": 1.3611,
+      "avg_coverage": 9.0656,
+      "avg_profit": 15.0019,
+      "avg_liquidity": 2.1107,
+      "default_rate_pct": 4.81
+    },
+    {
+      "bank_name": "HDFC Bank Limited",
+      "loan_count": 140,
+      "default_count": 2,
+      "default_rate": 0.0143,
+      "avg_cibil": 767.5857,
+      "avg_de": 1.1606,
+      "avg_coverage": 8.7001,
+      "avg_profit": 14.7993,
+      "avg_liquidity": 2.1217,
+      "default_rate_pct": 1.43
+    },
+    {
+      "bank_name": "ICICI Bank Limited",
+      "loan_count": 112,
+      "default_count": 3,
+      "default_rate": 0.0268,
+      "avg_cibil": 765.9196,
+      "avg_de": 1.3154,
+      "avg_coverage": 8.7996,
+      "avg_profit": 15.1634,
+      "avg_liquidity": 2.1203,
+      "default_rate_pct": 2.68
+    },
+    {
+      "bank_name": "JPMorgan Chase Bank N.A.",
+      "loan_count": 128,
+      "default_count": 1,
+      "default_rate": 0.0078,
+      "avg_cibil": 771.3047,
+      "avg_de": 1.1872,
+      "avg_coverage": 9.0384,
+      "avg_profit": 15.3422,
+      "avg_liquidity": 2.1602,
+      "default_rate_pct": 0.78
+    },
+    {
+      "bank_name": "Punjab National Bank",
+      "loan_count": 138,
+      "default_count": 5,
+      "default_rate": 0.0362,
+      "avg_cibil": 762.8768,
+      "avg_de": 1.2633,
+      "avg_coverage": 8.1214,
+      "avg_profit": 15.0826,
+      "avg_liquidity": 2.0844,
+      "default_rate_pct": 3.62
+    }
+  ],
+  "financial_metrics": {
+    "de_ratio": {
+      "mean": 1.2372126929674099,
+      "median": 1.145,
+      "min": 0.4,
+      "max": 6.8,
+      "std": 0.7243459925716648,
+      "healthy_mean": 1.159211218229623,
+      "default_mean": 4.7972
+    },
+    "interest_coverage": {
+      "mean": 8.61606346483705,
+      "median": 8.615,
+      "min": 0.87,
+      "max": 13.99,
+      "std": 3.164336057977131,
+      "healthy_mean": 8.770613496932516,
+      "default_mean": 1.5623999999999998
+    },
+    "profitability": {
+      "mean": 15.081989708404802,
+      "median": 15.0,
+      "min": -7.8,
+      "max": 25.0,
+      "std": 6.008053378082239,
+      "healthy_mean": 15.44250657318142,
+      "default_mean": -1.3719999999999999
+    },
+    "liquidity_ratio": {
+      "mean": 2.1145969125214408,
+      "median": 2.12,
+      "min": 0.61,
+      "max": 3.0,
+      "std": 0.515271469389122,
+      "healthy_mean": 2.1415512708150746,
+      "default_mean": 0.8844
+    }
+  },
+  "cibil_distribution": {
+    "<600": 13,
+    "600-650": 8,
+    "650-700": 4,
+    "700-750": 391,
+    "750-800": 455,
+    "800+": 295
+  },
+  "default_distribution": {
+    "0": 1141,
+    "1": 25
+  },
+  "employment_distribution": {
+    "Salaried": 100,
+    "Self-employed": 463,
+    "Professional": 173,
+    "Corporate": 430
+  },
+  "exposure_distribution": {
+    "CORPORATE": 432,
+    "RETAIL_OTHER": 264,
+    "SME": 238,
+    "RETAIL_MORTGAGES": 232
+  },
+  "age_distribution": {
+    "20-30": 222,
+    "30-40": 305,
+    "40-50": 274,
+    "50-60": 292,
+    "60-70": 73
+  },
+  "income_distribution": {
+    "<2M": 207,
+    "2-5M": 377,
+    "5-10M": 270,
+    "10M+": 312
+  },
+  "summary": {
+    "total_records": 1166,
+    "default_count": 25,
+    "healthy_count": 1141,
+    "default_rate": 0.02144082332761578,
+    "avg_cibil": 766.8910806174957,
+    "avg_de_ratio": 1.2372126929674099,
+    "num_banks": 9
+  }
+}

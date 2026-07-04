@@ -1,5 +1,143 @@
 [
   {
+    "run_id": "run_20260704_114757",
+    "timestamp": "2026-07-04T11:47:57",
+    "triggered_by": "manual",
+    "status": "success",
+    "files_used": [
+      {
+        "filename": "bank_loan_metrics (bank.db)",
+        "rows": 1166
+      }
+    ],
+    "files_skipped": [],
+    "total_rows": 1166,
+    "train_rows": 932,
+    "test_rows": 234,
+    "metrics": {
+      "auc_roc": 1.0,
+      "accuracy": 1.0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "brier_score": 0.000384,
+      "n_test": 234,
+      "n_defaults": 7,
+      "default_rate": 0.0299
+    },
+    "confusion_matrix": [
+      [
+        227,
+        0
+      ],
+      [
+        0,
+        7
+      ]
+    ],
+    "model_promoted": true,
+    "duration_seconds": 1.03,
+    "error": null,
+    "promotion_check": {
+      "auc": 1.0,
+      "n_trained": 932,
+      "min_rows_floor": 100,
+      "rows_ok": true
+    }
+  },
+  {
+    "run_id": "run_20260704_111724",
+    "timestamp": "2026-07-04T11:17:24",
+    "triggered_by": "cli",
+    "status": "success",
+    "files_used": [
+      {
+        "filename": "bank_loan_metrics (bank.db)",
+        "rows": 1166
+      }
+    ],
+    "files_skipped": [],
+    "total_rows": 1166,
+    "train_rows": 932,
+    "test_rows": 234,
+    "metrics": {
+      "auc_roc": 1.0,
+      "accuracy": 1.0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "brier_score": 0.000384,
+      "n_test": 234,
+      "n_defaults": 7,
+      "default_rate": 0.0299
+    },
+    "confusion_matrix": [
+      [
+        227,
+        0
+      ],
+      [
+        0,
+        7
+      ]
+    ],
+    "model_promoted": true,
+    "duration_seconds": 0.92,
+    "error": null,
+    "promotion_check": {
+      "auc": 1.0,
+      "n_trained": 932,
+      "min_rows_floor": 100,
+      "rows_ok": true
+    }
+  },
+  {
+    "run_id": "run_20260704_111615",
+    "timestamp": "2026-07-04T11:16:15",
+    "triggered_by": "cli",
+    "status": "success",
+    "files_used": [
+      {
+        "filename": "bank_loan_metrics (bank.db)",
+        "rows": 1166
+      }
+    ],
+    "files_skipped": [],
+    "total_rows": 1166,
+    "train_rows": 932,
+    "test_rows": 234,
+    "metrics": {
+      "auc_roc": 1.0,
+      "accuracy": 1.0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "brier_score": 4.9e-05,
+      "n_test": 234,
+      "n_defaults": 7,
+      "default_rate": 0.0299
+    },
+    "confusion_matrix": [
+      [
+        227,
+        0
+      ],
+      [
+        0,
+        7
+      ]
+    ],
+    "model_promoted": true,
+    "duration_seconds": 1.05,
+    "error": null,
+    "promotion_check": {
+      "auc": 1.0,
+      "n_trained": 932,
+      "min_rows_floor": 100,
+      "rows_ok": true
+    }
+  },
+  {
     "run_id": "run_20260702_045113",
     "timestamp": "2026-07-02T04:51:13",
     "triggered_by": "cli",
@@ -2120,138 +2258,6 @@
     ],
     "model_promoted": true,
     "duration_seconds": 0.86,
-    "error": null
-  },
-  {
-    "run_id": "run_20260616_002536",
-    "timestamp": "2026-06-16T00:25:36",
-    "triggered_by": "cli_retrain",
-    "status": "success",
-    "files_used": [
-      {
-        "filename": "bank_loan_metrics (bank.db)",
-        "rows": 50
-      }
-    ],
-    "files_skipped": [
-      {
-        "filename": "indian_banks_synthetic_2024.csv",
-        "reason": "Missing columns: ['age', 'annual_income', 'cibil_score', 'city_tier_enc', 'education_enc', 'employment_type_enc', 'existing_loans_count', 'foir', 'is_rural', 'loan_purpose_enc', 'months_as_customer', 'num_dependents', 'num_existing_products', 'num_late_payments_past_12m', 'previous_default_flag', 'residence_type_enc', 'years_employed']"
-      }
-    ],
-    "total_rows": 50,
-    "train_rows": 40,
-    "test_rows": 10,
-    "metrics": {
-      "r2": 0.9142,
-      "rmse": 0.043701,
-      "mae": 0.035947,
-      "auc_roc": 1.0,
-      "accuracy": 0.1,
-      "precision": 0.1,
-      "recall": 1.0,
-      "f1": 0.1818
-    },
-    "confusion_matrix": [
-      [
-        0,
-        9
-      ],
-      [
-        0,
-        1
-      ]
-    ],
-    "model_promoted": true,
-    "duration_seconds": 0.75,
-    "error": null
-  },
-  {
-    "run_id": "run_20260616_002520",
-    "timestamp": "2026-06-16T00:25:20",
-    "triggered_by": "cli_retrain",
-    "status": "success",
-    "files_used": [
-      {
-        "filename": "bank_loan_metrics (bank.db)",
-        "rows": 50
-      }
-    ],
-    "files_skipped": [
-      {
-        "filename": "indian_banks_synthetic_2024.csv",
-        "reason": "Missing columns: ['age', 'annual_income', 'cibil_score', 'city_tier_enc', 'education_enc', 'employment_type_enc', 'existing_loans_count', 'foir', 'is_rural', 'loan_purpose_enc', 'months_as_customer', 'num_dependents', 'num_existing_products', 'num_late_payments_past_12m', 'previous_default_flag', 'residence_type_enc', 'years_employed']"
-      }
-    ],
-    "total_rows": 50,
-    "train_rows": 40,
-    "test_rows": 10,
-    "metrics": {
-      "r2": 0.9142,
-      "rmse": 0.043701,
-      "mae": 0.035947,
-      "auc_roc": 1.0,
-      "accuracy": 0.1,
-      "precision": 0.1,
-      "recall": 1.0,
-      "f1": 0.1818
-    },
-    "confusion_matrix": [
-      [
-        0,
-        9
-      ],
-      [
-        0,
-        1
-      ]
-    ],
-    "model_promoted": false,
-    "duration_seconds": 0.72,
-    "error": null
-  },
-  {
-    "run_id": "run_20260615_232929",
-    "timestamp": "2026-06-15T23:29:29",
-    "triggered_by": "manual",
-    "status": "success",
-    "files_used": [
-      {
-        "filename": "bank_loan_metrics (bank.db)",
-        "rows": 50
-      }
-    ],
-    "files_skipped": [
-      {
-        "filename": "indian_banks_synthetic_2024.csv",
-        "reason": "Missing columns: ['age', 'annual_income', 'cibil_score', 'city_tier_enc', 'education_enc', 'employment_type_enc', 'existing_loans_count', 'foir', 'is_rural', 'loan_purpose_enc', 'months_as_customer', 'num_dependents', 'num_existing_products', 'num_late_payments_past_12m', 'previous_default_flag', 'residence_type_enc', 'years_employed']"
-      }
-    ],
-    "total_rows": 50,
-    "train_rows": 40,
-    "test_rows": 10,
-    "metrics": {
-      "r2": 0.9142,
-      "rmse": 0.043701,
-      "mae": 0.035947,
-      "auc_roc": 1.0,
-      "accuracy": 0.1,
-      "precision": 0.1,
-      "recall": 1.0,
-      "f1": 0.1818
-    },
-    "confusion_matrix": [
-      [
-        0,
-        9
-      ],
-      [
-        0,
-        1
-      ]
-    ],
-    "model_promoted": false,
-    "duration_seconds": 0.83,
     "error": null
   }
 ]

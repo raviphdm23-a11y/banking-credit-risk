@@ -2095,6 +2095,22 @@ def _run_npa_batch_job():
         print(f'[npa-batch] error: {e}')
 
 
+@app.route('/operations/api/ml-training-viz')
+def ops_ml_training_viz():
+    """Get ML training data visualizations - bank-wise and consolidated"""
+    try:
+        viz_file = os.path.join(os.path.dirname(__file__), 'ml_training_viz_data.json')
+        if not os.path.exists(viz_file):
+            return jsonify({'error': 'Visualization data not available'}), 404
+
+        with open(viz_file, 'r') as f:
+            viz_data = json.load(f)
+
+        return jsonify(viz_data), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
 @app.route('/operations/api/npa-batch', methods=['POST'])
 def ops_npa_batch():
     """Manually trigger the NPA DPD batch. Optional body: {"as_of_date": "YYYY-MM-DD"}"""
