@@ -44,7 +44,7 @@ DB_PATH = os.path.join(_REPO_ROOT, 'bank.db')
 # Import shared risk formula (consistent with seed_real_bank.py and add_new_customers.py)
 import sys
 sys.path.insert(0, _REPO_ROOT)
-from ml_models.risk_formula import true_pd_nonlinear, sample_correlated_features, add_measurement_noise
+from ml_models.risk_formula import true_pd_nonlinear, simple_default_rate_model, sample_correlated_features, add_measurement_noise
 
 # ── per-bank config: customer count, branch code stem, name/city pools, sizes ──
 # (loan principal & account balance ranges in raw ₹; tuned so advances/deposits
@@ -217,9 +217,10 @@ def _seed_bank(cur, bank_id, cfg, today):
         deps = random.randint(0, 4); months_cust = random.randint(6, 200)
         ex_loans = random.randint(0, 4); ex_products = random.randint(1, 6)
 
-        # Compute PD using shared formula (stable regime, no macro effects)
-        pd_obs = round(true_pd_nonlinear(de, ic, profit, liq, cibil, foir, regime_multiplier=1.0), 4)
-        default_flag = 1 if random.random() < pd_obs else 0
+        # Use simple default model (income/age/macro only) NOT feature-derived
+        pd_obs = simple_default_rate_model(income, age, macro_regime=1.0, rng=rng)
+        default_flag = int(rng.binomial(1, p=pd_obs))
+        pd_obs = round(pd_obs, 4)
 
         principal = random.randint(p_lo // 100000, p_hi // 100000) * 100000
         outstanding = round(principal * random.uniform(0.55, 0.95), 2)

@@ -154,6 +154,57 @@ def add_measurement_noise(rng, de_ratio, int_coverage, profitability, liquidity_
     }
 
 
+def simple_default_rate_model(annual_income, age, macro_regime_score, rng):
+    """
+    Simple, independent default-rate model (NOT derived from risk features).
+
+    This creates default probability based ONLY on:
+    - Income level (proxy for repayment capacity)
+    - Age/maturity
+    - Macro regime (economic cycle)
+    - Random noise
+
+    NOT on financial ratios, CIBIL, or any features that the model will learn.
+    This breaks the deterministic feature→default relationship.
+
+    Args:
+        annual_income: annual income (numeric)
+        age: customer age
+        macro_regime_score: macro regime multiplier (0.5=expansion, 1.0=stable, 2.5=contraction)
+        rng: numpy random generator
+
+    Returns:
+        float: default probability (0.0-1.0) independent of risk features
+    """
+    # Base default rate: ~2%
+    pd = 0.02
+
+    # Income effect: lower income → higher default risk
+    # Piecewise: <300k → +3%, 300-500k → +1%, 500-1M → 0%, >1M → -0.5%
+    if annual_income < 300000:
+        pd += 0.03
+    elif annual_income < 500000:
+        pd += 0.01
+    elif annual_income > 1000000:
+        pd -= 0.005
+
+    # Age effect: younger → higher risk (proxy for maturity)
+    if age < 30:
+        pd += 0.01
+    elif age > 55:
+        pd += 0.005
+
+    # Macro regime effect (independent of feature-level PD)
+    # Expansion: lower defaults, Contraction: higher defaults
+    pd *= macro_regime_score
+
+    # Random noise: ±50% to break perfect separability
+    noise = rng.normal(1.0, 0.3)  # mean=1.0, std=0.3
+    pd *= noise
+
+    return float(np.clip(pd, 0.001, 0.15))  # cap at 15% max
+
+
 def calibrate_pd_threshold_per_bank(current_default_rate, target_npa_rate):
     """
     Calibrate PD scale so that aggregate NPA rate stays close to target.

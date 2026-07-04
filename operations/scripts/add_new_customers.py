@@ -18,7 +18,7 @@ from datetime import date, datetime
 import numpy as np
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
-from ml_models.risk_formula import true_pd_nonlinear, sample_correlated_features, add_measurement_noise
+from ml_models.risk_formula import true_pd_nonlinear, simple_default_rate_model, sample_correlated_features, add_measurement_noise
 
 random.seed(2026)
 DB = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', 'bank.db')
@@ -132,9 +132,10 @@ def main():
         cibil   = int(noisy['cibil_score'] if noisy.get('cibil_score') else cibil_true)
         foir    = round(noisy['foir'], 2)
 
-        # Compute PD using shared formula (stable regime, no macro effects)
-        pd_obs = round(true_pd_nonlinear(de, ic, profit, liq, cibil, foir, regime_multiplier=1.0), 4)
-        default_flag = 1 if random.random() < pd_obs else 0
+        # Use simple default model (income/age/macro only) NOT feature-derived
+        pd_obs = simple_default_rate_model(income, age, macro_regime=1.0, rng=rng)
+        default_flag = int(rng.binomial(1, p=pd_obs))
+        pd_obs = round(pd_obs, 4)
 
         # facility
         principal = random.randint(3, 60) * 100000

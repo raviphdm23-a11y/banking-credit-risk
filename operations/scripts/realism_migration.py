@@ -28,7 +28,10 @@ from datetime import datetime
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.insert(0, PROJECT_ROOT)
 
-from ml_models.risk_formula import true_pd_nonlinear, sample_correlated_features, add_measurement_noise, calibrate_pd_threshold_per_bank
+from ml_models.risk_formula import (
+    true_pd_nonlinear, simple_default_rate_model, sample_correlated_features, add_measurement_noise,
+    calibrate_pd_threshold_per_bank
+)
 
 DB_PATH = os.path.join(PROJECT_ROOT, 'bank.db')
 BACKUP_PATH = os.path.join(PROJECT_ROOT, 'bank.db.bak-before-realism')
@@ -160,22 +163,21 @@ def migrate_realism(conn):
     conn.commit()
     print(f"[OK] Resampled {len(metrics_rows)} credit risk metrics with noise")
 
-    # ── Step 4: Recompute PD and re-derive default_flag ────────────────
-    print("\n[4/8] Recomputing PD and probabilistic defaults per bank...")
+    # ── Step 4: Assign defaults INDEPENDENTLY from features ────────────────
+    print("\n[4/8] Assigning probabilistic defaults (independent of features)...")
+    print("      [KEY CHANGE] Using simple income/age/macro model (NOT feature-derived)")
 
     for bank_id in banks:
         print(f"\n  {bank_id}:")
 
-        # Get all loans for this bank with their current financial metrics
+        # Get all loans for this bank with customer demographics
         cursor.execute("""
             SELECT
                 l.id as lid,
                 l.cid,
-                crm.de, crm.intcov, crm.profit, crm.liq,
-                k.cibil_score,
-                COALESCE(k.foir_declared, 0.4) as foir
+                k.age,
+                k.annual_income
             FROM loans l
-            JOIN credit_risk_metrics crm ON l.id = crm.lid
             JOIN customer_kyc k ON l.cid = k.cid
             WHERE l.bank_id = ?
         """, (bank_id,))
@@ -184,9 +186,11 @@ def migrate_realism(conn):
         pd_scores = []
         updates_default = []
 
-        for lid, cid, de, intcov, profit, liq, cibil, foir in loan_rows:
-            # Compute PD using continuous formula (no macro regime for now, assume stable)
-            pd = true_pd_nonlinear(de, intcov, profit, liq, cibil, foir, regime_multiplier=1.0)
+        for lid, cid, age, annual_income in loan_rows:
+            # Use SIMPLE default model (income, age, macro only) - NOT derived from features
+            # This breaks the feature→default determinism that caused AUC=1.0
+            macro_regime = 1.0  # assume stable (could vary by period)
+            pd = simple_default_rate_model(annual_income or 500000, age or 35, macro_regime, rng)
             pd_scores.append(pd)
 
             # Sample default probabilistically: binomial(1, p=pd)

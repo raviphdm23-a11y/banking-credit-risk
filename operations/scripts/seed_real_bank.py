@@ -42,7 +42,7 @@ sys.stdout.reconfigure(encoding='utf-8')
 
 # Import shared risk formula (same formula for all seeding)
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
-from ml_models.risk_formula import true_pd_nonlinear, sample_correlated_features, add_measurement_noise
+from ml_models.risk_formula import true_pd_nonlinear, simple_default_rate_model, sample_correlated_features, add_measurement_noise
 
 REPO = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 DB   = os.path.join(REPO, 'bank.db')
@@ -404,11 +404,12 @@ def seed(profile: dict, scale: dict, n_loan: int, n_dep_only: int,
             late = 0
             prev_def = 0
 
-        # Compute PD using shared non-linear formula (stable regime, no macro multiplier)
-        pd_score = true_pd_nonlinear(de, ic, profit, liq, cibil, foir, regime_multiplier=1.0)
+        # CHANGED: Use simple default model (income/age/macro only) NOT feature-derived
+        # This breaks the feature→default determinism that caused AUC=1.0
+        # Features are still realistic (continuous, correlated, noisy) but defaults are independent
+        pd_score = simple_default_rate_model(income, age, macro_regime=1.0, rng=rng)
 
         # Sample default probabilistically (Bernoulli trial with PD as probability)
-        # This replaces the old deterministic "is_npa → df=1" logic
         df = int(rng.binomial(1, p=pd_score))
         pd_obs = round(pd_score, 4)
 
