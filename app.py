@@ -1529,6 +1529,42 @@ def ops_get_customer(cid):
                     'transactions': transactions, 'risk': risk_metrics})
 
 
+# ── Bulk accounts/loans/risk (no transactions, no per-customer loop) ───────────
+# Powers the consolidated dashboard: KPIs and charts need every account/loan/risk
+# row, but NOT per-customer transaction joins. Fetching this in 3 flat queries
+# replaces the old pattern of firing one /customers/<cid> request per customer
+# (1,500+ round trips, each re-joining transactions) just to build aggregates.
+@app.route('/operations/api/bulk-summary')
+def ops_bulk_summary():
+    with _ops_conn() as conn:
+        accounts = _rows_to_list(conn.execute('SELECT * FROM accounts').fetchall())
+        loans    = _rows_to_list(conn.execute('SELECT * FROM loans').fetchall())
+        risk     = _rows_to_list(conn.execute('SELECT * FROM credit_risk_metrics').fetchall())
+    return jsonify({'accounts': accounts, 'loans': loans, 'risk': risk})
+
+
+# ── Lazy per-customer detail (full profile fields + that customer's transactions) ──
+# Called only when a specific customer is opened in the sidebar, not at page load.
+# Accounts/loans/risk are already in memory (bulk-summary), so this only needs to
+# return the full customer row plus the transaction history for their accounts.
+@app.route('/operations/api/customers/<cid>/detail')
+def ops_customer_detail(cid):
+    with _ops_conn() as conn:
+        c = _row_to_dict(conn.execute(
+            'SELECT * FROM customers WHERE id=?', (cid,)).fetchone())
+        if c is None:
+            return jsonify({'error': 'Customer not found'}), 404
+        acc_ids = [r['id'] for r in conn.execute(
+            'SELECT id FROM accounts WHERE cid=?', (cid,)).fetchall()]
+        transactions = []
+        if acc_ids:
+            placeholders = ','.join('?' * len(acc_ids))
+            transactions = _rows_to_list(conn.execute(
+                f'SELECT * FROM transactions WHERE aid IN ({placeholders})'
+                ' ORDER BY date DESC, time DESC', acc_ids).fetchall())
+    return jsonify({'customer': c, 'transactions': transactions})
+
+
 # ── Customer lookup for the Credit Risk data-collection page ───────────────────
 # Given a customer id typed into the calculator, see if the person already banks
 # with ANY group bank. If so, return their KYC mapped onto the calculator's input

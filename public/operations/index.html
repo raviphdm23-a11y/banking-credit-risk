@@ -1200,40 +1200,45 @@ body{
 // this page stays in sync with bank.db (same data the multi-bank view uses).
 let DB = { customers:[], accounts:[], loans:[], transactions:[], risk:[], banks:[] };
 
+// Per-customer detail (full profile fields + that customer's own transactions) is
+// fetched lazily on click (see selectCustomer), not for all 1,547 customers up
+// front. Cache results so re-opening the same customer doesn't re-fetch.
+const customerDetailCache = {};
+
 async function loadLiveData(){
-  const [list, banks, txnSummary] = await Promise.all([
+  // OPTIMIZATION: 4 flat requests total, no per-customer loop.
+  //  - customers: lightweight list (id/first/last/city/bank_id/health) - enough
+  //    for the correct count and the sidebar.
+  //  - bulk-summary: every account/loan/risk row in 3 SQL queries (small: ~1.2K-1.4K
+  //    rows each) - enough for all consolidated-dashboard KPIs/charts.
+  //  - transactions-summary: pre-computed aggregates, not the 81K raw rows.
+  // Full per-customer detail (extra profile fields + that customer's own
+  // transactions) is fetched on demand only when the customer is opened.
+  const [list, banks, txnSummary, bulk] = await Promise.all([
     fetch('/operations/api/customers').then(r=>r.json()),
     fetch('/operations/api/banks').then(r=>r.json()).catch(()=>[]),
-    fetch('/operations/api/transactions-summary').then(r=>r.json()).catch(()=>({totalCount:0, totalVolume:0, txnByHour:[], txnByType:{}, txnByDate:{}, recentTxns:[]}))
+    fetch('/operations/api/transactions-summary').then(r=>r.json()).catch(()=>({totalCount:0, totalVolume:0, txnByHour:[], txnByType:{}, txnByDate:{}, recentTxns:[]})),
+    fetch('/operations/api/bulk-summary').then(r=>r.json()).catch(()=>({accounts:[], loans:[], risk:[]}))
   ]);
-  // OPTIMIZATION: Seed DB.customers with the FULL list immediately (correct count,
-  // works for sidebar) instead of relying only on the fragile per-customer detail
-  // fetch below. Browsers cap concurrent connections per host (~6), so firing
-  // 1500+ parallel detail requests silently drops many (caught -> null) and the
-  // count/side-effects (accounts, loans) undercount. Batch the detail fetches
-  // instead of firing them all at once, and merge full data back in as it arrives.
-  DB = { customers:[...list], accounts:[], loans:[], transactions:[], risk:[], banks: banks||[], txnSummary: txnSummary };
-  DB.transactions = txnSummary.recentTxns || [];
+  (bulk.risk||[]).forEach(r=>{ if(r.pd==null && r.pd_score!=null) r.pd = r.pd_score; });
+  DB = {
+    customers: list, accounts: bulk.accounts||[], loans: bulk.loans||[],
+    risk: bulk.risk||[], banks: banks||[], txnSummary: txnSummary,
+    transactions: txnSummary.recentTxns || []
+  };
+}
 
-  const BATCH_SIZE = 25;
-  const fullCustomers = new Map();
-  for (let i = 0; i < list.length; i += BATCH_SIZE) {
-    const batch = list.slice(i, i + BATCH_SIZE);
-    const details = await Promise.all(
-      batch.map(c => fetch('/operations/api/customers/' + c.id).then(r=>r.json()).catch(()=>null))
-    );
-    details.forEach(d=>{
-      if(!d || !d.customer) return;
-      fullCustomers.set(d.customer.id, d.customer);
-      (d.accounts||[]).forEach(a=>DB.accounts.push(a));
-      (d.loans||[]).forEach(l=>DB.loans.push(l));
-      (d.risk||[]).forEach(r=>{ if(r.pd==null && r.pd_score!=null) r.pd = r.pd_score; DB.risk.push(r); });
-    });
-  }
-  // Replace the lightweight list entries with full customer detail where we got it;
-  // keep the lightweight entry (still has id/first/last/city) for any that failed,
-  // so the count and sidebar remain complete either way.
-  DB.customers = DB.customers.map(c => fullCustomers.get(c.id) || c);
+// Fetch (and cache) the full profile + transaction history for one customer.
+// Returns the cached/fetched detail; also merges the full customer record into
+// DB.customers so subsequent renders (e.g. re-selecting) have all fields.
+async function ensureCustomerDetail(id){
+  if (customerDetailCache[id]) return customerDetailCache[id];
+  const d = await fetch('/operations/api/customers/' + id + '/detail').then(r=>r.json()).catch(()=>null);
+  if (!d || !d.customer) return null;
+  customerDetailCache[id] = d;
+  const idx = DB.customers.findIndex(c=>c.id===id);
+  if (idx >= 0) DB.customers[idx] = d.customer;
+  return d;
 }
 
 // ── UTILS ─────────────────────────────────────────────────────────────────────
@@ -1308,27 +1313,35 @@ function buildSidebar(){
 }
 
 // ── SELECT ────────────────────────────────────────────────────────────────────
-function selectCustomer(id){
+async function selectCustomer(id){
   document.querySelectorAll('.cust-card').forEach(el=>el.classList.remove('active'));
   document.getElementById('cc-'+id).classList.add('active');
   document.getElementById('dashNav').classList.remove('active');
 
-  const c = DB.customers.find(x=>x.id===id);
   const h = creditHealth(id);
-  document.getElementById('topTitle').textContent = `${c.first} ${c.last}`;
+  const listEntry = DB.customers.find(x=>x.id===id);
+  document.getElementById('topTitle').textContent = `${listEntry.first} ${listEntry.last}`;
   const pillEl = document.getElementById('topPill');
   pillEl.innerHTML = `<span class="topbar-pill h-badge ${h}" style="font-size:10px">${healthLabel[h]}</span>`;
 
   const content = document.getElementById('mainContent');
   content.style.opacity='0';
   content.style.transform='translateY(6px)';
+  content.innerHTML = '<div class="empty">Loading customer…</div>';
+
+  // Lazy-fetch full profile fields + this customer's transactions on demand,
+  // instead of every customer's transactions being loaded up front.
+  const detail = await ensureCustomerDetail(id);
+  if (!detail) { content.innerHTML = '<div class="empty">Failed to load customer</div>'; return; }
+  const c = detail.customer;
+  const txns = detail.transactions || [];
 
   setTimeout(()=>{
     content.innerHTML='';
     content.appendChild(buildProfile(c,h));
     content.appendChild(buildAccounts(id));
     content.appendChild(buildLoans(id));
-    content.appendChild(buildTransactions(id));
+    content.appendChild(buildTransactions(id, txns));
     content.appendChild(buildRiskMetrics(id));
     content.style.transition='opacity 0.25s ease,transform 0.25s ease';
     content.style.opacity='1';
@@ -1461,9 +1474,10 @@ function buildLoans(cid){
 }
 
 // ── TRANSACTIONS ──────────────────────────────────────────────────────────────
-function buildTransactions(cid){
-  const accIds = DB.accounts.filter(a=>a.cid===cid).map(a=>a.id);
-  const txns = DB.transactions.filter(t=>accIds.includes(t.aid)).sort((a,b)=>new Date(b.date)-new Date(a.date));
+// txnList: this customer's own transactions, lazy-fetched by selectCustomer
+// (DB.transactions is a global sample now, not per-customer - see loadLiveData).
+function buildTransactions(cid, txnList){
+  const txns = [...(txnList||[])].sort((a,b)=>new Date(b.date)-new Date(a.date));
   const wrap = document.createElement('div');
   if(!txns.length){
     wrap.innerHTML=`<div class="sl">Transactions</div><div class="empty">No transactions found</div>`;
