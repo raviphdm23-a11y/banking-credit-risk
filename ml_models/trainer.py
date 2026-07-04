@@ -336,36 +336,83 @@ def validate_file(filepath):
 def load_from_enriched_transactions():
     """
     Load transaction-level enriched data from transactions table.
+    Renames columns to match expected FEATURE_COLS schema.
     Returns DataFrame with all enriched ML features.
     """
     try:
         conn = sqlite3.connect(DB_PATH)
         query = """
             SELECT
-                id as loan_id, cust_age, cust_annual_income, cust_cibil_score,
-                loan_de_ratio, loan_interest_coverage, loan_profitability, loan_liquidity_ratio,
-                loan_pd_score, loan_classification,
-                macro_gdp_growth_pct, macro_inflation_cpi_pct, macro_policy_rate_pct,
-                macro_unemployment_pct,
-                delta_de_ratio, delta_cibil, delta_gdp_pct, macro_regime_score,
-                months_since_origination,
-                employment_type_enc, city_tier_enc, education_enc, residence_type_enc,
-                loan_purpose_enc, loan_classification_enc,
-                default_flag
-            FROM transactions
-            WHERE default_flag IS NOT NULL
-                AND cust_age IS NOT NULL
-                AND cust_annual_income IS NOT NULL
+                t.id as loan_id, t.bank_id,
+                t.cust_age, t.cust_annual_income, t.cust_cibil_score, t.cust_is_rural,
+                t.cust_years_employed, t.cust_foir_declared, t.cust_num_dependents,
+                k.months_as_customer, k.num_late_payments_past_12m,
+                k.num_existing_products,
+                t.loan_de_ratio, t.loan_interest_coverage, t.loan_profitability, t.loan_liquidity_ratio,
+                t.loan_pd_score, t.loan_classification,
+                t.macro_gdp_growth_pct, t.macro_inflation_cpi_pct, t.macro_policy_rate_pct,
+                t.macro_unemployment_pct,
+                t.delta_de_ratio, t.delta_cibil, t.delta_gdp_pct, t.macro_regime_score,
+                t.months_since_origination,
+                t.employment_type_enc, t.city_tier_enc, t.education_enc, t.residence_type_enc,
+                t.loan_purpose_enc, t.loan_classification_enc,
+                t.default_flag,
+                t.date as observation_date,
+                t.delta_cpi_pct, t.delta_policy_rate_pct, t.delta_unemployment_pct
+            FROM transactions t
+            LEFT JOIN customer_kyc k ON (SELECT cid FROM accounts WHERE id = t.aid) = k.cid
+            WHERE t.default_flag IS NOT NULL
+                AND t.cust_age IS NOT NULL
+                AND t.cust_annual_income IS NOT NULL
+                AND t.loan_de_ratio IS NOT NULL
+                AND t.loan_interest_coverage IS NOT NULL
+                AND t.loan_classification IS NOT NULL
         """
         df = pd.read_sql(query, con=conn)
         conn.close()
 
         if df is None or len(df) == 0:
+            print("[TRAIN] No enriched transactions found")
             return None
+
+        print(f"[TRAIN] Loaded {len(df)} enriched transactions")
+
+        # Rename columns to match FEATURE_COLS schema
+        df = df.rename(columns={
+            'cust_age': 'age',
+            'cust_annual_income': 'annual_income',
+            'cust_cibil_score': 'cibil_score',
+            'cust_years_employed': 'years_employed',
+            'cust_foir_declared': 'foir',
+            'cust_num_dependents': 'num_dependents',
+            'cust_months_as_customer': 'months_as_customer',
+            'cust_is_rural': 'is_rural',
+            'cust_num_existing_products': 'num_existing_products',
+            'loan_de_ratio': 'de_ratio',
+            'loan_interest_coverage': 'interest_coverage',
+            'loan_profitability': 'profitability',
+            'loan_liquidity_ratio': 'liquidity_ratio',
+            'loan_classification': 'loan_classification',
+            'macro_gdp_growth_pct': 'gdp_growth_pct',
+            'macro_inflation_cpi_pct': 'inflation_cpi_pct',
+            'macro_policy_rate_pct': 'policy_rate_pct',
+            'macro_unemployment_pct': 'unemployment_pct',
+            'macro_regime_score': 'macro_regime_score',
+        })
+
+        # Add missing columns with defaults if they don't exist
+        if 'previous_default_flag' not in df.columns:
+            df['previous_default_flag'] = 0
+        if 'existing_loans_count' not in df.columns:
+            df['existing_loans_count'] = 1
+        if 'is_rural' not in df.columns:
+            df['is_rural'] = 0
 
         return df
     except Exception as e:
         print(f"Error loading enriched transactions: {e}")
+        import traceback
+        traceback.print_exc()
         return None
 
 
@@ -385,7 +432,10 @@ def load_and_merge(use_transaction_level=False):
     if use_transaction_level:
         txn_df = load_from_enriched_transactions()
         if txn_df is not None:
+            print(f"[TRAIN] Loaded dataframe has columns: {list(txn_df.columns)}")
+            print(f"[TRAIN] Dataframe shape: {txn_df.shape}")
             ok, err = _validate_dataframe(txn_df, 'enriched_transactions')
+            print(f"[TRAIN] Validation result: ok={ok}, err={err}")
             if ok:
                 frames.append(txn_df)
                 files_used.append({
@@ -393,6 +443,7 @@ def load_and_merge(use_transaction_level=False):
                     'rows': len(txn_df)
                 })
             else:
+                print(f"[TRAIN] Validation failed: {err}")
                 files_skip.append({
                     'filename': 'enriched_transactions (bank.db)',
                     'reason': err
