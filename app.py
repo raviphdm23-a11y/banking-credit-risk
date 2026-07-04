@@ -2725,9 +2725,9 @@ def analytics_home():
 def analytics_timeseries():
     """
     Returns all time-series datasets for the performance dashboard.
-    Query params: bank_id (default BANK010)
+    Query params: bank_id (default BANK001 - HDFC Bank)
     """
-    bank_id = request.args.get('bank_id', 'BANK010')
+    bank_id = request.args.get('bank_id', 'BANK001')
     with _ops_conn() as conn:
         # ── Capital adequacy (from regulatory batch) ──────────────────────
         cap_rows = [dict(r) for r in conn.execute(

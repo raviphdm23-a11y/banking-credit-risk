@@ -337,12 +337,12 @@ async function loadBanks() {
     const banks = await resp.json();
     const sel   = document.getElementById('bankPicker');
     sel.innerHTML = banks.map(b =>
-        `<option value="${b.bank_id}" ${b.bank_id==='BANK010'?'selected':''}>${b.bank_name}</option>`
+        `<option value="${b.bank_id}" ${b.bank_id==='BANK001'?'selected':''}>${b.bank_name}</option>`
     ).join('');
 }
 
 async function loadData() {
-    const bankId = document.getElementById('bankPicker').value || 'BANK010';
+    const bankId = document.getElementById('bankPicker').value || 'BANK001';
     document.getElementById('errorBanner').style.display = 'none';
     try {
         const resp = await fetch(`/analytics/api/timeseries?bank_id=${bankId}`);
