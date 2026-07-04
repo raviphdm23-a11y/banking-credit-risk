@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Customer Data Export — Banking Intelligence</title>
+    <style>
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg,#0a0e1a 0%,#0d1b2e 50%,#0a1628 100%);
+            min-height:100vh; color:#e2e8f0; padding:20px;
+        }
+
+        .container {
+            max-width:900px; margin:0 auto;
+            background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08);
+            border-radius:14px; padding:32px;
+        }
+
+        .header {
+            display:flex; align-items:center; gap:16px; margin-bottom:28px;
+        }
+
+        .logo-mark {
+            width:48px; height:48px; background:linear-gradient(135deg,#f59e0b,#ef4444);
+            border-radius:12px; display:flex; align-items:center; justify-content:center;
+            font-weight:800; font-size:1em; color:white;
+        }
+
+        h1 {
+            font-size:1.8em; font-weight:700; color:white; margin-bottom:8px;
+        }
+
+        .subtitle {
+            font-size:.85em; color:rgba(255,255,255,.5);
+        }
+
+        .section {
+            margin-bottom:28px;
+        }
+
+        .section-title {
+            font-size:.9em; font-weight:700; color:rgba(255,255,255,.6);
+            text-transform:uppercase; letter-spacing:.8px; margin-bottom:14px;
+        }
+
+        .search-box {
+            display:flex; gap:10px; margin-bottom:16px;
+        }
+
+        input[type="text"], select {
+            background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.15);
+            color:white; padding:10px 14px; border-radius:8px; font-size:.85em; flex:1;
+        }
+
+        input[type="text"]::placeholder {
+            color:rgba(255,255,255,.3);
+        }
+
+        input[type="text"]:focus, select:focus {
+            outline:none; border-color:rgba(96,165,250,.6); background:rgba(96,165,250,.08);
+        }
+
+        button {
+            background:rgba(96,165,250,0.85); border:none; color:white;
+            padding:10px 20px; border-radius:8px; font-size:.85em; font-weight:600;
+            cursor:pointer; transition:all .2s;
+        }
+
+        button:hover {
+            background:rgba(96,165,250,1); transform:translateY(-1px);
+        }
+
+        button.secondary {
+            background:rgba(255,255,255,0.1); border:1px solid rgba(255,255,255,.15);
+        }
+
+        button.secondary:hover {
+            background:rgba(255,255,255,0.15); border-color:rgba(255,255,255,.3);
+        }
+
+        button:disabled {
+            opacity:.5; cursor:not-allowed;
+        }
+
+        .customer-list {
+            background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.08);
+            border-radius:10px; max-height:400px; overflow-y:auto;
+        }
+
+        .customer-item {
+            padding:12px 16px; border-bottom:1px solid rgba(255,255,255,0.04);
+            cursor:pointer; transition:all .15s;
+            display:flex; justify-content:space-between; align-items:center;
+        }
+
+        .customer-item:hover {
+            background:rgba(96,165,250,0.08);
+        }
+
+        .customer-item.selected {
+            background:rgba(96,165,250,0.15); border-left:3px solid rgba(96,165,250,0.8);
+            padding-left:13px;
+        }
+
+        .customer-info {
+            flex:1;
+        }
+
+        .customer-name {
+            font-weight:600; color:white; font-size:.88em; margin-bottom:3px;
+        }
+
+        .customer-meta {
+            font-size:.75em; color:rgba(255,255,255,.4);
+        }
+
+        .data-preview {
+            background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.08);
+            border-radius:10px; padding:16px; margin-bottom:16px; display:none;
+        }
+
+        .data-preview.active {
+            display:block;
+        }
+
+        .preview-grid {
+            display:grid; grid-template-columns:repeat(2,1fr); gap:16px; margin-bottom:16px;
+        }
+
+        .preview-card {
+            background:rgba(255,255,255,0.03); padding:12px; border-radius:6px;
+            border-left:3px solid rgba(96,165,250,0.5);
+        }
+
+        .preview-label {
+            font-size:.75em; color:rgba(255,255,255,.45); text-transform:uppercase;
+            letter-spacing:.5px; margin-bottom:4px;
+        }
+
+        .preview-value {
+            font-size:.95em; color:white; font-weight:500;
+        }
+
+        .export-actions {
+            display:flex; gap:10px; margin-bottom:24px;
+        }
+
+        .loading {
+            display:none; font-size:.85em; color:rgba(255,255,255,.5);
+        }
+
+        .loading.active {
+            display:inline;
+        }
+
+        .spinner {
+            display:inline-block; width:12px; height:12px; border:2px solid rgba(96,165,250,.3);
+            border-top:2px solid rgba(96,165,250,1); border-radius:50%;
+            animation:spin .6s linear infinite; margin-right:6px; vertical-align:middle;
+        }
+
+        @keyframes spin {
+            to { transform:rotate(360deg); }
+        }
+
+        .message {
+            padding:12px 16px; border-radius:8px; font-size:.85em; margin-bottom:16px; display:none;
+        }
+
+        .message.active {
+            display:block;
+        }
+
+        .message.success {
+            background:rgba(16,185,129,.12); border:1px solid rgba(16,185,129,.25); color:#86efac;
+        }
+
+        .message.error {
+            background:rgba(239,68,68,.12); border:1px solid rgba(239,68,68,.25); color:#fca5a5;
+        }
+
+        .empty-state {
+            padding:40px 20px; text-align:center; color:rgba(255,255,255,.45);
+        }
+
+        .summary-stat {
+            display:inline-block; margin-right:20px; font-size:.85em;
+        }
+
+        .stat-value {
+            font-weight:700; color:white; font-size:1.2em;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header">
+        <div class="logo-mark">📊</div>
+        <div>
+            <h1>Customer Data Export</h1>
+            <div class="subtitle">Extract and download complete customer profile with all transactions</div>
+        </div>
+    </div>
+
+    <!-- Message display -->
+    <div id="message" class="message"></div>
+
+    <!-- Search & Filter Section -->
+    <div class="section">
+        <div class="section-title">Search Customers</div>
+        <div class="search-box">
+            <input type="text" id="searchInput" placeholder="Search by name, email, phone, or customer ID...">
+            <select id="bankFilter">
+                <option value="">All Banks</option>
+            </select>
+            <button onclick="searchCustomers()">Search</button>
+        </div>
+    </div>
+
+    <!-- Customer List -->
+    <div class="section">
+        <div class="section-title">Available Customers <span id="customerCount"></span></div>
+        <div class="customer-list" id="customerList">
+            <div class="empty-state">
+                <p>Click Search to load customers</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Data Preview -->
+    <div id="dataPreview" class="data-preview">
+        <div class="section-title">Customer Data Summary</div>
+        <div class="preview-grid">
+            <div class="preview-card">
+                <div class="preview-label">Customer ID</div>
+                <div class="preview-value" id="prevId">—</div>
+            </div>
+            <div class="preview-card">
+                <div class="preview-label">Full Name</div>
+                <div class="preview-value" id="prevName">—</div>
+            </div>
+            <div class="preview-card">
+                <div class="preview-label">CIBIL Score</div>
+                <div class="preview-value" id="prevCibil">—</div>
+            </div>
+            <div class="preview-card">
+                <div class="preview-label">Annual Income</div>
+                <div class="preview-value" id="prevIncome">—</div>
+            </div>
+            <div class="preview-card">
+                <div class="preview-label">Status</div>
+                <div class="preview-value" id="prevStatus">—</div>
+            </div>
+            <div class="preview-card">
+                <div class="preview-label">Months as Customer</div>
+                <div class="preview-value" id="prevMonths">—</div>
+            </div>
+        </div>
+
+        <div style="margin-bottom:16px; padding:12px; background:rgba(255,255,255,0.02); border-radius:6px;">
+            <div style="font-size:.85em; color:rgba(255,255,255,.6); margin-bottom:8px;">
+                <strong>Available Data:</strong>
+            </div>
+            <div>
+                <span class="summary-stat">
+                    Accounts: <span class="stat-value" id="statAccounts">0</span>
+                </span>
+                <span class="summary-stat">
+                    Loans: <span class="stat-value" id="statLoans">0</span>
+                </span>
+                <span class="summary-stat">
+                    Transactions: <span class="stat-value" id="statTransactions">0</span>
+                </span>
+            </div>
+        </div>
+
+        <div class="export-actions">
+            <button onclick="downloadJSON()">📥 Download JSON</button>
+            <button class="secondary" onclick="downloadCSV()">📊 Download CSV (Summary)</button>
+            <button class="secondary" onclick="copyToClipboard()">📋 Copy to Clipboard</button>
+            <div class="loading" id="exportLoading">
+                <span class="spinner"></span>Preparing export...
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let currentCustomer = null;
+let allCustomers = [];
+
+// Load banks on page load
+async function loadBanks() {
+    try {
+        const resp = await fetch('/analytics/api/banks');
+        const banks = await resp.json();
+        const select = document.getElementById('bankFilter');
+        banks.forEach(b => {
+            const opt = document.createElement('option');
+            opt.value = b.bank_id;
+            opt.textContent = b.bank_name;
+            select.appendChild(opt);
+        });
+    } catch(e) {
+        console.error('Failed to load banks:', e);
+    }
+}
+
+async function searchCustomers() {
+    const query = document.getElementById('searchInput').value.trim();
+    const bankFilter = document.getElementById('bankFilter').value;
+
+    if (!query && !bankFilter) {
+        showMessage('Enter search term or select bank', 'error');
+        return;
+    }
+
+    showLoading(true);
+    try {
+        // Use operations API to search customers
+        const resp = await fetch('/operations/api/customers');
+        const customers = await resp.json();
+
+        let filtered = customers;
+        if (bankFilter) {
+            filtered = filtered.filter(c => c.bank_id === bankFilter);
+        }
+        if (query) {
+            const q = query.toLowerCase();
+            filtered = filtered.filter(c => {
+                const full = `${c.first || ''} ${c.last || ''} ${c.email || ''} ${c.phone || ''} ${c.id || ''}`.toLowerCase();
+                return full.includes(q);
+            });
+        }
+
+        allCustomers = filtered;
+        displayCustomers(filtered);
+        document.getElementById('customerCount').textContent = `(${filtered.length})`;
+    } catch(e) {
+        showMessage('Failed to search customers: ' + e.message, 'error');
+    } finally {
+        showLoading(false);
+    }
+}
+
+function displayCustomers(customers) {
+    const list = document.getElementById('customerList');
+    if (customers.length === 0) {
+        list.innerHTML = '<div class="empty-state">No customers found</div>';
+        return;
+    }
+
+    list.innerHTML = customers.map(c => `
+        <div class="customer-item" onclick="selectCustomer('${c.id}')">
+            <div class="customer-info">
+                <div class="customer-name">${c.first} ${c.last}</div>
+                <div class="customer-meta">
+                    ID: ${c.id} · ${c.email} · Joined: ${c.joined}
+                </div>
+            </div>
+            <div style="color:rgba(255,255,255,.3); font-size:.75em;">
+                ${c.status}
+            </div>
+        </div>
+    `).join('');
+}
+
+async function selectCustomer(cid) {
+    showLoading(true);
+    try {
+        const resp = await fetch(`/api/customer-export/${cid}`);
+        if (!resp.ok) throw new Error('Customer not found');
+
+        currentCustomer = await resp.json();
+        updatePreview();
+        document.getElementById('dataPreview').classList.add('active');
+
+        // Highlight selected row
+        document.querySelectorAll('.customer-item').forEach(el => {
+            el.classList.remove('selected');
+        });
+        event.target.closest('.customer-item')?.classList.add('selected');
+
+        showMessage(`Loaded ${cid}`, 'success');
+    } catch(e) {
+        showMessage('Failed to load customer data: ' + e.message, 'error');
+    } finally {
+        showLoading(false);
+    }
+}
+
+function updatePreview() {
+    if (!currentCustomer) return;
+
+    const c = currentCustomer.customer;
+    const k = currentCustomer.kyc;
+    const a = currentCustomer.accounts || [];
+    const l = currentCustomer.loans || [];
+    const t = currentCustomer.transactions || {};
+
+    document.getElementById('prevId').textContent = c.id;
+    document.getElementById('prevName').textContent = c.name;
+    document.getElementById('prevCibil').textContent = k.cibil_score || '—';
+    document.getElementById('prevIncome').textContent = k.annual_income ?
+        `₹${(k.annual_income/1e5).toFixed(1)} Lakh` : '—';
+    document.getElementById('prevStatus').textContent = c.status;
+    document.getElementById('prevMonths').textContent = k.months_as_customer || '—';
+
+    document.getElementById('statAccounts').textContent = a.length;
+    document.getElementById('statLoans').textContent = l.length;
+    document.getElementById('statTransactions').textContent = t.total_count || 0;
+}
+
+function downloadJSON() {
+    if (!currentCustomer) return;
+
+    const dataStr = JSON.stringify(currentCustomer, null, 2);
+    const blob = new Blob([dataStr], {type: 'application/json'});
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `customer_${currentCustomer.customer.id}_${new Date().toISOString().split('T')[0]}.json`;
+    link.click();
+    URL.revokeObjectURL(url);
+
+    showMessage('JSON downloaded successfully', 'success');
+}
+
+function downloadCSV() {
+    if (!currentCustomer) return;
+
+    const c = currentCustomer.customer;
+    const k = currentCustomer.kyc;
+    const t = currentCustomer.transactions.data || [];
+
+    // Customer summary
+    let csv = 'Customer Data Export\n';
+    csv += `Export Date,${currentCustomer.export_date}\n\n`;
+
+    csv += 'CUSTOMER INFO\n';
+    csv += 'ID,Name,DOB,Email,Phone,City,Status,Joined\n';
+    csv += `"${c.id}","${c.name}","${c.dob}","${c.email}","${c.phone}","${c.city}","${c.status}","${c.joined_date}"\n\n`;
+
+    csv += 'KYC DATA\n';
+    csv += 'Age,Annual Income,CIBIL Score,Employment,Years Employed,Months as Customer\n';
+    csv += `${k.age},"₹${k.annual_income}",${k.cibil_score},"${k.employment_type}",${k.years_employed},${k.months_as_customer}\n\n`;
+
+    csv += 'TRANSACTIONS\n';
+    csv += 'Date,Time,Type,Amount,Description,Account ID\n';
+    t.forEach(tx => {
+        csv += `"${tx.date}","${tx.time}","${tx.type}","${tx.amount}","${tx.desc}","${tx.aid}"\n`;
+    });
+
+    const blob = new Blob([csv], {type: 'text/csv'});
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `customer_${c.id}_summary_${new Date().toISOString().split('T')[0]}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+
+    showMessage('CSV downloaded successfully', 'success');
+}
+
+function copyToClipboard() {
+    if (!currentCustomer) return;
+    const text = JSON.stringify(currentCustomer, null, 2);
+    navigator.clipboard.writeText(text).then(() => {
+        showMessage('Data copied to clipboard', 'success');
+    }).catch(err => {
+        showMessage('Failed to copy: ' + err.message, 'error');
+    });
+}
+
+function showMessage(msg, type) {
+    const el = document.getElementById('message');
+    el.textContent = msg;
+    el.className = `message active ${type}`;
+    setTimeout(() => {
+        el.classList.remove('active');
+    }, 4000);
+}
+
+function showLoading(show) {
+    document.getElementById('exportLoading').classList.toggle('active', show);
+}
+
+// Initialize
+document.addEventListener('DOMContentLoaded', loadBanks);
+</script>
+
+</body>
+</html>

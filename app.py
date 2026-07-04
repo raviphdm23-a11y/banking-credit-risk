@@ -1547,6 +1547,107 @@ def api_customer_lookup(cid):
     })
 
 
+@app.route('/api/customer-export/<cid>')
+def api_customer_export(cid):
+    """Export comprehensive customer data including transactions in JSON format."""
+    cid = (cid or '').strip()
+    with _ops_conn() as conn:
+        # Get basic customer info
+        cust = _row_to_dict(conn.execute(
+            'SELECT * FROM customers WHERE id=?', (cid,)).fetchone())
+        if not cust:
+            return jsonify({'error': 'Customer not found'}), 404
+
+        # KYC data
+        kyc = _row_to_dict(conn.execute(
+            'SELECT * FROM customer_kyc WHERE cid=?', (cid,)).fetchone()) or {}
+
+        # Credit risk metrics (from first loan if any)
+        metrics = {}
+        loan_for_metrics = conn.execute(
+            'SELECT id FROM loans WHERE cid=? LIMIT 1', (cid,)).fetchone()
+        if loan_for_metrics:
+            metrics = _row_to_dict(conn.execute(
+                'SELECT * FROM credit_risk_metrics WHERE lid=?', (loan_for_metrics[0],)).fetchone()) or {}
+
+        # Accounts
+        accounts = _rows_to_list(conn.execute(
+            'SELECT * FROM accounts WHERE cid=?', (cid,)).fetchall())
+
+        # Loans
+        loans = _rows_to_list(conn.execute(
+            'SELECT * FROM loans WHERE cid=?', (cid,)).fetchall())
+
+        # Transactions (all of them)
+        acc_ids = [a['id'] for a in accounts]
+        transactions = []
+        if acc_ids:
+            ph = ','.join('?' * len(acc_ids))
+            transactions = _rows_to_list(conn.execute(
+                f'SELECT * FROM transactions WHERE aid IN ({ph}) ORDER BY date DESC, time DESC',
+                acc_ids).fetchall())
+
+    # Build comprehensive export data
+    from datetime import datetime as _datetime
+    export_data = {
+        'export_date': _datetime.utcnow().isoformat(),
+        'customer': {
+            'id': cust.get('id'),
+            'name': f"{cust.get('first', '')} {cust.get('last', '')}".strip(),
+            'dob': cust.get('dob'),
+            'gender': cust.get('gender'),
+            'email': cust.get('email'),
+            'phone': cust.get('phone'),
+            'address': cust.get('address'),
+            'city': cust.get('city'),
+            'state': cust.get('state'),
+            'pincode': cust.get('pincode'),
+            'joined_date': cust.get('joined'),
+            'status': cust.get('status'),
+            'bank_id': cust.get('bank_id'),
+        },
+        'kyc': {
+            'age': kyc.get('age'),
+            'annual_income': kyc.get('annual_income'),
+            'foir_declared': kyc.get('foir_declared'),
+            'cibil_score': kyc.get('cibil_score'),
+            'years_employed': kyc.get('years_employed'),
+            'num_dependents': kyc.get('num_dependents'),
+            'months_as_customer': kyc.get('months_as_customer'),
+            'late_payments_past_12m': kyc.get('num_late_payments_past_12m'),
+            'existing_loans_count': kyc.get('existing_loans_count'),
+            'num_existing_products': kyc.get('num_existing_products'),
+            'employment_type': kyc.get('employment_type'),
+            'education_level': kyc.get('education_level'),
+            'city_tier': kyc.get('city_tier'),
+            'residence_type': kyc.get('residence_type'),
+            'loan_purpose': kyc.get('loan_purpose'),
+            'previous_default_flag': kyc.get('previous_default_flag'),
+            'is_rural': kyc.get('is_rural'),
+            'is_pep': kyc.get('is_pep'),
+            'kyc_status': kyc.get('kyc_status'),
+        },
+        'credit_metrics': {
+            'de_ratio': metrics.get('de_ratio'),
+            'interest_coverage': metrics.get('interest_coverage'),
+            'profitability': metrics.get('profitability'),
+            'liquidity_ratio': metrics.get('liquidity_ratio'),
+            'sector': metrics.get('sector'),
+            'country_code': metrics.get('country_code'),
+        },
+        'accounts': accounts,
+        'loans': loans,
+        'transactions': {
+            'total_count': len(transactions),
+            'period_from': min((t.get('date') for t in transactions if t.get('date')), default=None),
+            'period_to': max((t.get('date') for t in transactions if t.get('date')), default=None),
+            'data': transactions,
+        },
+    }
+
+    return jsonify(export_data)
+
+
 @app.route('/operations/api/system-dashboard')
 def ops_system_dashboard():
     with _ops_conn() as conn:
