@@ -739,8 +739,22 @@ def run_training(triggered_by='manual', use_transaction_level=True):
         record['total_rows']    = len(merged)
 
         # Split
-        X = merged[FEATURE_COLS]
-        y = merged[TARGET_COL]
+        # Check for missing columns
+        missing_cols = [col for col in FEATURE_COLS if col not in merged.columns]
+        if missing_cols:
+            available_cols = list(merged.columns)
+            raise ValueError(f'[TRAIN] Missing columns: {missing_cols}. Available: {available_cols[:10]}...')
+
+        X = merged[FEATURE_COLS].copy()
+        y = merged[TARGET_COL].copy()
+
+        # Convert all columns to numeric, drop non-numeric
+        numeric_X = X.select_dtypes(include=['number'])
+        if len(numeric_X.columns) < len(X.columns):
+            dropped = set(X.columns) - set(numeric_X.columns)
+            print(f"[TRAIN] Dropped non-numeric columns: {dropped}")
+            X = numeric_X
+
         X_train, X_test, y_train, y_test = train_test_split(
             X, y, test_size=test_size,
             random_state=hp['model'].get('random_state', 42)
