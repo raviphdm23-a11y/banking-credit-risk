@@ -145,26 +145,40 @@ def run_smoke_tests(base_url='http://127.0.0.1:5000'):
             assert btn.is_enabled(), 'Calculate button still disabled after completion'
         step('TC-04: ML PD calculation completes', tc04)
 
-        # ── TC-05: Loan records to portfolio ────────────────────────────────
+        # ── TC-05: Refer to Relationship Manager creates an RM case ─────────
+        # Single origination channel (see CLAUDE.md): borrower-info.html's
+        # "Refer to Relationship Manager ->" button (#sendToRmBtn) POSTs to
+        # /relationship/api/cases and opens the case in a new tab on success.
+        # There is no separate "Confirm & Record to portfolio" step/table
+        # anymore - that flow was replaced by the RM case workflow.
         def tc05():
-            confirm_btn = driver.find_element(
-                By.XPATH, "//button[contains(text(),'Confirm') and contains(text(),'Record')]")
-            driver.execute_script('arguments[0].scrollIntoView(true)', confirm_btn)
+            handles_before = driver.window_handles
+            # sendToRmBtn is only rendered once the async /api/generate-report
+            # call (kicked off after PD calc) finishes - give it its own wait
+            # rather than assuming it's present right after TC-04.
+            send_btn = wait.until(EC.presence_of_element_located((By.ID, 'sendToRmBtn')))
+            driver.execute_script('arguments[0].scrollIntoView(true)', send_btn)
             time.sleep(0.5)
-            confirm_btn.click()
-            time.sleep(1.5)
-            wait.until(EC.presence_of_element_located((By.ID, 'portfolioSection')))
-            rows = driver.find_elements(By.CSS_SELECTOR, '#loansTableBody tr')
-            assert len(rows) >= 1, f'Expected at least 1 portfolio row, found {len(rows)}'
-        step('TC-05: Loan records to portfolio', tc05)
+            send_btn.click()
+            # Button goes: 'Refer to Relationship Manager ->' -> 'Sending...'
+            # -> '(check) Sent - opening RM...' once the POST resolves. Wait
+            # past the transient 'Sending...' state, not just past the original.
+            wait.until(lambda d: send_btn.text.strip() not in
+                       ('Refer to Relationship Manager →', 'Sending…', ''))
+            btn_text = send_btn.text.strip()
+            assert 'Sent' in btn_text, \
+                f'Send-to-RM button did not confirm success: {btn_text!r}'
+            wait.until(lambda d: len(d.window_handles) > len(handles_before))
+        step('TC-05: Refer to Relationship Manager creates an RM case', tc05)
 
-        # ── TC-06: Portfolio summary shows non-zero values ───────────────────
+        # ── TC-06: RM case page loads with the new case ─────────────────────
         def tc06():
-            loan_count = driver.find_element(By.ID, 'summaryLoanCount').text.strip()
-            total_rwa  = driver.find_element(By.ID, 'summaryTotalRWA').text.strip()
-            assert loan_count not in ('', '0', '—'), f'Loan count unexpected: {loan_count!r}'
-            assert total_rwa  not in ('', '₹0', '0', '—'), f'Total RWA unexpected: {total_rwa!r}'
-        step('TC-06: Portfolio summary updates correctly', tc06)
+            new_handle = [h for h in driver.window_handles][-1]
+            driver.switch_to.window(new_handle)
+            wait.until(lambda d: 'case=' in d.current_url)
+            assert 'case=' in driver.current_url, \
+                f'RM tab did not open with a case id: {driver.current_url}'
+        step('TC-06: RM case page opens with new case', tc06)
 
     except Exception as e:
         results.append({

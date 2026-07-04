@@ -1,8 +1,8 @@
 {
   "model_type": "XGBoost",
   "algorithm": "xgboost",
-  "version": "run_20260704_213235",
-  "date_trained": "2026-07-04T21:32:35",
+  "version": "run_20260704_224829",
+  "date_trained": "2026-07-04T22:48:29",
   "triggered_by": "manual",
   "features": [
     "de_ratio",
