@@ -23,7 +23,7 @@ import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 
 from xgboost import XGBClassifier
-from sklearn.model_selection import train_test_split, GroupShuffleSplit
+from sklearn.model_selection import train_test_split, GroupShuffleSplit, StratifiedKFold, GroupKFold
 from sklearn.metrics import (
     roc_auc_score, accuracy_score, precision_score,
     recall_score, f1_score, confusion_matrix, brier_score_loss,
@@ -577,6 +577,66 @@ def evaluate_model(model, X_test, y_test, df_test, threshold):
     return metrics, cm, y_pred_proba
 
 
+def cross_validate_model(X, y, hp, model_type, groups=None, n_splits=5):
+    """
+    Honest generalization estimate via stratified (or grouped) k-fold CV.
+
+    A single train/test split is not trustworthy on a dataset with very few
+    positive examples (e.g. ~15-20 defaults): whichever handful of defaults
+    happens to land in the test fold dominates the reported AUC, so the same
+    model can show anywhere from ~0.45 to ~1.0 depending only on the random
+    seed. Averaging over multiple folds is the only way to see whether a
+    training run's headline single-split number is representative or just
+    lucky/unlucky - this is what the admin dashboard's "Rows Trained" /
+    "AUC-ROC" card was missing.
+
+    If groups is provided (transaction-level training), use GroupKFold so an
+    entire loan's rows stay on one side of every fold - the same leakage
+    concern that GroupShuffleSplit addresses for the primary train/test split
+    applies here too, per-fold.
+
+    n_splits is capped to the positive-class count (need >=1 positive example
+    per fold) so this degrades gracefully instead of erroring on tiny samples.
+    """
+    n_pos = int(y.sum())
+    n_splits_eff = max(2, min(n_splits, n_pos)) if n_pos >= 2 else None
+    if n_splits_eff is None:
+        return {
+            'n_splits': 0, 'fold_aucs': [], 'mean_auc': None, 'std_auc': None,
+            'note': f'Too few positive examples ({n_pos}) for cross-validation',
+        }
+
+    if groups is not None:
+        gkf = GroupKFold(n_splits=n_splits_eff)
+        splitter = gkf.split(X, y, groups=groups)
+    else:
+        skf = StratifiedKFold(n_splits=n_splits_eff, shuffle=True, random_state=42)
+        splitter = skf.split(X, y)
+
+    fold_aucs = []
+    for train_idx, test_idx in splitter:
+        y_tr, y_te = y.iloc[train_idx], y.iloc[test_idx]
+        if len(np.unique(y_te)) < 2:
+            continue  # fold has only one class present - AUC undefined, skip
+        fold_model = train_model(X.iloc[train_idx], y_tr, hp, model_type=model_type)
+        proba = fold_model.predict_proba(X.iloc[test_idx])[:, 1]
+        fold_aucs.append(float(roc_auc_score(y_te, proba)))
+
+    if not fold_aucs:
+        return {
+            'n_splits': n_splits_eff, 'fold_aucs': [], 'mean_auc': None, 'std_auc': None,
+            'note': 'No fold had both classes present',
+        }
+
+    return {
+        'n_splits': n_splits_eff,
+        'fold_aucs': [round(a, 4) for a in fold_aucs],
+        'mean_auc': round(float(np.mean(fold_aucs)), 4),
+        'std_auc': round(float(np.std(fold_aucs)), 4),
+        'note': None,
+    }
+
+
 # ── Step 6: Charts ────────────────────────────────────────────────────────────
 
 def _get_feature_importance(model):
@@ -871,6 +931,17 @@ def run_training(triggered_by='manual', use_transaction_level=True, model_type='
         metrics, cm, y_pred = evaluate_model(model, X_test, y_test, df_test, threshold)
         record['metrics']          = metrics
         record['confusion_matrix'] = cm
+
+        # Honest generalization estimate (see cross_validate_model docstring):
+        # the single-split AUC above is not trustworthy when there are only a
+        # handful of positive examples in the whole dataset - report the CV
+        # mean/std alongside it so the admin dashboard isn't showing a number
+        # that could swing from 0.45 to 1.0 on a different random seed.
+        cv_groups = merged[group_col] if group_col is not None and merged[group_col].notna().any() else None
+        cv_metrics = cross_validate_model(X, y, hp, model_type, groups=cv_groups, n_splits=5)
+        record['cv_metrics'] = cv_metrics
+        metrics['cv_auc_mean'] = cv_metrics.get('mean_auc')
+        metrics['cv_auc_std']  = cv_metrics.get('std_auc')
 
         # Generate charts and save to data/runs/{run_id}/
         charts = generate_charts(model, X_test, y_test, y_pred, df_test, threshold)

@@ -168,7 +168,10 @@
     <h3>&#9989; Active Model</h3>
     <div class="kpi-grid" id="modelKpis">
       <div class="kpi"><div class="label">R²</div><div class="value" id="kpi-r2">—</div></div>
-      <div class="kpi"><div class="label">AUC-ROC</div><div class="value" id="kpi-auc">—</div></div>
+      <div class="kpi"><div class="label">AUC-ROC (single split)</div><div class="value" id="kpi-auc">—</div></div>
+      <div class="kpi" title="Mean +/- std across 5 stratified/grouped folds - the trustworthy estimate when there are only a handful of positive examples, where a single train/test split can swing wildly by chance.">
+        <div class="label">AUC-ROC (5-fold CV)</div><div class="value" id="kpi-cv-auc">—</div>
+      </div>
       <div class="kpi"><div class="label">F1 Score</div><div class="value" id="kpi-f1">—</div></div>
       <div class="kpi"><div class="label">Precision</div><div class="value" id="kpi-prec">—</div></div>
       <div class="kpi"><div class="label">Recall</div><div class="value" id="kpi-recall">—</div></div>
@@ -607,9 +610,13 @@ async function loadStatus() {
   const meta = data.model_metadata || {};
   const m    = meta.metrics || {};
 
-  const fmt = v => v !== undefined ? v.toFixed(4) : '—';
+  const fmt = v => v !== undefined && v !== null ? v.toFixed(4) : '—';
   document.getElementById('kpi-r2').textContent     = fmt(m.r2);
   document.getElementById('kpi-auc').textContent    = fmt(m.auc_roc);
+  document.getElementById('kpi-cv-auc').textContent =
+    (m.cv_auc_mean !== undefined && m.cv_auc_mean !== null)
+      ? `${fmt(m.cv_auc_mean)} ± ${fmt(m.cv_auc_std)}`
+      : '—';
   document.getElementById('kpi-f1').textContent     = fmt(m.f1);
   document.getElementById('kpi-prec').textContent   = fmt(m.precision);
   document.getElementById('kpi-recall').textContent = fmt(m.recall);
@@ -679,18 +686,24 @@ async function loadConfiguredModels() {
       return;
     }
 
-    let html = '<table><tr><th>Model</th><th>AUC-ROC</th><th>F1</th><th>Precision</th><th>Recall</th><th>Rows Trained</th><th>Trained On</th><th>Action</th></tr>';
+    let html = '<table><tr><th>Model</th><th>AUC-ROC (split)</th>' +
+      '<th title="Mean +/- std over 5 folds - trustworthy even with few positive examples, unlike a single split">AUC-ROC (5-fold CV)</th>' +
+      '<th>F1</th><th>Precision</th><th>Recall</th><th>Rows Trained</th><th>Trained On</th><th>Action</th></tr>';
     models.forEach(m => {
       const meta = m.metadata || {};
       const metrics = meta.metrics || {};
       const status = m.is_active ? '<span class="badge badge-success">Active</span>' : '';
-      const fmt = v => v !== undefined ? v.toFixed(4) : '—';
+      const fmt = v => v !== undefined && v !== null ? v.toFixed(4) : '—';
+      const cvText = (metrics.cv_auc_mean !== undefined && metrics.cv_auc_mean !== null)
+        ? `${fmt(metrics.cv_auc_mean)} ± ${fmt(metrics.cv_auc_std)}`
+        : '—';
       const activateBtnDisabled = m.is_active ? 'disabled' : '';
       const activateBtnClick = m.is_active ? '' : `onclick="activateModel('${m.model_type}')"`;
 
       html += `<tr>
         <td><b>${m.model_type}</b> ${status}</td>
         <td>${fmt(metrics.auc_roc)}</td>
+        <td>${cvText}</td>
         <td>${fmt(metrics.f1)}</td>
         <td>${fmt(metrics.precision)}</td>
         <td>${fmt(metrics.recall)}</td>
