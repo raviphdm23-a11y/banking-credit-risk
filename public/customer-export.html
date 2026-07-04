@@ -725,27 +725,46 @@ function exportAsJSON() {
 function exportAsMLFeaturesCSV() {
     if (!currentResults || currentResults.customers.length === 0) return;
 
-    let csv = 'Customer ML Features Export\n';
+    let csv = 'ML Training Dataset - Complete Feature Set from Database\n';
     csv += `Export Date,${new Date().toISOString()}\n`;
-    csv += `Total Customers,${currentResults.total_customers}\n`;
-    csv += `Filters Applied,${JSON.stringify(currentResults.filters_applied)}\n\n`;
+    csv += `Total Records,${currentResults.total_customers}\n`;
+    csv += `Columns,46 ML features (customer demographics financial metrics loan data and credit history)\n`;
+    csv += `Note,Includes all features available in database. Encoded versions and delta features computed during model preprocessing.\n\n`;
 
-    csv += 'ML TRAINING FEATURES - ALL CUSTOMER DATA\n';
-    csv += 'ID,First Name,Last Name,Email,Phone,Status,Age,Gender,Employment Type,Years Employed,Annual Income (₹),Other Income (₹),FOIR,CIBIL Score,Previous Default,Months as Customer,Late Payments (12m),Existing Loans,Existing Products,Education,City Tier,Residence Type,Years at Address,Is Rural,Is PEP,State,Loan Purpose,Marital Status,Industry Sector,Loan Count,Total Outstanding (₹),NPA Count\n';
+    // Header with all 46 columns returned by API
+    csv += 'id,bank_id,loan_id,age,annual_income,cibil_score,city_tier,de_ratio,default_flag,education_level,email,employment_type,existing_loans_count,exposure_class,first,foir_declared,gender,id_col,industry_sector,interest_coverage,is_pep,is_rural,last,loan_classification,loan_count,loan_purpose,liquidity_ratio,marital_status,months_as_customer,npa_flag,num_dependents,num_existing_products,num_late_payments_past_12m,other_income,pd_observed,pd_score,phone,previous_default_flag,prior_cibil,prior_de,profitability,residence_type,state,status,total_outstanding,years_at_address,years_employed\n';
 
     currentResults.customers.forEach(c => {
-        csv += `"${c.id}","${c.first}","${c.last}","${c.email}","${c.phone}","${c.status}",${c.age || ''},${c.gender || ''},"${c.employment_type || ''}",${c.years_employed || ''},${c.annual_income || ''},${c.other_income || ''},${c.foir || ''},${c.cibil_score || ''},${c.previous_default || ''},${c.months_as_customer || ''},${c.num_late_payments_past_12m || ''},${c.existing_loans_count || ''},${c.num_existing_products || ''},"${c.education_level || ''}","${c.city_tier || ''}","${c.residence_type || ''}",${c.years_at_address || ''},${c.is_rural || ''},${c.is_pep || ''},"${c.state || ''}","${c.loan_purpose || ''}","${c.marital_status || ''}","${c.industry_sector || ''}",${c.loan_count},${c.total_outstanding || ''},${c.npa_count || ''}\n`;
+        const row = [
+            c.id, c.bank_id, c.loan_id, c.age, c.annual_income, c.cibil_score, c.city_tier,
+            c.de_ratio, c.default_flag, c.education_level, c.email, c.employment_type,
+            c.existing_loans_count, c.exposure_class, c.first, c.foir_declared, c.gender,
+            c.id, c.industry_sector, c.interest_coverage, c.is_pep, c.is_rural, c.last,
+            c.loan_classification, c.loan_count, c.loan_purpose, c.liquidity_ratio,
+            c.marital_status, c.months_as_customer, c.npa_flag, c.num_dependents,
+            c.num_existing_products, c.num_late_payments_past_12m, c.other_income,
+            c.pd_observed, c.pd_score, c.phone, c.previous_default_flag, c.prior_cibil,
+            c.prior_de, c.profitability, c.residence_type, c.state, c.status,
+            c.total_outstanding, c.years_at_address, c.years_employed
+        ].map(v => {
+            if (v === null || v === undefined) return '';
+            if (typeof v === 'string' && (v.includes(',') || v.includes('"') || v.includes('\n'))) {
+                return '"' + v.replace(/"/g, '""') + '"';
+            }
+            return v;
+        });
+        csv += row.join(',') + '\n';
     });
 
     const blob = new Blob([csv], {type: 'text/csv'});
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `bulk_customers_ml_features_${new Date().toISOString().split('T')[0]}.csv`;
+    link.download = `ml_training_dataset_${new Date().toISOString().split('T')[0]}.csv`;
     link.click();
     URL.revokeObjectURL(url);
 
-    showMessage('ML Features CSV downloaded successfully', 'success');
+    showMessage('ML Features CSV (46 columns) downloaded successfully', 'success');
 }
 
 function exportAsCSV() {

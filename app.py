@@ -1645,20 +1645,25 @@ def api_customer_bulk_export():
     with _ops_conn() as conn:
         # Build dynamic query with filters
         query = """
-            SELECT DISTINCT c.id, c.first, c.last, c.email, c.phone, c.status,
+            SELECT DISTINCT c.id, c.bank_id, c.first, c.last, c.email, c.phone, c.status,
                    k.cibil_score, k.annual_income, k.age, k.employment_type,
                    k.months_as_customer, k.num_late_payments_past_12m,
                    k.gender, k.education_level, k.city_tier, k.residence_type,
                    k.years_employed, k.existing_loans_count, k.num_existing_products,
                    k.previous_default_flag, k.is_rural, k.is_pep, k.state,
                    k.loan_purpose, k.marital_status, k.industry_sector, k.other_income,
-                   k.years_at_address, k.foir_declared,
+                   k.years_at_address, k.foir_declared, k.num_dependents,
+                   l.id as loan_id, l.exposure_class, l.loan_classification,
+                   m.de as de_ratio, m.intcov as interest_coverage, m.profit as profitability,
+                   m.liq as liquidity_ratio, m.pd_score, m.prior_de, m.prior_cibil,
+                   m.npa_flag, m.obs as pd_observed,
+                   CASE WHEN l.loan_classification IN ('NPA', 'Default') THEN 1 ELSE 0 END as default_flag,
                    COUNT(DISTINCT l.id) as loan_count,
-                   SUM(l.outstanding) as total_outstanding,
-                   COUNT(CASE WHEN l.loan_classification='NPA' THEN 1 END) as npa_count
+                   SUM(l.outstanding) as total_outstanding
             FROM customers c
             LEFT JOIN customer_kyc k ON c.id = k.cid
             LEFT JOIN loans l ON c.id = l.cid
+            LEFT JOIN credit_risk_metrics m ON l.id = m.lid
             WHERE 1=1
         """
         params = []
