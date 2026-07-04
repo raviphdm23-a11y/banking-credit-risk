@@ -897,9 +897,10 @@ def admin_trigger_train():
         if is_training_running():
             return jsonify({'error': 'Training already in progress'}), 409
 
-        # Get data source preference from request (default to transaction-level)
-        data = request.get_json() or {}
-        use_transaction_level = data.get('use_transaction_level', True)
+        # Default to transaction-level training (56K+ rows)
+        # Can be overridden by query parameter ?use_legacy=1 for backward compat
+        use_legacy = request.args.get('use_legacy', '0') == '1'
+        use_transaction_level = not use_legacy
 
         def _run():
             global _pd_model

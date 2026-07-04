@@ -1,5 +1,77 @@
 [
   {
+    "run_id": "run_20260704_143721",
+    "timestamp": "2026-07-04T14:37:21",
+    "triggered_by": "manual",
+    "data_source": "enriched_transactions (TRANSACTION-LEVEL)",
+    "use_transaction_level": true,
+    "status": "failed",
+    "files_used": [],
+    "files_skipped": [],
+    "total_rows": 0,
+    "train_rows": 0,
+    "test_rows": 0,
+    "metrics": {},
+    "confusion_matrix": [],
+    "model_promoted": false,
+    "duration_seconds": 0.0,
+    "error": "Traceback (most recent call last):\n  File \"C:\\Users\\Arnav\\OneDrive\\Desktop\\Axis_bank_credit_risk_analysis\\ml_models\\trainer.py\", line 736, in run_training\n    merged, files_used, files_skip, dupes = load_and_merge(use_transaction_level=use_transaction_level)\n  File \"C:\\Users\\Arnav\\OneDrive\\Desktop\\Axis_bank_credit_risk_analysis\\ml_models\\trainer.py\", line 404, in load_and_merge\n    txn_df = load_from_enriched_transactions()\n  File \"C:\\Users\\Arnav\\OneDrive\\Desktop\\Axis_bank_credit_risk_analysis\\ml_models\\trainer.py\", line 341, in load_from_enriched_transactions\n    conn = sqlite3.connect(DB_PATH)\nNameError: name 'DB_PATH' is not defined\n"
+  },
+  {
+    "run_id": "run_20260704_143618",
+    "timestamp": "2026-07-04T14:36:18",
+    "triggered_by": "manual",
+    "data_source": "enriched_transactions (TRANSACTION-LEVEL)",
+    "use_transaction_level": true,
+    "status": "failed",
+    "files_used": [],
+    "files_skipped": [],
+    "total_rows": 0,
+    "train_rows": 0,
+    "test_rows": 0,
+    "metrics": {},
+    "confusion_matrix": [],
+    "model_promoted": false,
+    "duration_seconds": 0.01,
+    "error": "Traceback (most recent call last):\n  File \"C:\\Users\\Arnav\\OneDrive\\Desktop\\Axis_bank_credit_risk_analysis\\ml_models\\trainer.py\", line 735, in run_training\n    merged, files_used, files_skip, dupes = load_and_merge(use_transaction_level=use_transaction_level)\n  File \"C:\\Users\\Arnav\\OneDrive\\Desktop\\Axis_bank_credit_risk_analysis\\ml_models\\trainer.py\", line 403, in load_and_merge\n    txn_df = load_from_enriched_transactions()\n  File \"C:\\Users\\Arnav\\OneDrive\\Desktop\\Axis_bank_credit_risk_analysis\\ml_models\\trainer.py\", line 341, in load_from_enriched_transactions\n    conn = sqlite3.connect(DB_PATH)\nNameError: name 'DB_PATH' is not defined\n"
+  },
+  {
+    "run_id": "run_20260704_143508",
+    "timestamp": "2026-07-04T14:35:08",
+    "triggered_by": "manual",
+    "data_source": "enriched_transactions (TRANSACTION-LEVEL)",
+    "use_transaction_level": true,
+    "status": "failed",
+    "files_used": [],
+    "files_skipped": [],
+    "total_rows": 0,
+    "train_rows": 0,
+    "test_rows": 0,
+    "metrics": {},
+    "confusion_matrix": [],
+    "model_promoted": false,
+    "duration_seconds": 0.0,
+    "error": "Traceback (most recent call last):\n  File \"C:\\Users\\Arnav\\OneDrive\\Desktop\\Axis_bank_credit_risk_analysis\\ml_models\\trainer.py\", line 765, in run_training\n    merged, files_used, files_skip, dupes = load_and_merge(use_transaction_level=use_transaction_level)\n  File \"C:\\Users\\Arnav\\OneDrive\\Desktop\\Axis_bank_credit_risk_analysis\\ml_models\\trainer.py\", line 468, in load_and_merge\n    raise ValueError(\nValueError: No valid training data found. Check enriched_transactions or bank_loan_metrics table, and ensure data/training/ contains CSV files if needed.\n"
+  },
+  {
+    "run_id": "run_20260704_143422",
+    "timestamp": "2026-07-04T14:34:22",
+    "triggered_by": "manual",
+    "data_source": "enriched_transactions (TRANSACTION-LEVEL)",
+    "use_transaction_level": true,
+    "status": "failed",
+    "files_used": [],
+    "files_skipped": [],
+    "total_rows": 0,
+    "train_rows": 0,
+    "test_rows": 0,
+    "metrics": {},
+    "confusion_matrix": [],
+    "model_promoted": false,
+    "duration_seconds": 0.0,
+    "error": "Traceback (most recent call last):\n  File \"C:\\Users\\Arnav\\OneDrive\\Desktop\\Axis_bank_credit_risk_analysis\\ml_models\\trainer.py\", line 773, in run_training\n    merged, files_used, files_skip, dupes = load_and_merge(use_transaction_level=use_transaction_level)\n  File \"C:\\Users\\Arnav\\OneDrive\\Desktop\\Axis_bank_credit_risk_analysis\\ml_models\\trainer.py\", line 476, in load_and_merge\n    raise ValueError(\nValueError: No valid training data found. Check enriched_transactions or bank_loan_metrics table, and ensure data/training/ contains CSV files if needed.\n"
+  },
+  {
     "run_id": "run_20260704_142938",
     "timestamp": "2026-07-04T14:29:38",
     "triggered_by": "manual",
@@ -1923,192 +1995,6 @@
       "auc": 0.9745,
       "n_trained": 297,
       "min_rows_floor": 100,
-      "rows_ok": true
-    }
-  },
-  {
-    "run_id": "run_20260618_221604",
-    "timestamp": "2026-06-18T22:16:04",
-    "triggered_by": "manual",
-    "status": "success",
-    "files_used": [
-      {
-        "filename": "bank_loan_metrics (bank.db)",
-        "rows": 252
-      }
-    ],
-    "files_skipped": [],
-    "total_rows": 252,
-    "train_rows": 201,
-    "test_rows": 51,
-    "metrics": {
-      "r2": 0.9798,
-      "rmse": 0.040782,
-      "mae": 0.025377,
-      "auc_roc": 0.7195,
-      "accuracy": 0.5882,
-      "precision": 0.28,
-      "recall": 0.7,
-      "f1": 0.4
-    },
-    "confusion_matrix": [
-      [
-        23,
-        18
-      ],
-      [
-        3,
-        7
-      ]
-    ],
-    "model_promoted": true,
-    "duration_seconds": 0.71,
-    "error": null,
-    "promotion_check": {
-      "auc": 0.7195,
-      "n_trained": 201,
-      "min_rows_floor": 100,
-      "rows_ok": true
-    }
-  },
-  {
-    "run_id": "run_20260618_221047",
-    "timestamp": "2026-06-18T22:10:47",
-    "triggered_by": "manual",
-    "status": "success",
-    "files_used": [
-      {
-        "filename": "bank_loan_metrics (bank.db)",
-        "rows": 252
-      }
-    ],
-    "files_skipped": [],
-    "total_rows": 252,
-    "train_rows": 201,
-    "test_rows": 51,
-    "metrics": {
-      "r2": 0.9798,
-      "rmse": 0.040782,
-      "mae": 0.025377,
-      "auc_roc": 0.7195,
-      "accuracy": 0.5882,
-      "precision": 0.28,
-      "recall": 0.7,
-      "f1": 0.4
-    },
-    "confusion_matrix": [
-      [
-        23,
-        18
-      ],
-      [
-        3,
-        7
-      ]
-    ],
-    "model_promoted": false,
-    "duration_seconds": 0.78,
-    "error": null,
-    "promotion_check": {
-      "auc": 0.7195,
-      "min_auc_floor": 0.75,
-      "n_trained": 201,
-      "min_rows_floor": 100,
-      "auc_ok": false,
-      "rows_ok": true
-    }
-  },
-  {
-    "run_id": "run_20260618_194750",
-    "timestamp": "2026-06-18T19:47:50",
-    "triggered_by": "manual",
-    "status": "success",
-    "files_used": [
-      {
-        "filename": "bank_loan_metrics (bank.db)",
-        "rows": 192
-      }
-    ],
-    "files_skipped": [],
-    "total_rows": 192,
-    "train_rows": 153,
-    "test_rows": 39,
-    "metrics": {
-      "r2": 0.9607,
-      "rmse": 0.054385,
-      "mae": 0.031073,
-      "auc_roc": 0.9444,
-      "accuracy": 0.4359,
-      "precision": 0.2143,
-      "recall": 1.0,
-      "f1": 0.3529
-    },
-    "confusion_matrix": [
-      [
-        11,
-        22
-      ],
-      [
-        0,
-        6
-      ]
-    ],
-    "model_promoted": true,
-    "duration_seconds": 0.87,
-    "error": null,
-    "promotion_check": {
-      "auc": 0.9444,
-      "min_auc_floor": 0.75,
-      "n_trained": 153,
-      "min_rows_floor": 100,
-      "auc_ok": true,
-      "rows_ok": true
-    }
-  },
-  {
-    "run_id": "run_20260618_185758",
-    "timestamp": "2026-06-18T18:57:58",
-    "triggered_by": "manual",
-    "status": "success",
-    "files_used": [
-      {
-        "filename": "bank_loan_metrics (bank.db)",
-        "rows": 162
-      }
-    ],
-    "files_skipped": [],
-    "total_rows": 162,
-    "train_rows": 129,
-    "test_rows": 33,
-    "metrics": {
-      "r2": 0.8778,
-      "rmse": 0.0731,
-      "mae": 0.037998,
-      "auc_roc": 0.6556,
-      "accuracy": 0.3333,
-      "precision": 0.087,
-      "recall": 0.6667,
-      "f1": 0.1538
-    },
-    "confusion_matrix": [
-      [
-        9,
-        21
-      ],
-      [
-        1,
-        2
-      ]
-    ],
-    "model_promoted": false,
-    "duration_seconds": 0.84,
-    "error": null,
-    "promotion_check": {
-      "auc": 0.6556,
-      "min_auc_floor": 0.75,
-      "n_trained": 129,
-      "min_rows_floor": 100,
-      "auc_ok": false,
       "rows_ok": true
     }
   }
