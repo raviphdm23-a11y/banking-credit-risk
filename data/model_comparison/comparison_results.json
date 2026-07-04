@@ -1,0 +1,50 @@
+{
+  "timestamp": "2026-07-04T19:17:59.835574",
+  "data_file": "C:\\Users\\Arnav\\OneDrive\\Desktop\\Axis_bank_credit_risk_analysis\\data\\training\\realistic_synthetic_data.csv",
+  "data_info": {
+    "total_loans": 14300,
+    "default_rate": 0.08559440559440559,
+    "train_size": 11440,
+    "test_size": 2860
+  },
+  "xgboost": {
+    "auc_roc": 0.5408795411089866,
+    "accuracy": 0.8328671328671329,
+    "precision": 0.11551155115511551,
+    "recall": 0.14285714285714285,
+    "f1": 0.12773722627737225,
+    "confusion_matrix": [
+      [
+        2347,
+        268
+      ],
+      [
+        210,
+        35
+      ]
+    ]
+  },
+  "logistic_regression": {
+    "auc_roc": 0.580105357630624,
+    "accuracy": 0.5912587412587412,
+    "precision": 0.10647359454855196,
+    "recall": 0.5102040816326531,
+    "f1": 0.17618040873854826,
+    "confusion_matrix": [
+      [
+        1566,
+        1049
+      ],
+      [
+        120,
+        125
+      ]
+    ]
+  },
+  "comparison": {
+    "xgb_auc": 0.5408795411089866,
+    "lr_auc": 0.580105357630624,
+    "auc_difference": 0.03922581652163737,
+    "winner": "Logistic Regression"
+  }
+}

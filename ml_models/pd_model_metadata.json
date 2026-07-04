@@ -1,8 +1,8 @@
 {
-  "model_type": "XGBoost",
-  "algorithm": "xgboost",
-  "version": "run_20260704_190312",
-  "date_trained": "2026-07-04T19:03:12",
+  "model_type": "Logistic Regression",
+  "algorithm": "logistic_regression",
+  "version": "run_20260704_191659",
+  "date_trained": "2026-07-04T19:16:59",
   "triggered_by": "manual",
   "features": [
     "de_ratio",
@@ -52,16 +52,11 @@
     "default_rate": 0.0166
   },
   "hyperparameters": {
-    "n_estimators": 100,
-    "max_depth": 5,
-    "learning_rate": 0.1,
-    "subsample": 0.7,
-    "colsample_bytree": 0.7,
-    "min_child_weight": 10,
-    "gamma": 1.0,
-    "reg_alpha": 1.0,
-    "reg_lambda": 2.0,
-    "scale_pos_weight": 45,
+    "C": 1.0,
+    "penalty": "l2",
+    "solver": "lbfgs",
+    "max_iter": 1000,
+    "class_weight": "balanced",
     "random_state": 42
   },
   "n_train": 44974,
@@ -70,5 +65,5 @@
   "scale_pos_weight": 64.27,
   "threshold": 0.25,
   "currency": "INR",
-  "note": "XGBoost binary classifier; target=default_flag (RBI 90-day NPA rule)"
+  "note": "Logistic Regression binary classifier; target=default_flag (RBI 90-day NPA rule)"
 }

@@ -1,8 +1,8 @@
 {
   "model_type": "Logistic Regression",
   "algorithm": "logistic_regression",
-  "version": "run_20260704_190332",
-  "date_trained": "2026-07-04T19:03:32",
+  "version": "run_20260704_190701",
+  "date_trained": "2026-07-04T19:07:01",
   "triggered_by": "manual",
   "features": [
     "de_ratio",

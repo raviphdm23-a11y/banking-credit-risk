@@ -1,4 +1,4 @@
 {
-  "model_type": "xgboost",
-  "activated_at": "2026-07-04T19:04:16"
+  "model_type": "logistic_regression",
+  "activated_at": "2026-07-04T19:17:01"
 }
