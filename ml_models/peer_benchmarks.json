@@ -1,6 +1,6 @@
 {
   "_meta": {
-    "generated_at": "2026-07-04T19:23:58",
+    "generated_at": "2026-07-04T19:25:59",
     "source": "bank_loan_metrics (default_flag=0)",
     "n_approved": 55342,
     "n_total": 56218,
