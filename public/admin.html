@@ -181,13 +181,27 @@
       <tr><td><b>Rows trained</b></td><td id="meta-rows">—</td></tr>
       <tr><td><b>Currency</b></td><td>&#8377; INR</td></tr>
     </table>
-    <div class="form-actions" style="margin-top:20px">
+    <div class="form-actions" style="margin-top:20px;display:flex;gap:12px;align-items:center">
+      <select id="trainModelType" style="padding:8px 12px;border:1px solid var(--border);border-radius:6px;font-size:13px">
+        <option value="xgboost">XGBoost</option>
+        <option value="logistic_regression">Logistic Regression</option>
+      </select>
       <button class="btn btn-success" id="trainBtn" onclick="triggerTrain()">&#9654; Train Now</button>
       <button class="btn btn-danger" onclick="rollback()">&#8617; Rollback to Previous</button>
       <span id="trainMsg" class="msg"></span>
     </div>
     <div id="trainingIndicator" style="display:none;margin-top:12px" class="alert alert-warning">
       &#9203; Training in progress... Refreshing status every 5 seconds.
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>🔀 Configured Models</h3>
+    <p style="color:var(--sub);font-size:13px;margin-bottom:16px">
+      All trained models available. Click "Activate" to switch which model is used for live credit-risk scoring.
+    </p>
+    <div id="configuredModelsTable">
+      <p style="color:var(--sub)">Loading configured models...</p>
     </div>
   </div>
 
@@ -628,12 +642,16 @@ async function loadStatus() {
       : '✅ Training complete';
     setTimeout(() => { trainMsg.textContent = ''; }, 5000);
   }
+
+  // Load configured models list
+  loadConfiguredModels();
 }
 
 async function triggerTrain() {
-  if (!confirm('Start a manual training run now?')) return;
+  const modelType = document.getElementById('trainModelType').value;
+  if (!confirm(`Start a manual training run for ${modelType} model?`)) return;
   document.getElementById('trainMsg').textContent = '';
-  const res = await api('/admin/api/train', 'POST');
+  const res = await api(`/admin/api/train?model_type=${encodeURIComponent(modelType)}`, 'POST');
   if (res.status === 'started') {
     document.getElementById('trainMsg').textContent = '✅ Training started — auto-refreshing...';
     document.getElementById('trainingIndicator').style.display = 'block';
@@ -648,6 +666,56 @@ async function rollback() {
   const res = await api('/admin/api/rollback', 'POST');
   alert(res.message || res.error);
   loadStatus();
+}
+
+async function loadConfiguredModels() {
+  try {
+    const data = await api('/admin/api/models');
+    const models = data.models || [];
+
+    if (!models.length) {
+      document.getElementById('configuredModelsTable').innerHTML =
+        '<p style="color:var(--sub)">No models trained yet. Train XGBoost or Logistic Regression above.</p>';
+      return;
+    }
+
+    let html = '<table><tr><th>Model</th><th>AUC-ROC</th><th>F1</th><th>Precision</th><th>Recall</th><th>Rows Trained</th><th>Trained On</th><th>Action</th></tr>';
+    models.forEach(m => {
+      const meta = m.metadata || {};
+      const metrics = meta.metrics || {};
+      const status = m.is_active ? '<span class="badge badge-success">Active</span>' : '';
+      const fmt = v => v !== undefined ? v.toFixed(4) : '—';
+      const activateBtnDisabled = m.is_active ? 'disabled' : '';
+      const activateBtnClick = m.is_active ? '' : `onclick="activateModel('${m.model_type}')"`;
+
+      html += `<tr>
+        <td><b>${m.model_type}</b> ${status}</td>
+        <td>${fmt(metrics.auc_roc)}</td>
+        <td>${fmt(metrics.f1)}</td>
+        <td>${fmt(metrics.precision)}</td>
+        <td>${fmt(metrics.recall)}</td>
+        <td>${meta.rows_trained ? meta.rows_trained.toLocaleString() : '—'}</td>
+        <td>${meta.date_trained ? meta.date_trained.replace('T', ' ').substring(0, 19) : '—'}</td>
+        <td><button class="btn btn-sm ${m.is_active ? 'btn-primary' : 'btn-orange'}" ${activateBtnDisabled} ${activateBtnClick}>${m.is_active ? '✓ Active' : 'Activate'}</button></td>
+      </tr>`;
+    });
+    html += '</table>';
+    document.getElementById('configuredModelsTable').innerHTML = html;
+  } catch (e) {
+    document.getElementById('configuredModelsTable').innerHTML =
+      `<p style="color:var(--red)">Error loading models: ${e}</p>`;
+  }
+}
+
+async function activateModel(modelType) {
+  if (!confirm(`Activate ${modelType} model as the active model?`)) return;
+  try {
+    const res = await api(`/admin/api/models/${encodeURIComponent(modelType)}/activate`, 'POST');
+    alert(`✅ Model activated: ${modelType}`);
+    loadStatus();
+  } catch (e) {
+    alert(`❌ Failed to activate: ${e}`);
+  }
 }
 
 // ── Panel 2: Data Sources ───────────────────────────────────────────────────

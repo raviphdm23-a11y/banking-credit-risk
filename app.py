@@ -428,11 +428,21 @@ def predict_pd_ml():
             'liquidity_adjustment': round(max(0, (1.5 - float(data.get('liquidity_ratio', 0))) * 3.0), 4)
         }
 
+        # Get actual model type from metadata
+        model_type_label = 'Unknown'
+        try:
+            if os.path.exists(_META_PATH):
+                with open(_META_PATH) as f:
+                    metadata = json.load(f)
+                    model_type_label = metadata.get('model_type', 'Unknown')
+        except Exception:
+            pass
+
         return jsonify({
             'pd': round(pd_decimal, 4),
             'pd_percentage': round(pd_decimal * 100, 2),
             'method': 'ML',
-            'model_type': 'RandomForest',
+            'model_type': model_type_label,
             'model_version': '1.0.0',
             'breakdown': breakdown,
             'note': 'ML prediction with rule-based component breakdown for transparency'
@@ -957,14 +967,14 @@ def admin_trigger_train():
         if is_training_running():
             return jsonify({'error': 'Training already in progress'}), 409
 
-        # Default to transaction-level training (56K+ rows)
-        # Can be overridden by query parameter ?use_legacy=1 for backward compat
+        # Get parameters from query string or request body
         use_legacy = request.args.get('use_legacy', '0') == '1'
         use_transaction_level = not use_legacy
+        model_type = request.args.get('model_type', 'xgboost')
 
         def _run():
             global _pd_model
-            result = run_training(triggered_by='manual', use_transaction_level=use_transaction_level)
+            result = run_training(triggered_by='manual', use_transaction_level=use_transaction_level, model_type=model_type)
             if result['status'] == 'success' and (result['model_promoted'] or _pd_model is None):
                 try:
                     import joblib
@@ -976,7 +986,75 @@ def admin_trigger_train():
 
         t = threading.Thread(target=_run, daemon=True)
         t.start()
-        return jsonify({'status': 'started', 'message': 'Training started in background. Poll /admin/api/status for completion.'}), 202
+        return jsonify({'status': 'started', 'message': f'Training started in background (model: {model_type}). Poll /admin/api/status for completion.'}), 202
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+# ============================================================================
+# ADMIN API — MODELS (Multi-Model Support)
+# ============================================================================
+
+@app.route('/admin/api/models', methods=['GET'])
+def admin_get_models():
+    if not _check_admin_auth(): return _admin_auth_error()
+    try:
+        import os
+
+        models_dir = os.path.join(os.path.dirname(__file__), 'ml_models', 'models')
+        models = []
+        active_model_type = None
+
+        # Get active model type
+        active_model_file = os.path.join(os.path.dirname(__file__), 'ml_models', 'active_model.json')
+        if os.path.exists(active_model_file):
+            try:
+                with open(active_model_file) as f:
+                    active_info = json.load(f)
+                    active_model_type = active_info.get('model_type')
+            except Exception:
+                pass
+
+        # Scan for trained models
+        if os.path.exists(models_dir):
+            for model_type in os.listdir(models_dir):
+                meta_file = os.path.join(models_dir, model_type, 'pd_model_metadata.json')
+                if os.path.exists(meta_file):
+                    try:
+                        with open(meta_file) as f:
+                            metadata = json.load(f)
+                        models.append({
+                            'model_type': model_type,
+                            'is_active': active_model_type == model_type,
+                            'metadata': metadata,
+                        })
+                    except Exception:
+                        pass
+
+        return jsonify({
+            'active_model_type': active_model_type,
+            'models': sorted(models, key=lambda x: x['metadata'].get('date_trained', ''), reverse=True),
+        }), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/admin/api/models/<model_type>/activate', methods=['POST'])
+def admin_activate_model(model_type):
+    if not _check_admin_auth(): return _admin_auth_error()
+    try:
+        import joblib
+        from ml_models.trainer import activate_model
+
+        result = activate_model(model_type)
+
+        # Reload model in-process
+        global _pd_model
+        _pd_model = joblib.load(_MODEL_PATH)
+        _assessment_engine.__init__(_pd_model, _get_model_version(), db_path=_OPS_DB_PATH)
+
+        return jsonify(result), 200
+    except FileNotFoundError as e:
+        return jsonify({'error': str(e)}), 404
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 

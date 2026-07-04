@@ -457,12 +457,10 @@ def load_and_merge(use_transaction_level=False):
 
 # ── Step 4: Train ─────────────────────────────────────────────────────────────
 
-def train_model(X_train, y_train, hp):
-    """Fit XGBClassifier with given hyperparameters."""
-    model_hp = hp.get('model', {})
+def _build_xgboost(X_train, y_train, hp):
+    """Build XGBoost classifier."""
+    model_hp = hp.get('models', {}).get('xgboost', hp.get('model', {}))
 
-    # Auto-compute scale_pos_weight from training data to handle class imbalance.
-    # Overrides the hyperparameter value — real default rate should drive this.
     n_neg = int((y_train == 0).sum())
     n_pos = int((y_train == 1).sum())
     auto_spw = round(n_neg / n_pos, 2) if n_pos > 0 else 1.0
@@ -485,6 +483,42 @@ def train_model(X_train, y_train, hp):
     )
     model.fit(X_train, y_train)
     return model
+
+
+def _build_logistic_regression(X_train, y_train, hp):
+    """Build Logistic Regression classifier (with scaling)."""
+    from sklearn.linear_model import LogisticRegression
+    from sklearn.preprocessing import StandardScaler
+    from sklearn.pipeline import Pipeline
+
+    lr_hp = hp.get('models', {}).get('logistic_regression', {})
+    pipe = Pipeline([
+        ('scaler', StandardScaler()),
+        ('clf', LogisticRegression(
+            C=float(lr_hp.get('C', 1.0)),
+            penalty=lr_hp.get('penalty', 'l2'),
+            solver=lr_hp.get('solver', 'lbfgs'),
+            max_iter=int(lr_hp.get('max_iter', 1000)),
+            class_weight=lr_hp.get('class_weight', 'balanced'),
+            random_state=int(lr_hp.get('random_state', 42)),
+        )),
+    ])
+    pipe.fit(X_train, y_train)
+    return pipe
+
+
+MODEL_BUILDERS = {
+    'xgboost': _build_xgboost,
+    'logistic_regression': _build_logistic_regression,
+}
+
+
+def train_model(X_train, y_train, hp, model_type='xgboost'):
+    """Dispatcher to build model by type."""
+    builder = MODEL_BUILDERS.get(model_type)
+    if builder is None:
+        raise ValueError(f"Unknown model_type: {model_type}. Must be one of: {list(MODEL_BUILDERS.keys())}")
+    return builder(X_train, y_train, hp)
 
 
 # ── Step 5: Evaluate ──────────────────────────────────────────────────────────
@@ -522,6 +556,24 @@ def evaluate_model(model, X_test, y_test, df_test, threshold):
 
 # ── Step 6: Charts ────────────────────────────────────────────────────────────
 
+def _get_feature_importance(model):
+    """Extract feature importance from model (tree-based or linear)."""
+    try:
+        # Tree-based models (XGBoost, RandomForest, etc.)
+        return model.feature_importances_
+    except AttributeError:
+        try:
+            # Pipeline with Linear model inside
+            return np.abs(model.named_steps['clf'].coef_[0])
+        except (AttributeError, KeyError):
+            try:
+                # Direct linear model (LogisticRegression, etc.)
+                return np.abs(model.coef_[0])
+            except (AttributeError, IndexError):
+                # Fallback: equal importance for all features
+                return np.ones(len(FEATURE_COLS))
+
+
 def generate_charts(model, X_test, y_test, y_pred, df_test, threshold):
     """Generate 6 evaluation charts, return dict of base64 PNG strings."""
     charts = {}
@@ -535,7 +587,7 @@ def generate_charts(model, X_test, y_test, y_pred, df_test, threshold):
 
     # 1. Feature Importance
     fig, ax = plt.subplots(figsize=(7, 4))
-    importances = model.feature_importances_
+    importances = _get_feature_importance(model)
     idx = np.argsort(importances)
     ax.barh([FEATURE_COLS[i] for i in idx], importances[idx], color='#2196F3')
     ax.set_title('Feature Importance', fontsize=13, fontweight='bold')
@@ -683,7 +735,7 @@ def _refresh_peer_benchmarks(df):
 
 # ── Main training orchestrator ────────────────────────────────────────────────
 
-def run_training(triggered_by='manual', use_transaction_level=True):
+def run_training(triggered_by='manual', use_transaction_level=True, model_type='xgboost'):
     """
     Full training pipeline.
 
@@ -691,6 +743,7 @@ def run_training(triggered_by='manual', use_transaction_level=True):
         triggered_by (str): 'manual', 'scheduler', etc.
         use_transaction_level (bool): If True, use enriched transactions table (84K rows)
                                        If False, use bank_loan_metrics table (1.1K rows)
+        model_type (str): 'xgboost', 'logistic_regression', etc.
 
     Returns a run record dict (same structure as stored in run_history.json).
     Raises RuntimeError if another run is already in progress.
@@ -713,6 +766,7 @@ def run_training(triggered_by='manual', use_transaction_level=True):
         'triggered_by':  triggered_by,
         'data_source':   data_source,
         'use_transaction_level': use_transaction_level,
+        'model_type':    model_type,
         'status':        'failed',
         'files_used':    [],
         'files_skipped': [],
@@ -755,9 +809,10 @@ def run_training(triggered_by='manual', use_transaction_level=True):
             print(f"[TRAIN] Dropped non-numeric columns: {dropped}")
             X = numeric_X
 
+        model_hp = hp.get('models', {}).get(model_type, hp.get('model', {}))
         X_train, X_test, y_train, y_test = train_test_split(
             X, y, test_size=test_size,
-            random_state=hp['model'].get('random_state', 42)
+            random_state=int(model_hp.get('random_state', 42))
         )
         df_test = merged.loc[X_test.index]
         record['train_rows'] = len(X_train)
@@ -767,7 +822,7 @@ def run_training(triggered_by='manual', use_transaction_level=True):
         n_neg_train = int((y_train == 0).sum())
         n_pos_train = int((y_train == 1).sum())
         auto_spw = round(n_neg_train / n_pos_train, 2) if n_pos_train > 0 else 1.0
-        model = train_model(X_train, y_train, hp)
+        model = train_model(X_train, y_train, hp, model_type=model_type)
 
         # Evaluate
         metrics, cm, y_pred = evaluate_model(model, X_test, y_test, df_test, threshold)
@@ -782,10 +837,39 @@ def run_training(triggered_by='manual', use_transaction_level=True):
             with open(os.path.join(run_charts_dir, f'{name}.b64'), 'w') as f:
                 f.write(b64)
 
-        # Model promotion: always promote if trained on >= min_rows_floor rows.
-        # We do NOT compare against the previous model — the new model always
-        # reflects the current portfolio reality (new customers, updated default
-        # classifications) and the old model has no knowledge of them.
+        # Save model to type-specific directory
+        model_type_dir = os.path.join(ML_DIR, 'models', model_type)
+        os.makedirs(model_type_dir, exist_ok=True)
+        type_model_path = os.path.join(model_type_dir, 'pd_model.pkl')
+        type_meta_path = os.path.join(model_type_dir, 'pd_model_metadata.json')
+
+        joblib.dump(model, type_model_path)
+
+        # Build metadata for this model type
+        model_type_label = 'XGBoost' if model_type == 'xgboost' else 'Logistic Regression'
+        new_meta = {
+            'model_type':   model_type_label,
+            'algorithm':    model_type,
+            'version':      run_id,
+            'date_trained': timestamp,
+            'triggered_by': triggered_by,
+            'features':     FEATURE_COLS,
+            'n_features':   len(FEATURE_COLS),
+            'target':       TARGET_COL,
+            'metrics':      metrics,
+            'hyperparameters': hp.get('models', {}).get(model_type, hp.get('model', {})),
+            'n_train':            len(X_train),
+            'rows_trained':       len(X_train),
+            'n_defaults_train':   n_pos_train,
+            'scale_pos_weight':   auto_spw,
+            'threshold':          threshold,
+            'currency':           'INR',
+            'note':               f'{model_type_label} binary classifier; target=default_flag (RBI 90-day NPA rule)',
+        }
+        with open(type_meta_path, 'w') as f:
+            json.dump(new_meta, f, indent=2)
+
+        # Promotion: always auto-activate if no active model exists yet, or if same type being retrained
         n_trained = len(X_train)
         rows_ok = n_trained >= min_rows_floor
         record['promotion_check'] = {
@@ -795,31 +879,20 @@ def run_training(triggered_by='manual', use_transaction_level=True):
         }
 
         if rows_ok:
-            if os.path.exists(MODEL_PATH):
-                shutil.copy2(MODEL_PATH, BACKUP_PATH)
-            joblib.dump(model, MODEL_PATH)
-            new_meta = {
-                'model_type':   'XGBoostClassifier',
-                'version':      run_id,
-                'date_trained': timestamp,
-                'triggered_by': triggered_by,
-                'features':     FEATURE_COLS,
-                'n_features':   len(FEATURE_COLS),
-                'target':       TARGET_COL,
-                'metrics':      metrics,
-                'hyperparameters': hp['model'],
-                'n_train':            len(X_train),
-                'rows_trained':       len(X_train),
-                'n_defaults_train':   n_pos_train,
-                'scale_pos_weight':   auto_spw,
-                'threshold':          threshold,
-                'currency':           'INR',
-                'note':               'XGBoost binary classifier; target=default_flag (RBI 90-day NPA rule)',
-            }
-            with open(META_PATH, 'w') as f:
-                json.dump(new_meta, f, indent=2)
-            record['model_promoted'] = True
-            _refresh_peer_benchmarks(merged)
+            # Auto-activate if this is the first model or if retraining the active type
+            active_type = None
+            if os.path.exists(os.path.join(ML_DIR, 'active_model.json')):
+                try:
+                    with open(os.path.join(ML_DIR, 'active_model.json')) as f:
+                        active_info = json.load(f)
+                        active_type = active_info.get('model_type')
+                except Exception:
+                    pass
+
+            if active_type is None or active_type == model_type:
+                activate_model(model_type)
+                record['model_promoted'] = True
+                _refresh_peer_benchmarks(merged)
 
         # Archive used files
         archive_training_files(files_used, run_id)
@@ -843,13 +916,55 @@ def run_training(triggered_by='manual', use_transaction_level=True):
     return record
 
 
+# ── Model Activation ─────────────────────────────────────────────────────────
+
+def activate_model(model_type):
+    """
+    Activate a model type as the current active model.
+    Copies model_type's pkl and metadata to the top-level active slot,
+    backs up the previous model, and updates active_model.json.
+    """
+    model_type_dir = os.path.join(ML_DIR, 'models', model_type)
+    type_model_path = os.path.join(model_type_dir, 'pd_model.pkl')
+    type_meta_path = os.path.join(model_type_dir, 'pd_model_metadata.json')
+
+    if not os.path.exists(type_model_path):
+        raise FileNotFoundError(f"No model found for type '{model_type}' at {type_model_path}")
+
+    # Backup current active model
+    if os.path.exists(MODEL_PATH):
+        shutil.copy2(MODEL_PATH, BACKUP_PATH)
+    if os.path.exists(META_PATH):
+        shutil.copy2(META_PATH, os.path.join(ML_DIR, 'pd_model_backup_metadata.json'))
+
+    # Copy model type's files to active slots
+    shutil.copy2(type_model_path, MODEL_PATH)
+    shutil.copy2(type_meta_path, META_PATH)
+
+    # Update active model tracker
+    active_info = {
+        'model_type': model_type,
+        'activated_at': datetime.now().isoformat(timespec='seconds'),
+    }
+    with open(os.path.join(ML_DIR, 'active_model.json'), 'w') as f:
+        json.dump(active_info, f, indent=2)
+
+    return {'status': 'activated', 'model_type': model_type}
+
+
 # ── Rollback ──────────────────────────────────────────────────────────────────
 
 def rollback_model():
-    """Restore pd_model_backup.pkl as the active model."""
+    """Restore pd_model_backup.pkl and its metadata as the active model."""
+    backup_meta_path = os.path.join(ML_DIR, 'pd_model_backup_metadata.json')
+
     if not os.path.exists(BACKUP_PATH):
         raise FileNotFoundError("No backup model found to roll back to.")
+
     shutil.copy2(BACKUP_PATH, MODEL_PATH)
+    if os.path.exists(backup_meta_path):
+        shutil.copy2(backup_meta_path, META_PATH)
+
     return {'status': 'rolled back', 'message': 'Previous model restored as active model.'}
 
 
