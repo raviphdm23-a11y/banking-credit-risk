@@ -1648,6 +1648,11 @@ def api_customer_bulk_export():
             SELECT DISTINCT c.id, c.first, c.last, c.email, c.phone, c.status,
                    k.cibil_score, k.annual_income, k.age, k.employment_type,
                    k.months_as_customer, k.num_late_payments_past_12m,
+                   k.gender, k.education_level, k.city_tier, k.residence_type,
+                   k.years_employed, k.existing_loans_count, k.num_existing_products,
+                   k.previous_default_flag, k.is_rural, k.is_pep, k.state,
+                   k.loan_purpose, k.marital_status, k.industry_sector, k.other_income,
+                   k.years_at_address, k.foir_declared,
                    COUNT(DISTINCT l.id) as loan_count,
                    SUM(l.outstanding) as total_outstanding,
                    COUNT(CASE WHEN l.loan_classification='NPA' THEN 1 END) as npa_count

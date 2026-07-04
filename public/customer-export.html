@@ -462,8 +462,9 @@
         <div class="button-group">
             <button onclick="applyFilters()">🔍 Apply Filters & Preview</button>
             <button class="secondary" onclick="resetFilters()">↻ Reset All Filters</button>
-            <button class="secondary" onclick="exportAsJSON()" id="exportJsonBtn" disabled>📥 Download JSON</button>
-            <button class="secondary" onclick="exportAsCSV()" id="exportCsvBtn" disabled>📊 Download CSV</button>
+            <button class="secondary" onclick="exportAsJSON()" id="exportJsonBtn" disabled>📥 Download JSON (Complete)</button>
+            <button class="secondary" onclick="exportAsMLFeaturesCSV()" id="exportMLCsvBtn" disabled>📊 Download CSV (ML Features)</button>
+            <button class="secondary" onclick="exportAsCSV()" id="exportCsvBtn" disabled>📊 Download CSV (Summary)</button>
         </div>
 
         <!-- RESULTS -->
@@ -667,6 +668,7 @@ function displayResults() {
         showMessage('No customers match the selected filters', 'info');
         document.getElementById('resultsPreview').classList.remove('active');
         document.getElementById('exportJsonBtn').disabled = true;
+        document.getElementById('exportMLCsvBtn').disabled = true;
         document.getElementById('exportCsvBtn').disabled = true;
         return;
     }
@@ -699,6 +701,7 @@ function displayResults() {
     `).join('');
 
     document.getElementById('exportJsonBtn').disabled = false;
+    document.getElementById('exportMLCsvBtn').disabled = false;
     document.getElementById('exportCsvBtn').disabled = false;
 
     showMessage(`Found ${currentResults.total_customers} customers matching your filters`, 'success');
@@ -719,14 +722,40 @@ function exportAsJSON() {
     showMessage('JSON downloaded successfully', 'success');
 }
 
+function exportAsMLFeaturesCSV() {
+    if (!currentResults || currentResults.customers.length === 0) return;
+
+    let csv = 'Customer ML Features Export\n';
+    csv += `Export Date,${new Date().toISOString()}\n`;
+    csv += `Total Customers,${currentResults.total_customers}\n`;
+    csv += `Filters Applied,${JSON.stringify(currentResults.filters_applied)}\n\n`;
+
+    csv += 'ML TRAINING FEATURES - ALL CUSTOMER DATA\n';
+    csv += 'ID,First Name,Last Name,Email,Phone,Status,Age,Gender,Employment Type,Years Employed,Annual Income (₹),Other Income (₹),FOIR,CIBIL Score,Previous Default,Months as Customer,Late Payments (12m),Existing Loans,Existing Products,Education,City Tier,Residence Type,Years at Address,Is Rural,Is PEP,State,Loan Purpose,Marital Status,Industry Sector,Loan Count,Total Outstanding (₹),NPA Count\n';
+
+    currentResults.customers.forEach(c => {
+        csv += `"${c.id}","${c.first}","${c.last}","${c.email}","${c.phone}","${c.status}",${c.age || ''},${c.gender || ''},"${c.employment_type || ''}",${c.years_employed || ''},${c.annual_income || ''},${c.other_income || ''},${c.foir || ''},${c.cibil_score || ''},${c.previous_default || ''},${c.months_as_customer || ''},${c.num_late_payments_past_12m || ''},${c.existing_loans_count || ''},${c.num_existing_products || ''},"${c.education_level || ''}","${c.city_tier || ''}","${c.residence_type || ''}",${c.years_at_address || ''},${c.is_rural || ''},${c.is_pep || ''},"${c.state || ''}","${c.loan_purpose || ''}","${c.marital_status || ''}","${c.industry_sector || ''}",${c.loan_count},${c.total_outstanding || ''},${c.npa_count || ''}\n`;
+    });
+
+    const blob = new Blob([csv], {type: 'text/csv'});
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `bulk_customers_ml_features_${new Date().toISOString().split('T')[0]}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+
+    showMessage('ML Features CSV downloaded successfully', 'success');
+}
+
 function exportAsCSV() {
     if (!currentResults || currentResults.customers.length === 0) return;
 
-    let csv = 'Customer Export\n';
+    let csv = 'Customer Summary Export\n';
     csv += `Export Date,${new Date().toISOString()}\n`;
     csv += `Total Customers,${currentResults.total_customers}\n\n`;
 
-    csv += 'CUSTOMER DATA\n';
+    csv += 'CUSTOMER SUMMARY DATA\n';
     csv += 'ID,First Name,Last Name,Email,Phone,Status,CIBIL,Annual Income (₹),Age,Months Customer,Loan Count,Total Outstanding,NPA Count\n';
 
     currentResults.customers.forEach(c => {
@@ -737,11 +766,11 @@ function exportAsCSV() {
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `bulk_customers_${new Date().toISOString().split('T')[0]}.csv`;
+    link.download = `bulk_customers_summary_${new Date().toISOString().split('T')[0]}.csv`;
     link.click();
     URL.revokeObjectURL(url);
 
-    showMessage('CSV downloaded successfully', 'success');
+    showMessage('Summary CSV downloaded successfully', 'success');
 }
 
 function resetFilters() {
