@@ -399,21 +399,21 @@ def load_and_merge(use_transaction_level=False):
     files_used = []
     files_skip = []
 
-    # --- Primary source: Transaction-level enriched data (NEW) ---
+    # --- PRIMARY DATA SOURCE (MUTUALLY EXCLUSIVE) ---
     if use_transaction_level:
+        print("[TRAIN] Using TRANSACTION-LEVEL data source (56K+ enriched transactions)")
         txn_df = load_from_enriched_transactions()
-        if txn_df is not None and len(txn_df) > 0:
-            print(f"[TRAIN] Loaded {len(txn_df)} enriched transactions")
-            # Skip validation for transaction-level data - already verified to be good
-            # Transaction data is pre-validated during enrichment process
-            frames.append(txn_df)
-            files_used.append({
-                'filename': 'enriched_transactions (bank.db - TRANSACTION LEVEL)',
-                'rows': len(txn_df)
-            })
-
-    # --- Primary source: SQLite bank_loan_metrics table (LEGACY) ---
-    if not use_transaction_level:
+        if txn_df is None or len(txn_df) == 0:
+            print("[TRAIN] ERROR: load_from_enriched_transactions() returned EMPTY!")
+            raise ValueError('[TRAIN] CRITICAL: No enriched transactions loaded! Check database or SQL.')
+        print(f"[TRAIN] ✓ SUCCESS: Loaded {len(txn_df):,} enriched transactions")
+        frames.append(txn_df)
+        files_used.append({
+            'filename': 'enriched_transactions (bank.db - TRANSACTION LEVEL)',
+            'rows': len(txn_df)
+        })
+    else:
+        print("[TRAIN] Using CUSTOMER-LEVEL data source (932 customers from bank_loan_metrics)")
         db_df = load_from_db()
         if db_df is not None:
             ok, err = _validate_dataframe(db_df, 'bank_loan_metrics')
