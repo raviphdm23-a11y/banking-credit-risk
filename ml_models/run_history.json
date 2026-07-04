@@ -1,5 +1,46 @@
 [
   {
+    "run_id": "run_20260704_144545",
+    "timestamp": "2026-07-04T14:45:45",
+    "triggered_by": "manual",
+    "data_source": "enriched_transactions (TRANSACTION-LEVEL)",
+    "use_transaction_level": true,
+    "status": "failed",
+    "files_used": [
+      {
+        "filename": "enriched_transactions (bank.db - TRANSACTION LEVEL)",
+        "rows": 56218
+      }
+    ],
+    "files_skipped": [],
+    "total_rows": 56218,
+    "train_rows": 44974,
+    "test_rows": 11244,
+    "metrics": {},
+    "confusion_matrix": [],
+    "model_promoted": false,
+    "duration_seconds": 0.72,
+    "error": "Traceback (most recent call last):\n  File \"C:\\Users\\Arnav\\OneDrive\\Desktop\\Axis_bank_credit_risk_analysis\\venv310\\lib\\site-packages\\xgboost\\data.py\", line 408, in pandas_feature_info\n    new_feature_types.append(_pandas_dtype_mapper[dtype.name])\nKeyError: 'object'\n\nDuring handling of the above exception, another exception occurred:\n\nTraceback (most recent call last):\n  File \"C:\\Users\\Arnav\\OneDrive\\Desktop\\Axis_bank_credit_risk_analysis\\ml_models\\trainer.py\", line 756, in run_training\n    model = train_model(X_train, y_train, hp)\n  File \"C:\\Users\\Arnav\\OneDrive\\Desktop\\Axis_bank_credit_risk_analysis\\ml_models\\trainer.py\", line 486, in train_model\n    model.fit(X_train, y_train)\n  File \"C:\\Users\\Arnav\\OneDrive\\Desktop\\Axis_bank_credit_risk_analysis\\venv310\\lib\\site-packages\\xgboost\\core.py\", line 751, in inner_f\n    return func(**kwargs)\n  File \"C:\\Users\\Arnav\\OneDrive\\Desktop\\Axis_bank_credit_risk_analysis\\venv310\\lib\\site-packages\\xgboost\\sklearn.py\", line 1787, in fit\n    train_dmatrix, evals = _wrap_evaluation_matrices(\n  File \"C:\\Users\\Arnav\\OneDrive\\Desktop\\Axis_bank_credit_risk_analysis\\venv310\\lib\\site-packages\\xgboost\\sklearn.py\", line 700, in _wrap_evaluation_matrices\n    train_dmatrix = create_dmatrix(\n  File \"C:\\Users\\Arnav\\OneDrive\\Desktop\\Axis_bank_credit_risk_analysis\\venv310\\lib\\site-packages\\xgboost\\sklearn.py\", line 1257, in _create_dmatrix\n    return QuantileDMatrix(\n  File \"C:\\Users\\Arnav\\OneDrive\\Desktop\\Axis_bank_credit_risk_analysis\\venv310\\lib\\site-packages\\xgboost\\core.py\", line 751, in inner_f\n    return func(**kwargs)\n  File \"C:\\Users\\Arnav\\OneDrive\\Desktop\\Axis_bank_credit_risk_analysis\\venv310\\lib\\site-packages\\xgboost\\core.py\", line 1719, in __init__\n    self._init(\n  File \"C:\\Users\\Arnav\\OneDrive\\Desktop\\Axis_bank_credit_risk_analysis\\venv310\\lib\\site-packages\\xgboost\\core.py\", line 1783, in _init\n    it.reraise()\n  File \"C:\\Users\\Arnav\\OneDrive\\Desktop\\Axis_bank_credit_risk_analysis\\venv310\\lib\\site-packages\\xgboost\\core.py\", line 594, in reraise\n    raise exc  # pylint: disable=raising-bad-type\n  File \"C:\\Users\\Arnav\\OneDrive\\Desktop\\Axis_bank_credit_risk_analysis\\venv310\\lib\\site-packages\\xgboost\\core.py\", line 575, in _handle_exception\n    return fn()\n  File \"C:\\Users\\Arnav\\OneDrive\\Desktop\\Axis_bank_credit_risk_analysis\\venv310\\lib\\site-packages\\xgboost\\core.py\", line 662, in <lambda>\n    return self._handle_exception(lambda: int(self.next(input_data)), 0)\n  File \"C:\\Users\\Arnav\\OneDrive\\Desktop\\Axis_bank_credit_risk_analysis\\venv310\\lib\\site-packages\\xgboost\\data.py\", line 1642, in next\n    input_data(**self.kwargs)\n  File \"C:\\Users\\Arnav\\OneDrive\\Desktop\\Axis_bank_credit_risk_analysis\\venv310\\lib\\site-packages\\xgboost\\core.py\", line 751, in inner_f\n    return func(**kwargs)\n  File \"C:\\Users\\Arnav\\OneDrive\\Desktop\\Axis_bank_credit_risk_analysis\\venv310\\lib\\site-packages\\xgboost\\core.py\", line 642, in input_data\n    new, feature_names, feature_types = _proxy_transform(\n  File \"C:\\Users\\Arnav\\OneDrive\\Desktop\\Axis_bank_credit_risk_analysis\\venv310\\lib\\site-packages\\xgboost\\data.py\", line 1695, in _proxy_transform\n    df, feature_names, feature_types = _transform_pandas_df(\n  File \"C:\\Users\\Arnav\\OneDrive\\Desktop\\Axis_bank_credit_risk_analysis\\venv310\\lib\\site-packages\\xgboost\\data.py\", line 668, in _transform_pandas_df\n    feature_names, feature_types = pandas_feature_info(\n  File \"C:\\Users\\Arnav\\OneDrive\\Desktop\\Axis_bank_credit_risk_analysis\\venv310\\lib\\site-packages\\xgboost\\data.py\", line 410, in pandas_feature_info\n    _invalid_dataframe_dtype(data)\n  File \"C:\\Users\\Arnav\\OneDrive\\Desktop\\Axis_bank_credit_risk_analysis\\venv310\\lib\\site-packages\\xgboost\\data.py\", line 373, in _invalid_dataframe_dtype\n    raise ValueError(msg)\nValueError: DataFrame.dtypes for data must be int, float, bool or category. When categorical type is supplied, the experimental DMatrix parameter`enable_categorical` must be set to `True`.  Invalid columns:gdp_growth_pct: object, inflation_cpi_pct: object, policy_rate_pct: object, unemployment_pct: object, delta_de_ratio: object, delta_cibil: object, delta_gdp_pct: object, delta_cpi_pct: object, delta_policy_rate_pct: object, delta_unemployment_pct: object, macro_regime_score: object\n"
+  },
+  {
+    "run_id": "run_20260704_144417",
+    "timestamp": "2026-07-04T14:44:17",
+    "triggered_by": "manual",
+    "data_source": "enriched_transactions (TRANSACTION-LEVEL)",
+    "use_transaction_level": true,
+    "status": "failed",
+    "files_used": [],
+    "files_skipped": [],
+    "total_rows": 0,
+    "train_rows": 0,
+    "test_rows": 0,
+    "metrics": {},
+    "confusion_matrix": [],
+    "model_promoted": false,
+    "duration_seconds": 0.59,
+    "error": "Traceback (most recent call last):\n  File \"C:\\Users\\Arnav\\OneDrive\\Desktop\\Axis_bank_credit_risk_analysis\\ml_models\\trainer.py\", line 736, in run_training\n    merged, files_used, files_skip, dupes = load_and_merge(use_transaction_level=use_transaction_level)\n  File \"C:\\Users\\Arnav\\OneDrive\\Desktop\\Axis_bank_credit_risk_analysis\\ml_models\\trainer.py\", line 409, in load_and_merge\n    print(f\"[TRAIN] \u2713 SUCCESS: Loaded {len(txn_df):,} enriched transactions\")\n  File \"C:\\Users\\Arnav\\AppData\\Local\\Programs\\Python\\Python310\\lib\\encodings\\cp1252.py\", line 19, in encode\n    return codecs.charmap_encode(input,self.errors,encoding_table)[0]\nUnicodeEncodeError: 'charmap' codec can't encode character '\\u2713' in position 8: character maps to <undefined>\n"
+  },
+  {
     "run_id": "run_20260704_144303",
     "timestamp": "2026-07-04T14:43:03",
     "triggered_by": "manual",
@@ -1823,96 +1864,6 @@
     "promotion_check": {
       "auc": 0.8937,
       "n_trained": 505,
-      "min_rows_floor": 100,
-      "rows_ok": true
-    }
-  },
-  {
-    "run_id": "run_20260618_224925",
-    "timestamp": "2026-06-18T22:49:25",
-    "triggered_by": "manual",
-    "status": "success",
-    "files_used": [
-      {
-        "filename": "bank_loan_metrics (bank.db)",
-        "rows": 632
-      }
-    ],
-    "files_skipped": [],
-    "total_rows": 632,
-    "train_rows": 505,
-    "test_rows": 127,
-    "metrics": {
-      "r2": 0.9666,
-      "rmse": 0.059072,
-      "mae": 0.028548,
-      "auc_roc": 0.8889,
-      "accuracy": 0.7717,
-      "precision": 0.4808,
-      "recall": 0.9259,
-      "f1": 0.6329
-    },
-    "confusion_matrix": [
-      [
-        73,
-        27
-      ],
-      [
-        2,
-        25
-      ]
-    ],
-    "model_promoted": true,
-    "duration_seconds": 0.8,
-    "error": null,
-    "promotion_check": {
-      "auc": 0.8889,
-      "n_trained": 505,
-      "min_rows_floor": 100,
-      "rows_ok": true
-    }
-  },
-  {
-    "run_id": "run_20260618_224444",
-    "timestamp": "2026-06-18T22:44:44",
-    "triggered_by": "manual",
-    "status": "success",
-    "files_used": [
-      {
-        "filename": "bank_loan_metrics (bank.db)",
-        "rows": 582
-      }
-    ],
-    "files_skipped": [],
-    "total_rows": 582,
-    "train_rows": 465,
-    "test_rows": 117,
-    "metrics": {
-      "r2": 0.9684,
-      "rmse": 0.055314,
-      "mae": 0.029036,
-      "auc_roc": 0.8701,
-      "accuracy": 0.7094,
-      "precision": 0.4038,
-      "recall": 0.875,
-      "f1": 0.5526
-    },
-    "confusion_matrix": [
-      [
-        62,
-        31
-      ],
-      [
-        3,
-        21
-      ]
-    ],
-    "model_promoted": true,
-    "duration_seconds": 0.8,
-    "error": null,
-    "promotion_check": {
-      "auc": 0.8701,
-      "n_trained": 465,
       "min_rows_floor": 100,
       "rows_ok": true
     }

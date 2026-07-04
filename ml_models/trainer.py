@@ -406,7 +406,7 @@ def load_and_merge(use_transaction_level=False):
         if txn_df is None or len(txn_df) == 0:
             print("[TRAIN] ERROR: load_from_enriched_transactions() returned EMPTY!")
             raise ValueError('[TRAIN] CRITICAL: No enriched transactions loaded! Check database or SQL.')
-        print(f"[TRAIN] ✓ SUCCESS: Loaded {len(txn_df):,} enriched transactions")
+        print(f"[TRAIN] SUCCESS: Loaded {len(txn_df):,} enriched transactions")
         frames.append(txn_df)
         files_used.append({
             'filename': 'enriched_transactions (bank.db - TRANSACTION LEVEL)',
