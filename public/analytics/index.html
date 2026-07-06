@@ -126,7 +126,6 @@
         <div class="gate-card" id="gGNPA"><div class="gate-label">GNPA Ratio</div><div class="gate-value">—</div><div class="gate-status">—</div></div>
         <div class="gate-card" id="gPAT"><div class="gate-label">Monthly PAT</div><div class="gate-value">—</div><div class="gate-status">—</div></div>
         <div class="gate-card" id="gCAR"><div class="gate-label">CAR</div><div class="gate-value">—</div><div class="gate-status">—</div></div>
-        <div class="gate-card" id="gMorat"><div class="gate-label">Moratorium</div><div class="gate-value">—</div><div class="gate-status">—</div></div>
         <div class="gate-card" id="gDisbur"><div class="gate-label">New Disbursals</div><div class="gate-value">—</div><div class="gate-status">—</div></div>
     </div>
 </div>
@@ -172,14 +171,6 @@
                     <td class="action">Freeze new lending. Begin AT1 bond shelf-prospectus (S6). Review RWA by exposure class — shift mix toward zero-risk-weight G-Secs temporarily.</td>
                 </tr>
                 <tr>
-                    <td class="metric-name">Moratorium Residual</td>
-                    <td class="g">&lt; 15%</td>
-                    <td class="a">15% – 25%</td>
-                    <td class="r">&gt; 25%</td>
-                    <td class="rationale">Moratorium loans have frozen DPD — no real credit signal. Above 25%, more than 1-in-4 borrowers are effectively unmonitored; NPA risk is hidden, not absent. Below 15%, the cliff risk is manageable with normal provisions. Industry-wide moratorium peaked at ~50%; we target faster exit.</td>
-                    <td class="action">Accelerate borrower outreach — call all Amber accounts. Extend OTR window. Build additional floating provision of Rs 1–2 Cr per month until below 15%.</td>
-                </tr>
-                <tr>
                     <td class="metric-name">New Disbursals</td>
                     <td class="g">&gt; 25 loans</td>
                     <td class="a">15 – 25 loans</td>
@@ -203,7 +194,6 @@
     <div class="kpi-card"><div class="kpi-label">Monthly PAT</div><div class="kpi-value" id="kPAT">—</div><div class="kpi-delta" id="kPATd">—</div></div>
     <div class="kpi-card"><div class="kpi-label">NPA Count</div><div class="kpi-value" id="kNPA">—</div><div class="kpi-delta" id="kNPAd">—</div></div>
     <div class="kpi-card"><div class="kpi-label">ROTE</div><div class="kpi-value" id="kROTE">—</div><div class="kpi-delta" id="kROTEd">—</div></div>
-    <div class="kpi-card"><div class="kpi-label">Moratorium %</div><div class="kpi-value" id="kMorat">—</div><div class="kpi-delta" id="kMoratd">—</div></div>
 </div>
 
 <div class="section-divider">Capital &amp; Liquidity</div>
@@ -244,7 +234,7 @@
     </div>
 </div>
 
-<div class="section-divider">Asset Quality &amp; Moratorium</div>
+<div class="section-divider">Asset Quality &amp; Disbursals</div>
 <div class="chart-grid">
     <div class="chart-panel">
         <div class="panel-title">Asset Quality &amp; Provisions</div>
@@ -252,21 +242,8 @@
         <div class="chart-wrap"><canvas id="chartNPA"></canvas></div>
     </div>
     <div class="chart-panel">
-        <div class="panel-title">Moratorium Trend</div>
-        <div class="panel-sub">Moratorium loans (bars) · Moratorium % of book (line)</div>
-        <div class="chart-wrap"><canvas id="chartMorat"></canvas></div>
-    </div>
-    <div class="chart-panel">
-        <div class="panel-title">Current Moratorium Stratification</div>
-        <div class="panel-sub">Green (will resume) · Amber (OTR) · Red (at-risk)</div>
-        <div class="donut-layout">
-            <div class="donut-wrap"><canvas id="chartStrat"></canvas></div>
-            <div class="donut-legend" id="stratLegend"></div>
-        </div>
-    </div>
-    <div class="chart-panel">
-        <div class="panel-title">Monthly New Disbursals</div>
-        <div class="panel-sub">New loans disbursed per period — posture indicator</div>
+        <div class="panel-title">New Disbursals</div>
+        <div class="panel-sub">Loans disbursed per period (live count) — posture indicator</div>
         <div class="chart-wrap"><canvas id="chartDisbur"></canvas></div>
     </div>
 </div>
@@ -312,11 +289,10 @@ const GATE_FMT = {
     gnpa:       v => v.toFixed(2)+'%',
     pat:        v => 'Rs '+v.toFixed(2)+' Cr',
     car:        v => v.toFixed(2)+'%',
-    moratorium: v => v.toFixed(1)+'%',
     disbursals: v => v+' loans',
 };
-const GATE_IDS = { gnpa:'gGNPA', pat:'gPAT', car:'gCAR', moratorium:'gMorat', disbursals:'gDisbur' };
-const GATE_LABELS = { gnpa:'GNPA Ratio', pat:'Monthly PAT', car:'CAR', moratorium:'Moratorium', disbursals:'New Disbursals' };
+const GATE_IDS = { gnpa:'gGNPA', pat:'gPAT', car:'gCAR', disbursals:'gDisbur' };
+const GATE_LABELS = { gnpa:'GNPA Ratio', pat:'Monthly PAT', car:'CAR', disbursals:'New Disbursals' };
 
 function renderGate(gate) {
     if(!gate || !gate.gnpa) return;
@@ -363,7 +339,7 @@ function render(d) {
 
     const thr = d.thresholds, cap = d.capital, liq = d.liquidity,
           bs  = d.balance,    pl  = d.pl,      eff = d.efficiency || [],
-          mor = d.moratorium || [];
+          disb_series = d.disbursals || [];
 
     // Decision Gate
     renderGate(d.decision_gate);
@@ -389,10 +365,6 @@ function render(d) {
         const l=eff[eff.length-1], p=eff.length>=2?eff[eff.length-2]:null;
         setKPI('kNIM','kNIMd', l.nim, p?.nim, '%');
         setKPI('kCI','kCId', l.cost_to_income, p?.cost_to_income, '%', 1, false);
-    }
-    if(mor.length) {
-        const l=mor[mor.length-1], p=mor.length>=2?mor[mor.length-2]:null;
-        setKPI('kMorat','kMoratd', l.pct, p?.pct, '%', 1, false);
     }
 
     // ── 1. Capital Adequacy ──────────────────────────────────────────────────
@@ -509,64 +481,14 @@ function render(d) {
             scales:{x:scX(), y:scY('NPA Count'), y2:scY2('% / Rs Cr')}}
     });
 
-    // ── 8. Moratorium Trend ───────────────────────────────────────────────────
-    const morPeriods = mor.filter(r=>r.count>0);
-    mk('chartMorat',{type:'bar',
-        data:{ labels:morPeriods.map(r=>r.period), datasets:[
-            {label:'Moratorium Loans', data:morPeriods.map(r=>r.count),
-             backgroundColor:'rgba(251,191,36,0.6)', borderRadius:4, yAxisID:'y'},
-            {label:'Moratorium %', type:'line', data:morPeriods.map(r=>r.pct),
-             borderColor:'#f87171', pointRadius:5, tension:.3, yAxisID:'y2'},
-            {label:'Book (Rs Cr)', type:'line', data:morPeriods.map(r=>r.book_cr),
-             borderColor:'#a78bfa', pointRadius:5, tension:.3, borderDash:[5,3], yAxisID:'y2'},
-        ]},
-        options:{responsive:true,maintainAspectRatio:false,
-            plugins:{legend:LEGEND,tooltip:tip()},
-            scales:{x:scX(), y:scY('Count'), y2:scY2('% / Rs Cr')}}
-    });
-
-    // ── 9. Stratification Donut (latest period with G/A/R data) ──────────────
-    const latest_strat = [...mor].reverse().find(r=>r.green>0||r.amber>0||r.red>0);
-    if(latest_strat) {
-        const {green,amber,red,book_cr,period:sp} = latest_strat;
-        const total = green+amber+red;
-        mk('chartStrat',{type:'doughnut',
-            data:{ labels:['Green','Amber','Red'],
-                   datasets:[{data:[green,amber,red],
-                              backgroundColor:['rgba(16,185,129,0.75)','rgba(245,158,11,0.75)','rgba(239,68,68,0.75)'],
-                              borderColor:['#10b981','#f59e0b','#ef4444'],
-                              borderWidth:2, hoverOffset:4}]},
-            options:{responsive:true,maintainAspectRatio:false,cutout:'62%',
-                plugins:{legend:{display:false},tooltip:tip()}}
-        });
-        const leg = document.getElementById('stratLegend');
-        const rows = [
-            {c:'#10b981',lbl:'Green — Resume EMIs',n:green,note:'Sep 1 restart expected'},
-            {c:'#f59e0b',lbl:'Amber — OTR Candidates',n:amber,note:'Restructuring needed'},
-            {c:'#ef4444',lbl:'Red — At Risk',n:red,note:'Likely default'},
-        ];
-        leg.innerHTML = rows.map(r=>`
-            <div class="dl-row">
-                <div class="dl-dot" style="background:${r.c}"></div>
-                <div class="dl-label">${r.lbl}</div>
-                <div>
-                    <div class="dl-val">${r.n} <span style="font-weight:400;color:rgba(255,255,255,0.4)">(${total?Math.round(r.n/total*100):0}%)</span></div>
-                    <div class="dl-sub">${r.note}</div>
-                </div>
-            </div>`).join('');
-        leg.innerHTML += `<div style="font-size:.7em;color:rgba(255,255,255,.3);margin-top:6px">As of ${sp} · Rs${book_cr} Cr moratorium book</div>`;
-    }
-
-    // ── 10. Monthly Disbursals ────────────────────────────────────────────────
-    const disb = mor.filter(r=>r.new_disbursals>0);
-    const disbColors = disb.map(r => {
-        const g=d.decision_gate;
+    // ── 8. New Disbursals (live count of loans.disbursed per period) ────────
+    const disbColors = disb_series.map(r => {
         const status = r.gate?.disbursals || '';
         return status==='GREEN'?'rgba(52,211,153,0.7)':status==='AMBER'?'rgba(251,191,36,0.7)':'rgba(248,113,113,0.6)';
     });
     mk('chartDisbur',{type:'bar',
-        data:{ labels:disb.map(r=>r.period), datasets:[
-            {label:'New Loans', data:disb.map(r=>r.new_disbursals),
+        data:{ labels:disb_series.map(r=>r.period), datasets:[
+            {label:'New Loans', data:disb_series.map(r=>r.count),
              backgroundColor:disbColors, borderRadius:5},
         ]},
         options:{responsive:true,maintainAspectRatio:false,

@@ -8,7 +8,7 @@
 **Location:** `C:\Users\Arnav\OneDrive\Desktop\Daily reading\Banking_Credit_Risk`  
 **Last Updated:** June 19, 2026  
 
-> **⚠️ Axis Bank Simulation Clock:** For the `bank_Axis.db` experiment, the frozen simulation date is **2020-03-31**. All date-sensitive operations (NPA batch `as_of_date`, transaction generation, DPD, regulatory reports) must use this date — not the real system date. The user will say "the date has changed to X" to advance the clock.
+> **📅 Reporting Clock:** Balance sheet, P&L, and regulatory reports are anchored to the most recently closed fiscal year, tracked in `simulation_clock.json` (`sim_date`/`sim_period` = current, `prior_date`/`prior_period` = prior-year comparison column) — currently **FY2026** (as-on **2026-03-31**). This is no longer a frozen date: to roll forward to a new fiscal year-end, update `simulation_clock.json` and rerun `operations/scripts/seed_bank_balance_sheet.py`, `seed_bank_profit_loss.py`, and the regulatory batch (`POST /regulatory/api/run-batch`), then restart Flask (the clock loads once at import time).
 
 **Six departments** from home page (`public/index.html`): Credit Risk (`/`), Banking Operations (`/operations/`), Regulatory Reporting (`/regulatory/`), Relationship Management (`/relationship/`), Financial Reporting (`/financials/`), Global Reference Data (`/reference/`).
 

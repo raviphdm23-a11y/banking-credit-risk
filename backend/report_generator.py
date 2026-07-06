@@ -310,8 +310,15 @@ def _build_latex(case: dict, M: dict, charts: dict, now: datetime) -> str:
             + reason_rows + r"\bottomrule\end{tabularx}")
     peer_section = ""
     if peer_rows:
+        peer_seg = M.get("peer_segment") or {}
+        seg_label = ""
+        if peer_seg.get("exposure_class"):
+            seg_name = _tex(peer_seg["exposure_class"].replace('_', ' '))
+            n_note = f" (n={peer_seg['n_peers']})" if peer_seg.get("n_peers") else ""
+            seg_label = rf"\textit{{\small Compared against: {seg_name} peers{n_note}}}\\[4pt]"
         peer_section = (
             r"\section*{\textcolor{navy}{Metrics vs Approved Borrowers}}"
+            + seg_label +
             r"\renewcommand{\arraystretch}{1.2}"
             r"\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}X l l l l@{}}"
             r"\toprule \textbf{Metric} & \textbf{Applicant} & \textbf{Approved median} & "

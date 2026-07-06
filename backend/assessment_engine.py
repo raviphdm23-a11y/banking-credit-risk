@@ -48,12 +48,16 @@ class AssessmentEngine:
         findings = engine.assess(inputs_dict)
     """
 
-    def __init__(self, model, model_version: str = "unknown", db_path: str = None):
+    def __init__(self, model, model_version: str = "unknown", db_path: str = None, exposure_class: str = None):
         self._model        = model
         self._version      = model_version
         self._db_path      = db_path
-        self._peer         = PeerComparison()
-        self._counterfact  = CounterfactualEngine(model)
+        self._exposure_class = exposure_class
+        # Segment-scoped peer benchmarks: a CORPORATE engine's peer
+        # comparisons/counterfactuals are drawn from CORPORATE peers only,
+        # not the whole blended portfolio - see explainability.load_peer_benchmarks().
+        self._peer         = PeerComparison(exposure_class=exposure_class)
+        self._counterfact  = CounterfactualEngine(model, exposure_class=exposure_class)
         # Pre-build baseline feature dict for marginal attribution
         self._baseline_vals = {f: FEATURE_META[f]["baseline"] for f in FEATURE_ORDER}
         # Tier 1: Cache learned thresholds for Five C's (computed on first use)
@@ -137,6 +141,11 @@ class AssessmentEngine:
         # 9b. Peer comparison + counterfactuals
         peer_health    = self._peer.compare(inputs)
         counterfactuals = self._counterfact.generate(inputs, attribution)
+        peer_meta = self._peer.benchmarks.get('_meta', {}) if isinstance(self._peer.benchmarks, dict) else {}
+        peer_segment = {
+            "exposure_class": self._exposure_class or inputs.get('exposure_class') or 'ALL',
+            "n_peers": peer_meta.get('n_approved'),
+        }
 
         # 10. Assemble & hash
         mrs = float(inputs.get('macro_regime_score', 0.0))
@@ -163,6 +172,7 @@ class AssessmentEngine:
             "recommendation":    recommendation,
             "five_cs":           five_cs,
             "peer_health":       peer_health,
+            "peer_segment":      peer_segment,
             "counterfactuals":   counterfactuals,
             "macro_regime": {
                 "score":                 round(mrs, 1),

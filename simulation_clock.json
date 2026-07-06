@@ -1,8 +1,9 @@
 {
-  "sim_date": "2025-03-31",
-  "sim_period": "FY2025",
-  "prior_period": "FY2024",
-  "description": "Updated simulation clock to match actual financial data (FY2024/FY2025). All 9 banks have live-anchored financials.",
-  "last_updated": "2026-06-19",
-  "notes": "FY2025: All 9 global banks with real ledger-anchored balance sheets and P&L. Advances net from actual loans, deposits from actual accounts. CAR/LCR/NSFR computed from live data."
+  "sim_date": "2026-03-31",
+  "sim_period": "FY2026",
+  "prior_date": "2025-03-31",
+  "prior_period": "FY2025",
+  "description": "Reporting clock anchored to the most recently closed fiscal year-end. No longer frozen - advance by editing this file and rerunning seed_bank_balance_sheet.py, seed_bank_profit_loss.py, and the regulatory batch, then restart Flask.",
+  "last_updated": "2026-07-05",
+  "notes": "FY2026: All 9 global banks with real ledger-anchored balance sheets and P&L. Advances net from actual loans, deposits from actual accounts. CAR/LCR/NSFR computed from live data."
 }

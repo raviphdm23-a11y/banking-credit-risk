@@ -67,11 +67,35 @@ CREATE TABLE IF NOT EXISTS reg_client_exposures (
     capital_charge REAL, expected_loss REAL, provision REAL,
     generated_at TEXT
 );
+CREATE TABLE IF NOT EXISTS regulatory_requirements (
+    requirement_id TEXT PRIMARY KEY,
+    title TEXT, description TEXT, regulator TEXT, category TEXT
+);
+CREATE TABLE IF NOT EXISTS regulatory_compliance (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    bank_id TEXT, requirement_id TEXT, compliance_status TEXT,
+    last_audit_date TEXT, next_audit_date TEXT, notes TEXT
+);
 CREATE INDEX IF NOT EXISTS idx_cap_bank_date ON reg_capital_reports(bank_id, report_date);
 CREATE INDEX IF NOT EXISTS idx_liq_bank_date ON reg_liquidity_reports(bank_id, report_date);
 CREATE INDEX IF NOT EXISTS idx_exp_bank_date ON reg_client_exposures(bank_id, report_date);
 CREATE INDEX IF NOT EXISTS idx_exp_cid ON reg_client_exposures(cid);
+CREATE INDEX IF NOT EXISTS idx_compliance_bank ON regulatory_compliance(bank_id);
 """
+
+# One row per requirement_id referenced by backend.regulatory_engine.compliance_assessment() -
+# these were never actually seeded anywhere (regulatory_compliance.requirement_id pointed at a
+# table, regulatory_requirements, that plain didn't exist), which 500'd the regulatory
+# department's per-bank detail page (GET /regulatory/api/banks/<id>).
+_REQUIREMENTS = [
+    ('REQ-RBI-001', 'Asset Quality Monitoring', 'RBI supervisory monitoring of Gross NPA ratio '
+     'as an early-warning indicator of asset quality deterioration.', 'RBI', 'Asset Quality'),
+    ('REQ-RBI-002', 'Capital & Liquidity Adequacy (Basel III)', 'Minimum CRAR (CAR), CET1, LCR and '
+     'NSFR thresholds per RBI Basel III capital and liquidity guidelines.', 'RBI', 'Capital Adequacy'),
+    ('REQ-RBI-005', 'Statutory Liquidity Requirements', 'Cash Reserve Ratio (CRR) and Statutory '
+     'Liquidity Ratio (SLR) maintained per the Banking Regulation Act / RBI directives.', 'RBI',
+     'Statutory Liquidity'),
+]
 
 _CAP_COLS = ['bank_id', 'report_date', 'credit_rwa', 'operational_rwa', 'market_rwa',
              'total_rwa', 'tier1_capital', 'tier2_capital', 'total_capital',
@@ -108,6 +132,10 @@ def run_batch(db_path=DB_PATH, report_date=None, verbose=True):
     conn.row_factory = sqlite3.Row
     cur = conn.cursor()
     cur.executescript(SCHEMA)
+    cur.executemany(
+        "INSERT OR IGNORE INTO regulatory_requirements "
+        "(requirement_id, title, description, regulator, category) VALUES (?,?,?,?,?)",
+        _REQUIREMENTS)
 
     # Ensure the balance sheet exists so capital/liquidity use real figures, not
     # proxies. Self-seeds on a fresh DB (e.g. first GCP deploy).

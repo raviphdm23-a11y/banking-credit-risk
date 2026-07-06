@@ -41,7 +41,7 @@
     "min_rows_floor": 100
   },
   "schedule": {
-    "enabled": true,
+    "enabled": false,
     "frequency": "weekly",
     "day_of_week": "sun",
     "hour": 2,

@@ -5,6 +5,7 @@ Flask API for AIRB, Standardized Approach calculations, and Admin/ML Training.
 
 import os
 import json
+import shutil
 import threading
 from flask import Flask, render_template, request, jsonify, send_from_directory
 from flask_cors import CORS
@@ -75,6 +76,73 @@ def _get_model_version():
         return 'unknown'
 
 _assessment_engine = _AssessmentEngine(_pd_model, _get_model_version(), db_path=_OPS_DB_PATH)
+
+# ── Segmented PD models (one per Basel exposure_class) ───────────────────────
+# A live system must score a CORPORATE loan with the CORPORATE model and a
+# RETAIL_OTHER loan with the RETAIL_OTHER model at the same time, so unlike
+# the single _pd_model/_assessment_engine above (kept for the unsegmented
+# legacy 'ALL' slot and non-scoring endpoints), this is a small registry of
+# independently-loaded engines, one per segment. Mirrors the active-slot file
+# naming convention in ml_models/trainer.py's _segment_paths().
+EXPOSURE_CLASSES = ['CORPORATE', 'SME', 'RETAIL_MORTGAGES', 'RETAIL_OTHER']
+
+
+def _segment_model_paths(exposure_class):
+    ml_dir = os.path.join(os.path.dirname(__file__), 'ml_models')
+    return (
+        os.path.join(ml_dir, f'pd_model_{exposure_class}.pkl'),
+        os.path.join(ml_dir, f'pd_model_metadata_{exposure_class}.json'),
+    )
+
+
+def _segment_model_version(exposure_class):
+    _, meta_path = _segment_model_paths(exposure_class)
+    try:
+        with open(meta_path) as f:
+            return json.load(f).get('version', 'unknown')
+    except Exception:
+        return 'unknown'
+
+
+def _build_segment_engine(exposure_class):
+    model_path, _ = _segment_model_paths(exposure_class)
+    try:
+        model = _joblib.load(model_path)
+    except Exception as e:
+        print(f"WARNING: No trained model yet for segment '{exposure_class}': {e}")
+        return None
+    return _AssessmentEngine(model, _segment_model_version(exposure_class), db_path=_OPS_DB_PATH, exposure_class=exposure_class)
+
+
+_segment_engines = {seg: _build_segment_engine(seg) for seg in EXPOSURE_CLASSES}
+
+
+def _resolve_segment_engine(data):
+    """
+    Validate the exposure_class on a scoring request and return its engine.
+    Returns (engine, None) on success, or (None, (json_response, status)) on
+    failure - per the confirmed decision, a missing/unrecognized/untrained
+    exposure_class is REJECTED rather than silently falling back to a
+    default segment or a blended model.
+    """
+    exposure_class = (data.get('exposure_class') or '').strip().upper()
+    if not exposure_class:
+        return None, (jsonify({
+            'error': 'exposure_class is required',
+            'message': f'Provide exposure_class as one of: {", ".join(EXPOSURE_CLASSES)}'
+        }), 400)
+    if exposure_class not in EXPOSURE_CLASSES:
+        return None, (jsonify({
+            'error': 'Unrecognized exposure_class',
+            'message': f'exposure_class must be one of: {", ".join(EXPOSURE_CLASSES)}'
+        }), 400)
+    engine = _segment_engines.get(exposure_class)
+    if engine is None:
+        return None, (jsonify({
+            'error': 'No trained model available for this segment',
+            'message': f'No active model has been trained/activated yet for exposure_class={exposure_class}'
+        }), 503)
+    return engine, None
 
 # In-memory report cache keyed by report_id (uuid).
 _report_cache: dict = {}
@@ -405,19 +473,18 @@ def predict_pd_ml():
     try:
         data = request.get_json()
 
-        if _pd_model is None:
-            return jsonify({
-                'error': 'ML model not available',
-                'message': 'Model could not be loaded at startup'
-            }), 503
+        engine, err = _resolve_segment_engine(data)
+        if err:
+            return err
+        model = engine._model
 
         # Build feature frame aligned to the model's expected schema.
         # Missing values default to population medians (feature_meta.py).
-        df_features = model_feature_frame(data, _pd_model)
+        df_features = model_feature_frame(data, model)
         features = df_features.values
 
         # Use predict_proba to get probability of default (class 1)
-        pd_decimal = float(_pd_model.predict_proba(features)[0][1])
+        pd_decimal = float(model.predict_proba(features)[0][1])
         pd_decimal = max(0.0001, min(1.0, pd_decimal))
 
         breakdown = {
@@ -428,11 +495,12 @@ def predict_pd_ml():
             'liquidity_adjustment': round(max(0, (1.5 - float(data.get('liquidity_ratio', 0))) * 3.0), 4)
         }
 
-        # Get actual model type from metadata
+        # Get actual model type from this segment's own metadata
         model_type_label = 'Unknown'
         try:
-            if os.path.exists(_META_PATH):
-                with open(_META_PATH) as f:
+            _, seg_meta_path = _segment_model_paths(data.get('exposure_class', '').strip().upper())
+            if os.path.exists(seg_meta_path):
+                with open(seg_meta_path) as f:
                     metadata = json.load(f)
                     model_type_label = metadata.get('model_type', 'Unknown')
         except Exception:
@@ -509,7 +577,10 @@ def assess_borrower():
     """
     try:
         data = request.get_json(force=True) or {}
-        findings = _assessment_engine.assess(data)
+        engine, err = _resolve_segment_engine(data)
+        if err:
+            return err
+        findings = engine.assess(data)
         return jsonify(findings), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -567,7 +638,10 @@ def assess_borrower_with_shap():
     """
     try:
         data = request.get_json(force=True) or {}
-        findings = _assessment_engine.assess(data)
+        engine, err = _resolve_segment_engine(data)
+        if err:
+            return err
+        findings = engine.assess(data)
         # SHAP is automatically included in findings if explainer available
         return jsonify(findings), 200
     except Exception as e:
@@ -626,7 +700,10 @@ def generate_report():
     """
     try:
         data = request.get_json(force=True) or {}
-        findings = _assessment_engine.assess(data)
+        engine, err = _resolve_segment_engine(data)
+        if err:
+            return err
+        findings = engine.assess(data)
         report_id = findings['report_id']
         _report_cache[report_id] = findings
 
@@ -967,22 +1044,48 @@ def admin_trigger_train():
         if is_training_running():
             return jsonify({'error': 'Training already in progress'}), 409
 
-        # Get parameters from query string or request body
-        use_legacy = request.args.get('use_legacy', '0') == '1'
-        use_transaction_level = not use_legacy
+        # Get parameters from query string or request body.
+        # Default is CUSTOMER-LEVEL (one row per loan, ~900-1500 rows) - this is
+        # the grain we settled on for both XGBoost and Logistic Regression after
+        # finding transaction-level training only adds row-count inflation
+        # (many near-identical rows per loan) without a real accuracy gain, once
+        # group leakage is accounted for. Pass ?use_transaction_level=1 to opt
+        # into the 56K+ enriched_transactions table instead.
+        use_transaction_level = request.args.get('use_transaction_level', '0') == '1'
         model_type = request.args.get('model_type', 'xgboost')
 
+        # Optional bank filter: JSON body {"bank_ids": ["BANK001", "BANK002"]}
+        # or query string ?bank_ids=BANK001,BANK002. Empty/absent = all banks.
+        bank_ids = None
+        body = request.get_json(silent=True) or {}
+        if body.get('bank_ids'):
+            bank_ids = [b for b in body['bank_ids'] if b]
+        elif request.args.get('bank_ids'):
+            bank_ids = [b.strip() for b in request.args.get('bank_ids').split(',') if b.strip()]
+
+        # exposure_class is now REQUIRED - the unsegmented 'ALL' model has been
+        # retired (it was never used for actual scoring once segment routing
+        # went live; only a leftover from before segmentation). Only the 4
+        # Basel segments can be trained going forward.
+        exposure_class = body.get('exposure_class') or request.args.get('exposure_class') or None
+        if not exposure_class:
+            return jsonify({
+                'error': 'exposure_class is required',
+                'message': 'The unsegmented "ALL" model has been retired. '
+                           'Train one of: CORPORATE, SME, RETAIL_MORTGAGES, RETAIL_OTHER.'
+            }), 400
+        if exposure_class not in EXPOSURE_CLASSES:
+            return jsonify({
+                'error': 'Unrecognized exposure_class',
+                'message': f'exposure_class must be one of: {", ".join(EXPOSURE_CLASSES)}'
+            }), 400
+
         def _run():
-            global _pd_model
-            result = run_training(triggered_by='manual', use_transaction_level=use_transaction_level, model_type=model_type)
-            if result['status'] == 'success' and (result['model_promoted'] or _pd_model is None):
-                try:
-                    import joblib
-                    _pd_model = joblib.load(_MODEL_PATH)
-                    _assessment_engine.__init__(_pd_model, _get_model_version(), db_path=_OPS_DB_PATH)
-                    print(f"Model reloaded in-process after training run {result['run_id']}")
-                except Exception as reload_err:
-                    print(f"WARNING: Could not reload model after training: {reload_err}")
+            result = run_training(triggered_by='manual', use_transaction_level=use_transaction_level,
+                                   model_type=model_type, bank_ids=bank_ids, exposure_class=exposure_class)
+            if result['status'] == 'success' and result['model_promoted']:
+                _segment_engines[exposure_class] = _build_segment_engine(exposure_class)
+                print(f"Segment engine reloaded for {exposure_class} after training run {result['run_id']}")
 
         t = threading.Thread(target=_run, daemon=True)
         t.start()
@@ -999,39 +1102,90 @@ def admin_get_models():
     if not _check_admin_auth(): return _admin_auth_error()
     try:
         import os
+        from ml_models.trainer import _load_active_model_registry
 
         models_dir = os.path.join(os.path.dirname(__file__), 'ml_models', 'models')
         models = []
-        active_model_type = None
+        registry = _load_active_model_registry()  # {segment: {model_type, bank_key, exposure_class, activated_at}}
 
-        # Get active model type
-        active_model_file = os.path.join(os.path.dirname(__file__), 'ml_models', 'active_model.json')
-        if os.path.exists(active_model_file):
-            try:
-                with open(active_model_file) as f:
-                    active_info = json.load(f)
-                    active_model_type = active_info.get('model_type')
-            except Exception:
-                pass
+        def is_active(model_type, bank_combo, seg):
+            entry = registry.get(seg) or {}
+            return entry.get('model_type') == model_type and entry.get('bank_key') == bank_combo
 
-        # Scan for trained models
+        # Scan the 3-level layout: models/<model_type>/<bank_combo>/<exposure_class>/pd_model_metadata.json
+        # with back-compat for two older, shallower layouts:
+        #   models/<model_type>/<bank_combo>/pd_model_metadata.json      (pre-exposure_class)
+        #   models/<model_type>/pd_model_metadata.json                    (pre-bank_combo)
         if os.path.exists(models_dir):
             for model_type in os.listdir(models_dir):
-                meta_file = os.path.join(models_dir, model_type, 'pd_model_metadata.json')
-                if os.path.exists(meta_file):
+                model_type_dir = os.path.join(models_dir, model_type)
+                if not os.path.isdir(model_type_dir):
+                    continue
+
+                legacy_flat_meta = os.path.join(model_type_dir, 'pd_model_metadata.json')
+                found_all_bank_combo = False
+
+                for bank_entry in os.listdir(model_type_dir):
+                    bank_combo_dir = os.path.join(model_type_dir, bank_entry)
+                    if not os.path.isdir(bank_combo_dir):
+                        continue
+
+                    legacy_combo_meta = os.path.join(bank_combo_dir, 'pd_model_metadata.json')
+                    found_all_segment = False
+
+                    for seg_entry in os.listdir(bank_combo_dir):
+                        seg_dir = os.path.join(bank_combo_dir, seg_entry)
+                        meta_file = os.path.join(seg_dir, 'pd_model_metadata.json')
+                        if os.path.isdir(seg_dir) and os.path.exists(meta_file):
+                            if bank_entry == 'ALL':
+                                found_all_bank_combo = True
+                            if seg_entry == 'ALL':
+                                found_all_segment = True
+                            try:
+                                with open(meta_file) as f:
+                                    metadata = json.load(f)
+                                models.append({
+                                    'model_type': model_type,
+                                    'bank_key': bank_entry,
+                                    'exposure_class': seg_entry,
+                                    'is_active': is_active(model_type, bank_entry, seg_entry),
+                                    'metadata': metadata,
+                                })
+                            except Exception:
+                                pass
+
+                    if not found_all_segment and os.path.exists(legacy_combo_meta):
+                        if bank_entry == 'ALL':
+                            found_all_bank_combo = True
+                        try:
+                            with open(legacy_combo_meta) as f:
+                                metadata = json.load(f)
+                            models.append({
+                                'model_type': model_type,
+                                'bank_key': bank_entry,
+                                'exposure_class': 'ALL',
+                                'is_active': is_active(model_type, bank_entry, 'ALL'),
+                                'metadata': metadata,
+                            })
+                        except Exception:
+                            pass
+
+                if not found_all_bank_combo and os.path.exists(legacy_flat_meta):
                     try:
-                        with open(meta_file) as f:
+                        with open(legacy_flat_meta) as f:
                             metadata = json.load(f)
                         models.append({
                             'model_type': model_type,
-                            'is_active': active_model_type == model_type,
+                            'bank_key': 'ALL',
+                            'exposure_class': 'ALL',
+                            'is_active': is_active(model_type, 'ALL', 'ALL'),
                             'metadata': metadata,
                         })
                     except Exception:
                         pass
 
         return jsonify({
-            'active_model_type': active_model_type,
+            'active_registry': registry,
             'models': sorted(models, key=lambda x: x['metadata'].get('date_trained', ''), reverse=True),
         }), 200
     except Exception as e:
@@ -1045,16 +1199,75 @@ def admin_activate_model(model_type):
         import joblib
         from ml_models.trainer import activate_model
 
-        result = activate_model(model_type)
+        body = request.get_json(silent=True) or {}
+        bank_combo = body.get('bank_key') or request.args.get('bank_key') or 'ALL'
+        exposure_class = body.get('exposure_class') or request.args.get('exposure_class') or None
+        result = activate_model(model_type, bank_combo, exposure_class)
 
-        # Reload model in-process
-        global _pd_model
-        _pd_model = joblib.load(_MODEL_PATH)
-        _assessment_engine.__init__(_pd_model, _get_model_version(), db_path=_OPS_DB_PATH)
+        # Reload the affected slot in-process only - activating a segment's
+        # model must not disturb the other segments' already-loaded engines.
+        if exposure_class:
+            _segment_engines[exposure_class] = _build_segment_engine(exposure_class)
+        else:
+            global _pd_model
+            _pd_model = joblib.load(_MODEL_PATH)
+            _assessment_engine.__init__(_pd_model, _get_model_version(), db_path=_OPS_DB_PATH)
 
         return jsonify(result), 200
     except FileNotFoundError as e:
         return jsonify({'error': str(e)}), 404
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/admin/api/models/<model_type>/<bank_key>', methods=['DELETE'])
+def admin_delete_model(model_type, bank_key):
+    if not _check_admin_auth(): return _admin_auth_error()
+    try:
+        from ml_models.trainer import _load_active_model_registry
+
+        # Optional ?exposure_class= targets the 3-level segmented layout;
+        # omitted = legacy behavior (2-level bank_combo or 1-level flat).
+        exposure_class = request.args.get('exposure_class') or None
+        registry = _load_active_model_registry()
+
+        if exposure_class:
+            entry = registry.get(exposure_class) or {}
+            if entry.get('model_type') == model_type and entry.get('bank_key') == bank_key:
+                return jsonify({'error': f"Cannot delete the currently active {exposure_class} model. Activate a different one first."}), 400
+        else:
+            entry = registry.get('ALL') or {}
+            if entry.get('model_type') == model_type and entry.get('bank_key') == bank_key:
+                return jsonify({'error': 'Cannot delete the currently active model. Activate a different one first.'}), 400
+
+        models_dir = os.path.join(os.path.dirname(__file__), 'ml_models', 'models')
+        deleted = False
+
+        if exposure_class:
+            seg_dir = os.path.join(models_dir, model_type, bank_key, exposure_class)
+            if os.path.isdir(seg_dir):
+                shutil.rmtree(seg_dir)
+                deleted = True
+        else:
+            combo_dir = os.path.join(models_dir, model_type, bank_key)
+            if os.path.isdir(combo_dir):
+                shutil.rmtree(combo_dir)
+                deleted = True
+            elif bank_key == 'ALL':
+                # Legacy layout: files sit directly under models/<model_type>/
+                legacy_dir = os.path.join(models_dir, model_type)
+                legacy_model = os.path.join(legacy_dir, 'pd_model.pkl')
+                legacy_meta = os.path.join(legacy_dir, 'pd_model_metadata.json')
+                if os.path.exists(legacy_model) or os.path.exists(legacy_meta):
+                    for p in (legacy_model, legacy_meta):
+                        if os.path.exists(p):
+                            os.remove(p)
+                    deleted = True
+
+        if not deleted:
+            return jsonify({'error': f"No model found for '{model_type}' / '{bank_key}'" + (f" / '{exposure_class}'" if exposure_class else "")}), 404
+
+        return jsonify({'status': 'deleted', 'model_type': model_type, 'bank_key': bank_key, 'exposure_class': exposure_class or 'ALL'}), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
@@ -1097,9 +1310,21 @@ def admin_rollback():
     try:
         from ml_models.trainer import rollback_model
         import joblib
-        result = rollback_model()
-        _pd_model = joblib.load(_MODEL_PATH)
-        _assessment_engine.__init__(_pd_model, _get_model_version(), db_path=_OPS_DB_PATH)
+
+        body = request.get_json(silent=True) or {}
+        exposure_class = body.get('exposure_class') or request.args.get('exposure_class') or None
+        result = rollback_model(exposure_class)
+
+        # NOTE: previously this reassigned _pd_model without `global`, so the
+        # in-process model was never actually reloaded after rollback - fixed
+        # here alongside adding per-segment rollback support.
+        if exposure_class:
+            _segment_engines[exposure_class] = _build_segment_engine(exposure_class)
+        else:
+            global _pd_model
+            _pd_model = joblib.load(_MODEL_PATH)
+            _assessment_engine.__init__(_pd_model, _get_model_version(), db_path=_OPS_DB_PATH)
+
         return jsonify(result), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -1249,22 +1474,25 @@ def admin_audit_log():
 _scheduler = None
 
 def _scheduled_training():
-    """Called by APScheduler — runs training on enriched transactions and reloads model if promoted or previously unavailable."""
-    global _pd_model
-    try:
-        from ml_models.trainer import run_training
-        import joblib
-        # Use transaction-level training by default (84K rows vs 1.1K rows)
-        result = run_training(triggered_by='schedule', use_transaction_level=True)
-        if result.get('model_promoted') or _pd_model is None:
-            _pd_model = joblib.load(_MODEL_PATH)
-            _assessment_engine.__init__(_pd_model, _get_model_version(), db_path=_OPS_DB_PATH)
-            print(f"[ML] Model trained on {result.get('train_rows', 0)} rows from enriched transactions")
-    except Exception as e:
-        print(f"Scheduled training error: {e}")
+    """
+    RETIRED: this only ever trained the unsegmented 'ALL' model, which is no
+    longer used for scoring once segment routing went live (see
+    admin_trigger_train() - exposure_class is now required). Kept as a no-op
+    rather than deleted so _reconfigure_scheduler's remove_job('pd_training')
+    call (which fires on every /admin/api/schedule save) has nothing stale
+    to reference, and so any code that still imports this name doesn't break.
+    """
+    print("[ML] Scheduled unsegmented-model training is retired - no-op. "
+          "Segment models (CORPORATE/SME/RETAIL_MORTGAGES/RETAIL_OTHER) are trained on demand via Train Now.")
 
 def _reconfigure_scheduler(schedule_cfg):
-    """Add/replace the training job in APScheduler based on schedule config."""
+    """
+    RETIRED: the PD-training schedule only ever drove the unsegmented 'ALL'
+    model (see _scheduled_training). Always removes any existing job and
+    never re-adds it, regardless of the stored schedule config, so a stale
+    'enabled: true' in hyperparameters.json (or a re-save from the admin
+    Schedule panel) can't bring back automatic unsegmented retraining.
+    """
     global _scheduler
     if _scheduler is None:
         return
@@ -1272,31 +1500,6 @@ def _reconfigure_scheduler(schedule_cfg):
         _scheduler.remove_job('pd_training')
     except Exception:
         pass
-
-    if not schedule_cfg.get('enabled', False):
-        return
-
-    freq = schedule_cfg.get('frequency', 'weekly')
-    hour = int(schedule_cfg.get('hour', 2))
-    minute = int(schedule_cfg.get('minute', 0))
-
-    if freq == 'daily':
-        _scheduler.add_job(_scheduled_training, 'cron',
-                           hour=hour, minute=minute, id='pd_training', replace_existing=True)
-    elif freq == 'weekly':
-        dow = schedule_cfg.get('day_of_week', 'sun')
-        # Normalize full day names to APScheduler 3-letter abbreviations
-        _DOW_MAP = {'monday':'mon','tuesday':'tue','wednesday':'wed','thursday':'thu',
-                    'friday':'fri','saturday':'sat','sunday':'sun'}
-        dow = _DOW_MAP.get(dow.lower(), dow.lower())
-        _scheduler.add_job(_scheduled_training, 'cron',
-                           day_of_week=dow, hour=hour, minute=minute,
-                           id='pd_training', replace_existing=True)
-    elif freq == 'monthly':
-        dom = int(schedule_cfg.get('day_of_month', 1))
-        _scheduler.add_job(_scheduled_training, 'cron',
-                           day=dom, hour=hour, minute=minute,
-                           id='pd_training', replace_existing=True)
 
 def _start_scheduler():
     global _scheduler
@@ -1821,7 +2024,9 @@ def api_customer_bulk_export():
     has_npa = request.args.get('has_npa') == 'true'
     previous_default = request.args.get('previous_default') == 'true'
     is_rural = request.args.get('is_rural')
-    limit = request.args.get('limit', type=int, default=1000)
+    # Default cap far above the total customer count (1,547 across all banks)
+    # so a normal export isn't silently truncated; ?limit= still overrides.
+    limit = request.args.get('limit', type=int, default=100000)
 
     with _ops_conn() as conn:
         # Build dynamic query with filters
@@ -1932,6 +2137,67 @@ def api_customer_bulk_export():
             'age_range': [age_min, age_max],
         }
     })
+
+
+@app.route('/api/training-data-preview')
+def api_training_data_preview():
+    """
+    Return the exact loan-level rows the PD model training pipeline uses,
+    labeled with which split (train/test) each row falls into under the
+    current hyperparameters - so the actual training/testing dataset can be
+    inspected or exported for any/all banks, not just a customer-profile view.
+    """
+    try:
+        import pandas as pd
+        from ml_models.trainer import load_from_db, _load_hyperparameters
+        from sklearn.model_selection import train_test_split
+
+        banks = request.args.getlist('bank') or None
+        df = load_from_db(bank_ids=banks)
+        if df is None or len(df) == 0:
+            return jsonify({'total_rows': 0, 'train_rows': 0, 'test_rows': 0, 'rows': []})
+
+        # Same dedup the real training pipeline applies (load_and_merge) so
+        # this preview matches the actual row count used to train/test.
+        df = df.drop_duplicates(subset='loan_id', keep='first').reset_index(drop=True)
+
+        hp = _load_hyperparameters()
+        test_size = float(hp['training'].get('test_size', 0.20))
+        model_hp = hp.get('models', {}).get('xgboost', hp.get('model', {}))
+        random_state = int(model_hp.get('random_state', 42))
+
+        train_idx, test_idx = train_test_split(
+            df.index, test_size=test_size, random_state=random_state,
+            stratify=df['default_flag'] if df['default_flag'].nunique() > 1 else None
+        )
+        split = pd.Series('test', index=df.index)
+        split.loc[train_idx] = 'train'
+
+        display_cols = [
+            'bank_id', 'loan_id', 'age', 'annual_income', 'cibil_score',
+            'employment_type_enc', 'de_ratio', 'interest_coverage',
+            'profitability', 'liquidity_ratio', 'foir', 'months_as_customer',
+            'num_late_payments_past_12m', 'existing_loans_count',
+            'emi_miss_ratio', 'income_miss_ratio', 'default_flag',
+        ]
+        display_cols = [c for c in display_cols if c in df.columns]
+        out = df[display_cols].copy()
+        out['split'] = split
+        out = out.where(pd.notnull(out), None)
+
+        rows = out.to_dict(orient='records')
+        return jsonify({
+            'total_rows': len(df),
+            'train_rows': int((split == 'train').sum()),
+            'test_rows': int((split == 'test').sum()),
+            'test_size': test_size,
+            'random_state': random_state,
+            'banks_filtered': banks,
+            'columns': display_cols + ['split'],
+            'rows': rows,
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 
 @app.route('/api/customer-export/<cid>')
@@ -2471,7 +2737,7 @@ def _safe_balance_sheets(conn, bank_id):
             + float(r.get('borrowings') or 0) + float(r.get('other_liabilities') or 0), 2)
         r['total_assets'] = round(sum(float(r.get(k) or 0) for k in
                                       ('cash_with_rbi', 'balances_with_banks', 'investments',
-                                       'advances_net', 'fixed_assets', 'other_assets')), 2)
+                                       'advances_net', 'fixed_assets', 'intangible_assets', 'other_assets')), 2)
     return rows
 
 
@@ -2497,6 +2763,21 @@ def reg_bank_balance_sheet(bank_id):
         sheets = _safe_balance_sheets(conn, bank_id)
     return jsonify({'available': bool(sheets), 'bank_id': bank_id, 'bank': bank,
                     'balance_sheets': sheets})
+
+
+@app.route('/regulatory/api/banks/<bank_id>/alm')
+def reg_bank_alm(bank_id):
+    """Structural Liquidity Statement (ALCO) - maturity-bucketed assets vs.
+    liabilities, cumulative gap, compliance flag, and recent funding-waterfall
+    decisions. bank_id='CONSOLIDATED' aggregates all 9 banks."""
+    from backend import alm_engine as _alm
+    is_consolidated = bank_id == 'CONSOLIDATED'
+    with _ops_conn() as conn:
+        _alm.backfill_fd_maturity(conn, sim_date=SIM_DATE)
+        stmt = _alm.structural_liquidity_statement(
+            conn, None if is_consolidated else bank_id, SIM_DATE, SIM_PERIOD)
+        events = [] if is_consolidated else _alm.recent_funding_events(conn, bank_id)
+    return jsonify({**stmt, 'funding_events': events})
 
 
 @app.route('/regulatory/api/clients/<cid>')
@@ -2738,6 +3019,47 @@ def ops_loan_classify(loan_id):
         'officer': officer,
         'timestamp': now
     })
+
+
+from backend import npa_resolution as _npares
+
+
+@app.route('/operations/api/loans/<loan_id>/resolve', methods=['POST'])
+def ops_loan_resolve(loan_id):
+    """Recovery / restructure / write-off a loan - the actions that actually
+    move outstanding/balance-sheet figures (unlike /classify above, which only
+    changes the classification label). See backend/npa_resolution.py.
+
+    Body:
+      action     — 'recovery' | 'restructure' | 'write_off'
+      amount     — required for 'recovery' only (cash recovered, <= outstanding)
+      rationale  — mandatory free-text justification (>= 20 chars)
+      actor_id   — officer ID / name (optional, defaults to 'OPS-DEMO')
+    """
+    body = request.get_json(force=True) or {}
+    action = (body.get('action') or '').strip()
+    amount = body.get('amount')
+    rationale = (body.get('rationale') or '').strip()
+    actor_id = (body.get('actor_id') or 'OPS-DEMO').strip()
+
+    with _ops_conn() as conn:
+        try:
+            result = _npares.resolve_npa(conn, loan_id, action, amount=amount,
+                                          actor_id=actor_id, rationale=rationale)
+        except ValueError as e:
+            return jsonify({'error': str(e)}), 400
+        if result is None:
+            return jsonify({'error': f'Loan {loan_id} not found'}), 404
+
+    return jsonify(result)
+
+
+@app.route('/operations/api/loans/<loan_id>/resolution-history')
+def ops_loan_resolution_history(loan_id):
+    """Hash-chained audit trail of resolve actions for one loan."""
+    with _ops_conn() as conn:
+        events = _npares.resolution_history(conn, loan_id)
+    return jsonify({'loan_id': loan_id, 'events': events})
 
 
 def _ensure_regulatory_reports():
@@ -3172,8 +3494,14 @@ def rm_cases():
     if request.method == 'POST':
         application = request.get_json(force=True) or {}
         rm_id = application.pop('rm_id', 'RM-DEMO')
+        # Route through the correct segment engine (CORPORATE/SME/RETAIL_MORTGAGES/
+        # RETAIL_OTHER) - this used to hardcode the legacy unsegmented
+        # _assessment_engine, silently bypassing segment routing for every RM case.
+        engine, err = _resolve_segment_engine(application)
+        if err:
+            return err
         try:
-            M = _orchestrate(application, _assessment_engine)
+            M = _orchestrate(application, engine)
         except Exception as e:
             return jsonify({'error': f'Assessment failed: {e}'}), 500
         with _rm_conn() as conn:
@@ -3498,72 +3826,42 @@ def analytics_timeseries():
             'roa':    roa_ann,
         })
 
-    # ── Moratorium time series (from sim_period_metrics) ──────────────────
-    moratorium_series = []
-    try:
-        conn.execute("SELECT 1 FROM sim_period_metrics LIMIT 1")
-        if is_consolidated:
-            sm_rows = [dict(r) for r in conn.execute(
-                """SELECT period, as_of_date,
-                          SUM(morat_count) as morat_count,
-                          AVG(morat_pct) as morat_pct,
-                          SUM(morat_book_cr) as morat_book_cr,
-                          SUM(morat_green) as morat_green, SUM(morat_amber) as morat_amber,
-                          SUM(morat_red) as morat_red,
-                          (SELECT AVG(gate_gnpa) FROM sim_period_metrics WHERE period=t.period) as gate_gnpa,
-                          (SELECT AVG(gate_pat) FROM sim_period_metrics WHERE period=t.period) as gate_pat,
-                          (SELECT AVG(gate_car) FROM sim_period_metrics WHERE period=t.period) as gate_car,
-                          (SELECT AVG(gate_morat) FROM sim_period_metrics WHERE period=t.period) as gate_morat,
-                          (SELECT AVG(gate_disbursals) FROM sim_period_metrics WHERE period=t.period) as gate_disbursals,
-                          SUM(new_disbursals) as new_disbursals
-                   FROM sim_period_metrics t
-                   GROUP BY period, as_of_date ORDER BY as_of_date""").fetchall()]
-        else:
-            sm_rows = [dict(r) for r in conn.execute(
-                """SELECT period, as_of_date, morat_count, morat_pct, morat_book_cr,
-                          morat_green, morat_amber, morat_red,
-                          gate_gnpa, gate_pat, gate_car, gate_morat, gate_disbursals,
-                          new_disbursals
-                   FROM sim_period_metrics WHERE bank_id=? ORDER BY as_of_date""",
-                (bank_id,)).fetchall()]
-        for r in sm_rows:
-            moratorium_series.append({
-                'period':      r['period'],
-                'date':        r['as_of_date'],
-                'count':       r['morat_count'] or 0,
-                'pct':         round(r['morat_pct'] or 0, 1),
-                'book_cr':     round(r['morat_book_cr'] or 0, 1),
-                'green':       r['morat_green'] or 0,
-                'amber':       r['morat_amber'] or 0,
-                'red':         r['morat_red'] or 0,
-                'new_disbursals': r['new_disbursals'] or 0,
-                'gate': {
-                    'gnpa':       r['gate_gnpa'],
-                    'pat':        r['gate_pat'],
-                    'car':        r['gate_car'],
-                    'moratorium': r['gate_morat'],
-                    'disbursals': r['gate_disbursals'],
-                },
-            })
-    except Exception:
-        pass
-
-    # ── Decision gate for latest period ───────────────────────────────────
+    # ── Decision gate helper ────────────────────────────────────────────────
     def _gate_score(metric, val):
         if metric == 'gnpa':    return 'GREEN' if val < 2 else ('AMBER' if val < 4 else 'RED')
         if metric == 'pat':     return 'GREEN' if val > 0 else ('AMBER' if val > -3 else 'RED')
         if metric == 'car':     return 'GREEN' if val > 15 else ('AMBER' if val > 13 else 'RED')
-        if metric == 'morat':   return 'GREEN' if val < 15 else ('AMBER' if val < 25 else 'RED')
         if metric == 'disbur':  return 'GREEN' if val > 25 else ('AMBER' if val > 15 else 'RED')
         return 'GREEN'
 
+    # ── New disbursals per period — live count of loans.disbursed within
+    # each period's date window (replaces the old sim_period_metrics-based
+    # figure, whose source table was retired along with the frozen-
+    # simulation-clock subsystem earlier - that always read as 0).
+    disbursals_series = []
+    for r in pl_rows:
+        from_d, to_d = r.get('from_date'), r.get('to_date')
+        if not from_d or not to_d:
+            continue
+        if is_consolidated:
+            count = conn.execute(
+                "SELECT COUNT(*) FROM loans WHERE disbursed BETWEEN ? AND ?",
+                (from_d, to_d)).fetchone()[0]
+        else:
+            count = conn.execute(
+                "SELECT COUNT(*) FROM loans WHERE bank_id=? AND disbursed BETWEEN ? AND ?",
+                (bank_id, from_d, to_d)).fetchone()[0]
+        disbursals_series.append({
+            'period': r['period'], 'date': to_d, 'count': count,
+            'gate': {'disbursals': _gate_score('disbur', count)},
+        })
+
+    # ── Decision gate for latest period ───────────────────────────────────
     decision_gate = {}
-    # Build decision gate from available capital and P&L data (moratorium data optional)
     if capital_series and pl_series:
-        latest_cap   = capital_series[-1]
-        latest_pl    = pl_series[-1]
-        latest_morat = moratorium_series[-1] if moratorium_series else {}
-        nd_count     = latest_morat.get('new_disbursals', 0)
+        latest_cap = capital_series[-1]
+        latest_pl  = pl_series[-1]
+        nd_count   = disbursals_series[-1]['count'] if disbursals_series else 0
         decision_gate = {
             'period': latest_cap['date'],
             'gnpa':   {'value': latest_cap['npa_ratio'],
@@ -3572,8 +3870,6 @@ def analytics_timeseries():
                        'status': _gate_score('pat', latest_pl['pat_cr'])},
             'car':    {'value': latest_cap['car'],
                        'status': _gate_score('car', latest_cap['car'])},
-            'moratorium': {'value': latest_morat.get('pct', 0),
-                           'status': _gate_score('morat', latest_morat.get('pct', 0))},
             'disbursals': {'value': nd_count,
                            'status': _gate_score('disbur', nd_count)},
         }
@@ -3599,7 +3895,7 @@ def analytics_timeseries():
         'balance':    balance_series,
         'pl':         pl_series,
         'efficiency': efficiency_series,
-        'moratorium': moratorium_series,
+        'disbursals': disbursals_series,
         'decision_gate': decision_gate,
         'thresholds': thresholds,
     })

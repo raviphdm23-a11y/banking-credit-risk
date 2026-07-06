@@ -900,6 +900,19 @@
                 </div>
             </div>
 
+            <!-- Originating Bank (required - determines whose balance sheet an approved loan books to) -->
+            <div class="grid-2" style="margin-bottom:12px;">
+                <div class="form-group">
+                    <label for="bankSelect">Originating Bank *
+                        <span style="font-size:11px;color:#888;font-weight:400;margin-left:6px;">Which bank's ledger this loan books to if approved</span>
+                    </label>
+                    <select id="bankSelect" required>
+                        <option value="">-- Select Bank --</option>
+                    </select>
+                    <div class="error" id="bankSelectError"></div>
+                </div>
+            </div>
+
             <!-- Basel III.1 Exposure Class (required for SA risk weight) -->
             <div class="grid-2" style="margin-bottom:12px;">
                 <div class="form-group">
@@ -1566,6 +1579,7 @@
             existing_loans_count:       parseInt(document.getElementById('kycExistingLoans').value),
             num_existing_products:      parseInt(document.getElementById('kycExistingProducts').value),
             is_rural:                   parseInt(document.getElementById('kycIsRural').value),
+            exposure_class:             document.getElementById('exposureClass').value,
         };
 
         // Show loading state
@@ -1737,6 +1751,7 @@
         const reportInputs = {
             de_ratio: de, interest_coverage: ic, profitability: pm, liquidity_ratio: lr,
             exposure: exposureAmount,
+            exposure_class: document.getElementById('exposureClass').value,
             seniority: (mode === 'airb' || mode === 'both') ? document.getElementById('seniority').value : 'senior_unsecured',
             collateral_type: document.getElementById('collateralType').value || 'None',
             collateral_value: parseFloat(document.getElementById('collateralValue').value) || 0,
@@ -1880,6 +1895,7 @@
             country_code:  countryCode || null,
             country:       (COUNTRY_INDEX[countryCode] || {}).name || null,
             exposure_class: txt('exposureClass') || null,
+            bank_id:        txt('bankSelect') || null,
             ltv_ratio:      num('ltvRatio') ? num('ltvRatio') / 100 : null,
             external_rating: null,  // placeholder for future rated-exposure entry
             requested_amount: num('exposureAmount'),
@@ -1973,6 +1989,8 @@
         const id = (document.getElementById('borrowerId').value || '').trim();
         const banner = document.getElementById('custLookupBanner');
         LOOKUP_DATA = null;
+        const bankSel = document.getElementById('bankSelect');
+        if (bankSel) bankSel.disabled = false;  // unlock - re-looking-up may find a different (or no) customer
         if (!id) { banner.style.display = 'none'; return; }
         let d;
         try { d = await fetch('/api/customer-lookup/' + encodeURIComponent(id)).then(r => r.json()); }
@@ -2017,6 +2035,17 @@
         }
         const ks = document.getElementById('kycStatusField'); if (ks && f.kyc_status) ks.value = f.kyc_status;
         const sc = document.getElementById('screeningField'); if (sc && f.screening) sc.value = f.screening;
+        // Lock the bank to the existing customer's own bank - a loan for an
+        // existing customer must book against their actual relationship, not
+        // wherever the RM happened to leave the dropdown.
+        if (LOOKUP_DATA.bank_id) {
+            const bankSel = document.getElementById('bankSelect');
+            if (bankSel) {
+                bankSel.value = LOOKUP_DATA.bank_id;
+                bankSel.disabled = true;
+                bankSel.title = 'Locked to this customer\'s existing bank';
+            }
+        }
     }
     window.applyLookup = applyLookup;
 
@@ -2040,19 +2069,43 @@
 
     window.addEventListener('DOMContentLoaded', () => {
         updateSectionVisibility();
-        // Populate Basel III.1 exposure class dropdown from the reference API
+        // Populate the originating-bank dropdown - determines whose ledger an
+        // approved loan books to.
+        fetch('/operations/api/banks')
+            .then(r => r.json())
+            .then(data => {
+                const sel = document.getElementById('bankSelect');
+                if (!sel) return;
+                const banks = data.banks || data || [];
+                banks.forEach(b => {
+                    const opt = document.createElement('option');
+                    opt.value = b.bank_id;
+                    opt.textContent = `${b.bank_name} (${b.bank_id})`;
+                    sel.appendChild(opt);
+                });
+            })
+            .catch(() => {});
+        // Populate Basel III.1 exposure class dropdown from the reference API.
+        // Only the 4 segments the PD model registry actually supports are
+        // shown - SOVEREIGN/BANK/RETAIL_REVOLVING/DEFAULT_NPA etc exist in
+        // the regulatory taxonomy (used elsewhere for SA capital calc) but
+        // have no trained PD model, so selecting one here would be a dead
+        // end at /api/assess-borrower (segment required, no fallback).
+        const SUPPORTED_EXPOSURE_CLASSES = ['CORPORATE', 'SME', 'RETAIL_MORTGAGES', 'RETAIL_OTHER'];
         fetch('/api/exposure-classes')
             .then(r => r.json())
             .then(data => {
                 const sel = document.getElementById('exposureClass');
                 if (!sel || !data.exposure_classes) return;
-                (data.exposure_classes || []).forEach(ec => {
-                    const opt = document.createElement('option');
-                    opt.value = ec.code;
-                    opt.textContent = `${ec.label} (${ec.default_rw_pct}% RW)`;
-                    opt.title = ec.description;
-                    sel.appendChild(opt);
-                });
+                (data.exposure_classes || [])
+                    .filter(ec => SUPPORTED_EXPOSURE_CLASSES.includes(ec.code))
+                    .forEach(ec => {
+                        const opt = document.createElement('option');
+                        opt.value = ec.code;
+                        opt.textContent = `${ec.label} (${ec.default_rw_pct}% RW)`;
+                        opt.title = ec.description;
+                        sel.appendChild(opt);
+                    });
             })
             .catch(() => {
                 // Fallback static options if API is unavailable
@@ -2061,13 +2114,8 @@
                 const fallback = [
                     ['RETAIL_MORTGAGES','Retail Mortgages (35% RW)'],
                     ['RETAIL_OTHER','Retail Other (75% RW)'],
-                    ['RETAIL_REVOLVING','Retail Revolving (45% RW)'],
                     ['SME','SME (85% RW)'],
                     ['CORPORATE','Corporate (100% RW)'],
-                    ['BANK','Bank (50% RW)'],
-                    ['SOVEREIGN_HOME','Sovereign Home (0% RW)'],
-                    ['SOVEREIGN_FOREIGN','Sovereign Foreign (50% RW)'],
-                    ['DEFAULT_NPA','Default/NPA (150% RW)'],
                 ];
                 fallback.forEach(([v, t]) => {
                     const opt = document.createElement('option');

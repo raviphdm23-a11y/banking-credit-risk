@@ -10,13 +10,15 @@ Design
   financial position, one row per bank per reporting period (so history is kept).
 * Figures are stored in **raw INR** (same unit as loans/accounts elsewhere in
   bank.db) so the regulatory engine can consume them directly.
-* The **latest period (FY2025)** is anchored to the live data:
+* The **current period** (sim_period/sim_date from simulation_clock.json) is
+  anchored to the live data:
       advances_net   = SUM(loans.outstanding)        for the bank
       total deposits = SUM(accounts.balance)          for the bank
   and the rest of the sheet is built around those with realistic proportions so
   that  Total Assets == Total Capital & Liabilities  and the capital base yields
-  a sensible CRAR (~15-16%). A prior period (FY2024) is scaled down to give a
-  visible trend; only the latest period is wired into the regulatory engine.
+  a sensible CRAR (~15-16%). The prior period (prior_period/prior_date from the
+  same clock file) is scaled down to give a visible trend; only the current
+  period is wired into the regulatory engine.
 
 Idempotent: INSERT OR REPLACE on the (bank_id, period) unique key, so re-running
 refreshes figures without duplicating rows. Self-creates its table on a fresh DB.
@@ -24,6 +26,7 @@ refreshes figures without duplicating rows. Self-creates its table on a fresh DB
 Run:  python operations/scripts/seed_bank_balance_sheet.py
 """
 
+import json
 import os
 import sys
 import sqlite3
@@ -31,6 +34,18 @@ from datetime import datetime
 
 _REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 DB_PATH = os.path.join(_REPO_ROOT, 'bank.db')
+
+
+def _load_sim_clock():
+    """Same frozen/reporting-clock convention as app.py's _load_sim_clock() -
+    duplicated locally per this repo's established idiom (also done in
+    backend/loan_booking.py) rather than importing app.py from a script."""
+    try:
+        with open(os.path.join(_REPO_ROOT, 'simulation_clock.json')) as f:
+            return json.load(f)
+    except Exception:
+        return {'sim_date': '2020-03-31', 'sim_period': 'FY2020',
+                'prior_date': '2019-03-31', 'prior_period': 'FY2019'}
 
 _MIGRATIONS = [
     "ALTER TABLE bank_balance_sheet ADD COLUMN intangible_assets REAL DEFAULT 0",
@@ -166,10 +181,13 @@ def seed(db_path=DB_PATH, verbose=True):
             pass  # column already exists
 
     banks = [dict(r) for r in cur.execute("SELECT bank_id, bank_name FROM banks").fetchall()]
-    # Two periods: prior FY (scaled down for a trend) and current FY (live-anchored).
+    # Two periods: prior FY (scaled down for a trend) and current FY (live-anchored),
+    # both driven by simulation_clock.json - advance the clock and rerun this
+    # script rather than editing these tuples.
+    sim = _load_sim_clock()
     periods = [
-        ('FY2019', '2019-03-31', 0.88, 'synthetic (prior year, scaled)'),
-        ('FY2020', '2020-03-31', 1.00, 'live-anchored (advances=SUM loans, deposits=SUM accounts)'),
+        (sim['prior_period'], sim['prior_date'], 0.88, 'synthetic (prior year, scaled)'),
+        (sim['sim_period'], sim['sim_date'], 1.00, 'live-anchored (advances=SUM loans, deposits=SUM accounts)'),
     ]
 
     rows = []

@@ -90,6 +90,25 @@ EXTRA_FEATURE_DEFAULTS = {
     "delta_policy_rate_pct":     0.0,   # pp change in central bank policy rate
     "delta_unemployment_pct":    0.0,   # pp change in unemployment rate
     "macro_regime_score":        0.0,   # 0-100 composite distress score (0=normal, 56+=severe)
+    # Transaction-derived behavioral features (added when the segmented models
+    # were retrained on real transaction history - see
+    # operations/scripts/build_behavioral_features.py). A brand-new applicant
+    # has no transaction history yet, so these MUST default to what a typical
+    # NON-defaulting existing customer looks like, not zero - a hard 0 here
+    # (e.g. n_transactions=0, avg_balance=0) is wildly out-of-distribution for
+    # a tree model trained on real accounts averaging ~40 transactions, and
+    # was driving every live assessment's PD toward ~50-80% regardless of
+    # borrower quality (confirmed: PD 81%->0.6% on an identical applicant just
+    # by supplying these instead of letting them silently default to 0).
+    # Values are blended averages across non-defaulting training rows.
+    "emi_miss_ratio":            0.067,
+    "income_miss_ratio":         0.037,
+    "income_cv":                 0.207,
+    "income_to_declared_ratio":  1.132,
+    "balance_cv":                0.645,
+    "max_gap_days":              29.0,
+    "n_transactions":            41.0,
+    "avg_balance":               3600000.0,
 }
 
 _MACRO_COLS = (

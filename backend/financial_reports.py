@@ -245,7 +245,7 @@ def bank_bundle(bank, bs, pl, cap, liq, stats, exposure_mix):
 _BS_SUM = ['equity_capital', 'reserves_surplus', 'deposits_demand', 'deposits_savings',
            'deposits_term', 'borrowings', 'other_liabilities', 'cash_with_rbi',
            'balances_with_banks', 'investments', 'advances_net', 'fixed_assets',
-           'other_assets', 'contingent_liabilities', 'bills_for_collection']
+           'intangible_assets', 'other_assets', 'contingent_liabilities', 'bills_for_collection']
 _PL_SUM = ['interest_on_advances', 'interest_on_investments', 'interest_earned',
            'other_income', 'total_income', 'interest_on_deposits', 'interest_on_borrowings',
            'interest_expended', 'employee_cost', 'other_opex', 'operating_expenses',

@@ -202,6 +202,30 @@ def simple_default_rate_model(annual_income, age, macro_regime_score, rng):
     return float(np.clip(pd, 0.0001, 0.15))  # cap at 15% max
 
 
+SEGMENT_PD_MULTIPLIER = {
+    'CORPORATE': 4.5,
+    'SME': 4.5,
+    'RETAIL_MORTGAGES': 3.2,
+    'RETAIL_OTHER': 4.0,
+}
+
+
+def segment_pd_multiplier(exposure_class):
+    """
+    Stress multiplier for simple_default_rate_model's macro_regime_score param,
+    keyed by Basel exposure_class.
+
+    simple_default_rate_model() was exposure_class-agnostic (income/age/macro
+    only), which is why CORPORATE/SME ended up with almost no defaults after
+    bulk seeding (1/422 and 2/218 respectively) - there was no mechanism to
+    give sparse segments a higher baseline default rate. Feeding this
+    multiplier into the existing macro_regime_score parameter reuses the
+    function unchanged while giving each segment an appropriately elevated
+    rate for synthetic augmentation.
+    """
+    return SEGMENT_PD_MULTIPLIER.get(exposure_class, 1.0)
+
+
 def calibrate_pd_threshold_per_bank(current_default_rate, target_npa_rate):
     """
     Calibrate PD scale so that aggregate NPA rate stays close to target.

@@ -36,25 +36,6 @@
             font-size:.85em; color:rgba(255,255,255,.5);
         }
 
-        .mode-tabs {
-            display:flex; gap:12px; margin-bottom:24px; border-bottom:1px solid rgba(255,255,255,.1);
-            padding-bottom:16px;
-        }
-
-        .mode-tab {
-            padding:8px 16px; background:transparent; border:none; color:rgba(255,255,255,.5);
-            cursor:pointer; font-size:.9em; font-weight:600; transition:all .2s;
-            border-bottom:2px solid transparent;
-        }
-
-        .mode-tab.active {
-            color:white; border-bottom-color:rgba(96,165,250,0.8);
-        }
-
-        .mode-tab:hover {
-            color:rgba(255,255,255,.8);
-        }
-
         .section {
             margin-bottom:28px;
         }
@@ -62,11 +43,6 @@
         .section-title {
             font-size:.9em; font-weight:700; color:rgba(255,255,255,.6);
             text-transform:uppercase; letter-spacing:.8px; margin-bottom:14px;
-        }
-
-        .filter-grid {
-            display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr));
-            gap:16px; margin-bottom:20px;
         }
 
         .filter-group {
@@ -79,39 +55,13 @@
             text-transform:uppercase; letter-spacing:.5px; margin-bottom:8px; display:block;
         }
 
-        select, input[type="text"] {
+        select {
             width:100%; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.15);
             color:white; padding:8px 12px; border-radius:6px; font-size:.85em;
         }
 
-        select:focus, input[type="text"]:focus {
+        select:focus {
             outline:none; border-color:rgba(96,165,250,.6); background:rgba(96,165,250,.08);
-        }
-
-        .checkbox-group {
-            display:flex; flex-direction:column; gap:8px;
-        }
-
-        .checkbox-item {
-            display:flex; align-items:center; gap:8px;
-            padding:6px 0;
-        }
-
-        input[type="checkbox"] {
-            width:16px; height:16px; cursor:pointer; accent-color:rgba(96,165,250,1);
-        }
-
-        .checkbox-label {
-            font-size:.85em; color:rgba(255,255,255,.7); cursor:pointer; flex:1;
-        }
-
-        .range-inputs {
-            display:grid; grid-template-columns:1fr 1fr; gap:8px;
-        }
-
-        input[type="number"] {
-            background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.15);
-            color:white; padding:8px; border-radius:6px; font-size:.8em;
         }
 
         .button-group {
@@ -186,713 +136,172 @@
             background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.08);
             border-radius:10px; max-height:500px; overflow-y:auto; margin-top:16px;
         }
-
-        .customer-row {
-            padding:12px 16px; border-bottom:1px solid rgba(255,255,255,0.04);
-            display:flex; justify-content:space-between; align-items:center; font-size:.85em;
-        }
-
-        .customer-row:hover {
-            background:rgba(96,165,250,0.08);
-        }
-
-        .customer-col {
-            flex:1; color:rgba(255,255,255,.6);
-        }
-
-        .customer-col-name {
-            color:white; font-weight:500;
-        }
-
-        .spinner {
-            display:inline-block; width:12px; height:12px; border:2px solid rgba(96,165,250,.3);
-            border-top:2px solid rgba(96,165,250,1); border-radius:50%;
-            animation:spin .6s linear infinite; margin-right:6px; vertical-align:middle;
-        }
-
-        @keyframes spin {
-            to { transform:rotate(360deg); }
-        }
-
-        .mode-content {
-            display:none;
-        }
-
-        .mode-content.active {
-            display:block;
-        }
-
-        .collapsible {
-            background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.08);
-            border-radius:8px; margin-bottom:16px;
-            padding: 0;
-        }
-
-        .collapsible-header {
-            padding:12px 16px; cursor:pointer; display:flex; justify-content:space-between;
-            align-items:center; font-weight:600;
-        }
-
-        .collapsible-header:hover {
-            background:rgba(96,165,250,0.08);
-        }
-
-        .collapsible-content {
-            display:none; padding:16px; border-top:1px solid rgba(255,255,255,0.08);
-        }
-
-        .collapsible.open .collapsible-content {
-            display:block;
-        }
-
-        .toggle-arrow {
-            transition:transform .2s;
-            font-size:.9em;
-        }
-
-        .collapsible.open .toggle-arrow {
-            transform:rotate(180deg);
-        }
-
-        .mini-btn {
-            padding:4px 10px !important; font-size:.7em !important; background:rgba(96,165,250,.6) !important;
-            border:1px solid rgba(96,165,250,.4) !important;
-        }
-
-        .mini-btn:hover {
-            background:rgba(96,165,250,.8) !important;
-        }
     </style>
 </head>
 <body>
 
 <div class="container">
     <div class="header">
-        <div class="logo-mark">📊</div>
+        <div class="logo-mark">🎯</div>
         <div>
-            <h1>Customer Data Export</h1>
-            <div class="subtitle">Advanced filtering to export customer profiles and transaction data</div>
+            <h1>Model Training/Test Data</h1>
+            <div class="subtitle">Inspect and export the exact rows the PD model training pipeline uses, split into train/test</div>
         </div>
     </div>
 
-    <div class="mode-tabs">
-        <button class="mode-tab active" onclick="switchMode('bulk')">📦 Bulk Export (Groups)</button>
-        <button class="mode-tab" onclick="switchMode('single')">👤 Single Customer</button>
-    </div>
-
-    <!-- BULK EXPORT MODE -->
-    <div id="bulk-mode" class="mode-content active">
-        <div id="message" class="message"></div>
-
-        <!-- BASIC FILTERS -->
-        <div class="collapsible open">
-            <div class="collapsible-header" onclick="toggleCollapsible(this)">
-                <span>🏛️ Bank & Status Filters</span>
-                <div style="display:flex; gap:8px; align-items:center;">
-                    <button class="mini-btn" onclick="event.stopPropagation(); document.getElementById('bankFilter').querySelectorAll('option').forEach(o => o.selected = !o.selected)">Toggle Banks</button>
-                    <button class="mini-btn" onclick="event.stopPropagation(); toggleAllCheckboxes('customerStatusFilter')">Toggle Status</button>
-                    <span class="toggle-arrow">▼</span>
-                </div>
-            </div>
-            <div class="collapsible-content">
-                <div class="filter-grid">
-                    <div class="filter-group">
-                        <label class="filter-label">Banks</label>
-                        <select id="bankFilter" multiple size="5">
-                            <option selected disabled>Loading...</option>
-                        </select>
-                    </div>
-                    <div class="filter-group">
-                        <label class="filter-label">Customer Status</label>
-                        <div class="checkbox-group" id="customerStatusFilter"></div>
-                    </div>
-                    <div class="filter-group">
-                        <label class="filter-label">Has Loan</label>
-                        <div class="checkbox-group">
-                            <label class="checkbox-item">
-                                <input type="checkbox" id="hasLoan">
-                                <span class="checkbox-label">Only customers with loans</span>
-                            </label>
-                            <label class="checkbox-item">
-                                <input type="checkbox" id="hasActiveLoan">
-                                <span class="checkbox-label">Only with active loans</span>
-                            </label>
-                            <label class="checkbox-item">
-                                <input type="checkbox" id="hasNPA">
-                                <span class="checkbox-label">Only with NPA loans</span>
-                            </label>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- DEMOGRAPHIC FILTERS -->
-        <div class="collapsible open">
-            <div class="collapsible-header" onclick="toggleCollapsible(this)">
-                <span>👤 Demographics</span>
-                <div style="display:flex; gap:8px; align-items:center;">
-                    <button class="mini-btn" onclick="event.stopPropagation(); toggleAllCheckboxes('employmentFilter')">Toggle Employ.</button>
-                    <button class="mini-btn" onclick="event.stopPropagation(); toggleAllCheckboxes('educationFilter')">Toggle Edu.</button>
-                    <button class="mini-btn" onclick="event.stopPropagation(); toggleAllCheckboxes('cityTierFilter')">Toggle Tiers</button>
-                    <span class="toggle-arrow">▼</span>
-                </div>
-            </div>
-            <div class="collapsible-content">
-                <div class="filter-grid">
-                    <div class="filter-group">
-                        <label class="filter-label">Age Range</label>
-                        <div class="range-inputs">
-                            <input type="number" id="ageMin" placeholder="Min" min="18" max="150" value="18">
-                            <input type="number" id="ageMax" placeholder="Max" min="18" max="150" value="150">
-                        </div>
-                    </div>
-                    <div class="filter-group">
-                        <label class="filter-label">Employment Type</label>
-                        <div class="checkbox-group" id="employmentFilter"></div>
-                    </div>
-                    <div class="filter-group">
-                        <label class="filter-label">Education Level</label>
-                        <div class="checkbox-group" id="educationFilter"></div>
-                    </div>
-                    <div class="filter-group">
-                        <label class="filter-label">City Tier</label>
-                        <div class="checkbox-group" id="cityTierFilter"></div>
-                    </div>
-                    <div class="filter-group">
-                        <label class="filter-label">Residence Type</label>
-                        <div class="checkbox-group" id="residenceFilter"></div>
-                    </div>
-                    <div class="filter-group">
-                        <label class="filter-label">Urban/Rural</label>
-                        <div class="checkbox-group">
-                            <label class="checkbox-item">
-                                <input type="radio" name="urban_rural" value="">
-                                <span class="checkbox-label">All</span>
-                            </label>
-                            <label class="checkbox-item">
-                                <input type="radio" name="urban_rural" value="urban">
-                                <span class="checkbox-label">Urban</span>
-                            </label>
-                            <label class="checkbox-item">
-                                <input type="radio" name="urban_rural" value="rural">
-                                <span class="checkbox-label">Rural</span>
-                            </label>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- FINANCIAL FILTERS -->
-        <div class="collapsible open">
-            <div class="collapsible-header" onclick="toggleCollapsible(this)">
-                <span>💰 Financial Metrics</span>
-                <div style="display:flex; gap:8px; align-items:center;">
-                    <button class="mini-btn" onclick="event.stopPropagation(); toggleAllCheckboxes('loanPurposeFilter')">Toggle Purpose</button>
-                    <span class="toggle-arrow">▼</span>
-                </div>
-            </div>
-            <div class="collapsible-content">
-                <div class="filter-grid">
-                    <div class="filter-group">
-                        <label class="filter-label">CIBIL Score Range</label>
-                        <div class="range-inputs">
-                            <input type="number" id="cibilMin" placeholder="Min" min="0" max="999" value="0">
-                            <input type="number" id="cibilMax" placeholder="Max" min="0" max="999" value="999">
-                        </div>
-                    </div>
-                    <div class="filter-group">
-                        <label class="filter-label">Annual Income (₹)</label>
-                        <div class="range-inputs">
-                            <input type="number" id="incomeMin" placeholder="Min" value="0">
-                            <input type="number" id="incomeMax" placeholder="Max" value="999999999">
-                        </div>
-                    </div>
-                    <div class="filter-group">
-                        <label class="filter-label">Loan Purpose</label>
-                        <div class="checkbox-group" id="loanPurposeFilter"></div>
-                    </div>
-                    <div class="filter-group">
-                        <label class="filter-label">Months as Customer</label>
-                        <select id="monthsCustomerRange">
-                            <option value="">All time periods</option>
-                            <option value="0-6">< 6 months (New)</option>
-                            <option value="6-12">6-12 months</option>
-                            <option value="12-36">1-3 years</option>
-                            <option value="36-60">3-5 years</option>
-                            <option value="60-600">5+ years</option>
-                        </select>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- RISK FILTERS -->
-        <div class="collapsible open">
-            <div class="collapsible-header" onclick="toggleCollapsible(this)">
-                <span>⚠️ Risk Profile</span>
-                <span class="toggle-arrow">▼</span>
-            </div>
-            <div class="collapsible-content">
-                <div class="filter-grid">
-                    <div class="filter-group">
-                        <label class="filter-label">Late Payments</label>
-                        <div class="checkbox-group">
-                            <label class="checkbox-item">
-                                <input type="checkbox" id="previousDefault">
-                                <span class="checkbox-label">Previous default flag</span>
-                            </label>
-                        </div>
-                    </div>
-                    <div class="filter-group">
-                        <label class="filter-label">Risk Level (by late payments)</label>
-                        <select id="riskLevel">
-                            <option value="">All risk levels</option>
-                            <option value="low">Low Risk (No late payments)</option>
-                            <option value="medium">Medium Risk (1-2 late payments)</option>
-                            <option value="high">High Risk (3+ late payments)</option>
-                        </select>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- ACTIONS -->
-        <div class="button-group">
-            <button onclick="applyFilters()">🔍 Apply Filters & Preview</button>
-            <button class="secondary" onclick="resetFilters()">↻ Reset All Filters</button>
-            <button class="secondary" onclick="exportAsJSON()" id="exportJsonBtn" disabled>📥 Download JSON (Complete)</button>
-            <button class="secondary" onclick="exportAsMLFeaturesCSV()" id="exportMLCsvBtn" disabled>📊 Download CSV (ML Features)</button>
-            <button class="secondary" onclick="exportAsCSV()" id="exportCsvBtn" disabled>📊 Download CSV (Summary)</button>
-        </div>
-
-        <!-- RESULTS -->
-        <div id="resultsPreview" class="results-preview">
-            <div class="section-title">📋 Results Preview</div>
-            <div>
-                <div class="result-stat">
-                    <div class="stat-label">Total Customers</div>
-                    <div class="stat-value" id="totalCustomers">0</div>
-                </div>
-                <div class="result-stat">
-                    <div class="stat-label">With Loans</div>
-                    <div class="stat-value" id="withLoans">0</div>
-                </div>
-                <div class="result-stat">
-                    <div class="stat-label">Avg CIBIL</div>
-                    <div class="stat-value" id="avgCibil">0</div>
-                </div>
-                <div class="result-stat">
-                    <div class="stat-label">Avg Income</div>
-                    <div class="stat-value" id="avgIncome">0</div>
-                </div>
-            </div>
-            <div class="customer-grid">
-                <div class="customer-row" style="background:rgba(96,165,250,0.1); font-weight:600;">
-                    <div class="customer-col" style="flex:1.5;">Customer Name</div>
-                    <div class="customer-col">CIBIL</div>
-                    <div class="customer-col">Income</div>
-                    <div class="customer-col">Loans</div>
-                    <div class="customer-col">Status</div>
-                </div>
-                <div id="customersList"></div>
-            </div>
+    <div id="trainingMessage" class="message"></div>
+    <div class="section">
+        <div class="section-title">Bank Filter</div>
+        <div class="filter-group" style="max-width:400px">
+            <label class="filter-label">Banks (leave none selected = all banks)</label>
+            <select id="trainingBankFilter" multiple size="5">
+                <option selected disabled>Loading...</option>
+            </select>
         </div>
     </div>
-
-    <!-- SINGLE CUSTOMER MODE -->
-    <div id="single-mode" class="mode-content">
-        <div class="section">
-            <div class="section-title">Search Customer</div>
-            <div style="display:flex; gap:10px; margin-bottom:16px;">
-                <input type="text" id="searchInput" placeholder="Search by name, email, phone, or customer ID...">
-                <button onclick="searchCustomer()">Search</button>
+    <div class="button-group">
+        <button onclick="loadTrainingData()">🔍 Load Training/Test Rows</button>
+        <button class="secondary" onclick="downloadTrainingCSV()" id="trainingCsvBtn" disabled>📊 Download CSV</button>
+    </div>
+    <div id="trainingResultsPreview" class="results-preview">
+        <div class="section-title">📋 Rows Used By The Model Training Pipeline</div>
+        <p style="font-size:.8em;color:rgba(255,255,255,.5);margin-bottom:12px">
+            These are the exact loan-level rows (one row per loan, customer-level grain, including behavioral
+            features derived from transaction history) that the training pipeline currently loads, split into
+            train/test using the same hyperparameters (test size, random seed) the last actual training run used.
+        </p>
+        <div>
+            <div class="result-stat">
+                <div class="stat-label">Total Rows</div>
+                <div class="stat-value" id="trainingTotalRows">0</div>
+            </div>
+            <div class="result-stat">
+                <div class="stat-label">Train Rows</div>
+                <div class="stat-value" id="trainingTrainRows">0</div>
+            </div>
+            <div class="result-stat">
+                <div class="stat-label">Test Rows</div>
+                <div class="stat-value" id="trainingTestRows">0</div>
+            </div>
+            <div class="result-stat">
+                <div class="stat-label">Test Size / Seed</div>
+                <div class="stat-value" id="trainingSplitInfo" style="font-size:1em">—</div>
             </div>
         </div>
-
-        <div class="section" id="singleResultSection" style="display:none;">
-            <div class="section-title">Customer Details</div>
-            <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:16px; margin-bottom:16px;">
-                <div class="filter-group">
-                    <div class="filter-label">Customer ID</div>
-                    <div style="color:white; font-weight:500;" id="singleCid">—</div>
-                </div>
-                <div class="filter-group">
-                    <div class="filter-label">Name</div>
-                    <div style="color:white; font-weight:500;" id="singleName">—</div>
-                </div>
-                <div class="filter-group">
-                    <div class="filter-label">CIBIL Score</div>
-                    <div style="color:white; font-weight:500;" id="singleCibil">—</div>
-                </div>
-                <div class="filter-group">
-                    <div class="filter-label">Accounts</div>
-                    <div style="color:white; font-weight:500;" id="singleAccounts">0</div>
-                </div>
-                <div class="filter-group">
-                    <div class="filter-label">Loans</div>
-                    <div style="color:white; font-weight:500;" id="singleLoans">0</div>
-                </div>
-                <div class="filter-group">
-                    <div class="filter-label">Transactions</div>
-                    <div style="color:white; font-weight:500;" id="singleTransactions">0</div>
-                </div>
-            </div>
-            <div style="display:flex; gap:10px;">
-                <button onclick="downloadSingleJSON()" id="singleJsonBtn">📥 Download JSON</button>
-                <button class="secondary" onclick="downloadSingleCSV()" id="singleCsvBtn">📊 Download CSV</button>
-            </div>
+        <div class="customer-grid" style="overflow-x:auto">
+            <table style="width:100%; border-collapse:collapse; font-size:.8em; white-space:nowrap">
+                <thead id="trainingTableHead"></thead>
+                <tbody id="trainingTableBody"></tbody>
+            </table>
         </div>
     </div>
 </div>
 
 <script>
-let filterMetadata = {};
-let currentResults = null;
+let currentTrainingData = null;
 
-function switchMode(mode) {
-    document.querySelectorAll('.mode-content').forEach(el => el.classList.remove('active'));
-    document.querySelectorAll('.mode-tab').forEach(el => el.classList.remove('active'));
-
-    document.getElementById(mode + '-mode').classList.add('active');
-    event.target.classList.add('active');
-}
-
-function toggleCollapsible(header) {
-    header.parentElement.classList.toggle('open');
-}
-
-async function loadFilterMetadata() {
+async function loadTrainingBankOptions() {
+    const sel = document.getElementById('trainingBankFilter');
     try {
-        const resp = await fetch('/api/customer-export-filters');
-        filterMetadata = await resp.json();
-        populateFilters();
-    } catch(e) {
-        showMessage('Failed to load filters: ' + e.message, 'error');
+        const resp = await fetch('/operations/api/banks');
+        const banks = await resp.json();
+        sel.innerHTML = (banks.banks || banks || [])
+            .map(b => `<option value="${b.bank_id}">${b.bank_id} — ${b.bank_name || ''}</option>`)
+            .join('');
+    } catch (e) {
+        sel.innerHTML = '<option value="">Error loading banks</option>';
     }
 }
 
-function populateFilters() {
-    // Banks - select all by default
-    const bankSelect = document.getElementById('bankFilter');
-    bankSelect.innerHTML = filterMetadata.banks
-        .map(b => `<option value="${b.bank_id}" selected>${b.bank_name}</option>`)
-        .join('');
-
-    // Customer statuses
-    populateCheckboxGroup('customerStatusFilter', filterMetadata.customer_statuses);
-    // Employment types
-    populateCheckboxGroup('employmentFilter', filterMetadata.employment_types);
-    // Education levels
-    populateCheckboxGroup('educationFilter', filterMetadata.education_levels);
-    // City tiers
-    populateCheckboxGroup('cityTierFilter', filterMetadata.city_tiers);
-    // Residence types
-    populateCheckboxGroup('residenceFilter', filterMetadata.residence_types);
-    // Loan purposes
-    populateCheckboxGroup('loanPurposeFilter', filterMetadata.loan_purposes);
-}
-
-function populateCheckboxGroup(elementId, items) {
-    const container = document.getElementById(elementId);
-    if (!items || items.length === 0) {
-        container.innerHTML = '<div style="font-size:.75em; color:rgba(255,255,255,.4);">No options</div>';
-        return;
-    }
-    container.innerHTML = items
-        .map((item, i) => `
-            <label class="checkbox-item">
-                <input type="checkbox" id="${elementId}_${i}" value="${item}" checked>
-                <span class="checkbox-label">${item}</span>
-            </label>
-        `)
-        .join('');
-}
-
-function toggleAllCheckboxes(elementId) {
-    const checkboxes = document.querySelectorAll(`#${elementId} input[type="checkbox"]`);
-    const allChecked = Array.from(checkboxes).every(cb => cb.checked);
-    checkboxes.forEach(cb => cb.checked = !allChecked);
-}
-
-async function applyFilters() {
-    showMessage('', '');
-    const banks = Array.from(document.getElementById('bankFilter').selectedOptions).map(o => o.value);
-    const employmentTypes = Array.from(document.querySelectorAll('#employmentFilter input[type="checkbox"]:checked')).map(c => c.value);
-    const educationLevels = Array.from(document.querySelectorAll('#educationFilter input[type="checkbox"]:checked')).map(c => c.value);
-    const cityTiers = Array.from(document.querySelectorAll('#cityTierFilter input[type="checkbox"]:checked')).map(c => c.value);
-    const residenceTypes = Array.from(document.querySelectorAll('#residenceFilter input[type="checkbox"]:checked')).map(c => c.value);
-    const loanPurposes = Array.from(document.querySelectorAll('#loanPurposeFilter input[type="checkbox"]:checked')).map(c => c.value);
-    const customerStatuses = Array.from(document.querySelectorAll('#customerStatusFilter input[type="checkbox"]:checked')).map(c => c.value);
-
+async function loadTrainingData() {
+    const banks = Array.from(document.getElementById('trainingBankFilter').selectedOptions).map(o => o.value);
     const params = new URLSearchParams();
     banks.forEach(b => params.append('bank', b));
-    employmentTypes.forEach(e => params.append('employment_type', e));
-    educationLevels.forEach(e => params.append('education_level', e));
-    cityTiers.forEach(c => params.append('city_tier', c));
-    residenceTypes.forEach(r => params.append('residence_type', r));
-    loanPurposes.forEach(p => params.append('loan_purpose', p));
-    customerStatuses.forEach(s => params.append('customer_status', s));
 
-    params.append('cibil_min', document.getElementById('cibilMin').value || 0);
-    params.append('cibil_max', document.getElementById('cibilMax').value || 999);
-    params.append('income_min', document.getElementById('incomeMin').value || 0);
-    params.append('income_max', document.getElementById('incomeMax').value || 999999999);
-    params.append('age_min', document.getElementById('ageMin').value || 18);
-    params.append('age_max', document.getElementById('ageMax').value || 150);
-    params.append('has_loan', document.getElementById('hasLoan').checked);
-    params.append('has_active_loan', document.getElementById('hasActiveLoan').checked);
-    params.append('has_npa', document.getElementById('hasNPA').checked);
-    params.append('previous_default', document.getElementById('previousDefault').checked);
-
-    const urbanRuralElement = document.querySelector('input[name="urban_rural"]:checked');
-    if (urbanRuralElement) {
-        const urbanRural = urbanRuralElement.value;
-        if (urbanRural) params.append('is_rural', urbanRural === 'rural');
-    }
+    const msgEl = document.getElementById('trainingMessage');
+    msgEl.textContent = 'Loading...';
+    msgEl.className = 'message info active';
 
     try {
-        const resp = await fetch(`/api/customer-bulk-export?${params}`);
+        const resp = await fetch(`/api/training-data-preview?${params}`);
         if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-        currentResults = await resp.json();
-        displayResults();
-    } catch(e) {
-        console.error('Filter error:', e);
-        showMessage('Failed to fetch results: ' + e.message, 'error');
+        currentTrainingData = await resp.json();
+        if (currentTrainingData.error) throw new Error(currentTrainingData.error);
+        displayTrainingData(); // may set its own "showing first N of M" notice - don't clobber it below
+    } catch (e) {
+        msgEl.textContent = 'Failed to load training data: ' + e.message;
+        msgEl.className = 'message error active';
     }
 }
 
-function displayResults() {
-    if (!currentResults || currentResults.total_customers === 0) {
-        showMessage('No customers match the selected filters', 'info');
-        document.getElementById('resultsPreview').classList.remove('active');
-        document.getElementById('exportJsonBtn').disabled = true;
-        document.getElementById('exportMLCsvBtn').disabled = true;
-        document.getElementById('exportCsvBtn').disabled = true;
-        return;
+function displayTrainingData() {
+    const d = currentTrainingData;
+    document.getElementById('trainingResultsPreview').classList.add('active');
+    document.getElementById('trainingTotalRows').textContent = d.total_rows;
+    document.getElementById('trainingTrainRows').textContent = d.train_rows;
+    document.getElementById('trainingTestRows').textContent = d.test_rows;
+    document.getElementById('trainingSplitInfo').textContent = `${d.test_size} / ${d.random_state}`;
+
+    const cols = d.columns;
+    document.getElementById('trainingTableHead').innerHTML =
+        '<tr>' + cols.map(c => `<th style="text-align:left;padding:8px;color:rgba(255,255,255,.6);border-bottom:1px solid rgba(255,255,255,.1)">${c}</th>`).join('') + '</tr>';
+
+    document.getElementById('trainingTableBody').innerHTML = d.rows.slice(0, 500).map(r => {
+        const splitColor = r.split === 'train' ? '#93c5fd' : '#fbbf24';
+        return '<tr>' + cols.map(c => {
+            const v = r[c];
+            const style = c === 'split' ? `color:${splitColor};font-weight:600` : '';
+            return `<td style="padding:6px 8px;border-bottom:1px solid rgba(255,255,255,.04);${style}">${v === null || v === undefined ? '—' : v}</td>`;
+        }).join('') + '</tr>';
+    }).join('');
+
+    document.getElementById('trainingCsvBtn').disabled = false;
+
+    const msgEl = document.getElementById('trainingMessage');
+    if (d.rows.length > 500) {
+        msgEl.textContent = `Showing first 500 of ${d.rows.length} rows in preview — CSV download includes all ${d.rows.length} rows.`;
+        msgEl.className = 'message info active';
+    } else {
+        msgEl.className = 'message';
     }
-
-    document.getElementById('resultsPreview').classList.add('active');
-    document.getElementById('totalCustomers').textContent = currentResults.total_customers;
-
-    // Calculate statistics
-    const customers = currentResults.customers;
-    const withLoans = customers.filter(c => c.loan_count > 0).length;
-    const cibils = customers.map(c => c.cibil_score).filter(c => c);
-    const incomes = customers.map(c => c.annual_income).filter(c => c);
-
-    document.getElementById('withLoans').textContent = withLoans;
-    document.getElementById('avgCibil').textContent = cibils.length > 0 ?
-        (cibils.reduce((a,b) => a+b, 0) / cibils.length).toFixed(0) : '—';
-    document.getElementById('avgIncome').textContent = incomes.length > 0 ?
-        '₹' + (incomes.reduce((a,b) => a+b, 0) / incomes.length / 100000).toFixed(1) + 'L' : '—';
-
-    // Display customer list
-    const customersList = document.getElementById('customersList');
-    customersList.innerHTML = customers.slice(0, 100).map(c => `
-        <div class="customer-row">
-            <div class="customer-col customer-col-name">${c.first} ${c.last}</div>
-            <div class="customer-col">${c.cibil_score || '—'}</div>
-            <div class="customer-col">₹${c.annual_income ? (c.annual_income/100000).toFixed(1) + 'L' : '—'}</div>
-            <div class="customer-col">${c.loan_count}</div>
-            <div class="customer-col">${c.status}</div>
-        </div>
-    `).join('');
-
-    document.getElementById('exportJsonBtn').disabled = false;
-    document.getElementById('exportMLCsvBtn').disabled = false;
-    document.getElementById('exportCsvBtn').disabled = false;
-
-    showMessage(`Found ${currentResults.total_customers} customers matching your filters`, 'success');
 }
 
-function exportAsJSON() {
-    if (!currentResults) return;
+function downloadTrainingCSV() {
+    if (!currentTrainingData || !currentTrainingData.rows.length) return;
+    const cols = currentTrainingData.columns;
 
-    const jsonStr = JSON.stringify(currentResults, null, 2);
-    const blob = new Blob([jsonStr], {type: 'application/json'});
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `bulk_customers_${new Date().toISOString().split('T')[0]}.json`;
-    link.click();
-    URL.revokeObjectURL(url);
-
-    showMessage('JSON downloaded successfully', 'success');
-}
-
-function exportAsMLFeaturesCSV() {
-    if (!currentResults || currentResults.customers.length === 0) return;
-
-    let csv = 'ML Training Dataset - Complete Feature Set from Database\n';
+    let csv = 'Model Training/Test Dataset Export\n';
     csv += `Export Date,${new Date().toISOString()}\n`;
-    csv += `Total Records,${currentResults.total_customers}\n`;
-    csv += `Columns,46 ML features (customer demographics financial metrics loan data and credit history)\n`;
-    csv += `Note,Includes all features available in database. Encoded versions and delta features computed during model preprocessing.\n\n`;
+    csv += `Total Rows,${currentTrainingData.total_rows}\n`;
+    csv += `Train Rows,${currentTrainingData.train_rows}\n`;
+    csv += `Test Rows,${currentTrainingData.test_rows}\n`;
+    csv += `Test Size,${currentTrainingData.test_size}\n`;
+    csv += `Random Seed,${currentTrainingData.random_state}\n`;
+    csv += `Banks Filtered,${(currentTrainingData.banks_filtered || []).join(' ') || 'All banks'}\n\n`;
 
-    // Header with all 46 columns returned by API
-    csv += 'id,bank_id,loan_id,age,annual_income,cibil_score,city_tier,de_ratio,default_flag,education_level,email,employment_type,existing_loans_count,exposure_class,first,foir_declared,gender,id_col,industry_sector,interest_coverage,is_pep,is_rural,last,loan_classification,loan_count,loan_purpose,liquidity_ratio,marital_status,months_as_customer,npa_flag,num_dependents,num_existing_products,num_late_payments_past_12m,other_income,pd_observed,pd_score,phone,previous_default_flag,prior_cibil,prior_de,profitability,residence_type,state,status,total_outstanding,years_at_address,years_employed\n';
-
-    currentResults.customers.forEach(c => {
-        const row = [
-            c.id, c.bank_id, c.loan_id, c.age, c.annual_income, c.cibil_score, c.city_tier,
-            c.de_ratio, c.default_flag, c.education_level, c.email, c.employment_type,
-            c.existing_loans_count, c.exposure_class, c.first, c.foir_declared, c.gender,
-            c.id, c.industry_sector, c.interest_coverage, c.is_pep, c.is_rural, c.last,
-            c.loan_classification, c.loan_count, c.loan_purpose, c.liquidity_ratio,
-            c.marital_status, c.months_as_customer, c.npa_flag, c.num_dependents,
-            c.num_existing_products, c.num_late_payments_past_12m, c.other_income,
-            c.pd_observed, c.pd_score, c.phone, c.previous_default_flag, c.prior_cibil,
-            c.prior_de, c.profitability, c.residence_type, c.state, c.status,
-            c.total_outstanding, c.years_at_address, c.years_employed
-        ].map(v => {
+    csv += cols.join(',') + '\n';
+    currentTrainingData.rows.forEach(r => {
+        csv += cols.map(c => {
+            const v = r[c];
             if (v === null || v === undefined) return '';
-            if (typeof v === 'string' && (v.includes(',') || v.includes('"') || v.includes('\n'))) {
+            if (typeof v === 'string' && (v.includes(',') || v.includes('"'))) {
                 return '"' + v.replace(/"/g, '""') + '"';
             }
             return v;
-        });
-        csv += row.join(',') + '\n';
+        }).join(',') + '\n';
     });
 
     const blob = new Blob([csv], {type: 'text/csv'});
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `ml_training_dataset_${new Date().toISOString().split('T')[0]}.csv`;
+    link.download = `training_test_dataset_${new Date().toISOString().split('T')[0]}.csv`;
     link.click();
     URL.revokeObjectURL(url);
-
-    showMessage('ML Features CSV (46 columns) downloaded successfully', 'success');
-}
-
-function exportAsCSV() {
-    if (!currentResults || currentResults.customers.length === 0) return;
-
-    let csv = 'Customer Summary Export\n';
-    csv += `Export Date,${new Date().toISOString()}\n`;
-    csv += `Total Customers,${currentResults.total_customers}\n\n`;
-
-    csv += 'CUSTOMER SUMMARY DATA\n';
-    csv += 'ID,First Name,Last Name,Email,Phone,Status,CIBIL,Annual Income (₹),Age,Months Customer,Loan Count,Total Outstanding,NPA Count\n';
-
-    currentResults.customers.forEach(c => {
-        csv += `"${c.id}","${c.first}","${c.last}","${c.email}","${c.phone}","${c.status}",${c.cibil_score || ''},${c.annual_income || ''},${c.age || ''},${c.months_as_customer || ''},${c.loan_count},${c.total_outstanding || ''},${c.npa_count || ''}\n`;
-    });
-
-    const blob = new Blob([csv], {type: 'text/csv'});
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `bulk_customers_summary_${new Date().toISOString().split('T')[0]}.csv`;
-    link.click();
-    URL.revokeObjectURL(url);
-
-    showMessage('Summary CSV downloaded successfully', 'success');
-}
-
-function resetFilters() {
-    document.getElementById('bankFilter').selectedIndex = -1;
-    document.querySelectorAll('input[type="checkbox"]').forEach(c => c.checked = false);
-    document.getElementById('cibilMin').value = 0;
-    document.getElementById('cibilMax').value = 999;
-    document.getElementById('incomeMin').value = 0;
-    document.getElementById('incomeMax').value = 999999999;
-    document.getElementById('ageMin').value = 18;
-    document.getElementById('ageMax').value = 150;
-    document.getElementById('monthsCustomerRange').value = '';
-    document.getElementById('riskLevel').value = '';
-    document.getElementById('resultsPreview').classList.remove('active');
-    showMessage('', '');
-}
-
-async function searchCustomer() {
-    const query = document.getElementById('searchInput').value.trim();
-    if (!query) {
-        showMessage('Enter a search term', 'error');
-        return;
-    }
-
-    try {
-        const resp = await fetch(`/api/customer-export/${query}`);
-        if (!resp.ok) throw new Error('Customer not found');
-
-        const data = await resp.json();
-        const c = data.customer;
-        const k = data.kyc;
-
-        document.getElementById('singleCid').textContent = c.id;
-        document.getElementById('singleName').textContent = c.name;
-        document.getElementById('singleCibil').textContent = k.cibil_score || '—';
-        document.getElementById('singleAccounts').textContent = data.accounts.length;
-        document.getElementById('singleLoans').textContent = data.loans.length;
-        document.getElementById('singleTransactions').textContent = data.transactions.total_count;
-
-        document.getElementById('singleResultSection').style.display = 'block';
-        document.getElementById('singleJsonBtn').onclick = () => downloadSingleJSON(data);
-        document.getElementById('singleCsvBtn').onclick = () => downloadSingleCSV(data);
-
-        showMessage(`Loaded ${c.id}`, 'success');
-    } catch(e) {
-        showMessage('Customer not found: ' + e.message, 'error');
-        document.getElementById('singleResultSection').style.display = 'none';
-    }
-}
-
-function downloadSingleJSON(data) {
-    const jsonStr = JSON.stringify(data, null, 2);
-    const blob = new Blob([jsonStr], {type: 'application/json'});
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `customer_${data.customer.id}.json`;
-    link.click();
-    URL.revokeObjectURL(url);
-}
-
-function downloadSingleCSV(data) {
-    const c = data.customer;
-    const k = data.kyc;
-    const txns = data.transactions.data || [];
-
-    let csv = 'Customer Profile\n';
-    csv += `Export Date,${new Date().toISOString()}\n\n`;
-    csv += 'CUSTOMER INFO\n';
-    csv += `"${c.id}","${c.name}","${c.email}","${c.phone}","${c.city}"\n\n`;
-    csv += 'KYC DATA\n';
-    csv += `Age,CIBIL,Income,Employment,Years Employed\n`;
-    csv += `${k.age},${k.cibil_score},"₹${k.annual_income}","${k.employment_type}",${k.years_employed}\n\n`;
-    csv += 'TRANSACTIONS\n';
-    csv += 'Date,Time,Type,Amount,Balance After\n';
-    txns.forEach(tx => {
-        csv += `"${tx.date}","${tx.time}","${tx.type}",${tx.amount},${tx.balance_after}\n`;
-    });
-
-    const blob = new Blob([csv], {type: 'text/csv'});
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `customer_${c.id}.csv`;
-    link.click();
-    URL.revokeObjectURL(url);
-}
-
-function showMessage(msg, type) {
-    const messageEl = document.getElementById('message');
-    if (!messageEl) return;
-
-    messageEl.textContent = msg;
-    messageEl.className = `message ${type} ${msg ? 'active' : ''}`;
-    if (msg && type) {
-        setTimeout(() => {
-            messageEl.classList.remove('active');
-        }, 4000);
-    }
 }
 
 // Initialize
-document.addEventListener('DOMContentLoaded', loadFilterMetadata);
+document.addEventListener('DOMContentLoaded', loadTrainingBankOptions);
 </script>
 
 </body>

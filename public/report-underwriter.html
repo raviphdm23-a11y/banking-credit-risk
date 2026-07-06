@@ -132,6 +132,7 @@
     <!-- 3. Peer Comparison -->
     <div class="report-section">
       <div class="section-title">3 &mdash; Your Metrics vs Approved Borrowers</div>
+      <div id="peerSegmentLabel" style="font-size:0.8rem;color:#6b7280;margin-bottom:8px"></div>
       <div class="charts-row" style="grid-template-columns:1fr 1.2fr">
         <div>
           <div class="chart-title">Feature Health (vs Approved-Borrower Median)</div>
@@ -367,6 +368,7 @@ function mapCaseToFindings(M, c) {
     attribution:    M.attribution,
     five_cs:        M.five_cs,
     peer_health:    M.peer_health,
+    peer_segment:   M.peer_segment,
     counterfactuals: M.counterfactuals,
   };
 }
@@ -475,6 +477,10 @@ function renderReport(f, rmCtx) {
   // Section 3: Peer health
   ReportCharts.drawFeatureHealth(document.getElementById('healthChart'), f.peer_health || {});
   renderPeerHealthGrid(f.peer_health || {});
+  const peerSeg = f.peer_segment || {};
+  document.getElementById('peerSegmentLabel').textContent = peerSeg.exposure_class
+    ? `Compared against: ${peerSeg.exposure_class} peers${peerSeg.n_peers ? ` (n=${peerSeg.n_peers})` : ''}`
+    : '';
 
   // Section 4: Counterfactuals
   renderCounterfactuals(f.counterfactuals || [], f.rating?.grade);

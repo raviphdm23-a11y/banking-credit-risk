@@ -522,6 +522,8 @@ body{
 .status-badge.active{background:#D1FAE5;color:#065F46}
 .status-badge.npa{background:#FEF3C7;color:#92400E}
 .status-badge.defaulted{background:#FEE2E2;color:#991B1B}
+.status-badge.closed{background:#E0E7FF;color:#3730A3}
+.status-badge.written-off{background:#E5E7EB;color:#374151}
 
 .loan-stats{
   display:grid;
@@ -568,6 +570,30 @@ body{
 .prog-fill.active{background:linear-gradient(90deg,#10B981,#34D399)}
 .prog-fill.npa{background:linear-gradient(90deg,#F59E0B,#FCD34D)}
 .prog-fill.defaulted{background:linear-gradient(90deg,#E31837,#F87171)}
+.prog-fill.closed{background:linear-gradient(90deg,#6366F1,#818CF8)}
+.prog-fill.written-off{background:linear-gradient(90deg,#9CA3AF,#D1D5DB)}
+
+.resolve-btn{
+  margin-top:10px; padding:6px 14px; border-radius:100px; border:1px solid #E31837;
+  background:#fff; color:#E31837; font-size:11px; font-weight:600; cursor:pointer;
+}
+.resolve-btn:hover{background:#FEF2F2}
+.resolve-form{
+  margin-top:12px; padding:14px; background:#FAFAFA; border:1px solid var(--border);
+  border-radius:10px; display:none;
+}
+.resolve-form label{display:block; font-size:10.5px; font-weight:600; color:var(--t3);
+  text-transform:uppercase; letter-spacing:0.6px; margin-bottom:4px}
+.resolve-form select, .resolve-form input, .resolve-form textarea{
+  width:100%; padding:7px 10px; margin-bottom:10px; border:1px solid var(--border);
+  border-radius:6px; font-size:12.5px; font-family:inherit; box-sizing:border-box;
+}
+.resolve-form textarea{resize:vertical; min-height:56px}
+.resolve-submit{
+  padding:7px 16px; border-radius:8px; border:none; background:#E31837; color:#fff;
+  font-size:12px; font-weight:600; cursor:pointer;
+}
+.resolve-submit:disabled{opacity:0.6; cursor:default}
 
 /* ── TRANSACTIONS ── */
 .txn-table{
@@ -1263,8 +1289,10 @@ function age(dob){
 
 // NPA is carried in loan_classification (loans.status stays 'Active' in bank.db),
 // so consider both — keeps this view coherent with the Regulatory module.
-const NPA_CLASSES = ['NPA','Doubtful','Loss'];
+const NPA_CLASSES = ['NPA','Sub-Standard','Doubtful','Loss Asset'];
 function effStatus(l){
+  if(l.status==='Written-Off') return 'Written-Off';
+  if(l.status==='Closed') return 'Closed';
   if(l.status==='Defaulted') return 'Defaulted';
   if(l.status==='NPA' || NPA_CLASSES.includes(l.loan_classification)) return 'NPA';
   return l.status || 'Active';
@@ -1467,10 +1495,70 @@ function buildLoans(cid){
           <span>Tenure: ${l.tenure} months</span>
         </div>
         <div class="prog-bar"><div class="prog-fill ${sc}" style="width:${pct}%"></div></div>
+        ${eff==='NPA' ? `
+        <button class="resolve-btn" onclick="toggleResolveForm('${l.id}')">Resolve NPA &rarr;</button>
+        <div class="resolve-form" id="resolve-form-${l.id}">
+          <label>Action</label>
+          <select id="res-action-${l.id}" onchange="onResolveActionChange('${l.id}')">
+            <option value="recovery">Recovery (cash collected)</option>
+            <option value="restructure">Restructure (reclassify to Standard)</option>
+            <option value="write_off">Write-off (full loss)</option>
+          </select>
+          <div id="res-amount-wrap-${l.id}">
+            <label>Amount Recovered (max ${inr(l.outstanding)})</label>
+            <input type="number" id="res-amount-${l.id}" min="0.01" max="${l.outstanding}" step="0.01" placeholder="e.g. ${Math.round(l.outstanding/2)}">
+          </div>
+          <label>Rationale (min 20 characters)</label>
+          <textarea id="res-rationale-${l.id}" placeholder="Justification for this resolution action…"></textarea>
+          <button class="resolve-submit" id="res-submit-${l.id}" onclick="submitResolve('${l.id}','${cid}')">Submit</button>
+        </div>` : ''}
       </div>`;
     }).join('')}
   </div>`;
   return wrap;
+}
+
+function toggleResolveForm(loanId){
+  const el = document.getElementById(`resolve-form-${loanId}`);
+  if(el) el.style.display = (el.style.display==='block') ? 'none' : 'block';
+}
+
+function onResolveActionChange(loanId){
+  const sel = document.getElementById(`res-action-${loanId}`);
+  const wrap = document.getElementById(`res-amount-wrap-${loanId}`);
+  if(wrap) wrap.style.display = (sel.value==='recovery') ? 'block' : 'none';
+}
+
+async function submitResolve(loanId, cid){
+  const action = document.getElementById(`res-action-${loanId}`).value;
+  const rationale = document.getElementById(`res-rationale-${loanId}`).value.trim();
+  const body = {action, rationale};
+  if(action==='recovery'){
+    body.amount = parseFloat(document.getElementById(`res-amount-${loanId}`).value);
+  }
+  const btn = document.getElementById(`res-submit-${loanId}`);
+  btn.disabled = true; btn.textContent = 'Submitting…';
+  try{
+    const res = await fetch(`/operations/api/loans/${loanId}/resolve`, {
+      method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)
+    });
+    const data = await res.json();
+    if(!res.ok){
+      alert(data.error || 'Failed to resolve loan');
+      btn.disabled = false; btn.textContent = 'Submit';
+      return;
+    }
+    const idx = DB.loans.findIndex(x=>x.id===loanId);
+    if(idx >= 0){
+      DB.loans[idx].outstanding = data.new_outstanding;
+      DB.loans[idx].loan_classification = data.new_classification;
+      DB.loans[idx].status = data.new_status;
+    }
+    selectCustomer(cid);
+  }catch(e){
+    alert('Network error: '+e.message);
+    btn.disabled = false; btn.textContent = 'Submit';
+  }
 }
 
 // ── TRANSACTIONS ──────────────────────────────────────────────────────────────

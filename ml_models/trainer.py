@@ -43,6 +43,13 @@ BANK_DB_PATH  = os.environ.get('BANK_DB_PATH', os.path.join(_ROOT, 'bank.db'))
 
 MODEL_PATH       = os.path.join(ML_DIR, 'pd_model.pkl')
 BACKUP_PATH      = os.path.join(ML_DIR, 'pd_model_backup.pkl')
+
+
+def bank_key(bank_ids):
+    """Stable directory-safe key for a bank selection. None/empty => 'ALL'."""
+    if not bank_ids:
+        return 'ALL'
+    return '_'.join(sorted(bank_ids))
 META_PATH        = os.path.join(ML_DIR, 'pd_model_metadata.json')
 HISTORY_PATH     = os.path.join(ML_DIR, 'run_history.json')
 HPARAM_PATH      = os.path.join(ML_DIR, 'hyperparameters.json')
@@ -123,8 +130,9 @@ def scan_db_source():
         return None
 
 
-def load_from_db():
-    """Load all rows from bank_loan_metrics.
+def load_from_db(bank_ids=None, exposure_class=None):
+    """Load all rows from bank_loan_metrics, optionally restricted to bank_ids
+    and/or a single exposure_class (CORPORATE/SME/RETAIL_MORTGAGES/RETAIL_OTHER).
 
     Macro features (gdp_growth_pct, inflation_cpi_pct, policy_rate_pct,
     unemployment_pct) are stored directly in bank_loan_metrics and backfilled
@@ -134,7 +142,7 @@ def load_from_db():
         return None
     try:
         conn = sqlite3.connect(BANK_DB_PATH)
-        df = pd.read_sql_query(
+        query = (
             "SELECT bank_id, loan_id, de_ratio, interest_coverage, "
             "       profitability, liquidity_ratio, default_flag, "
             "       pd_observed, observation_date, "
@@ -143,7 +151,7 @@ def load_from_db():
             "       residence_type_enc, loan_purpose_enc, cibil_score, "
             "       previous_default_flag, months_as_customer, "
             "       num_late_payments_past_12m, existing_loans_count, "
-            "       num_existing_products, is_rural, country_code, "
+            "       num_existing_products, is_rural, country_code, exposure_class, "
             "       gdp_growth_pct, inflation_cpi_pct, policy_rate_pct, unemployment_pct, "
             "       delta_de_ratio, delta_cibil, months_since_origination, "
             "       delta_gdp_pct, delta_cpi_pct, delta_policy_rate_pct, "
@@ -151,9 +159,19 @@ def load_from_db():
             "       emi_miss_ratio, income_miss_ratio, income_cv, "
             "       income_to_declared_ratio, balance_cv, max_gap_days, "
             "       n_transactions, avg_balance "
-            "FROM bank_loan_metrics",
-            conn
+            "FROM bank_loan_metrics"
         )
+        clauses, params = [], []
+        if bank_ids:
+            placeholders = ','.join('?' * len(bank_ids))
+            clauses.append(f"bank_id IN ({placeholders})")
+            params.extend(bank_ids)
+        if exposure_class:
+            clauses.append("exposure_class = ?")
+            params.append(exposure_class)
+        if clauses:
+            query += " WHERE " + " AND ".join(clauses)
+        df = pd.read_sql_query(query, conn, params=params or None)
         conn.close()
         if len(df) == 0:
             return None
@@ -350,9 +368,10 @@ def validate_file(filepath):
 
 # ── Step 3: Load & merge ──────────────────────────────────────────────────────
 
-def load_from_enriched_transactions():
+def load_from_enriched_transactions(bank_ids=None, exposure_class=None):
     """
-    Load transaction-level enriched data from transactions table.
+    Load transaction-level enriched data from transactions table, optionally
+    restricted to bank_ids and/or a single exposure_class.
     Returns DataFrame with all enriched ML features.
     """
     conn = sqlite3.connect(BANK_DB_PATH)
@@ -382,10 +401,14 @@ def load_from_enriched_transactions():
             t.date as observation_date,
             t.delta_cpi_pct, t.delta_policy_rate_pct, t.delta_unemployment_pct,
             0 as previous_default_flag,
-            1 as existing_loans_count
+            1 as existing_loans_count,
+            blm.emi_miss_ratio, blm.income_miss_ratio, blm.income_cv,
+            blm.income_to_declared_ratio, blm.balance_cv, blm.max_gap_days,
+            blm.n_transactions, blm.avg_balance, blm.exposure_class
         FROM transactions t
         LEFT JOIN accounts a ON t.aid = a.id
         LEFT JOIN customer_kyc k ON a.cid = k.cid
+        LEFT JOIN bank_loan_metrics blm ON t.loan_id_ref = blm.loan_id
         WHERE t.default_flag IS NOT NULL
             AND t.cust_age IS NOT NULL
             AND t.cust_annual_income IS NOT NULL
@@ -394,10 +417,30 @@ def load_from_enriched_transactions():
             AND t.loan_classification IS NOT NULL
     """
 
-    df = pd.read_sql(query, con=conn)
+    params = []
+    if bank_ids:
+        placeholders = ','.join('?' * len(bank_ids))
+        query += f" AND t.bank_id IN ({placeholders})"
+        params.extend(bank_ids)
+    if exposure_class:
+        query += " AND blm.exposure_class = ?"
+        params.append(exposure_class)
+    params = params or None
+
+    df = pd.read_sql(query, con=conn, params=params)
     conn.close()
 
     if df is not None and len(df) > 0:
+        # Loans without a matching bank_loan_metrics row (no transaction
+        # history at seed time, or joined loan_id mismatch) get the
+        # population median for behavioral features - neutral "unknown,
+        # assume typical" rather than 0 (which would look risk-free).
+        behavioral_cols = ('emi_miss_ratio', 'income_miss_ratio', 'income_cv',
+                            'income_to_declared_ratio', 'balance_cv', 'max_gap_days',
+                            'n_transactions', 'avg_balance')
+        for col in behavioral_cols:
+            if col in df.columns:
+                df[col] = df[col].fillna(df[col].median())
         print(f"[TRAIN] Loaded {len(df)} enriched transactions from database")
         return df
     else:
@@ -405,9 +448,11 @@ def load_from_enriched_transactions():
         return None
 
 
-def load_and_merge(use_transaction_level=False):
+def load_and_merge(use_transaction_level=False, bank_ids=None, exposure_class=None):
     """
-    Load training data from available sources.
+    Load training data from available sources, optionally restricted to a
+    subset of banks (bank_ids: list of bank_id strings, e.g. ['BANK001']) and/or
+    a single exposure_class (CORPORATE/SME/RETAIL_MORTGAGES/RETAIL_OTHER).
     If use_transaction_level=True: Load from enriched transactions table (84K rows)
     If use_transaction_level=False: Load from bank_loan_metrics (customer-level, 1.1K rows)
 
@@ -416,35 +461,40 @@ def load_and_merge(use_transaction_level=False):
     frames     = []
     files_used = []
     files_skip = []
+    bank_label = f" [banks: {', '.join(bank_ids)}]" if bank_ids else ""
+    seg_label  = f" [segment: {exposure_class}]" if exposure_class else ""
 
     # --- PRIMARY DATA SOURCE (MUTUALLY EXCLUSIVE) ---
     if use_transaction_level:
-        print("[TRAIN] Using TRANSACTION-LEVEL data source (56K+ enriched transactions)")
-        txn_df = load_from_enriched_transactions()
+        print(f"[TRAIN] Using TRANSACTION-LEVEL data source (56K+ enriched transactions){bank_label}{seg_label}")
+        txn_df = load_from_enriched_transactions(bank_ids=bank_ids, exposure_class=exposure_class)
         if txn_df is None or len(txn_df) == 0:
             print("[TRAIN] ERROR: load_from_enriched_transactions() returned EMPTY!")
-            raise ValueError('[TRAIN] CRITICAL: No enriched transactions loaded! Check database or SQL.')
+            raise ValueError('[TRAIN] CRITICAL: No enriched transactions loaded for the selected bank(s)/segment! Check database or SQL.')
         print(f"[TRAIN] SUCCESS: Loaded {len(txn_df):,} enriched transactions")
         frames.append(txn_df)
         files_used.append({
-            'filename': 'enriched_transactions (bank.db - TRANSACTION LEVEL)',
+            'filename': f'enriched_transactions (bank.db - TRANSACTION LEVEL){bank_label}{seg_label}',
             'rows': len(txn_df)
         })
     else:
-        print("[TRAIN] Using CUSTOMER-LEVEL data source (932 customers from bank_loan_metrics)")
-        db_df = load_from_db()
+        print(f"[TRAIN] Using CUSTOMER-LEVEL data source (bank_loan_metrics){bank_label}{seg_label}")
+        db_df = load_from_db(bank_ids=bank_ids, exposure_class=exposure_class)
         if db_df is not None:
             ok, err = _validate_dataframe(db_df, 'bank_loan_metrics')
             if ok:
                 frames.append(db_df)
-                files_used.append({'filename': 'bank_loan_metrics (bank.db - CUSTOMER LEVEL)', 'rows': len(db_df)})
+                files_used.append({'filename': f'bank_loan_metrics (bank.db - CUSTOMER LEVEL){bank_label}{seg_label}', 'rows': len(db_df)})
             else:
                 files_skip.append({'filename': 'bank_loan_metrics (bank.db)', 'reason': err})
 
     # --- Supplementary source: CSV files in data/training/ ---
     # Only merge CSVs with customer-level data (not transaction-level)
     # Transaction-level data is now realistic at the source (seed scripts + migration)
-    if not use_transaction_level:
+    # Skipped entirely when a bank or segment filter is active - CSV drop-files
+    # aren't scoped to a specific bank/segment selection, so mixing them in
+    # would silently reintroduce data outside the requested subset.
+    if not use_transaction_level and not bank_ids and not exposure_class:
         csv_sources = [s for s in scan_training_folder() if s.get('source') == 'csv']
         for f in csv_sources:
             ok, err, rows = validate_file(f['filepath'])
@@ -561,7 +611,7 @@ def evaluate_model(model, X_test, y_test, df_test, threshold):
     rec    = float(recall_score(y_true_bin, y_pred_bin, zero_division=0))
     f1     = float(f1_score(y_true_bin, y_pred_bin, zero_division=0))
     brier  = float(brier_score_loss(y_true_bin, y_pred_proba))
-    cm     = confusion_matrix(y_true_bin, y_pred_bin).tolist()
+    cm     = confusion_matrix(y_true_bin, y_pred_bin, labels=[0, 1]).tolist()
 
     metrics = {
         'auc_roc':   round(auc, 4),
@@ -692,7 +742,10 @@ def generate_charts(model, X_test, y_test, y_pred, df_test, threshold):
     charts['roc_curve'] = _fig_to_base64(fig)
 
     # 3. Confusion Matrix
-    cm = confusion_matrix(y_true_bin, (y_pred >= threshold).astype(int))
+    # labels=[0, 1] forces a 2x2 matrix even when the test split happens to
+    # contain only one class (e.g. a small/filtered bank subset with very
+    # few defaults, where a group-aware split can push all positives to train).
+    cm = confusion_matrix(y_true_bin, (y_pred >= threshold).astype(int), labels=[0, 1])
     fig, ax = plt.subplots(figsize=(5, 4))
     im = ax.imshow(cm, interpolation='nearest', cmap='Blues')
     plt.colorbar(im, ax=ax)
@@ -766,12 +819,20 @@ _BENCHMARK_LABELS = {
     'liquidity_ratio':   'Current Ratio',
 }
 
-def _refresh_peer_benchmarks(df):
+_BENCHMARK_SEGMENT_KEYS = ('ALL', 'CORPORATE', 'SME', 'RETAIL_MORTGAGES', 'RETAIL_OTHER')
+
+
+def _refresh_peer_benchmarks(df, exposure_class=None):
     """
     Recompute peer benchmarks (P25/median/P75/P10/P90) from approved borrowers
-    (default_flag=0) in the training dataframe and write peer_benchmarks.json.
-    Called automatically after every successful model promotion.
+    (default_flag=0) in the given (already segment-filtered) training
+    dataframe, and update that segment's entry in peer_benchmarks.json
+    (keyed 'ALL' plus the 4 Basel segments) - so each exposure_class's peer
+    comparison is scoped to its own population instead of one blended
+    whole-portfolio benchmark. Called automatically after every successful
+    model promotion.
     """
+    seg = exposure_class or 'ALL'
     approved = df[df[TARGET_COL] == 0]
     n_approved = len(approved)
     n_total    = len(df)
@@ -801,10 +862,10 @@ def _refresh_peer_benchmarks(df):
             'n':      n_approved,
         }
 
-    out = {
+    seg_out = {
         '_meta': {
             'generated_at': datetime.now().isoformat(timespec='seconds'),
-            'source':       'bank_loan_metrics (default_flag=0)',
+            'source':       f'bank_loan_metrics (default_flag=0, exposure_class={seg})',
             'n_approved':   n_approved,
             'n_total':      n_total,
             'default_rate': round(1 - n_approved / n_total, 4) if n_total else None,
@@ -812,13 +873,29 @@ def _refresh_peer_benchmarks(df):
         **benchmarks,
     }
 
+    # Read-merge-write: preserve other segments' already-computed benchmarks
+    # rather than clobbering the whole file with just this run's segment.
+    all_benchmarks = {}
+    if os.path.exists(BENCHMARKS_PATH):
+        try:
+            with open(BENCHMARKS_PATH) as f:
+                existing = json.load(f)
+            # Migrate the old flat pre-segmentation shape into the 'ALL' key.
+            if any(k in existing for k in _BENCHMARK_SEGMENT_KEYS):
+                all_benchmarks = existing
+            else:
+                all_benchmarks = {'ALL': existing}
+        except Exception:
+            all_benchmarks = {}
+
+    all_benchmarks[seg] = seg_out
     with open(BENCHMARKS_PATH, 'w') as f:
-        json.dump(out, f, indent=2)
+        json.dump(all_benchmarks, f, indent=2)
 
 
 # ── Main training orchestrator ────────────────────────────────────────────────
 
-def run_training(triggered_by='manual', use_transaction_level=True, model_type='xgboost'):
+def run_training(triggered_by='manual', use_transaction_level=True, model_type='xgboost', bank_ids=None, exposure_class=None):
     """
     Full training pipeline.
 
@@ -827,6 +904,13 @@ def run_training(triggered_by='manual', use_transaction_level=True, model_type='
         use_transaction_level (bool): If True, use enriched transactions table (84K rows)
                                        If False, use bank_loan_metrics table (1.1K rows)
         model_type (str): 'xgboost', 'logistic_regression', etc.
+        bank_ids (list[str] | None): If given, restrict training data to these
+                                      bank_id values (e.g. ['BANK001', 'BANK002']).
+                                      None/empty means all banks.
+        exposure_class (str | None): If given, restrict training data to this
+                                      single Basel segment (CORPORATE, SME,
+                                      RETAIL_MORTGAGES, RETAIL_OTHER). None
+                                      means the unsegmented/legacy 'ALL' slot.
 
     Returns a run record dict (same structure as stored in run_history.json).
     Raises RuntimeError if another run is already in progress.
@@ -840,6 +924,8 @@ def run_training(triggered_by='manual', use_transaction_level=True, model_type='
     run_id    = 'run_' + datetime.now().strftime('%Y%m%d_%H%M%S')
     started   = time.time()
     timestamp = datetime.now().isoformat(timespec='seconds')
+    bank_ids  = list(bank_ids) if bank_ids else None
+    seg_key   = exposure_class or 'ALL'
 
     data_source = "enriched_transactions (TRANSACTION-LEVEL)" if use_transaction_level else "bank_loan_metrics (CUSTOMER-LEVEL)"
 
@@ -850,6 +936,8 @@ def run_training(triggered_by='manual', use_transaction_level=True, model_type='
         'data_source':   data_source,
         'use_transaction_level': use_transaction_level,
         'model_type':    model_type,
+        'bank_ids':      bank_ids,
+        'exposure_class': exposure_class,
         'status':        'failed',
         'files_used':    [],
         'files_skipped': [],
@@ -869,8 +957,10 @@ def run_training(triggered_by='manual', use_transaction_level=True, model_type='
         test_size = float(hp['training'].get('test_size', 0.20))
         min_rows_floor= int(hp['training'].get('min_rows_floor', 100))
 
-        # Load data (now with transaction-level option)
-        merged, files_used, files_skip, dupes = load_and_merge(use_transaction_level=use_transaction_level)
+        # Load data (now with transaction-level, bank, and exposure-class filters)
+        merged, files_used, files_skip, dupes = load_and_merge(
+            use_transaction_level=use_transaction_level, bank_ids=bank_ids, exposure_class=exposure_class
+        )
         record['files_used']    = files_used
         record['files_skipped'] = files_skip
         record['total_rows']    = len(merged)
@@ -884,6 +974,18 @@ def run_training(triggered_by='manual', use_transaction_level=True, model_type='
 
         X = merged[FEATURE_COLS].copy()
         y = merged[TARGET_COL].copy()
+
+        if y.nunique() < 2:
+            filter_note = ''
+            if bank_ids:
+                filter_note += f" for the selected bank(s) {bank_ids}"
+            if exposure_class:
+                filter_note += f" for segment {exposure_class}"
+            raise ValueError(
+                f'[TRAIN] Only one class present in default_flag{filter_note} '
+                f'({int(y.sum())} defaults out of {len(y)} rows) - cannot train or '
+                'evaluate a classifier. Select more banks/segments or use the full dataset.'
+            )
 
         # Convert all columns to numeric, drop non-numeric
         numeric_X = X.select_dtypes(include=['number'])
@@ -951,8 +1053,13 @@ def run_training(triggered_by='manual', use_transaction_level=True, model_type='
             with open(os.path.join(run_charts_dir, f'{name}.b64'), 'w') as f:
                 f.write(b64)
 
-        # Save model to type-specific directory
-        model_type_dir = os.path.join(ML_DIR, 'models', model_type)
+        # Save model to a (model_type, bank_combo, exposure_class) specific
+        # directory - each unique combination keeps its own pickle + metadata
+        # rather than overwriting one slot per model_type, so e.g. an
+        # "all banks / CORPORATE" XGBoost and a "BANK001-only / SME" XGBoost
+        # can both be kept and compared.
+        combo_key = bank_key(bank_ids)
+        model_type_dir = os.path.join(ML_DIR, 'models', model_type, combo_key, seg_key)
         os.makedirs(model_type_dir, exist_ok=True)
         type_model_path = os.path.join(model_type_dir, 'pd_model.pkl')
         type_meta_path = os.path.join(model_type_dir, 'pd_model_metadata.json')
@@ -974,6 +1081,10 @@ def run_training(triggered_by='manual', use_transaction_level=True, model_type='
             'hyperparameters': hp.get('models', {}).get(model_type, hp.get('model', {})),
             'n_train':            len(X_train),
             'rows_trained':       len(X_train),
+            'total_rows':         len(merged),
+            'test_rows':          len(X_test),
+            'bank_ids':           bank_ids,
+            'exposure_class':     exposure_class,
             'n_defaults_train':   n_pos_train,
             'scale_pos_weight':   auto_spw,
             'threshold':          threshold,
@@ -993,20 +1104,20 @@ def run_training(triggered_by='manual', use_transaction_level=True, model_type='
         }
 
         if rows_ok:
-            # Auto-activate if this is the first model or if retraining the active type
-            active_type = None
-            if os.path.exists(os.path.join(ML_DIR, 'active_model.json')):
-                try:
-                    with open(os.path.join(ML_DIR, 'active_model.json')) as f:
-                        active_info = json.load(f)
-                        active_type = active_info.get('model_type')
-                except Exception:
-                    pass
+            # Auto-activate if this is the first model for this segment, or
+            # if retraining the exact (model_type, bank_combo) that's
+            # currently active FOR THIS SEGMENT SPECIFICALLY - each segment
+            # has its own independent active slot (see activate_model), so
+            # training/promoting CORPORATE never disturbs SME/RETAIL_*/ALL.
+            registry = _load_active_model_registry()
+            seg_active = registry.get(seg_key) or {}
+            active_type = seg_active.get('model_type')
+            active_combo = seg_active.get('bank_key')
 
-            if active_type is None or active_type == model_type:
-                activate_model(model_type)
+            if active_type is None or (active_type == model_type and active_combo == combo_key):
+                activate_model(model_type, combo_key, exposure_class)
                 record['model_promoted'] = True
-                _refresh_peer_benchmarks(merged)
+                _refresh_peer_benchmarks(merged, exposure_class)
 
         # Archive used files
         archive_training_files(files_used, run_id)
@@ -1031,55 +1142,133 @@ def run_training(triggered_by='manual', use_transaction_level=True, model_type='
 
 
 # ── Model Activation ─────────────────────────────────────────────────────────
+# Segmented models need FOUR simultaneously-active models in production (one
+# per exposure_class - a live system scores a CORPORATE loan with the
+# CORPORATE model and a RETAIL_OTHER loan with the RETAIL_OTHER model at the
+# same time), not one swappable slot like before segmentation. Each segment
+# ('ALL' plus the 4 Basel classes) gets its own parallel active-model slot on
+# disk and its own entry in active_model.json (now a dict keyed by segment
+# instead of one flat object).
 
-def activate_model(model_type):
+ACTIVE_MODEL_REGISTRY_PATH = os.path.join(ML_DIR, 'active_model.json')
+
+
+def _segment_paths(exposure_class):
+    """(active_model, active_meta, backup_model, backup_meta) paths for a
+    segment's active slot. 'ALL'/None reuses the original flat top-level
+    filenames for backward compatibility with pre-segmentation deployments;
+    the 4 Basel segments each get their own parallel slot."""
+    seg = exposure_class or 'ALL'
+    if seg == 'ALL':
+        return MODEL_PATH, META_PATH, BACKUP_PATH, os.path.join(ML_DIR, 'pd_model_backup_metadata.json')
+    return (
+        os.path.join(ML_DIR, f'pd_model_{seg}.pkl'),
+        os.path.join(ML_DIR, f'pd_model_metadata_{seg}.json'),
+        os.path.join(ML_DIR, f'pd_model_backup_{seg}.pkl'),
+        os.path.join(ML_DIR, f'pd_model_backup_metadata_{seg}.json'),
+    )
+
+
+def _load_active_model_registry():
+    """Load active_model.json as a dict keyed by segment ('ALL' plus the 4
+    Basel classes). Migrates the old flat single-model shape (no segment
+    keys, just {model_type, bank_key, activated_at}) by treating its
+    contents as the 'ALL' segment's entry, so nothing already active breaks."""
+    if not os.path.exists(ACTIVE_MODEL_REGISTRY_PATH):
+        return {}
+    try:
+        with open(ACTIVE_MODEL_REGISTRY_PATH) as f:
+            data = json.load(f)
+    except Exception:
+        return {}
+    if 'model_type' in data:  # old flat shape
+        return {'ALL': data}
+    return data
+
+
+def _save_active_model_registry(registry):
+    with open(ACTIVE_MODEL_REGISTRY_PATH, 'w') as f:
+        json.dump(registry, f, indent=2)
+
+
+def activate_model(model_type, bank_combo='ALL', exposure_class=None):
     """
-    Activate a model type as the current active model.
-    Copies model_type's pkl and metadata to the top-level active slot,
-    backs up the previous model, and updates active_model.json.
+    Activate a specific (model_type, bank_combo, exposure_class) model as the
+    active model FOR THAT SEGMENT. Copies that combo's pkl and metadata to
+    the segment's own active slot, backs up the previous model for that
+    segment only, and updates that segment's entry in active_model.json -
+    activating a CORPORATE model never touches SME/RETAIL_*/ALL's active slot.
     """
-    model_type_dir = os.path.join(ML_DIR, 'models', model_type)
+    seg = exposure_class or 'ALL'
+    model_type_dir = os.path.join(ML_DIR, 'models', model_type, bank_combo, seg)
     type_model_path = os.path.join(model_type_dir, 'pd_model.pkl')
     type_meta_path = os.path.join(model_type_dir, 'pd_model_metadata.json')
 
+    # Back-compat: pre-segmentation runs saved directly under
+    # models/<model_type>/<bank_combo>/ with no exposure_class subdirectory.
+    if not os.path.exists(type_model_path) and seg == 'ALL':
+        legacy_dir = os.path.join(ML_DIR, 'models', model_type, bank_combo)
+        legacy_model_path = os.path.join(legacy_dir, 'pd_model.pkl')
+        legacy_meta_path = os.path.join(legacy_dir, 'pd_model_metadata.json')
+        if os.path.exists(legacy_model_path):
+            model_type_dir, type_model_path, type_meta_path = legacy_dir, legacy_model_path, legacy_meta_path
+
+    # Deeper back-compat: pre-bank-combo runs saved directly under models/<model_type>/.
+    if not os.path.exists(type_model_path) and bank_combo == 'ALL' and seg == 'ALL':
+        legacy_dir = os.path.join(ML_DIR, 'models', model_type)
+        legacy_model_path = os.path.join(legacy_dir, 'pd_model.pkl')
+        legacy_meta_path = os.path.join(legacy_dir, 'pd_model_metadata.json')
+        if os.path.exists(legacy_model_path):
+            model_type_dir, type_model_path, type_meta_path = legacy_dir, legacy_model_path, legacy_meta_path
+
     if not os.path.exists(type_model_path):
-        raise FileNotFoundError(f"No model found for type '{model_type}' at {type_model_path}")
+        raise FileNotFoundError(
+            f"No model found for type '{model_type}' / banks '{bank_combo}' / segment '{seg}' at {type_model_path}"
+        )
 
-    # Backup current active model
-    if os.path.exists(MODEL_PATH):
-        shutil.copy2(MODEL_PATH, BACKUP_PATH)
-    if os.path.exists(META_PATH):
-        shutil.copy2(META_PATH, os.path.join(ML_DIR, 'pd_model_backup_metadata.json'))
+    active_model_path, active_meta_path, backup_model_path, backup_meta_path = _segment_paths(seg)
 
-    # Copy model type's files to active slots
-    shutil.copy2(type_model_path, MODEL_PATH)
-    shutil.copy2(type_meta_path, META_PATH)
+    # Backup this segment's current active model
+    if os.path.exists(active_model_path):
+        shutil.copy2(active_model_path, backup_model_path)
+    if os.path.exists(active_meta_path):
+        shutil.copy2(active_meta_path, backup_meta_path)
 
-    # Update active model tracker
-    active_info = {
+    # Copy model type's files to this segment's active slots
+    shutil.copy2(type_model_path, active_model_path)
+    shutil.copy2(type_meta_path, active_meta_path)
+
+    # Update this segment's entry in the active-model registry
+    registry = _load_active_model_registry()
+    registry[seg] = {
         'model_type': model_type,
+        'bank_key': bank_combo,
+        'exposure_class': seg,
         'activated_at': datetime.now().isoformat(timespec='seconds'),
     }
-    with open(os.path.join(ML_DIR, 'active_model.json'), 'w') as f:
-        json.dump(active_info, f, indent=2)
+    _save_active_model_registry(registry)
 
-    return {'status': 'activated', 'model_type': model_type}
+    return {'status': 'activated', 'model_type': model_type, 'bank_key': bank_combo, 'exposure_class': seg}
 
 
 # ── Rollback ──────────────────────────────────────────────────────────────────
 
-def rollback_model():
-    """Restore pd_model_backup.pkl and its metadata as the active model."""
-    backup_meta_path = os.path.join(ML_DIR, 'pd_model_backup_metadata.json')
+def rollback_model(exposure_class=None):
+    """Restore the given segment's backup as its active model. Only that
+    segment's slot is affected - rolling back CORPORATE never touches
+    SME/RETAIL_*/ALL."""
+    seg = exposure_class or 'ALL'
+    active_model_path, active_meta_path, backup_model_path, backup_meta_path = _segment_paths(seg)
 
-    if not os.path.exists(BACKUP_PATH):
-        raise FileNotFoundError("No backup model found to roll back to.")
+    if not os.path.exists(backup_model_path):
+        raise FileNotFoundError(f"No backup model found to roll back to for segment '{seg}'.")
 
-    shutil.copy2(BACKUP_PATH, MODEL_PATH)
+    shutil.copy2(backup_model_path, active_model_path)
     if os.path.exists(backup_meta_path):
-        shutil.copy2(backup_meta_path, META_PATH)
+        shutil.copy2(backup_meta_path, active_meta_path)
 
-    return {'status': 'rolled back', 'message': 'Previous model restored as active model.'}
+    return {'status': 'rolled back', 'exposure_class': seg,
+            'message': f"Previous {seg} model restored as active."}
 
 
 if __name__ == '__main__':

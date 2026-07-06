@@ -155,6 +155,26 @@ def seed(db_path=DB_PATH, verbose=True):
     conn = sqlite3.connect(db_path)
     c = conn.cursor()
 
+    # ref_lookup is a shared reference table (also used by employment_type,
+    # education_level, residence_type, city_tier, loan_purpose domains via
+    # sync_bank_loan_metrics.py) but nothing actually creates it - it was
+    # apparently dropped/never recreated in a prior DB rebuild, which is why
+    # GET /api/exposure-classes 500s with "no such table: ref_lookup".
+    # Idempotent create here so this seeder (and that endpoint) work standalone.
+    c.execute("""
+        CREATE TABLE IF NOT EXISTS ref_lookup (
+            id          INTEGER PRIMARY KEY AUTOINCREMENT,
+            domain      TEXT NOT NULL,
+            code        TEXT NOT NULL,
+            label       TEXT,
+            description TEXT,
+            risk_order  INTEGER,
+            is_active   INTEGER DEFAULT 1,
+            UNIQUE(domain, code)
+        )
+    """)
+    conn.commit()
+
     # Check if domain already exists
     c.execute("SELECT COUNT(*) FROM ref_lookup WHERE domain='exposure_class'")
     existing = c.fetchone()[0]

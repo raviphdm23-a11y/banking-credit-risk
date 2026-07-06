@@ -168,15 +168,17 @@
     <h3>&#9989; Active Model</h3>
     <div class="kpi-grid" id="modelKpis">
       <div class="kpi"><div class="label">R²</div><div class="value" id="kpi-r2">—</div></div>
-      <div class="kpi"><div class="label">AUC-ROC (single split)</div><div class="value" id="kpi-auc">—</div></div>
-      <div class="kpi" title="Mean +/- std across 5 stratified/grouped folds - the trustworthy estimate when there are only a handful of positive examples, where a single train/test split can swing wildly by chance.">
-        <div class="label">AUC-ROC (5-fold CV)</div><div class="value" id="kpi-cv-auc">—</div>
+      <div class="kpi" style="background:#fff;border:2px solid var(--blue)" title="Mean +/- std across 5 stratified/grouped folds - the trustworthy estimate when there are only a handful of positive examples, where a single train/test split can swing wildly by chance. Use this number for model comparison and go/no-go decisions.">
+        <div class="label" style="color:var(--blue);font-weight:700">&#9733; AUC-ROC (5-fold CV) — use this</div><div class="value" id="kpi-cv-auc">—</div>
       </div>
       <div class="kpi"><div class="label">F1 Score</div><div class="value" id="kpi-f1">—</div></div>
       <div class="kpi"><div class="label">Precision</div><div class="value" id="kpi-prec">—</div></div>
       <div class="kpi"><div class="label">Recall</div><div class="value" id="kpi-recall">—</div></div>
       <div class="kpi"><div class="label">RMSE</div><div class="value" id="kpi-rmse">—</div></div>
     </div>
+    <p style="font-size:12px;color:var(--sub);margin:-8px 0 16px">
+      <b>AUC-ROC (last split):</b> <span id="kpi-auc">—</span> — diagnostic only, not for decisions. With this few defaults, a single 80/20 split is noisy; a large gap vs. the 5-fold CV number above is itself a red flag, not a contradiction.
+    </p>
     <table>
       <tr><td><b>Version</b></td><td id="meta-version">—</td></tr>
       <tr><td><b>Trained on</b></td><td id="meta-date">—</td></tr>
@@ -184,15 +186,31 @@
       <tr><td><b>Rows trained</b></td><td id="meta-rows">—</td></tr>
       <tr><td><b>Currency</b></td><td>&#8377; INR</td></tr>
     </table>
-    <div class="form-actions" style="margin-top:20px;display:flex;gap:12px;align-items:center">
+    <div class="form-actions" style="margin-top:20px;display:flex;gap:12px;align-items:center;flex-wrap:wrap">
       <select id="trainModelType" style="padding:8px 12px;border:1px solid var(--border);border-radius:6px;font-size:13px">
         <option value="xgboost">XGBoost</option>
         <option value="logistic_regression">Logistic Regression</option>
+      </select>
+      <select id="trainBankSelect" multiple size="4" title="Ctrl/Cmd-click to select multiple banks. Leave nothing selected to train on all banks."
+              style="padding:6px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;min-width:220px">
+        <option value="">Loading banks...</option>
+      </select>
+      <select id="trainExposureClass" required title="Segment to train - the unsegmented 'ALL' model is retired and can no longer be trained."
+              style="padding:8px 12px;border:1px solid var(--border);border-radius:6px;font-size:13px">
+        <option value="CORPORATE">CORPORATE</option>
+        <option value="SME">SME</option>
+        <option value="RETAIL_MORTGAGES">RETAIL_MORTGAGES</option>
+        <option value="RETAIL_OTHER">RETAIL_OTHER</option>
       </select>
       <button class="btn btn-success" id="trainBtn" onclick="triggerTrain()">&#9654; Train Now</button>
       <button class="btn btn-danger" onclick="rollback()">&#8617; Rollback to Previous</button>
       <span id="trainMsg" class="msg"></span>
     </div>
+    <p style="font-size:11px;color:var(--sub);margin-top:6px">
+      Bank filter: select one or more banks to train only on their data, or leave none selected to use all banks. Ctrl/Cmd-click to multi-select.
+      Exposure class: trains a dedicated model for that Basel segment (each has its own independent active model, activated/rolled back separately) - every customer is scored by their own segment's model.
+      The unsegmented "ALL" model has been retired (it was never used for live scoring once segment routing shipped) and can no longer be trained or scheduled - any existing ALL entries below are historical only.
+    </p>
     <div id="trainingIndicator" style="display:none;margin-top:12px" class="alert alert-warning">
       &#9203; Training in progress... Refreshing status every 5 seconds.
     </div>
@@ -202,7 +220,12 @@
     <h3>🔀 Configured Models</h3>
     <p style="color:var(--sub);font-size:13px;margin-bottom:16px">
       All trained models available. Click "Activate" to switch which model is used for live credit-risk scoring.
+      Select rows and click "Delete Selected" to remove models (and their pickle files) you no longer need.
     </p>
+    <div style="margin-bottom:12px">
+      <button class="btn btn-danger btn-sm" id="deleteSelectedBtn" onclick="deleteSelectedModels()" disabled>&#128465; Delete Selected</button>
+      <span id="deleteModelsMsg" class="msg" style="margin-left:10px"></span>
+    </div>
     <div id="configuredModelsTable">
       <p style="color:var(--sub)">Loading configured models...</p>
     </div>
@@ -223,8 +246,8 @@
   <div class="card">
     <h3>&#128193; Training Data Sources</h3>
     <p style="color:var(--sub);font-size:13px;margin-bottom:16px">
-      <b>Primary:</b> <code>enriched_transactions</code> table in <code>bank.db</code> — transaction-level ML-enriched features (56+ columns per transaction) loaded automatically on every training run.<br>
-      <b>Legacy (Backup):</b> <code>bank_loan_metrics</code> (customer-level) — only used if transaction-level training is disabled.<br>
+      <b>Primary:</b> <code>bank_loan_metrics</code> (customer-level, one row per loan) — includes behavioral features derived from transaction history (EMI miss ratio, income volatility, etc). Used by default on every "Train Now" run.<br>
+      <b>Optional:</b> <code>enriched_transactions</code> table in <code>bank.db</code> — transaction-level (56K+ rows, many per loan). Not used by default: adds row-count without a real accuracy gain once loan-group leakage is accounted for.<br>
       <b>Supplementary:</b> CSV files placed in <code>data/training/</code> — merged with the DB rows and archived after a successful run.
     </p>
     <div id="filesTable"><p style="color:var(--sub)">Loading...</p></div>
@@ -345,12 +368,17 @@
 <div id="panel-schedule" class="panel">
   <div class="card">
     <h3>&#128197; Scheduled Training</h3>
+    <div class="alert alert-warning">
+      &#9888; Retired: this schedule only ever drove the unsegmented "ALL" model, which is no longer used for
+      live scoring now that each Basel segment (CORPORATE/SME/RETAIL_MORTGAGES/RETAIL_OTHER) has its own model,
+      trained on demand via the Model Status tab's Train Now. This panel cannot be re-enabled.
+    </div>
     <div class="toggle-row">
       <label class="toggle">
-        <input type="checkbox" id="schedEnabled">
+        <input type="checkbox" id="schedEnabled" disabled>
         <span class="slider"></span>
       </label>
-      <span id="schedEnabledLabel" style="font-size:14px;font-weight:600">Enabled</span>
+      <span id="schedEnabledLabel" style="font-size:14px;font-weight:600">Disabled (retired)</span>
     </div>
     <div class="form-grid">
       <div class="form-group">
@@ -383,7 +411,7 @@
       </div>
     </div>
     <div class="form-actions">
-      <button class="btn btn-primary" onclick="saveSchedule()">&#128190; Save Schedule</button>
+      <button class="btn btn-primary" onclick="saveSchedule()" disabled title="Retired - see notice above">&#128190; Save Schedule</button>
       <span id="schedMsg" class="msg"></span>
     </div>
     <div style="margin-top:20px" id="schedInfo"></div>
@@ -598,10 +626,44 @@ function showPanel(name) {
 // ── Init ────────────────────────────────────────────────────────────────────
 function initDashboard() {
   loadStatus();
+  loadBankOptions();
   setInterval(() => {
     const indicator = document.getElementById('trainingIndicator');
     if (indicator.style.display !== 'none') loadStatus();
   }, 5000);
+}
+
+let _bankNameById = {};
+
+async function loadBankOptions() {
+  const sel = document.getElementById('trainBankSelect');
+  try {
+    const res = await fetch('/operations/api/banks');
+    const data = await res.json();
+    const banks = data.banks || data || [];
+    if (!banks.length) {
+      sel.innerHTML = '<option value="">No banks found</option>';
+      return;
+    }
+    _bankNameById = {};
+    banks.forEach(b => { _bankNameById[b.bank_id] = b.bank_name || b.name || b.bank_id; });
+    sel.innerHTML = banks.map(b =>
+      `<option value="${b.bank_id}">${b.bank_id} — ${b.bank_name || b.name || ''}</option>`
+    ).join('');
+    loadConfiguredModels(); // re-render now that bank names are available
+  } catch (e) {
+    sel.innerHTML = '<option value="">Error loading banks</option>';
+  }
+}
+
+function bankIdsLabel(bankIds) {
+  if (!bankIds || !bankIds.length) return 'All banks';
+  return bankIds.map(id => _bankNameById[id] ? `${id} (${_bankNameById[id]})` : id).join(', ');
+}
+
+function getSelectedBankIds() {
+  const sel = document.getElementById('trainBankSelect');
+  return Array.from(sel.selectedOptions).map(o => o.value).filter(Boolean);
 }
 
 // ── Panel 1: Status ─────────────────────────────────────────────────────────
@@ -656,9 +718,12 @@ async function loadStatus() {
 
 async function triggerTrain() {
   const modelType = document.getElementById('trainModelType').value;
-  if (!confirm(`Start a manual training run for ${modelType} model?`)) return;
+  const bankIds = getSelectedBankIds();
+  const exposureClass = document.getElementById('trainExposureClass').value;
   document.getElementById('trainMsg').textContent = '';
-  const res = await api(`/admin/api/train?model_type=${encodeURIComponent(modelType)}`, 'POST');
+  const body = { exposure_class: exposureClass };
+  if (bankIds.length) body.bank_ids = bankIds;
+  const res = await api(`/admin/api/train?model_type=${encodeURIComponent(modelType)}`, 'POST', body);
   if (res.status === 'started') {
     document.getElementById('trainMsg').textContent = '✅ Training started — auto-refreshing...';
     document.getElementById('trainingIndicator').style.display = 'block';
@@ -669,9 +734,10 @@ async function triggerTrain() {
 }
 
 async function rollback() {
-  if (!confirm('Restore the previous model as the active model?')) return;
-  const res = await api('/admin/api/rollback', 'POST');
-  alert(res.message || res.error);
+  const exposureClass = document.getElementById('trainExposureClass').value;
+  const res = await api('/admin/api/rollback', 'POST', exposureClass ? { exposure_class: exposureClass } : null);
+  document.getElementById('trainMsg').textContent = res.error ? '❌ ' + res.error : '✅ ' + (res.message || 'Rolled back');
+  setTimeout(() => { document.getElementById('trainMsg').textContent = ''; }, 5000);
   loadStatus();
 }
 
@@ -686,9 +752,12 @@ async function loadConfiguredModels() {
       return;
     }
 
-    let html = '<table><tr><th>Model</th><th>AUC-ROC (split)</th>' +
-      '<th title="Mean +/- std over 5 folds - trustworthy even with few positive examples, unlike a single split">AUC-ROC (5-fold CV)</th>' +
-      '<th>F1</th><th>Precision</th><th>Recall</th><th>Rows Trained</th><th>Trained On</th><th>Action</th></tr>';
+    let html = '<table><tr><th style="width:30px"></th><th>Model</th><th>Segment</th><th>Banks Trained On</th>' +
+      '<th title="Diagnostic only - noisy with this few defaults, do not use to compare models">AUC-ROC (last split)</th>' +
+      '<th style="color:var(--blue)" title="Mean +/- std over 5 folds - the trustworthy estimate, use this to compare models">&#9733; AUC-ROC (5-fold CV) — use this</th>' +
+      '<th>F1</th><th>Precision</th><th>Recall</th>' +
+      '<th title="Rows used to fit the model (training split only) out of the total rows loaded for this run">Rows Trained / Total</th>' +
+      '<th>Trained On</th><th>Action</th></tr>';
     models.forEach(m => {
       const meta = m.metadata || {};
       const metrics = meta.metrics || {};
@@ -697,38 +766,93 @@ async function loadConfiguredModels() {
       const cvText = (metrics.cv_auc_mean !== undefined && metrics.cv_auc_mean !== null)
         ? `${fmt(metrics.cv_auc_mean)} ± ${fmt(metrics.cv_auc_std)}`
         : '—';
+      const exposureClass = m.exposure_class || 'ALL';
       const activateBtnDisabled = m.is_active ? 'disabled' : '';
-      const activateBtnClick = m.is_active ? '' : `onclick="activateModel('${m.model_type}')"`;
+      const activateBtnClick = m.is_active ? '' : `onclick="activateModel('${m.model_type}', '${m.bank_key || 'ALL'}', '${exposureClass}')"`;
+      const rowsText = meta.rows_trained
+        ? (meta.total_rows ? `${meta.rows_trained.toLocaleString()} / ${meta.total_rows.toLocaleString()}` : meta.rows_trained.toLocaleString())
+        : '—';
+      const bankKey = m.bank_key || 'ALL';
+      const checkbox = m.is_active
+        ? `<input type="checkbox" disabled title="Cannot delete the active model">`
+        : `<input type="checkbox" class="model-select-cb" data-model-type="${m.model_type}" data-bank-key="${bankKey}" data-exposure-class="${exposureClass}" onchange="updateDeleteBtnState()">`;
 
       html += `<tr>
+        <td>${checkbox}</td>
         <td><b>${m.model_type}</b> ${status}</td>
+        <td>${exposureClass === 'ALL' ? '<span style="color:var(--sub)">ALL (unsegmented)</span>' : `<b>${exposureClass}</b>`}</td>
+        <td style="font-size:12px">${bankIdsLabel(meta.bank_ids)}</td>
         <td>${fmt(metrics.auc_roc)}</td>
-        <td>${cvText}</td>
+        <td><b>${cvText}</b></td>
         <td>${fmt(metrics.f1)}</td>
         <td>${fmt(metrics.precision)}</td>
         <td>${fmt(metrics.recall)}</td>
-        <td>${meta.rows_trained ? meta.rows_trained.toLocaleString() : '—'}</td>
+        <td>${rowsText}</td>
         <td>${meta.date_trained ? meta.date_trained.replace('T', ' ').substring(0, 19) : '—'}</td>
         <td><button class="btn btn-sm ${m.is_active ? 'btn-primary' : 'btn-orange'}" ${activateBtnDisabled} ${activateBtnClick}>${m.is_active ? '✓ Active' : 'Activate'}</button></td>
       </tr>`;
     });
     html += '</table>';
     document.getElementById('configuredModelsTable').innerHTML = html;
+    updateDeleteBtnState();
   } catch (e) {
     document.getElementById('configuredModelsTable').innerHTML =
       `<p style="color:var(--red)">Error loading models: ${e}</p>`;
   }
 }
 
-async function activateModel(modelType) {
-  if (!confirm(`Activate ${modelType} model as the active model?`)) return;
+function updateDeleteBtnState() {
+  const checked = document.querySelectorAll('.model-select-cb:checked');
+  document.getElementById('deleteSelectedBtn').disabled = checked.length === 0;
+}
+
+async function deleteSelectedModels() {
+  const checked = Array.from(document.querySelectorAll('.model-select-cb:checked'));
+  if (!checked.length) return;
+
+  const msg = document.getElementById('deleteModelsMsg');
+  const btn = document.getElementById('deleteSelectedBtn');
+  btn.disabled = true;
+  msg.textContent = `Deleting ${checked.length} model(s)...`;
+
+  let succeeded = 0, failed = 0;
+  for (const cb of checked) {
+    const modelType = cb.dataset.modelType;
+    const bankKey = cb.dataset.bankKey;
+    const exposureClass = cb.dataset.exposureClass;
+    const qs = exposureClass && exposureClass !== 'ALL' ? `?exposure_class=${encodeURIComponent(exposureClass)}` : '';
+    try {
+      const res = await fetch(`/admin/api/models/${encodeURIComponent(modelType)}/${encodeURIComponent(bankKey)}${qs}`, {
+        method: 'DELETE',
+        headers: { 'X-Admin-Password': ADMIN_PW }
+      });
+      const data = await res.json();
+      if (res.ok) succeeded++; else { failed++; console.error(data.error); }
+    } catch (e) {
+      failed++;
+    }
+  }
+
+  msg.textContent = failed
+    ? `✅ Deleted ${succeeded} — ❌ ${failed} failed (see console)`
+    : `✅ Deleted ${succeeded} model(s)`;
+  setTimeout(() => { msg.textContent = ''; }, 5000);
+  loadConfiguredModels();
+}
+
+async function activateModel(modelType, bankKey, exposureClass) {
+  const segLabel = exposureClass && exposureClass !== 'ALL' ? ` / ${exposureClass}` : '';
+  const label = (bankKey && bankKey !== 'ALL' ? `${modelType} (${bankKey})` : `${modelType} (all banks)`) + segLabel;
+  const trainMsg = document.getElementById('trainMsg');
   try {
-    const res = await api(`/admin/api/models/${encodeURIComponent(modelType)}/activate`, 'POST');
-    alert(`✅ Model activated: ${modelType}`);
+    await api(`/admin/api/models/${encodeURIComponent(modelType)}/activate`, 'POST',
+      { bank_key: bankKey || 'ALL', exposure_class: (exposureClass && exposureClass !== 'ALL') ? exposureClass : null });
+    trainMsg.textContent = `✅ Model activated: ${label}`;
     loadStatus();
   } catch (e) {
-    alert(`❌ Failed to activate: ${e}`);
+    trainMsg.textContent = `❌ Failed to activate: ${e}`;
   }
+  setTimeout(() => { trainMsg.textContent = ''; }, 5000);
 }
 
 // ── Panel 2: Data Sources ───────────────────────────────────────────────────

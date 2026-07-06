@@ -170,6 +170,7 @@ PROVISION_RATES = {
     'Sub-Standard': 0.15,
     'Doubtful':  0.40,
     'Loss':      1.00,
+    'Loss Asset': 1.00,    # DPD-batch's 4-tier label for the same Loss classification
 }
 
 # ── LGD by loan type (downturn LGD, secured collateral lowers it) ────────────
@@ -181,6 +182,14 @@ LGD_BY_TYPE = {
     'Business Loan':  0.45,
 }
 DEFAULT_LGD = 0.45
+
+# RBI's actual Sub-Standard provisioning norm is 15% secured / 25% unsecured -
+# LGD_BY_TYPE above already encodes security (Home/Vehicle = secured,
+# Education/Personal/Business = unsecured/higher loss severity), so an
+# above-threshold LGD is used as the secured/unsecured signal for the base
+# 15% NPA rate. Doubtful/Loss (already ≥40%) are untouched.
+IRAC_UNSECURED_LGD_THRESHOLD = 0.35
+IRAC_UNSECURED_NPA_RATE      = 0.25
 
 # ── Synthetic balance-sheet proxies (see module docstring) ───────────────────
 CAPITAL_TO_ASSETS_PROXY = 0.120   # Tier-1 capital ≈ 12% of banking-book assets
@@ -269,6 +278,8 @@ def client_exposure(loan, metrics=None, customer_name=None):
     capital_charge = rwa * (RBI_THRESHOLDS['car_min'] / 100.0)
 
     prov_rate = PROVISION_RATES.get(classification, PROVISION_RATES['Standard'] if not is_npa else 0.15)
+    if classification in ('NPA', 'Sub-Standard') and lgd > IRAC_UNSECURED_LGD_THRESHOLD:
+        prov_rate = IRAC_UNSECURED_NPA_RATE
     provision = ead * prov_rate
     expected_loss = pd * lgd * ead
 

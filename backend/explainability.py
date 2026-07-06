@@ -38,8 +38,19 @@ _BOUNDS = {
 }
 
 
-def load_peer_benchmarks(path: str = None) -> dict:
-    """Load peer benchmarks from JSON file, falling back to defaults."""
+_BENCHMARK_SEGMENT_KEYS = ('ALL', 'CORPORATE', 'SME', 'RETAIL_MORTGAGES', 'RETAIL_OTHER')
+
+
+def load_peer_benchmarks(path: str = None, exposure_class: str = None) -> dict:
+    """
+    Load peer benchmarks from JSON file, falling back to defaults.
+
+    peer_benchmarks.json is keyed by segment ('ALL' plus the 4 Basel
+    exposure classes) so a CORPORATE borrower is compared against CORPORATE
+    peers, not the whole blended portfolio. Older files (pre-segmentation)
+    are still a flat {feature: {...}} shape with no segment keys - detected
+    and returned as-is for backward compatibility.
+    """
     if path is None:
         import os
         path = os.path.join(
@@ -48,9 +59,18 @@ def load_peer_benchmarks(path: str = None) -> dict:
     try:
         import json
         with open(path) as f:
-            return json.load(f)
+            data = json.load(f)
     except (FileNotFoundError, ValueError):
         return _DEFAULT_BENCHMARKS
+
+    if not any(k in data for k in _BENCHMARK_SEGMENT_KEYS):
+        return data  # old flat shape, pre-segmentation
+
+    seg = exposure_class or 'ALL'
+    # If this specific segment hasn't been trained/refreshed yet, use the
+    # generic defaults for it rather than silently blending into another
+    # segment's (or the whole portfolio's) benchmarks.
+    return data.get(seg) or _DEFAULT_BENCHMARKS
 
 
 # ---------------------------------------------------------------------------
@@ -72,8 +92,9 @@ class PeerComparison:
         gap_pct     — gap as % of peer_median
     """
 
-    def __init__(self, benchmarks: dict = None):
-        self.benchmarks = benchmarks or load_peer_benchmarks()
+    def __init__(self, benchmarks: dict = None, exposure_class: str = None):
+        self.exposure_class = exposure_class
+        self.benchmarks = benchmarks or load_peer_benchmarks(exposure_class=exposure_class)
 
     def compare(self, inputs: dict) -> dict:
         result = {}
@@ -129,8 +150,9 @@ class CounterfactualEngine:
     peer P75 — to show the maximum achievable improvement.
     """
 
-    def __init__(self, model):
+    def __init__(self, model, exposure_class: str = None):
         self._model = model
+        self.exposure_class = exposure_class
 
     def generate(self, inputs: dict, attribution: list) -> list:
         """
@@ -277,7 +299,7 @@ class CounterfactualEngine:
     def _combined_scenario(self, inputs: dict, pd_current: float,
                             current_grade: str) -> dict:
         """Compute combined impact of moving all weak features to P75 of approved peers."""
-        benchmarks = load_peer_benchmarks()
+        benchmarks = load_peer_benchmarks(exposure_class=self.exposure_class)
         combined_inputs = dict(inputs)
         features_changed = []
 

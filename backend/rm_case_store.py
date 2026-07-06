@@ -67,7 +67,24 @@ OPEN_STATES = ("INTERIM_ASSESSED", "UNDER_RM_REVIEW", "PENDING_APPROVAL",
 
 def init_schema(conn):
     conn.executescript(SCHEMA)
+    _migrate_schema(conn)
     conn.commit()
+
+
+def _migrate_schema(conn):
+    """Idempotent ALTER TABLEs for columns added after the original CREATE
+    TABLE IF NOT EXISTS shipped (that clause only creates the table once;
+    it never adds columns to an already-existing rm_cases table)."""
+    for col, ddl in (
+        ("bank_id", "TEXT"),
+        ("booked_loan_id", "TEXT"),
+        ("booked_customer_id", "TEXT"),
+    ):
+        try:
+            conn.execute(f"ALTER TABLE rm_cases ADD COLUMN {col} {ddl}")
+        except sqlite3.OperationalError as e:
+            if "duplicate column" not in str(e).lower():
+                raise
 
 
 # ── event helpers ────────────────────────────────────────────────────────────
@@ -106,8 +123,8 @@ def create_case(conn, M, rm_id="RM-DEMO"):
     conn.execute(
         "INSERT INTO rm_cases (case_id, created_at, updated_at, rm_id, customer_name, "
         "customer_id, product, requested_amount, exposure, risk_grade, machine_reco, "
-        "confidence_class, required_control, state, machine_json) "
-        "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+        "confidence_class, required_control, state, machine_json, bank_id) "
+        "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
         (case_id, ts, ts, rm_id,
          app_.get("customer_name", "New Applicant"), app_.get("customer_id"),
          app_.get("product", "Personal Loan"),
@@ -115,7 +132,7 @@ def create_case(conn, M, rm_id="RM-DEMO"):
          M["routing"]["exposure_assessed"], M["composed"]["risk_grade"],
          M["composed"]["recommendation"], M["confidence"]["class"],
          M["routing"]["required_control"], "INTERIM_ASSESSED",
-         json.dumps(M, default=str)))
+         json.dumps(M, default=str), app_.get("bank_id")))
     append_event(conn, case_id, "CASE_CREATED", rm_id, "relationship_manager",
                  payload={"product": app_.get("product"), "customer": app_.get("customer_name")})
     append_event(conn, case_id, "MACHINE_RECOMMENDATION", "decision_engine", "machine",
@@ -255,8 +272,29 @@ def _finalise(conn, case_id, final_decision, actor_id, actor_role, machine_reco,
                           "deviation": bool(deviation),
                           "control": "RM_SINGLE" if single_control else "FOUR_EYES"})
     conn.commit()
-    return {"state": "DECISION_FINAL", "final_decision": final_decision,
-            "deviation": bool(deviation)}, 200
+
+    result = {"state": "DECISION_FINAL", "final_decision": final_decision,
+              "deviation": bool(deviation)}
+
+    # Only an APPROVE actually books a loan against the originating bank's
+    # ledger - see backend/loan_booking.py for why nothing booked loans
+    # before this (accept/reject only ever flipped case state).
+    if final_decision == "APPROVE":
+        from backend.loan_booking import book_loan
+        try:
+            booking = book_loan(conn, _case_row(conn, case_id))
+        except Exception as e:
+            booking = None
+            print(f"[rm_case_store] Loan booking failed for {case_id}: {e}")
+        if booking:
+            _update(conn, case_id, booked_loan_id=booking["loan_id"],
+                    booked_customer_id=booking["customer_id"])
+            append_event(conn, case_id, "LOAN_BOOKED", "system", "system",
+                         payload=booking)
+            conn.commit()
+            result["booking"] = booking
+
+    return result, 200
 
 
 # ── outcome (learning loop) ──────────────────────────────────────────────────

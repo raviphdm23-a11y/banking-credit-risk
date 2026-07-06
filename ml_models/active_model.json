@@ -1,4 +1,32 @@
 {
-  "model_type": "logistic_regression",
-  "activated_at": "2026-07-05T00:04:45"
+  "ALL": {
+    "model_type": "xgboost",
+    "bank_key": "BANK001_BANK002_BANK003_BANK004_BANK006_BANK008_BANK009",
+    "exposure_class": "ALL",
+    "activated_at": "2026-07-05T16:54:34"
+  },
+  "CORPORATE": {
+    "model_type": "xgboost",
+    "bank_key": "ALL",
+    "exposure_class": "CORPORATE",
+    "activated_at": "2026-07-05T11:43:32"
+  },
+  "SME": {
+    "model_type": "xgboost",
+    "bank_key": "ALL",
+    "exposure_class": "SME",
+    "activated_at": "2026-07-05T13:27:26"
+  },
+  "RETAIL_MORTGAGES": {
+    "model_type": "xgboost",
+    "bank_key": "ALL",
+    "exposure_class": "RETAIL_MORTGAGES",
+    "activated_at": "2026-07-05T11:43:52"
+  },
+  "RETAIL_OTHER": {
+    "model_type": "xgboost",
+    "bank_key": "ALL",
+    "exposure_class": "RETAIL_OTHER",
+    "activated_at": "2026-07-05T11:44:02"
+  }
 }

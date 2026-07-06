@@ -276,6 +276,14 @@ def seed(profile: dict, scale: dict, n_loan: int, n_dep_only: int,
     today = date.today()
     now   = datetime.now().isoformat(timespec='seconds')
 
+    # accounts.maturity_date backs ALM maturity bucketing (backend/alm_engine.py)
+    # - duplicated idempotent migration here per this repo's established idiom
+    # rather than importing a backend module from a seeding script.
+    try:
+        conn.execute("ALTER TABLE accounts ADD COLUMN maturity_date TEXT")
+    except sqlite3.OperationalError:
+        pass  # column already exists
+
     # -- bank master (always upsert so re-seeding fixes the name) --
     conn.execute(
         "INSERT INTO banks (bank_id,bank_name,bank_code,country,headquarters_city,"
@@ -455,8 +463,16 @@ def seed(profile: dict, scale: dict, n_loan: int, n_dep_only: int,
                 acc_type = 'Savings'
             open_date = date(today.year - random.randint(0, 5),
                              random.randint(1, 12), 1).isoformat()
+            # Fixed Deposits carry a real tenor for ALM maturity bucketing
+            # (backend/alm_engine.py) - Savings/Current stay NULL (on-demand,
+            # handled via the CASA behavioral core/volatile split instead).
+            maturity_date = None
+            if acc_type == 'Fixed Deposit':
+                od = date.fromisoformat(open_date)
+                years = random.choices([1, 2, 3, 5], weights=[0.35, 0.30, 0.20, 0.15], k=1)[0]
+                maturity_date = date(od.year + years, od.month, min(od.day, 28)).isoformat()
             acc_records.append((aid, bank_id, cid, acc_type, 0.0,
-                                open_date, branch, ifsc, 'Active'))
+                                open_date, branch, ifsc, 'Active', maturity_date))
             txn_records.append((f"TX-{short}-{g_idx:05d}", bank_id, aid,
                                 open_date, '10:00:00', 'Deposit', 0.0, 0.0,
                                 '[INCOME] Opening deposit'))
@@ -558,8 +574,8 @@ def seed(profile: dict, scale: dict, n_loan: int, n_dep_only: int,
     print(f"  [5] Writing {len(acc_records)} accounts …", end='', flush=True)
     conn.executemany(
         "INSERT OR IGNORE INTO accounts "
-        "(id,bank_id,cid,type,balance,open_date,branch_id,ifsc_code,status) "
-        "VALUES (?,?,?,?,?,?,?,?,?)", acc_records)
+        "(id,bank_id,cid,type,balance,open_date,branch_id,ifsc_code,status,maturity_date) "
+        "VALUES (?,?,?,?,?,?,?,?,?,?)", acc_records)
     conn.executemany(
         "INSERT OR IGNORE INTO transactions "
         "(id,bank_id,aid,date,time,type,amount,balance_after,desc) "
