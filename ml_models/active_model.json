@@ -1,32 +1,26 @@
 {
-  "ALL": {
-    "model_type": "xgboost",
-    "bank_key": "BANK001_BANK002_BANK003_BANK004_BANK006_BANK008_BANK009",
-    "exposure_class": "ALL",
-    "activated_at": "2026-07-05T16:54:34"
-  },
   "CORPORATE": {
     "model_type": "xgboost",
-    "bank_key": "ALL",
+    "bank_key": "BANK001_BANK002_BANK003_BANK004_BANK005_BANK006_BANK007_BANK008_BANK009",
     "exposure_class": "CORPORATE",
-    "activated_at": "2026-07-05T11:43:32"
+    "activated_at": "2026-07-07T05:03:52"
   },
   "SME": {
     "model_type": "xgboost",
-    "bank_key": "ALL",
+    "bank_key": "BANK001_BANK002_BANK003_BANK004_BANK005_BANK006_BANK007_BANK008_BANK009",
     "exposure_class": "SME",
-    "activated_at": "2026-07-05T13:27:26"
+    "activated_at": "2026-07-07T05:03:50"
   },
   "RETAIL_MORTGAGES": {
     "model_type": "xgboost",
-    "bank_key": "ALL",
+    "bank_key": "BANK001_BANK002_BANK003_BANK004_BANK005_BANK006_BANK007_BANK008_BANK009",
     "exposure_class": "RETAIL_MORTGAGES",
-    "activated_at": "2026-07-05T11:43:52"
+    "activated_at": "2026-07-07T05:03:48"
   },
   "RETAIL_OTHER": {
     "model_type": "xgboost",
-    "bank_key": "ALL",
+    "bank_key": "BANK001_BANK002_BANK003_BANK004_BANK005_BANK006_BANK007_BANK008_BANK009",
     "exposure_class": "RETAIL_OTHER",
-    "activated_at": "2026-07-05T11:44:02"
+    "activated_at": "2026-07-07T05:03:38"
   }
 }
