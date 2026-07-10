@@ -100,6 +100,13 @@ class AssessmentEngine:
         pd_low      = pd_result["low"]
         pd_high     = pd_result["high"]
 
+        # 1b. The exact resolved feature row the model was scored on (applicant
+        # value where supplied, else the same calibrated defaults model_feature_frame
+        # used) - exposed so the report can show "what the model actually saw" for
+        # every one of the 36 training features, not just whatever the applicant
+        # happened to submit.
+        model_inputs_resolved = {k: float(v) for k, v in self._feature_vector(inputs).iloc[0].items()}
+
         # 2. Rating grade
         rating = pd_to_grade(pd_point)
         rating["description"] = grade_description(rating["grade"])
@@ -158,6 +165,7 @@ class AssessmentEngine:
             "timestamp":     datetime.now(timezone.utc).isoformat(),
             "model_version": self._version,
             "inputs":        inputs,
+            "model_inputs_resolved": model_inputs_resolved,
             "pd":            pd_result,
             "rating":        rating,
             "attribution":   attribution,

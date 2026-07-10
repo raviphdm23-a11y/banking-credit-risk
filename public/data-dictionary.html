@@ -197,8 +197,8 @@
   <!-- ════════════════════════════════════════════════════════════════════════
        SECTION 2 — ML MODEL FEATURES (ALL 27)
   ═══════════════════════════════════════════════════════════════════════════ -->
-  <div class="section-title">2 — ML Model Features (XGBoost — 27 features)</div>
-  <p class="note">The active model is an <strong>XGBoostClassifier</strong> trained on 27 features and targeting <code>default_flag</code> (binary 0/1). The four core financial ratios below are the primary explainable drivers; the remaining 23 borrower, bureau, macro, and trend features provide additional signal and are filled from application data or neutral defaults at inference time.</p>
+  <div class="section-title">2 — ML Model Features (XGBoost — 36 features)</div>
+  <p class="note">The active models are <strong>XGBoostClassifier</strong>s (one per exposure class — CORPORATE, SME, RETAIL_MORTGAGES, RETAIL_OTHER) trained on 36 features and targeting <code>default_flag</code> (binary 0/1). The four core financial ratios below are the primary explainable drivers; the remaining 32 borrower, bureau, macro, trend, and behavioural-signal features provide additional signal and are filled from application data or neutral defaults at inference time.</p>
   <br>
 
   <div class="sub-title">2a — Core Financial Ratios (primary PD drivers)</div>
@@ -512,6 +512,113 @@
         <td>Numeric, integer</td>
         <td class="allowed">Default: 24</td>
         <td><span class="five-c c5">Conditions</span></td>
+        <td><span class="tag-model">Model</span></td>
+      </tr>
+      <tr>
+        <td><code>delta_gdp_pct</code></td>
+        <td>Change in GDP Growth (pp)</td>
+        <td>Percentage-point change in GDP growth versus the prior year. Part of the macro regime-shift detection group — flags a country moving from expansion into slowdown.</td>
+        <td>Numeric, pp</td>
+        <td class="allowed">Default: 0.0 (no regime shift)</td>
+        <td><span class="five-c c5">Conditions</span></td>
+        <td><span class="tag-model">Model</span></td>
+      </tr>
+      <tr>
+        <td><code>delta_cpi_pct</code></td>
+        <td>Change in Inflation (pp)</td>
+        <td>Percentage-point change in CPI inflation versus the prior year. A sharp rise signals a fresh affordability shock beyond the absolute inflation level.</td>
+        <td>Numeric, pp</td>
+        <td class="allowed">Default: 0.0 (no regime shift)</td>
+        <td><span class="five-c c5">Conditions</span></td>
+        <td><span class="tag-model">Model</span></td>
+      </tr>
+      <tr>
+        <td><code>delta_policy_rate_pct</code></td>
+        <td>Change in Policy Rate (pp)</td>
+        <td>Percentage-point change in the central bank policy rate versus the prior year. Captures tightening/easing cycles that shift borrowing costs faster than the absolute rate alone shows.</td>
+        <td>Numeric, pp</td>
+        <td class="allowed">Default: 0.0 (no regime shift)</td>
+        <td><span class="five-c c5">Conditions</span></td>
+        <td><span class="tag-model">Model</span></td>
+      </tr>
+      <tr>
+        <td><code>delta_unemployment_pct</code></td>
+        <td>Change in Unemployment (pp)</td>
+        <td>Percentage-point change in unemployment versus the prior year. Rising unemployment trend is a leading indicator of consumer and SME stress independent of the absolute level.</td>
+        <td>Numeric, pp</td>
+        <td class="allowed">Default: 0.0 (no regime shift)</td>
+        <td><span class="five-c c5">Conditions</span></td>
+        <td><span class="tag-model">Model</span></td>
+      </tr>
+      <tr>
+        <td><code>macro_regime_score</code></td>
+        <td>Macro Regime Distress Score</td>
+        <td>Composite 0–100 score summarising the four macro-delta signals above into a single regime-shift indicator. 0 = normal cycle, 56+ = severe distress regime.</td>
+        <td>Numeric, 0–100</td>
+        <td class="allowed">Default: 0.0 (normal regime)</td>
+        <td><span class="five-c c5">Conditions</span></td>
+        <td><span class="tag-model">Model</span></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="sub-title">2e — Other-Circumstances Features (transaction/bureau-derived behavioural signals)</div>
+  <table class="dict-table">
+    <thead>
+      <tr>
+        <th style="width:200px">Training CSV Column</th>
+        <th>Display Label</th>
+        <th>Description</th>
+        <th style="width:130px">Type / Format</th>
+        <th>Notes / Default</th>
+        <th style="width:110px">Five C's</th>
+        <th style="width:80px">Usage</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>ecs_bounce_count</code></td>
+        <td>ECS/NACH Bounce Count</td>
+        <td>Count of auto-debit (ECS/NACH) payment bounces observed for the borrower. Signals default risk not explained by financial ratios or CIBIL score alone.</td>
+        <td>Integer</td>
+        <td class="allowed">0–12; Default: 0</td>
+        <td><span class="five-c c5">Conditions</span></td>
+        <td><span class="tag-model">Model</span></td>
+      </tr>
+      <tr>
+        <td><code>other_lender_emi_ratio</code></td>
+        <td>Other-Lender EMI Ratio</td>
+        <td>Bureau-style measure of EMI obligations owed to lenders outside this bank, relative to income. Captures leverage this bank cannot see directly in its own ledger.</td>
+        <td>Numeric, decimal</td>
+        <td class="allowed">0.0–3.0; Default: 0.0</td>
+        <td><span class="five-c c5">Conditions</span></td>
+        <td><span class="tag-model">Model</span></td>
+      </tr>
+      <tr>
+        <td><code>income_disruption_flag</code></td>
+        <td>Income Disruption Flag</td>
+        <td>Binary flag for a detected income-shock event (e.g. job loss, business disruption) in the borrower's recent history.</td>
+        <td>Integer (0/1)</td>
+        <td class="allowed">Default: 0</td>
+        <td><span class="five-c c5">Conditions</span></td>
+        <td><span class="tag-model">Model</span></td>
+      </tr>
+      <tr>
+        <td><code>sector_stress_index</code></td>
+        <td>Sector Stress Index</td>
+        <td>Composite 0–100 index of stress in the borrower's industry sector (e.g. demand contraction, input-cost shocks affecting the sector broadly).</td>
+        <td>Numeric, 0–100</td>
+        <td class="allowed">Default: 0.0</td>
+        <td><span class="five-c c5">Conditions</span></td>
+        <td><span class="tag-model">Model</span></td>
+      </tr>
+      <tr>
+        <td><code>ltv_trend_pct</code></td>
+        <td>LTV Drift (%)</td>
+        <td>Percentage drift in loan-to-value since origination, driven by collateral value movement. Meaningful for RETAIL_MORTGAGES exposures only; 0 for all other exposure classes.</td>
+        <td>Numeric, %</td>
+        <td class="allowed">−50% to +50%; Default: 0.0</td>
+        <td><span class="five-c c4">Collateral</span></td>
         <td><span class="tag-model">Model</span></td>
       </tr>
     </tbody>
@@ -977,9 +1084,9 @@
   </table>
 
   <div class="note" style="margin-top:24px">
-    <strong>Model scope note (Phase 5.19+):</strong> The active model is an <strong>XGBoostClassifier</strong> trained on <strong>27 features</strong> targeting <code>default_flag</code> (binary, RBI 90-day NPA rule). The four core ratios
+    <strong>Model scope note:</strong> The active models are per-exposure-class <strong>XGBoostClassifier</strong>s (CORPORATE, SME, RETAIL_MORTGAGES, RETAIL_OTHER) trained on <strong>36 features</strong> targeting <code>default_flag</code> (binary, RBI 90-day NPA rule). The four core ratios
     (<code>de_ratio</code>, <code>interest_coverage</code>, <code>profitability</code>, <code>liquidity_ratio</code>)
-    remain the primary explainable drivers and are the only features collected on the borrower assessment form. The remaining 23 features are sourced from application records or filled with calibrated neutral defaults via <code>feature_meta.model_feature_frame()</code>. Collateral and SA inputs are used exclusively in rule-based LGD and SA risk weight calculations, which run independently of the ML model.
+    remain the primary explainable drivers and are the only features collected on the borrower assessment form. The remaining 32 features are sourced from application records or filled with calibrated neutral defaults via <code>feature_meta.model_feature_frame()</code>. Collateral and SA inputs are used exclusively in rule-based LGD and SA risk weight calculations, which run independently of the ML model.
   </div>
 
 </div><!-- /container -->

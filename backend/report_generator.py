@@ -32,15 +32,89 @@ import shutil
 import subprocess
 from datetime import datetime, timezone
 
+from backend import feature_meta as _feature_meta
+
 # Project-root/data/case_reports
+# On App Engine Standard AND Cloud Run, the deployed source directory is
+# read-only at runtime, so this must land under /tmp instead - same convention
+# as app.py's _BASE_DATA_DIR / _READONLY_FS.
 _ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-REPORTS_ROOT = os.path.join(_ROOT, "data", "case_reports")
+if os.environ.get('GAE_APPLICATION') is not None or os.environ.get('K_SERVICE') is not None:
+    REPORTS_ROOT = os.path.join('/tmp', 'data', 'case_reports')
+else:
+    REPORTS_ROOT = os.path.join(_ROOT, "data", "case_reports")
 
 # Palette (matches the platform UI)
 NAVY, RED, GREEN, AMBER, GREY = "#0D1B2A", "#E31837", "#10B981", "#F59E0B", "#8A9AB0"
 
 PD_REFER_CUTOFF = 0.12
 PD_DECLINE_CUTOFF = 0.50
+
+# The 36 features every segment PD model is trained on (see
+# ml_models/trainer.py FEATURE_COLS and public/data-dictionary.html section 2),
+# grouped by the Five C's for the page-1 customer snapshot. Labels/grouping are
+# kept in sync with data-dictionary.html and the solution-overview deck.
+_ATTRIBUTE_SNAPSHOT_GROUPS = [
+    ("Character", [
+        ("age", "Borrower Age"),
+        ("employment_type_enc", "Employment Type (enc.)"),
+        ("years_employed", "Years Employed"),
+        ("city_tier_enc", "City Tier (enc.)"),
+        ("education_enc", "Education (enc.)"),
+        ("cibil_score", "CIBIL Score"),
+        ("months_as_customer", "Months as Customer"),
+        ("num_late_payments_past_12m", "Late Payments (12m)"),
+    ]),
+    ("Capacity", [
+        ("de_ratio", "Debt / Equity Ratio"),
+        ("interest_coverage", "Interest Coverage"),
+        ("annual_income", "Annual Income"),
+        ("foir", "FOIR"),
+        ("num_dependents", "Dependents"),
+        ("loan_purpose_enc", "Loan Purpose (enc.)"),
+        ("existing_loans_count", "Existing Loans"),
+    ]),
+    ("Capital", [
+        ("profitability", "Net Profit Margin"),
+        ("liquidity_ratio", "Current Ratio"),
+        ("residence_type_enc", "Residence Type (enc.)"),
+        ("num_existing_products", "Existing Bank Products"),
+    ]),
+    ("Collateral", [
+        ("ltv_trend_pct", "LTV Drift"),
+    ]),
+    ("Conditions", [
+        ("gdp_growth_pct", "GDP Growth Rate"),
+        ("inflation_cpi_pct", "Inflation (CPI)"),
+        ("policy_rate_pct", "Policy Rate"),
+        ("unemployment_pct", "Unemployment Rate"),
+        ("delta_de_ratio", "Chg. D/E Ratio"),
+        ("delta_cibil", "Chg. CIBIL Score"),
+        ("months_since_origination", "Months Since Origination"),
+        ("delta_gdp_pct", "Chg. GDP Growth"),
+        ("delta_cpi_pct", "Chg. Inflation"),
+        ("delta_policy_rate_pct", "Chg. Policy Rate"),
+        ("delta_unemployment_pct", "Chg. Unemployment"),
+        ("macro_regime_score", "Macro Regime Score"),
+        ("ecs_bounce_count", "ECS/NACH Bounces"),
+        ("other_lender_emi_ratio", "Other-Lender EMI Ratio"),
+        ("income_disruption_flag", "Income Disruption Flag"),
+        ("sector_stress_index", "Sector Stress Index"),
+    ]),
+]
+
+_ATTR_PERCENT = {"profitability", "gdp_growth_pct", "inflation_cpi_pct",
+                  "policy_rate_pct", "unemployment_pct", "delta_gdp_pct", "delta_cpi_pct",
+                  "delta_policy_rate_pct", "delta_unemployment_pct", "ltv_trend_pct"}
+# foir is stored as a 0-1 fraction (unlike the fields above, which are already in
+# percentage-point units) - needs x100 before the % suffix.
+_ATTR_PERCENT_FRACTION = {"foir"}
+_ATTR_INR = {"annual_income"}
+_ATTR_INT = {"age", "employment_type_enc", "city_tier_enc", "education_enc", "cibil_score",
+              "months_as_customer", "num_late_payments_past_12m", "num_dependents",
+              "loan_purpose_enc", "existing_loans_count", "residence_type_enc",
+              "num_existing_products", "delta_cibil", "months_since_origination",
+              "ecs_bounce_count", "income_disruption_flag"}
 
 
 # ── public API ───────────────────────────────────────────────────────────────
@@ -290,6 +364,9 @@ def _build_latex(case: dict, M: dict, charts: dict, now: datetime) -> str:
     ]
     kpi_rows = "\\\\\n".join(f"\\textbf{{{_tex(k)}}} & {v}" for k, v in kpis)
 
+    # page-1 high-level snapshot: all 36 model-input attribute values
+    attribute_snapshot = _attribute_snapshot(M.get("application"))
+
     # conditions / watch / recourse
     conditions = comp.get("conditions") or []
     watch = be.get("watch_items") or []
@@ -406,6 +483,14 @@ def _build_latex(case: dict, M: dict, charts: dict, now: datetime) -> str:
 \vspace{{4pt}}
 \colorbox{{lightgrey}}{{\parbox{{\linewidth}}{{\small\textbf{{Final authority:}} Relationship Manager (accept / reject).\\
 \textbf{{Model}} {model_v} \quad\textbf{{Policy}} {policy_v}}}}}
+
+% ── page 1: high-level customer snapshot (all 36 model inputs) ───────────
+\vspace{{8pt}}
+\section*{{\textcolor{{navy}}{{Customer Attribute Snapshot (36 Model Inputs)}}}}
+\footnotesize
+{attribute_snapshot}
+\normalsize
+\newpage
 
 % ── KPIs ─────────────────────────────────────────────────
 \section*{{\textcolor{{navy}}{{Decision Summary}}}}
@@ -614,6 +699,66 @@ def _inr(v) -> str:
     except (TypeError, ValueError):
         return "—"
     return "Rs.~" + format(int(round(v)), ",d")
+
+
+def _fmt_attr(key: str, value) -> str:
+    """Format one resolved feature value for the page-1 snapshot table."""
+    try:
+        v = float(value)
+    except (TypeError, ValueError):
+        return _tex(str(value))
+    if key in _ATTR_INR:
+        return _inr(v)
+    if key in _ATTR_PERCENT_FRACTION:
+        return f"{v * 100:.2f}\\%"
+    if key in _ATTR_PERCENT:
+        return f"{v:.2f}\\%"
+    if key in _ATTR_INT:
+        return f"{int(round(v))}"
+    return f"{v:.2f}"
+
+
+def _resolve_attribute_value(key: str, application: dict):
+    """Same fallback chain as feature_meta.model_feature_frame(): applicant-
+    supplied value first, then the core-ratio baseline, then the calibrated
+    neutral default - so the snapshot shows exactly what the model actually saw,
+    not just whatever the applicant happened to fill in."""
+    if key in application and application[key] is not None:
+        try:
+            return float(application[key])
+        except (TypeError, ValueError):
+            return application[key]
+    if key in _feature_meta.FEATURE_META:
+        return _feature_meta.FEATURE_META[key]["baseline"]
+    return _feature_meta.EXTRA_FEATURE_DEFAULTS.get(key, 0.0)
+
+
+def _attribute_snapshot(application: dict) -> str:
+    """Page-1 'high-level view of the customer': all 36 model-input attribute
+    values, grouped by the Five C's, laid out as two columns so it fits on a
+    single page regardless of the analysis that follows on page 2+."""
+    application = application or {}
+    left_groups = _ATTRIBUTE_SNAPSHOT_GROUPS[:4]   # Character, Capacity, Capital, Collateral
+    right_groups = _ATTRIBUTE_SNAPSHOT_GROUPS[4:]  # Conditions
+
+    def col(groups):
+        blocks = []
+        for label, items in groups:
+            rows = "".join(
+                f"{_tex(display)} & {_fmt_attr(key, _resolve_attribute_value(key, application))} \\\\\n"
+                for key, display in items
+            )
+            blocks.append(
+                rf"\textbf{{\textcolor{{navy}}{{{_tex(label)}}}}}\\[1pt]"
+                rf"\begin{{tabularx}}{{\linewidth}}{{@{{}}X r@{{}}}}"
+                rf"{rows}\end{{tabularx}}\vspace{{4pt}}")
+        return "\n".join(blocks)
+
+    return (
+        r"\begin{minipage}[t]{0.48\linewidth}" + "\n" + col(left_groups) + "\n" + r"\end{minipage}"
+        r"\hfill"
+        r"\begin{minipage}[t]{0.48\linewidth}" + "\n" + col(right_groups) + "\n" + r"\end{minipage}"
+    )
 
 
 def _short(s, n=26):

@@ -197,22 +197,40 @@ class AIRBCalculations:
             t = math.sqrt(-2 * math.log(1 - p))
             return (((2.56274 * t + 4.77846) * t - 2.28319) * t + 2.78681) / (((t + 2.05319) * t - 2.78556) * t + 1)
 
+    # Basel III finalized-reforms minimum LGD input floor (BCBS 424, para 79) -
+    # even a fully/over-collateralized exposure may not be treated as risk-free;
+    # a regulator-set floor guards against an AIRB model implying near-zero loss
+    # severity purely from collateral coverage assumptions.
+    REGULATORY_LGD_FLOOR = 0.10  # 10%
+
     @staticmethod
     def calculate_lgd(seniority, collateral_type=None, collateral_value=0, exposure=0):
         """Calculate Loss Given Default from seniority and collateral
 
-        Base LGD by seniority:
-        - Senior Secured: 25%
-        - Senior Unsecured: 45%
-        - Subordinated: 75%
-        - Junior: 90%
+        Base LGD by seniority (must match the borrower-info.html seniority
+        dropdown values exactly, or a submission silently falls through to the
+        45% default and loses its tier - keep both lists in sync):
+        - Senior Secured (Real Estate):     30%
+        - Senior Secured (Financial Assets): 35%
+        - Senior Secured (Other):            40%
+        - Senior Secured (generic, direct API callers): 25%
+        - Senior Unsecured:                  45%
+        - Subordinated:                      75%
+        - Junior:                            90%
+
+        A regulatory minimum LGD floor (10%, see REGULATORY_LGD_FLOOR) is
+        applied after the collateral adjustment, so no exposure - however
+        well collateralized - is ever treated as carrying zero loss severity.
         """
         try:
             base_lgd_map = {
-                'Senior Secured': 0.25,
-                'Senior Unsecured': 0.45,
-                'Subordinated': 0.75,
-                'Junior': 0.90
+                'Senior Secured (Real Estate)':      0.30,
+                'Senior Secured (Financial Assets)':  0.35,
+                'Senior Secured (Other)':             0.40,
+                'Senior Secured':                     0.25,
+                'Senior Unsecured':                   0.45,
+                'Subordinated':                       0.75,
+                'Junior':                              0.90
             }
 
             base_lgd = base_lgd_map.get(seniority, 0.45)
@@ -230,16 +248,27 @@ class AIRBCalculations:
                 haircut = haircuts.get(collateral_type, 0.25)
                 effective_collateral = collateral_value * (1 - haircut)
 
-                # Collateral reduces LGD
-                lgd = base_lgd - (effective_collateral / exposure)
-                lgd = max(0, lgd)
+                # LGD applies only to the uncovered portion of exposure - NOT a
+                # flat subtraction of the coverage ratio from the LGD rate.
+                # (The old `base_lgd - coverage_ratio` formula treated a ratio
+                # and a rate as the same unit, so any normally-collateralized
+                # loan - coverage well above the ~25-45% base LGD itself -
+                # floored straight to 0% instead of scaling down proportionally.)
+                coverage_ratio = min(1.0, effective_collateral / exposure)
+                lgd = base_lgd * (1 - coverage_ratio)
             else:
                 lgd = base_lgd
+
+            pre_floor_lgd = lgd
+            lgd = max(AIRBCalculations.REGULATORY_LGD_FLOOR, lgd)
+            floor_applied = lgd > pre_floor_lgd
 
             return {
                 'lgd': round(lgd, 4),
                 'lgd_percentage': round(lgd * 100, 2),
                 'base_lgd': round(base_lgd * 100, 2),
+                'regulatory_floor_pct': round(AIRBCalculations.REGULATORY_LGD_FLOOR * 100, 2),
+                'floor_applied': floor_applied,
                 'seniority': seniority
             }
         except (ValueError, TypeError, ZeroDivisionError) as e:

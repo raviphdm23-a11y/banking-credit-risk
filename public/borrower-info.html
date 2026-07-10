@@ -1251,6 +1251,8 @@
     }
 
     // ── LGD formula ───────────────────────────────────────────────────────────
+    const REGULATORY_LGD_FLOOR_PCT = 10; // Basel III finalized-reforms minimum LGD input floor (BCBS 424) - keep in sync with backend AIRBCalculations.REGULATORY_LGD_FLOOR
+
     function calculateLGD(seniority, exposure, collateralValue, collateralType, sector) {
         const baseMap = {
             'Senior Secured (Real Estate)':     30,
@@ -1266,8 +1268,10 @@
             coverageAdj = ratio > 1.5 ? -10 : ratio >= 1.0 ? -5 : 0;
         }
         const sectorAdj = sector === 'Real Estate' ? -5 : sector === 'Financial' ? 5 : 0;
-        const lgd = Math.max(5, Math.min(90, baseLGD + coverageAdj + sectorAdj));
-        return { lgd, components: { baseLGD, coverageRatio: exposure > 0 ? (collateralValue / exposure).toFixed(2) : 0, coverageAdj, sectorAdj } };
+        const preFloorLgd = Math.min(90, baseLGD + coverageAdj + sectorAdj);
+        const lgd = Math.max(REGULATORY_LGD_FLOOR_PCT, preFloorLgd);
+        return { lgd, components: { baseLGD, coverageRatio: exposure > 0 ? (collateralValue / exposure).toFixed(2) : 0, coverageAdj, sectorAdj,
+                 regulatoryFloorPct: REGULATORY_LGD_FLOOR_PCT, floorApplied: lgd > preFloorLgd } };
     }
 
     // ── Haircut ───────────────────────────────────────────────────────────────
@@ -1677,11 +1681,14 @@
             document.getElementById('maturityValue').textContent  = maturity.toFixed(2);
 
             const lgdBody = document.getElementById('lgdComponentBody');
+            const floorPct = lgdResult.components.regulatoryFloorPct ?? 10;
+            const floorNote = lgdResult.components.floorApplied ? 'Floor binding' : 'Not binding';
             lgdBody.innerHTML = `
                 <tr><td>Base LGD (${seniority})</td><td>${lgdResult.components.baseLGD.toFixed(2)}</td><td>Seniority</td></tr>
                 <tr><td>Collateral Coverage</td><td>${lgdResult.components.coverageRatio}x</td><td>Collateral / EAD</td></tr>
                 <tr><td>Coverage Adjustment</td><td>${lgdResult.components.coverageAdj.toFixed(2)}</td><td>Recovery uplift</td></tr>
                 <tr><td>Sector Adjustment (${sector})</td><td>${lgdResult.components.sectorAdj.toFixed(2)}</td><td>Industry</td></tr>
+                <tr><td>Regulatory LGD Floor</td><td>${floorPct.toFixed(2)}</td><td>${floorNote}</td></tr>
                 <tr class="total"><td>Final LGD</td><td>${lgdResult.lgd.toFixed(2)}%</td><td></td></tr>`;
 
             let adjCollateral = 0;  // Declare outside if for use in EAD section

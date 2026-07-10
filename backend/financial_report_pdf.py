@@ -18,8 +18,14 @@ from datetime import datetime, timezone
 
 from backend.report_generator import _tex, _compile, _safe, _save
 
+# On App Engine Standard AND Cloud Run, the deployed source directory is
+# read-only at runtime, so this must land under /tmp instead - same convention
+# as app.py's _BASE_DATA_DIR / _READONLY_FS.
 _ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-REPORTS_ROOT = os.path.join(_ROOT, "data", "financial_reports")
+if os.environ.get('GAE_APPLICATION') is not None or os.environ.get('K_SERVICE') is not None:
+    REPORTS_ROOT = os.path.join('/tmp', 'data', 'financial_reports')
+else:
+    REPORTS_ROOT = os.path.join(_ROOT, "data", "financial_reports")
 
 NAVY, RED, GREEN, AMBER, BLUE, PURPLE = (
     "#0D1B2A", "#E31837", "#10B981", "#F59E0B", "#3B82F6", "#8B5CF6")

@@ -89,6 +89,7 @@ def orchestrate(application: dict, engine) -> dict:
         "report_id":       findings["report_id"],
         "model_content_hash": findings["content_hash"],
         "application":     application,
+        "model_inputs_resolved": findings.get("model_inputs_resolved"),
         # model layer
         "pd":              pd_block,
         "rating":          findings["rating"],

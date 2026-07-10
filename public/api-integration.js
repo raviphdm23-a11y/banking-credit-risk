@@ -187,10 +187,12 @@ async function calculateLGDFromAPI(seniority, exposureAmount, collateralValue, c
     return {
         lgd: result.lgd_percentage,  // Already in percentage
         components: {
-            baseLGD: result.lgd_percentage,  // Use final LGD as base for display
+            baseLGD: result.base_lgd,  // Actual base rate by seniority tier, before collateral
             coverageRatio: (collateralValue / exposureAmount).toFixed(2),
-            coverageAdj: -Math.min(result.lgd_percentage, result.base_lgd || 45),  // Estimate coverage adjustment
+            coverageAdj: result.lgd_percentage - result.base_lgd,  // Real reduction applied (<= 0)
             sectorAdj: 0,  // Sector adjustment is internal to Flask now
+            regulatoryFloorPct: result.regulatory_floor_pct,
+            floorApplied: result.floor_applied,
             finalLGD: result.lgd_percentage
         }
     };

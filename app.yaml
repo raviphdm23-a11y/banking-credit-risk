@@ -1,2 +1,5 @@
 runtime: python310
 entrypoint: gunicorn -b :$PORT app:app
+instance_class: F4_1G
+automatic_scaling:
+  max_instances: 20

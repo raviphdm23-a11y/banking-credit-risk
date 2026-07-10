@@ -1,0 +1,616 @@
+\documentclass[onecolumn]{IEEEtai}
+\usepackage[colorlinks,urlcolor=blue,linkcolor=blue,citecolor=blue]{hyperref}
+
+\usepackage{color,array,multirow}
+\usepackage{longtable}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage{tabularx}
+\usepackage{makecell}
+\usepackage{threeparttable}
+\usepackage{subcaption}
+\usepackage{pdflscape}
+\usepackage[ruled,vlined,linesnumbered]{algorithm2e}
+\usepackage{float}
+\usepackage{placeins}
+\usepackage{amsmath}
+\usepackage{amssymb}
+
+% Float placement - optimized for flexible float behavior
+\setcounter{topnumber}{5}
+\setcounter{bottomnumber}{5}
+\setcounter{totalnumber}{10}
+\renewcommand{\topfraction}{0.9}
+\renewcommand{\bottomfraction}{0.9}
+\renewcommand{\textfraction}{0.05}
+\renewcommand{\floatpagefraction}{0.8}
+\setlength{\floatsep}{8pt plus 2pt minus 2pt}
+\setlength{\textfloatsep}{8pt plus 2pt minus 2pt}
+\setlength{\intextsep}{8pt plus 2pt minus 2pt}
+
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}{Lemma}
+\setcounter{page}{1}
+
+
+\begin{document}
+
+
+\title{Schema Unification for Credit Risk: An Empirical Study of Dataset Aggregation}
+
+
+\author{Ravi Kumar Jain$^{1}$ and Dr.~Anju Goswami$^{2}$
+\thanks{$^{1}$ Ravi~Kumar~Jain is a Research Scholar with the Department of Management, Indian Institute of Foreign Trade (IIFT), New Delhi, India (e-mail: ravi\_phdm23@iift.edu).}
+\thanks{$^{2}$ Dr. Anju~Goswami is an Assistant Professor with the Department of Finance, Indian Institute of Foreign Trade (IIFT), New Delhi, India (e-mail: anju@iift.edu).}}
+
+
+\maketitle
+
+\begin{abstract}
+Empirical credit default research is persistently constrained by small, heterogeneous public datasets with inconsistent variable definitions, which limits the scale and cross-domain generalisability of learned models. This study proposes a Universal Credit Risk Schema (UCRS) organised around the five Cs of credit---character, capacity, capital, collateral, and conditions---and an alias-mapping mechanism that harmonises four public datasets (PAK, Taiwan UCI, German Credit, and HELOC; 132{,}964 total records) into a unified 107-dimensional feature space. Using identical XGBoost configurations and frozen per-dataset test splits, we compare models trained on each source in isolation against a single model trained on the pooled UCRS data, and we evaluate every trained model on every test split to quantify cross-domain transfer. On identical test partitions, the combined model improves AUC by +0.0158 on German Credit and +0.0152 on HELOC, is statistically indistinguishable from the individual model on Taiwan UCI ($\Delta$AUC $= +0.0005$), and incurs a modest loss on the largest source PAK ($\Delta$AUC $= -0.0140$). Cross-domain evaluation shows that individually trained models frequently collapse to near-random performance (AUC $\approx 0.50$) when applied to foreign test sets, whereas the combined UCRS model maintains AUC between 0.78 and 0.88 across all four targets. The findings indicate that schema unification offers material robustness and small-dataset benefits, at the cost of a modest in-domain concession for the largest source, and suggest concrete boundary conditions under which dataset aggregation is and is not advisable.
+\end{abstract}
+
+\begin{IEEEkeywords}
+Credit risk modeling, Machine Learning, schema unification, XGBoost
+\end{IEEEkeywords}
+
+%% ====================================================================
+%% I. INTRODUCTION  (absorbs old III-A conceptual architecture)
+%% ====================================================================
+\section{Introduction}
+
+Credit default modeling is crucial for banks and lenders, but empirical work is often hampered by data limitations. Public credit datasets tend to be small or highly specialized (e.g., a credit card portfolio or a specific loan product), with heterogeneous attributes and formats. For example, standard credit scoring datasets mix categorical and numerical variables in ways that complicate uniform processing~\cite{6}. Financial institutions also lack consistent definitions of key features: Asthana and Mahindru (2022) note that a lack of industry standards for definitions of key terms leads to siloed, disconnected datasets in finance~\cite{9}. Consequently, each dataset by itself has limited reach; aggregating them could yield a more universal resource, but only if differences can be reconciled.
+
+This paper proposes to integrate multiple public credit and loan datasets into one unified dataset. We define a common schema structured around the five Cs of credit (character, capacity, capital, collateral, and conditions), capturing borrower attributes, financial metrics, and contextual variables. We map and rename variables in each source through an alias-mapping approach so that, for example, ``loan\_amount'', ``credit\_limit'', and similar fields are aligned under common capacity-related measures. This harmonization is consistent with data integration approaches in other domains, where disparate datasets are aligned to a shared conceptual schema~\cite{8}. Once harmonized, the combined data provide a larger sample for training machine learning models. We focus on XGBoost, as gradient-boosted tree models have become a standard for tabular credit risk prediction due to their strong performance and ability to handle mixed data types~\cite{1,2,7,12,15}.
+
+Our objective is to evaluate the trade-offs of dataset aggregation. On one hand, increasing data volume can reduce variance and improve generalization. On the other hand, merging datasets with different distributions—such as borrower profiles, economic conditions, and regional contexts—may introduce bias or noise, similar to covariate shift or concept drift~\cite{4,5,16,20}. We therefore investigate whether training on a unified dataset improves predictive performance (e.g., AUC and accuracy) compared to training on individual datasets, or whether heterogeneity offsets the benefits of scale. We also consider practical challenges such as label harmonization, ensuring that the definition of default remains consistent across sources.
+
+Despite advances in credit risk modeling, the literature has not yet explored the scenario of combining multiple credit-default datasets into a single universal pool. Existing studies either enrich a single domain with auxiliary features~\cite{2} or adapt models between related domains~\cite{4}, but none have systematically merged different loan portfolios. In particular, no prior work has applied a standardized schema, such as the five-Cs framework, to align disparate datasets for joint training. The impact of such aggregation on model performance and bias remains untested: while larger datasets are expected to reduce variance and improve generalization~\cite{1,8,23,24}, there is a corresponding risk of bias due to mismatched labels and distributional shifts~\cite{4,5}. This study addresses this gap by constructing a unified credit-default dataset with harmonized variables and evaluating XGBoost performance in comparison to models trained on individual datasets. In doing so, it contributes to both credit risk modeling and data harmonization literature by identifying when increased data volume improves predictive performance and when it may introduce noise or bias.
+
+The contributions of this work are fourfold. First, we construct a unified credit-default dataset by aggregating multiple public datasets into a standardized schema based on the five Cs of credit. Second, we develop an alias-mapping mechanism to align variable definitions across datasets. Third, we conduct a comparative evaluation by training XGBoost models on both the unified dataset and individual datasets. Finally, we analyze the impact of aggregation on predictive performance, identifying whether improvements arise from increased data volume or whether performance is degraded due to heterogeneity. In doing so, we address an important gap in the literature: while prior studies focus on single datasets or domain adaptation techniques~\cite{4,11,16,20}, limited work has examined whether simple dataset aggregation under a harmonized structure can improve credit risk modeling. This study also highlights potential limitations of aggregation, including bias introduction and loss of dataset-specific signals.
+
+
+
+%% ====================================================================
+%% II. LITERATURE REVIEW  (unchanged)
+%% ====================================================================
+\section{Literature Review}
+
+\subsection{Dataset Fragmentation and Integration in Credit Risk}
+
+In both academia and industry, credit risk data often reside in silos. Traditional credit scoring relies on internal loan records, public registries, or specific surveys, which are typically limited in scope~\cite{10,11}. Ni et al. (2022) demonstrate this fragmentation by showing that relying solely on firm financial data overlooks important signals; by integrating supply chain and network-based data, they significantly improved prediction performance~\cite{3}. However, their work enriches a single dataset rather than merging multiple heterogeneous credit datasets.
+
+More broadly, Cheng et al. (2024) emphasize that data integration challenges arise from “heterogeneous, incongruent, and fragmented datasets” that require harmonization before analysis~\cite{8}. In the financial domain, the lack of standardization is particularly acute. Asthana and Mahindru (2022) highlight that financial systems lack consistent definitions of key variables, resulting in disconnected datasets across institutions~\cite{9}. While prior work has explored data integration frameworks such as enterprise data lakes, these approaches focus on infrastructure rather than feature standardization or predictive implications. Consequently, there remains limited empirical evidence on combining multiple credit-default datasets into a unified modeling framework. This study addresses this gap by constructing and evaluating such a dataset.
+
+\subsection{Feature Standardization and Variable Mapping}
+
+The integration of heterogeneous datasets requires careful variable standardization and schema alignment. In related fields such as epidemiology and economics, data harmonization is a well-established process~\cite{8}. However, it is less developed in credit risk modeling. Prior research cautions that identical terminology across datasets does not guarantee conceptual equivalence, and improper alignment can lead to misleading conclusions~\cite{8}. For instance, financial variables such as income or loan exposure may differ significantly in definition across institutions.
+
+To address this, we adopt a structured mapping approach based on the five Cs of credit, ensuring conceptual consistency across datasets. Similar human-in-the-loop mapping techniques have been proposed to reconcile financial data inconsistencies~\cite{9}. By grouping related variables under standardized categories (e.g., capacity, collateral), we reduce semantic ambiguity while preserving meaningful distinctions. This approach builds on schema alignment principles used in data warehousing and other domains but adapts them specifically for credit risk modeling.
+
+\subsection{XGBoost and Ensemble Learning in Credit Default Prediction}
+
+Machine learning has become the dominant paradigm for credit default prediction, with ensemble methods showing strong performance. In particular, gradient boosting models such as XGBoost consistently outperform traditional techniques like logistic regression and decision trees~\cite{10,11,12,15,17}. Recent studies demonstrate that XGBoost effectively captures nonlinear relationships and interactions within credit data, leading to improved predictive accuracy.
+
+For example, Chen et al. (2024) report that XGBoost achieves strong performance in predicting loan defaults across multiple datasets~\cite{7}. Akinjole et al. (2024) further show that ensemble-based approaches, including XGBoost combined with resampling techniques, achieve high accuracy and recall in imbalanced credit datasets~\cite{2}. Similarly, Xia et al. (2024) enhance XGBoost with feature selection and optimized loss functions, demonstrating superior results across large-scale credit datasets~\cite{1}. These findings establish XGBoost as a robust baseline for evaluating the impact of dataset aggregation.
+
+\subsection{Trade-offs of Data Aggregation: Bias, Variance, and Drift}
+
+While increasing dataset size is generally expected to improve model performance, aggregation introduces important challenges. Differences in borrower populations, economic environments, and data collection processes can lead to distributional shifts. Zhang et al. (2025) address this issue through domain adaptation techniques, showing that models trained on one dataset may perform poorly when applied to another due to feature distribution changes~\cite{4}. This highlights the risk of combining heterogeneous datasets without accounting for underlying differences.
+
+Additionally, Cheng et al. (2024) caution that combining datasets with fundamentally different definitions can result in incorrect equivalences and misleading patterns~\cite{8}. For example, inconsistencies in default definitions across datasets can introduce label noise. At the same time, larger datasets can reduce variance and improve generalization, suggesting a trade-off between bias and variance. Empirical evidence supports this dual effect: while larger datasets can enhance model stability, they may also introduce noise if not properly harmonized. This study empirically evaluates these trade-offs in the context of credit risk modeling.
+
+\subsection{Evaluation Metrics and Benchmarking}
+
+Credit risk models are typically evaluated using multiple performance metrics to capture different aspects of predictive quality. Common metrics include accuracy, precision, recall, F1-score, and the area under the ROC curve (AUC). Recent studies emphasize the importance of AUC for assessing discriminatory power, particularly in imbalanced datasets~\cite{1,2,17,18,21}. Additional measures such as calibration metrics and error rates provide further insight into model reliability.
+
+Following established practice, this study evaluates model performance using AUC and accuracy as primary metrics, supplemented by precision and recall. This comprehensive evaluation enables a balanced assessment of predictive performance across both aggregated and individual datasets.
+
+% ── Literature Review Summary Table (Wrapped + Left-Aligned) ──
+\begin{table*}[!t]
+\centering
+\small
+\caption{Summary of key studies in credit risk modeling, highlighting datasets, methods, findings, and limitations.}
+\label{tab:literature_review}
+\setlength{\tabcolsep}{4pt}
+\begin{threeparttable}
+\begin{tabular*}{\textwidth}{@{\extracolsep{\fill}}
+>{\raggedright\arraybackslash}p{2.5cm}
+>{\raggedright\arraybackslash}p{3.2cm}
+>{\raggedright\arraybackslash}p{3cm}
+>{\raggedright\arraybackslash}p{3.5cm}
+>{\raggedright\arraybackslash}p{3.5cm}
+@{\extracolsep{\fill}}}
+\toprule
+\textbf{Study} & \textbf{Dataset(s)} & \textbf{Method} & \textbf{Key Findings} & \textbf{Limitations} \\
+\midrule
+
+Ni et al. (2022)~\cite{3} 
+& Chinese corporate financial data with supply chain and network information 
+& SVM and machine learning models with multi-source features 
+& Integration of supply-chain and network data reduced prediction error; SVM outperformed linear models 
+& Focus limited to corporate credit; external data sources may not generalize to consumer credit \\
+
+\midrule
+
+Akinjole et al. (2024)~\cite{2} 
+& LendingClub dataset (US peer-to-peer lending) 
+& RF, DT, SVM, XGBoost, AdaBoost, MLP with resampling and ensemble techniques 
+& Ensemble XGBoost achieved 93.7\% accuracy with high precision and recall; resampling improved all metrics 
+& Single dataset; limited cross-domain generalization; complex ensemble pipeline \\
+
+\midrule
+
+Xia et al. (2024)~\cite{1,8} 
+& Fannie Mae, Bank loan dataset, LendingClub, GiveMeSomeCredit 
+& Boruta feature selection with XGBoost using GHM loss 
+& Achieved superior AUC, accuracy, and recall across datasets; LightGBM showed best calibration 
+& High model complexity; tuned for specific datasets; remains domain-dependent \\
+
+\midrule
+
+Li et al. (2021)~\cite{5} 
+& Small-sample SME loan dataset (China) 
+& GAN-based synthetic data generation with XGBoost (G-XGBoost) 
+& Synthetic data augmentation improved performance on small datasets 
+& Synthetic data fidelity uncertain; requires careful tuning; limited to SME context \\
+
+\midrule
+
+Zhang et al. (2025)~\cite{4} 
+& Chinese internet finance loan datasets (cross-domain setting) 
+& Domain-adversarial learning with interpretable ensemble models 
+& Improved cross-domain prediction by aligning feature distributions; maintained interpretability 
+& Complex architecture; requires domain similarity assumptions; not a direct dataset aggregation approach \\
+
+\midrule
+
+Hayashi \& Takano (2020)~\cite{6} 
+& German and Australian credit datasets 
+& CNN with rule extraction (Re-RX and J48graft) 
+& Produced concise and interpretable rules for heterogeneous datasets 
+& Lower predictive accuracy than black-box models; limited to small benchmark datasets \\
+
+\midrule
+
+Chen et al. (2024)~\cite{7} 
+& Chinese personal loan dataset 
+& XGBoost and comparative machine learning models 
+& XGBoost outperformed alternatives with ROC around 0.71 
+& Moderate performance; limited dataset transparency; single-domain applicability \\
+
+\bottomrule
+\end{tabular*}
+\end{threeparttable}
+\end{table*}
+
+
+%% ====================================================================
+%% III. METHODOLOGY  (restructured: Stage 1 / Stage 2 / Stage 3)
+%% ====================================================================
+\section{Methodology}
+This study establishes a unified credit-risk modeling framework through a systematic data transformation and algorithmic learning procedure. Rather than a conceptual workflow, the methodology is designed as a sequence of reproducible operations applied consistently across heterogeneous datasets to evaluate the efficacy of data integration in predictive modeling.
+
+\subsection{Data Integration and Universal Schema Alignment}
+
+To resolve the structural inconsistencies inherent in multi-source credit data, we implement a Universal Credit Risk Schema (UCRS). This standardization process begins with the initialization of a canonical schema that defines a uniform feature space. Alignment is achieved through an alias-mapping mechanism that normalizes variable nomenclature across disparate datasets. By mapping semantically equivalent variables—such as various iterations of income and employment data—to unified canonical variables, the framework ensures a consistent input structure. This mechanism is designed to be additive, retaining unmapped variables to allow for schema evolution without the loss of source-specific information.
+
+Upon alignment, the datasets are integrated into a centralized repository. During this phase, the framework dynamically manages the schema by populating missing attributes to match the universal standard and eliminating redundant features. To maintain traceability, each record is tagged with its source origin, resulting in a vertically concatenated dataset that shares a common feature space while preserving the provenance of the individual data points.
+
+\subsection{UCRS Schema Dimensions}
+\label{app:ucrs_schema}\vspace{-4pt}
+
+The UCRS comprises 107 canonical dimensions organized across the Five Cs framework, constructed in three phases: baseline variables (Phase 1), enhanced financial metrics (Phase 2), and behavioral credit bureau constructors aligned with HELOC portfolio risk (Phase 3). Table~\ref{tab:ucrs_breakdown} summarises the distribution of dimensions across each category.
+
+\begin{table}[!htbp]
+\centering
+\small
+\caption{UCRS Dimensions (107 Total) Organized by Five Cs of Credit Framework}
+\label{tab:ucrs_breakdown}
+\setlength{\tabcolsep}{4pt}
+\begin{tabularx}{\textwidth}{l r X X}
+\toprule
+\textbf{Five C} & \textbf{Count} & \textbf{Credit Risk Rationale} & \textbf{Primary Theme (Variable Coverage)} \\
+\midrule
+Character  & 21 &
+Reflects the borrower's historical willingness to repay; proxies trustworthiness through past credit behaviour and demographic stability &
+Borrower demographics, employment history, and credit behavior (age, employment status, credit score, telephone ownership, foreign worker status) \\
+\midrule
+Capacity   & 19 &
+Quantifies cash-flow headroom to service new debt by relating current income to existing liabilities and utilisation levels &
+Borrower financial capability and income (loan amount, monthly income, debt-to-income ratio, checking/savings account status, number of existing credits) \\
+\midrule
+Capital    & 11 &
+Captures the financial cushion available to absorb income shocks, reducing default probability in adverse scenarios &
+Borrower wealth position and assets (property ownership, capital assets, net worth, housing status, dependents, personal asset valuations) \\
+\midrule
+Collateral &  5 &
+Defines the lender's recovery position upon default; pledged asset quality directly affects loss-given-default (LGD) &
+Loan collateral and guarantor structure (collateral type, co-borrowers, guarantor status, residence duration) \\
+\midrule
+Conditions & 51 &
+Encodes dynamic credit environment signals including loan purpose and evolving payment trajectories observed in bureau data over time &
+Temporal payment history and credit bureau metrics (6-month payment status, bill amounts, payment amounts, revolving utilization, trade counts, delinquency records, account age, inquiry history) \\
+\midrule
+\textbf{Total UCRS} & \textbf{107} & \multicolumn{2}{l}{\textbf{Unified canonical feature space grounded in Five Cs of Credit and Basel III regulatory constructs}} \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{Alias Mapping}\vspace{-2pt}
+
+The alias-mapping mechanism ensures that semantically equivalent variables across source datasets are resolved to a single canonical UCRS variable. Table~\ref{tab:alias_example} illustrates representative capacity-related mappings. The schema definition is maintained programmatically in \texttt{schema.py}, enabling reproducible and extensible harmonization across future datasets and domains.
+
+\begin{table}[!htbp]
+\centering
+\small
+\caption{Alias Mapping: Source Variables to UCRS Canonical Variables}
+\label{tab:alias_example}
+\begin{tabular}{llll}
+\toprule
+\textbf{UCRS Variable} & \textbf{PAK} & \textbf{Taiwan UCI} & \textbf{HELOC/German} \\
+\midrule
+LOAN\_AMOUNT     & loan\_amount   & LIMIT\_BAL      & credit\_limit \\
+MONTHLY\_INCOME  & monthly\_income & (from account) & income \\
+DEBT\_TO\_INCOME & debt\_to\_income & (from payment) & dti\_ratio \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Data Sources and Dataset Characteristics}\vspace{-2pt}
+
+This study integrates four publicly available credit-risk datasets sourced from distinct geographical and institutional contexts, spanning small-scale benchmark datasets to large-scale competition datasets. Table~\ref{tab:dataset_summary} provides an overview of the source datasets used in this aggregation study. Note that the sample counts in the table represent the raw dataset sizes before any augmentation; the Synthetic Minority Oversampling Technique (SMOTE) is applied only to the training partitions to address class imbalance, not to test sets or the table counts.
+
+\begin{table}[!htbp]
+\centering
+\small
+\caption{Source Datasets: Summary Statistics and Characteristics. Sample counts represent raw dataset sizes before preprocessing; SMOTE is applied only to training partitions during model training.}
+\label{tab:dataset_summary}
+\begin{tabular}{lrrl}
+\toprule
+\textbf{Dataset} & \textbf{Samples (Raw)} & \textbf{Features} & \textbf{Source} \\
+\midrule
+German Credit (Statlog) & 1,400    & 20 & UCI Repository \\
+HELOC                   & 10,918   & 23 & FICO/Kaggle \\
+PAK (PAKDD 2009)        & 73,918   & 25 & PAKDD Competition \\
+Taiwan UCI Credit Card  & 46,728   & 23 & UCI Repository \\
+\midrule
+\textbf{Combined (UCRS)} & \textbf{132,964} & \textbf{107} & \textbf{Unified Schema} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsubsection{German Credit} A classical credit-scoring benchmark from the UCI Statlog collection containing 1{,}400 applicants (after standard preprocessing and duplicate screening) with 20 mixed categorical and numeric attributes~\cite{17,22}. This dataset represents consumer credit assessment in a developed-economy context and is widely used for algorithm benchmarking. Preprocessing requires careful handling of ordered categorical variables.
+
+\subsubsection{HELOC} Home Equity Line of Credit dataset (10{,}918 records after preprocessing) derived from FICO credit bureau data. Features include delinquency counts, utilisation ratios, and revolving credit metrics. Multiple public versions exist with varying levels of cleaning; this study employs the standard public release and retains only records with a valid binary default target.
+
+\subsubsection{PAK (PAKDD 2009)} Sourced from the PAKDD 2009 credit-scoring competition, containing 73{,}918 records with 25 features after concatenation of the training and leaderboard partitions and removal of rows with missing targets. The competition data were designed with realistic income filters and cost matrices to reflect imbalanced, cost-sensitive credit default scenarios encountered in practice.
+
+\subsubsection{Taiwan UCI Credit Card} Dataset of 46{,}728 credit-card client records (pooled across the original UCI release and its extended public variant) with demographic, credit-limit, payment-history, and bill-statement features~\cite{14,22}. The target variable is binary default prediction for the following month. This dataset provides rich temporal payment history through lagged payment status variables (\texttt{PAY\_0}--\texttt{PAY\_6}).
+
+These four datasets represent heterogeneous credit markets with differing borrower populations, risk horizons, and data collection practices, making them ideal for evaluating the impact of dataset harmonization and aggregation on model generalization.
+
+\subsection{Preprocessing and Statistical Augmentation}\vspace{-2pt}
+
+Each constituent dataset undergoes a deterministic preprocessing sequence to ensure robust model convergence. Missing data are addressed through median imputation for numerical features and mode imputation for categorical attributes. Categorical variables are subsequently transformed via label encoding to facilitate compatibility with gradient-boosted decision trees. For datasets where the target variable is non-binary, a strict binary encoding is applied to standardize the classification task.
+
+Given the typical class imbalance found in credit default data~\cite{19}, we employ the Synthetic Minority Oversampling Technique (SMOTE)~\cite{13} prior to the training phase. This augmentation step generates synthetic instances of the minority class, ensuring that the learning algorithm develops a balanced decision boundary rather than defaulting to the majority class bias.
+
+\subsection{Experimental Design and Model Architecture}\vspace{-2pt}
+
+The integrated dataset is partitioned into training and testing sets using an 80/20 ratio. To ensure the comparability of results across individual and combined training scenarios, we utilize a fixed experimental configuration with a constant random seed, deliberately omitting hyperparameter tuning and cross-validation to isolate the impact of data aggregation.
+
+The predictive engine utilizes XGBoost as the primary learner. The model is configured with 100 estimators and leverages GPU acceleration for computational efficiency. The pipeline architecture is intentionally streamlined, focusing on the classifier's performance on the pre-processed and balanced feature set. Following the training phase, models are serialized as binary artifacts to ensure reproducibility and facilitate deployment in various evaluation environments.
+
+\subsection{Evaluation Logic and Performance Metrics}\vspace{-2pt}
+
+Model efficacy is assessed on held-out test data using two primary metrics: Accuracy and the Area Under the Receiver Operating Characteristic Curve (AUC-ROC). While accuracy provides an overview of classification correctness, AUC-ROC serves as the critical metric for discriminating between default and non-default states across the full range of classification thresholds.
+
+The research objective is tested through two distinct experimental modes:
+\begin{itemize}
+\item \emph{Isolated Learning:} Models are trained and validated on individual datasets to establish performance baselines.
+\item \emph{Aggregated Learning:} A single global model is trained on the unified, multi-source dataset.
+\end{itemize}
+A comparative analysis of these modes allows us to quantify the generalization benefits and predictive gains derived from large-scale schema unification.
+
+
+
+
+\vspace{-6pt}
+\begin{algorithm}[H]
+\footnotesize
+\setlength{\algomargin}{8pt}
+\DontPrintSemicolon
+\LinesNotNumbered
+\caption{Unified Credit Risk Dataset Construction and XGBoost-Based Learning Pipeline}
+\label{algo:ucrs_pipeline}
+\KwIn{Set of datasets $\mathcal{D} = \{D_1, D_2, \ldots, D_K\}$, target column $y$, alias mapping rules $\mathcal{A}$, unified schema $\mathcal{S}$ (107 canonical UCRS dimensions across Five Cs)}
+\KwOut{Trained model $\mathcal{M}$, performance metrics (Accuracy, AUC, PR-AUC, F1, Balanced Accuracy, MCC), frozen per-dataset test splits for cross-evaluation}
+
+Initialize empty unified dataset $\mathcal{U}$ with schema $\mathcal{S}$; freeze per-dataset 80/20 stratified split indices before any preprocessing to prevent data leakage\;
+
+\For{each dataset $D_k \in \mathcal{D}$}{
+    Load dataset $D_k$; partition into train $D_k^{\text{train}}$ and frozen holdout $D_k^{\text{test}}$ using pre-computed split indices with fixed random seed $= 42$\;
+    Separate features $X_k$ and binary default target $y_k$; apply strict binary encoding if target is non-binary (e.g., multi-class ordinal $\rightarrow \{0,1\}$)\;
+
+    \textbf{Preprocessing (applied only to $D_k^{\text{train}}$; fitted parameters reused on $D_k^{\text{test}}$):}\\
+    Impute missing numeric values using column-wise median of training partition; store imputation statistics for inference\;
+    Impute missing categorical values using most-frequent value of training partition; apply ordinal encoding to preserve label ordinality\;
+    Encode remaining categorical features using label encoding; drop columns exceeding 95\% missingness threshold\;
+    Encode target $y_k$ to $\{0,1\}$ if categorical; verify class balance ratio; flag datasets with positive rate $< 0.1$ or $> 0.9$\;
+
+    \textbf{Class Balancing (training partition only):}\\
+    Apply SMOTE to $(X_k^{\text{train}}, y_k^{\text{train}})$ to obtain balanced $(X_k', y_k')$ with positive rate $= 0.5$; SMOTE is never applied to test splits\;
+
+    \textbf{Schema Harmonization:}\\
+    Map source columns to UCRS canonical names via alias rules $\mathcal{A}$ (e.g., \texttt{LIMIT\_BAL}, \texttt{credit\_limit} $\rightarrow$ \texttt{LOAN\_AMOUNT}); unmatched columns are retained under original names\;
+    Tag each record with provenance identifier $\texttt{database\_name} = k$; exclude \texttt{database\_name} and \texttt{\_\_ucrs\_row\_id} from model features $X$\;
+
+    Align columns of $D_k$ with $\mathcal{U}$ by adding missing UCRS dimensions as null; vertically concatenate into $\mathcal{U}$, preserving row-level source traceability\;
+}
+
+\textbf{Unified Dataset Preparation:}\\
+Filter $\mathcal{U}$ to retain only rows with non-null target; define feature matrix $X \in \mathbb{R}^{n \times 107}$ and binary target vector $y \in \{0,1\}^n$ ($n = 132{,}964$)\;
+Replace any residual missing values in $X$ with zero (post-schema-alignment nulls from unshared UCRS dimensions)\;
+Construct per-dataset frozen test sets $\{D_k^{\text{test}}\}_{k=1}^{K}$ for controlled same-test and cross-model evaluation\;
+
+\textbf{Train-Test Split (combined model):}\\
+Split $(X, y)$ into combined training set ($80\%$, $n_{\text{train}} = 106{,}370$) and combined test set ($20\%$, $n_{\text{test}} = 26{,}594$) with fixed random seed $= 42$; SMOTE applied to combined training partition\;
+
+\textbf{Model Training (repeated for each individual $D_k$ and for combined $\mathcal{U}$):}\\
+Initialize XGBoost classifier: $n\_\text{estimators} = 100$, \texttt{tree\_method = hist}, GPU acceleration enabled; no hyperparameter tuning to isolate effect of data aggregation\;
+Train model $\mathcal{M}_k$ on $(X_k', y_k')$ for individual regime; train $\mathcal{M}_{\text{all}}$ on SMOTE-balanced combined training set for unified regime\;
+
+\textbf{Evaluation:}\\
+Compute Accuracy, AUC, PR-AUC, F1, Balanced Accuracy, MCC, Specificity on each frozen test set; evaluate $\mathcal{M}_k$ and $\mathcal{M}_{\text{all}}$ on identical $D_k^{\text{test}}$ for same-test comparison\;
+Evaluate every $\mathcal{M}_k$ on every $D_j^{\text{test}}$ ($j \neq k$) to construct the full $K \times K$ cross-domain AUC transfer matrix\;
+
+\textbf{Model Persistence:}\\
+Serialize each trained model $\mathcal{M}_k$ and $\mathcal{M}_{\text{all}}$ as binary \texttt{.pkl} artifacts; persist frozen test splits as \texttt{.csv} files to guarantee exact reproducibility of all reported metrics\;
+
+\Return{$\{\mathcal{M}_k\}_{k=1}^{K}$, $\mathcal{M}_{\text{all}}$, per-model metrics, same-test deltas $\Delta$, cross-domain AUC matrix}
+\end{algorithm}
+\vspace{-8pt}
+
+%% ====================================================================
+%% IV. RESULTS
+%% ====================================================================
+\section{Results}\vspace{-6pt}
+
+\subsection{Overall Predictive Performance}\vspace{-2pt}
+
+Table~\ref{tab:overall_performance} summarises the predictive performance of each individually trained model and the combined UCRS model, evaluated on their respective held-out test sets. All models used XGBoost with 100 estimators, SMOTE applied exclusively to the training partition, and frozen per-dataset test splits to ensure comparability.
+
+Among the four source-specific models, the Taiwan UCI model achieved the strongest in-domain performance across all reported metrics: accuracy of 0.8453, AUC of 0.8836, PR-AUC of 0.9178, F1 of 0.8212, and balanced accuracy of 0.8453. The PAK model ranked second by AUC (0.8156) and balanced accuracy (0.7808), while the German Credit and HELOC models were notably weaker, with AUC values of 0.7869 and 0.7698 and F1 scores of 0.6891 and 0.6938, respectively. The HELOC model exhibited the lowest overall performance by most metrics, consistent with that dataset's relatively homogeneous feature set and its modest size (10{,}918 records), while the German Credit model's weakness reflects its very small sample (1{,}400 records).
+
+The combined UCRS model, trained on all 106{,}370 pooled training records and evaluated on the full 26{,}594-record combined test set, achieved an accuracy of 0.7894, AUC of 0.8390, PR-AUC of 0.8805, F1 of 0.7474, and balanced accuracy of 0.7894. These aggregate figures occupy an intermediate position: they surpass the weakest standalone models (German Credit and HELOC) but fall short of the strongest (Taiwan UCI). This pattern is expected under pooled training---the combined model must optimise simultaneously across heterogeneous distributions---and does not in itself constitute evidence of a failure of the schema unification approach.
+
+\begin{table}[!htbp]
+\centering
+\caption{Per-model predictive performance on held-out test sets. Individual models are evaluated on their own frozen test split; the combined model is evaluated on the full combined test set.}
+\label{tab:overall_performance}
+\setlength{\tabcolsep}{5pt}
+\begin{tabular}{lccccc}
+\toprule
+\textbf{Model} & \textbf{Accuracy} & \textbf{AUC} & \textbf{PR-AUC} & \textbf{F1} & \textbf{Bal.\ Acc.} \\
+\midrule
+PAK (Individual)           & 0.7808 & 0.8156 & 0.8665 & 0.7226 & 0.7808 \\
+Taiwan UCI (Individual)    & 0.8453 & 0.8836 & 0.9178 & 0.8212 & 0.8453 \\
+German Credit (Individual) & 0.7036 & 0.7869 & 0.8317 & 0.6891 & 0.7036 \\
+HELOC (Individual)         & 0.6896 & 0.7698 & 0.7517 & 0.6938 & 0.6896 \\
+\midrule
+All Combined (UCRS)        & 0.7894 & 0.8390 & 0.8805 & 0.7474 & 0.7894 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[t]
+\centering
+\begin{minipage}[t]{0.48\linewidth}
+  \centering
+  \includegraphics[width=\linewidth]{results/metric_comparison.png}
+  \caption{Side-by-side comparison of Accuracy, AUC, PR-AUC, F1, and Balanced Accuracy for each model. The combined model occupies an intermediate performance band, exceeding the weakest standalone models while remaining below Taiwan UCI.}
+  \label{fig:metric_comparison}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.48\linewidth}
+  \centering
+  \includegraphics[width=\linewidth]{results/roc_curves.png}
+  \caption{ROC curves for all individual models and the combined UCRS model. The Taiwan UCI model achieves the highest AUC (0.8836), followed by the combined model (0.8390).}
+  \label{fig:roc_curves}
+\end{minipage}
+\end{figure}
+
+\begin{figure}[t]
+\centering
+\begin{minipage}[t]{0.48\linewidth}
+  \centering
+  \includegraphics[width=\linewidth]{results/precision_recall_curves.png}
+  \caption{Precision-recall curves for all models. High precision at moderate recall for PAK and Taiwan UCI reflects strong class-specific signal in those datasets.}
+  \label{fig:pr_curves}
+\end{minipage}
+\hfill
+\begin{minipage}[t]{0.48\linewidth}
+  \centering
+  \includegraphics[width=\linewidth]{results/cross_eval_auc_heatmap.png}
+  \caption{Cross-dataset AUC heatmap for all pairwise (train-source, test-target) combinations including the combined model. Values near 0.50 indicate near-random generalisation, consistent with distribution shift between source domains.}
+  \label{fig:cross_eval_heatmap}
+\end{minipage}
+\end{figure}
+
+\subsection{Same-Test Comparison of Individual and Combined Models}\vspace{-2pt}
+
+A more rigorous comparison between individually trained and combined-UCRS models requires holding the evaluation data constant. Table~\ref{tab:same_test_comparison} presents this analysis: for each of the four source datasets, both the individually trained model and the combined UCRS model are applied to the \emph{identical frozen test split}, allowing their outputs to be directly compared without confounding from differing test distributions.
+
+\begin{table}[!htbp]
+\centering
+\caption{Same-test comparison of individually trained and combined UCRS models on each dataset's frozen test split. $\Delta$ denotes combined minus individual. Positive values indicate improvement by the combined model.}
+\label{tab:same_test_comparison}
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{lcccccccc}
+\toprule
+ & \multicolumn{3}{c}{\textbf{Accuracy}} & \multicolumn{3}{c}{\textbf{AUC}} & \multicolumn{2}{c}{\textbf{F1}} \\
+\cmidrule(lr){2-4}\cmidrule(lr){5-7}\cmidrule(lr){8-9}
+\textbf{Test Set} & Ind. & Comb. & $\Delta$ & Ind. & Comb. & $\Delta$ & Ind. & Comb. \\
+\midrule
+PAK           & 0.7808 & 0.7670 & $-$0.0137 & 0.8156 & 0.8016 & $-$0.0140 & 0.7226 & 0.7052 \\
+Taiwan UCI    & 0.8453 & 0.8447 & $-$0.0005 & 0.8836 & 0.8842 & $+$0.0005 & 0.8212 & 0.8189 \\
+German Credit & 0.7036 & 0.7393 & $+$0.0357 & 0.7869 & 0.8026 & $+$0.0158 & 0.6891 & 0.7137 \\
+HELOC         & 0.6896 & 0.7106 & $+$0.0211 & 0.7698 & 0.7849 & $+$0.0152 & 0.6938 & 0.7153 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The results reveal a consistent and substantively important pattern. For the two weaker datasets---German Credit and HELOC---the combined UCRS model \emph{outperforms} the individually trained model on the same frozen test split across all reported metrics. On the German Credit test set (280 records), the combined model improves accuracy by $+$0.0357, AUC by $+$0.0158, F1 by $+$0.0246, and PR-AUC by $+$0.0081. On the HELOC test set (2{,}184 records), improvements are similarly consistent: accuracy $+$0.0211, AUC $+$0.0152, F1 $+$0.0215, and PR-AUC $+$0.0184. These gains are attributable to the substantially larger training corpus available to the combined model, which provides richer generalisation signal than the small or moderately sized individual datasets can supply on their own.
+
+For the Taiwan UCI dataset, the two models are essentially equivalent on the same test split: accuracy differs by only $-$0.0005, and AUC improves marginally by $+$0.0005 for the combined model, while F1 declines negligibly ($-$0.0023). This near-parity suggests that the Taiwan UCI dataset (46{,}728 records) is already large enough that additional pooled training data provides no meaningful discriminative benefit, though neither does it measurably harm performance.
+
+The PAK dataset is the only case in which the combined model is clearly inferior on the same test split: AUC declines by $-$0.0140, accuracy by $-$0.0137, and F1 by $-$0.0174. PAK is the largest individual source (73{,}918 records, contributing 59{,}134 training rows), and its in-domain model benefits from high source-specific signal that is partially diluted when pooled with structurally dissimilar datasets. This result illustrates that combined training is not universally beneficial: when an individual dataset is large, high-quality, and contains strong in-domain structure, a source-specific model may retain a measurable advantage on its own domain.
+
+\begin{figure}[t]
+\centering
+\begin{minipage}[t]{0.48\linewidth}
+  \centering
+  \includegraphics[width=\linewidth]{results/combined_delta_metrics.png}
+  \caption{Per-dataset metric deltas (combined minus individual) on the same frozen test splits. German Credit and HELOC show consistent gains; PAK shows consistent losses; Taiwan UCI is near-zero.}
+  \label{fig:combined_delta}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.48\linewidth}
+  \centering
+  \includegraphics[width=0.78\linewidth]{results/combined_confusion_matrix.png}
+  \caption{Confusion matrix for the combined UCRS model on the full test set (26{,}594 records). High specificity (0.9557) at moderate recall (0.6231) reflects a conservative prediction posture.}
+  \label{fig:confusion_matrix}
+\end{minipage}
+\end{figure}
+
+\subsection{Cross-Dataset Generalization}\vspace{-2pt}
+
+To assess whether models trained on one dataset transfer predictive signal to held-out data from another, we applied each trained model to every frozen test split other than its own. Table~\ref{tab:cross_eval_auc} reports AUC for all pairwise (train-source, test-target) combinations, and Figure~\ref{fig:cross_eval_heatmap} visualises these values as a heatmap.
+
+The results reveal stark heterogeneity in cross-domain transfer. The PAK and Taiwan UCI individual models exhibit moderate mutual transferability: the PAK model achieves an AUC of 0.8153 on the Taiwan UCI test set and 0.7399 on the German Credit test set, while the Taiwan UCI model attains an AUC of 0.7452 on the PAK test set and 0.6884 on the German Credit test set. These two datasets share broadly similar feature representations after UCRS harmonisation---both are large consumer credit datasets with demographic and payment-history fields---which may account for this partial cross-domain signal.
+
+In contrast, the HELOC model generalises to no other dataset: it achieves an AUC of 0.50 on every foreign test set, equivalent to random prediction. Inspection of the confusion matrices confirms that the HELOC model predicts a single class exclusively on out-of-domain data, implying that its decision boundary is entirely specific to HELOC's marginal distribution and does not capture any transferable structure. Similarly, the German Credit model collapses to near-random performance on all three foreign test sets (AUC of 0.5157 on PAK, 0.5210 on Taiwan UCI, and 0.50 on HELOC). Given that German Credit's training partition contains only 1{,}120 records, this result is unsurprising: the model is unlikely to have learned distributional regularities that generalise beyond the idiosyncratic characteristics of that small sample. Notably, the PAK model also collapses entirely (AUC $=$ 0.50) when applied to the HELOC test set, suggesting that HELOC's feature space retains residual domain-specific structure not captured by the UCRS mapping, even for the largest source model.
+
+These patterns of near-random cross-domain performance should be interpreted as evidence of \emph{distribution shift and source-specific signal}, not as a deficiency of the evaluation protocol. They reinforce the motivation for schema unification: individually trained models cannot be expected to transfer across datasets whose underlying distributions, despite nominal schema alignment, retain substantive domain-level heterogeneity.
+
+The combined UCRS model exhibits substantially broader generalisation. Evaluated on the same four frozen test sets, it achieves AUC values of 0.8016 (PAK), 0.8842 (Taiwan UCI), 0.8026 (German Credit), and 0.7849 (HELOC)---consistently above the best cross-domain AUC achievable by any individual model on those targets, with the sole exception of PAK-to-Taiwan-UCI (AUC 0.8153). This suggests that pooled training under the unified schema enables the model to capture signal components shared across source distributions, improving robustness to domain variation even where individual models fail entirely.
+
+\begin{table}[!htbp]
+\centering
+\caption{Cross-dataset AUC matrix. Rows indicate the model's training source; columns indicate the test target. Diagonal values correspond to in-domain performance. Values near 0.50 indicate performance indistinguishable from random prediction.}
+\label{tab:cross_eval_auc}
+\setlength{\tabcolsep}{5pt}
+\begin{tabular}{lcccc}
+\toprule
+\textbf{Train $\backslash$ Test} & \textbf{PAK} & \textbf{Taiwan UCI} & \textbf{German Credit} & \textbf{HELOC} \\
+\midrule
+PAK (Ind.)           & \textbf{0.8156} & 0.8153          & 0.7399          & 0.5000 \\
+Taiwan UCI (Ind.)    & 0.7452          & \textbf{0.8836} & 0.6884          & 0.5000 \\
+German Credit (Ind.) & 0.5157          & 0.5210          & \textbf{0.7869} & 0.5000 \\
+HELOC (Ind.)         & 0.5000          & 0.5000          & 0.5000          & \textbf{0.7698} \\
+\midrule
+All Combined (UCRS)  & 0.8016          & 0.8842          & 0.8026          & 0.7849 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+
+\subsection{Feature Importance in the Combined Model}\vspace{-2pt}
+
+Figure~\ref{fig:feature_importance} and Table~\ref{tab:feature_importance} report the top-10 features by XGBoost gain-based importance for the combined UCRS model. The top five features---\textsc{marital\_status} (36.20\%), \textsc{gender} (16.00\%), \textsc{education\_level} (13.13\%), \textsc{borrower\_age} (7.52\%), and \textsc{credit\_history\_score} (6.46\%)---jointly account for 79.31\% of total feature importance. The remaining five features each contribute between 1.22\% and 2.26\%.
+
+The dominance of demographic and socioeconomic attributes is noteworthy. These fields are present and populated across multiple source datasets after UCRS harmonisation, which likely amplifies their estimated importance: variables that are consistently non-null and discriminative across all contributing datasets will tend to accumulate higher gain in a pooled model than variables available only within a single source. The prominence of \textsc{credit\_history\_score} (6.46\%) confirms that financial behaviour signals also transfer meaningfully across the unified schema.
+
+Behavioural credit variables such as \textsc{revolving\_utilization\_ratio} (1.61\%), \textsc{satisfactory\_trade\_ratio} (1.26\%), and \textsc{num\_existing\_credits} (1.22\%) rank lower, likely because they are populated in only a subset of the source datasets after harmonisation, reducing their cross-dataset discriminative weight. These patterns are consistent with the expectation that schema unification tends to surface shared demographic structure as the primary cross-domain signal, while dataset-specific behavioural features recede in relative importance.
+
+Feature importance derived from gradient-boosted trees reflects predictive contribution within the model, not causal effect. The observed rankings should not be interpreted as implying that marital status or gender cause default risk; these variables may act as proxies for latent socioeconomic or institutional factors that differ across the source populations and geographies represented in the data.
+
+\begin{figure}[!htbp]
+\centering
+\begin{minipage}[c]{0.46\linewidth}
+  \centering
+  \captionof{table}{Top-10 features by XGBoost gain-based importance in the combined UCRS model.}
+  \label{tab:feature_importance}
+  \vspace{4pt}
+  \begin{tabular}{clc}
+  \toprule
+  \textbf{Rank} & \textbf{Feature (UCRS Name)} & \textbf{Imp.\ (\%)} \\
+  \midrule
+  1  & \textsc{marital\_status}               & 36.20 \\
+  2  & \textsc{gender}                        & 16.00 \\
+  3  & \textsc{education\_level}              & 13.13 \\
+  4  & \textsc{borrower\_age}                 & 7.52  \\
+  5  & \textsc{credit\_history\_score}        & 6.46  \\
+  6  & \textsc{loan\_amount}                  & 2.26  \\
+  7  & \textsc{revolving\_utilization\_ratio} & 1.61  \\
+  8  & \textsc{other\_installment\_plans}     & 1.50  \\
+  9  & \textsc{satisfactory\_trade\_ratio}    & 1.26  \\
+  10 & \textsc{num\_existing\_credits}        & 1.22  \\
+  \bottomrule
+  \end{tabular}
+\end{minipage}\hfill
+\begin{minipage}[c]{0.50\linewidth}
+  \centering
+  \includegraphics[width=0.95\linewidth]{results/combined_top10_features.png}
+  \captionof{figure}{Top-10 feature importances (XGBoost gain) for the combined UCRS model. Demographic and socioeconomic fields dominate, reflecting cross-dataset availability and discriminative consistency under schema unification.}
+  \label{fig:feature_importance}
+\end{minipage}
+\end{figure}
+
+\subsection{Summary of Findings}\vspace{-2pt}
+
+Taken together, the results support a nuanced picture of the benefits and limitations of UCRS-based schema unification for credit risk prediction. The combined model improves robustness and generalisation for datasets that are either too small or too weakly structured to support high-performing standalone models: German Credit and HELOC both benefit materially from pooled training on the same frozen test split, with AUC improvements of $+$0.0158 and $+$0.0152, respectively. For Taiwan UCI---a large, high-quality dataset---the combined model is essentially equivalent to the standalone model, suggesting neither harm nor benefit from pooling. For PAK, the largest individual source, the combined model incurs a modest but consistent performance decline across all metrics, indicating that source-specific signal in large, well-structured datasets may be partially diluted by pooling with heterogeneous sources.
+
+The cross-dataset generalisation analysis further underscores the practical value of the unified schema: individual models trained on small or domain-specific datasets fail entirely out-of-domain, whereas the combined model maintains meaningful predictive performance across all four target distributions. This robustness advantage does not translate into universal in-domain dominance---the strongest standalone model (Taiwan UCI) retains the highest in-domain AUC---but it does suggest that the UCRS framework enables a single trained model to serve as a credible predictor across diverse credit risk contexts, which would be practically infeasible for any of the source-specific models acting alone.
+
+%% ── SYNTHESIS ───────────────────────────────────────────────────────
+%% ====================================================================
+%% V. CONCLUSION
+%% ====================================================================
+\vspace{-4pt}
+\section{Conclusion}\vspace{-4pt}
+
+Aggregating credit-default data from multiple heterogeneous sources into a unified dataset is feasible under a principled schema and can yield material predictive gains---but the benefits are not uniform across sources. Our same-test experiments (Table~\ref{tab:same_test_comparison}) show that the unified XGBoost model improves AUC by $+$0.0158 on German Credit and $+$0.0152 on HELOC relative to the individually trained models on identical frozen test splits, confirming that small and weakly structured datasets benefit substantively from pooled training. For Taiwan UCI, a large and internally well-structured dataset, the individual and unified models are statistically indistinguishable ($\Delta$AUC $= +0.0005$), indicating that pooling neither helps nor harms once an in-domain corpus of moderate size is already available. For PAK, the largest single source in our study, the unified model incurs a small but consistent decline ($\Delta$AUC $= -0.0140$), suggesting that source-specific signal in a large, coherent dataset can be partially diluted when pooled with structurally dissimilar data. These patterns align with data harmonisation theory~\cite{8,16,20}: harmonising features enables pooling, but the benefit is contingent on the relative sizes and distributional proximity of the contributing sources, and practitioners must guard against false equivalences.
+
+The cross-dataset generalisation results provide the most compelling argument in favour of the unified schema. Individually trained models frequently collapse to near-random performance (AUC $\approx 0.50$) on foreign test splits---notably the HELOC and German Credit models fail entirely out of domain---whereas the unified UCRS model maintains AUC between 0.78 and 0.88 across all four target distributions. In this sense, the unified model functions as an implicit regulariser across heterogeneous domains~\cite{1,2,7,12,24}, learning patterns that survive distributional variation even when no single source model can.
+
+Practically, the UCRS pipeline underscores the importance of explicit, conceptually grounded harmonisation. By anchoring the feature space in the five Cs of credit and resolving naming variation through alias mapping, each feature in the unified set carries a consistent meaning. We recommend aggregation when at least one of the contributing sources is small or weakly structured, when a single deployable model is required across diverse credit contexts, or when robustness to distribution shift is prioritised over peak in-domain accuracy on the largest source. When the sole objective is in-domain performance on a large, high-quality dataset, a source-specific model may remain preferable, and aggregation should be weighed against that baseline.
+
+\subsection{Future Research}\vspace{-2pt}
+
+Future work should explore more advanced methods for handling heterogeneity. One approach is domain adaptation: for example, incorporating adversarial training to align feature distributions before merging (similar to what Zhang et al. did in 2025~\cite{4}). Another direction is learning the schema itself from data using representation learning, instead of manually defining the five Cs. Also, expanding to non-public sources (e.g., proprietary bank data) and validating across additional contexts would strengthen generality.
+
+Methodologically, we could apply nested cross-validation or bootstrapping for more robust error estimates, and perform significance testing on all metrics to ensure findings are not due to chance. Incorporating explainability into the training loop (e.g., by penalizing models with unstable SHAP patterns~\cite{25}) might yield classifiers that are both accurate and reliable in explanation. Finally, investigating how label differences (e.g., varying "default" definitions) affect the results would address a key limitation.
+
+
+\begin{thebibliography}{99}
+
+\bibitem{1} Y. Xia, S. Jiang, L. Meng, and X. Ju, ``XGBoost-B-GHM: An ensemble model with feature selection and GHM loss function optimization for credit scoring,'' {\em Systems}, vol. 12, no. 7, p. 254, 2024.
+\bibitem{2} A. Akinjole, O. Shobayo, J. Popoola, O. Okoyeigbo, and B. Ogunleye, ``Ensemble-based machine learning algorithm for loan default risk prediction,'' {\em Mathematics}, vol. 12, no. 21, p. 3423, 2024.
+\bibitem{3} D. Ni, M. K. Lim, X. Li, Y. Qu, and M. Yang, ``Monitoring corporate credit risk with multiple data sources,'' {\em Industrial Management \& Data Systems}, vol. 123, no. 2, pp. 434--450, 2022.
+\bibitem{4} L. Zhang, Y. Qiu, S. Zhang, H. Lv, and Z. Jia, ``Explainable domain adaptation learning for credit scoring,'' {\em Mathematics}, vol. 13, no. 7, p. 1045, 2025.
+\bibitem{5} J. Li, H. Liu, Z. Yang, and L. Han, ``A credit risk model with small sample data based on G-XGBoost,'' {\em Applied Artificial Intelligence}, vol. 35, no. 3, pp. 1--17, 2021.
+\bibitem{6} Y. Hayashi and N. Takano, ``One-dimensional convolutional neural networks with feature selection for highly concise rule extraction from credit scoring datasets with heterogeneous attributes,'' {\em Electronics}, vol. 9, no. 8, p. 1318, 2020.
+\bibitem{7} Y. Chen, Y. Dong, and W. Liu, ``Prediction of credit default based on the XGBoost model,'' {\em Applied and Computational Engineering}, vol. 96, no. 1, pp. 85--92, 2024.
+\bibitem{8} C. Cheng {\em et al.}, ``A general primer for data harmonization,'' {\em Scientific Data}, vol. 11, p. 152, 2024.
+\bibitem{9} R. Asthana and A. Mahindru, ``Mapping of financial services datasets using human-in-the-loop for ICAIF 2022,'' in {\em Proc. ACM Int. Conf. AI in Finance (ICAIF)}, 2022.
+\bibitem{10} S. Lessmann, B. Baesens, H.-V. Seow, and L. C. Thomas, ``Benchmarking state-of-the-art classification algorithms for credit scoring: An update of research,'' {\em Eur. J. Oper. Res.}, vol. 247, no. 1, pp. 124--136, 2015.
+\bibitem{11} F. Louzada, A. Ara, and G. B. Fernandes, ``Binary classification methods for credit scoring: A systematic review and empirical analysis,'' {\em Expert Syst. Appl.}, vol. 59, pp. 117--136, 2016.
+\bibitem{12} T. Chen and C. Guestrin, ``XGBoost: A scalable tree boosting system,'' in {\em Proc. 22nd ACM SIGKDD Int. Conf. Knowledge Discovery and Data Mining (KDD)}, San Francisco, CA, Aug. 2016, pp. 785--794.
+\bibitem{13} N. V. Chawla, K. W. Bowyer, L. O. Hall, and W. P. Kegelmeyer, ``SMOTE: Synthetic minority over-sampling technique,'' {\em J. Artif. Intell. Res.}, vol. 16, pp. 321--357, 2002.
+\bibitem{14} I.-C. Yeh and C.-H. Lien, ``The comparisons of data mining techniques for the predictive accuracy of probability of default of credit card clients,'' {\em Expert Syst. Appl.}, vol. 36, no. 2, pp. 2473--2480, 2009.
+\bibitem{15} J. H. Friedman, ``Greedy function approximation: A gradient boosting machine,'' {\em Ann. Statist.}, vol. 29, no. 5, pp. 1189--1232, 2001.
+\bibitem{16} S. J. Pan and Q. Yang, ``A survey on transfer learning,'' {\em IEEE Trans. Knowl. Data Eng.}, vol. 22, no. 10, pp. 1345--1359, Oct. 2010.
+\bibitem{17} D. J. Hand and W. E. Henley, ``Statistical classification methods in consumer credit scoring: A review,'' {\em J. R. Stat. Soc. Ser. A Stat. Soc.}, vol. 160, no. 3, pp. 523--541, 1997.
+\bibitem{18} L. C. Thomas, ``A survey of credit and behavioural scoring: Forecasting financial risk of lending to consumers,'' {\em Int. J. Forecast.}, vol. 16, no. 2, pp. 149--172, 2000.
+\bibitem{19} H. He and E. A. Garcia, ``Learning from imbalanced data,'' {\em IEEE Trans. Knowl. Data Eng.}, vol. 21, no. 9, pp. 1263--1284, Sep. 2009.
+\bibitem{20} S. Ben-David, J. Blitzer, K. Crammer, A. Kulesza, F. Pereira, and J. W. Vaughan, ``A theory of learning from different distributions,'' {\em Mach. Learn.}, vol. 79, no. 1--2, pp. 151--175, 2010.
+\bibitem{21} B. Baesens, T. Van Gestel, S. Viaene, M. Stepanova, J. Suykens, and J. Vanthienen, ``Benchmarking state-of-the-art classification algorithms for credit scoring,'' {\em J. Oper. Res. Soc.}, vol. 54, no. 6, pp. 627--635, 2003.
+\bibitem{22} D. Dua and C. Graff, ``UCI Machine Learning Repository,'' University of California, Irvine, School of Information and Computer Sciences, 2019. [Online]. Available: \url{http://archive.ics.uci.edu/ml}
+\bibitem{23} L. Breiman, ``Bagging predictors,'' {\em Mach. Learn.}, vol. 24, no. 2, pp. 123--140, 1996.
+\bibitem{24} O. Sagi and L. Rokach, ``Ensemble learning: A survey,'' {\em WIREs Data Mining Knowl. Discov.}, vol. 8, no. 4, p. e1249, 2018.
+\bibitem{25} S. M. Lundberg and S.-I. Lee, ``A unified approach to interpreting model predictions,'' in {\em Advances in Neural Information Processing Systems (NeurIPS)}, vol. 30, 2017, pp. 4765--4774.
+\end{thebibliography}
+
+% Author biographies withheld for double-anonymous review.
+
+\end{document}

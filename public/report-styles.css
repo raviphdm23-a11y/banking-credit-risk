@@ -158,6 +158,26 @@ body {
   display: inline-block; vertical-align: middle;
 }
 
+/* ── Customer Attribute Snapshot (36 model inputs) ────────────── */
+.attr-snapshot-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0 28px;
+}
+.attr-snap-group { margin-bottom: 14px; }
+.attr-snap-group-title {
+  font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em;
+  color: var(--grey); font-weight: 700; margin-bottom: 6px;
+}
+.attr-snap-row {
+  display: flex; justify-content: space-between; gap: 10px;
+  padding: 4px 0; font-size: 13px;
+  border-bottom: 1px solid var(--border);
+}
+.attr-snap-row:last-child { border-bottom: none; }
+.attr-snap-label { color: var(--navy); }
+.attr-snap-value { color: var(--grey); font-weight: 600; font-variant-numeric: tabular-nums; }
+
 /* ── Five C's Grid ─────────────────────────────────────────── */
 .five-cs-grid {
   display: grid;
@@ -342,6 +362,7 @@ details[open] > summary::before { transform: rotate(90deg); }
   body { background: #fff; }
   .report-wrap { padding: 0; max-width: 100%; }
   .report-actions { display: none; }
+  #attrSnapshotSection { page-break-after: always; }
   .five-cs-grid { grid-template-columns: repeat(5, 1fr); }
   .fcs-commentary-row { page-break-inside: avoid; }
   .fcs-commentary-meta { min-width: 140px; }

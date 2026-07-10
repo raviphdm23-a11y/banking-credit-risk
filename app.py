@@ -42,13 +42,56 @@ _SIM_CLOCK = _load_sim_clock()
 SIM_DATE   = _SIM_CLOCK['sim_date']
 SIM_PERIOD = _SIM_CLOCK.get('sim_period', 'FY2020')
 
-# ── Banking Operations (bank.db — direct sqlite3, read-only) ─────────────────
+# ── Banking Operations (bank.db — direct sqlite3, read + write) ──────────────
 import sqlite3 as _sqlite3
+import threading as _threading
 
 _OPS_DB_PATH = os.path.join(os.path.dirname(__file__), 'bank.db')
 
+# On App Engine Standard AND Cloud Run, the deployed source directory is mounted
+# read-only at runtime (only /tmp is writable) - RM case creation, NPA resolution,
+# and other writes fail with "attempt to write a readonly database" unless bank.db
+# is copied to /tmp first. GAE_ENV/GAE_APPLICATION (App Engine) and K_SERVICE
+# (Cloud Run) are set automatically by their respective runtimes and never present
+# locally, so this only kicks in on GCP. Note: /tmp is per-instance and ephemeral -
+# fine for a single-instance demo, but writes are lost on restart and not shared
+# if the app scales out.
+#
+# The copy (~350MB) must NOT block the import of this module: gunicorn workers
+# import app.py before they start accepting requests, and a synchronous copy
+# here delayed startup past the platform's health-check window, causing it to
+# kill and restart the instance in a loop (visible in logs as repeated
+# "Starting gunicorn" -> "Handling signal: term" within seconds).
+# Instead, the copy runs in a background thread while gunicorn is free to bind
+# and pass health checks immediately; _ops_conn() waits on it only if a request
+# for the DB arrives before the copy has finished.
+_READONLY_FS = (os.environ.get('GAE_ENV', '').startswith('standard')
+                 or bool(os.environ.get('GAE_APPLICATION'))
+                 or bool(os.environ.get('K_SERVICE')))
+_db_copy_ready = _threading.Event()
+
+if _READONLY_FS:
+    _tmp_db_path = os.path.join('/tmp', 'bank.db')
+    _OPS_DB_PATH = _tmp_db_path
+
+    def _copy_db_to_tmp_bg():
+        try:
+            src = os.path.join(os.path.dirname(__file__), 'bank.db')
+            if not os.path.exists(_tmp_db_path):
+                partial_path = _tmp_db_path + '.partial'
+                shutil.copy2(src, partial_path)
+                os.replace(partial_path, _tmp_db_path)  # atomic - no reader ever sees a half-written file
+        finally:
+            _db_copy_ready.set()
+
+    _threading.Thread(target=_copy_db_to_tmp_bg, daemon=True).start()
+else:
+    _db_copy_ready.set()
+
 def _ops_conn():
-    """Return a read-only sqlite3 connection to bank.db with dict-like rows."""
+    """Return a sqlite3 connection to bank.db with dict-like rows."""
+    if _READONLY_FS and not _db_copy_ready.is_set():
+        _db_copy_ready.wait(timeout=60)
     conn = _sqlite3.connect(_OPS_DB_PATH)
     conn.row_factory = _sqlite3.Row
     return conn
@@ -148,9 +191,9 @@ def _resolve_segment_engine(data):
 _report_cache: dict = {}
 
 # ── File-based persistence paths ───────────────────────────────────────────
-# On GCP App Engine, /workspace is read-only, so use /tmp for ephemeral data
-_ON_GAE = os.environ.get('GAE_APPLICATION') is not None
-_BASE_DATA_DIR = '/tmp/data' if _ON_GAE else os.path.join(os.path.dirname(__file__), 'data')
+# On GCP (App Engine or Cloud Run) the source directory is read-only, so use
+# /tmp for ephemeral data - see _READONLY_FS definition above.
+_BASE_DATA_DIR = '/tmp/data' if _READONLY_FS else os.path.join(os.path.dirname(__file__), 'data')
 _REPORTS_DIR   = os.path.join(_BASE_DATA_DIR, 'reports')
 _AUDIT_LOG_PATH = os.path.join(_BASE_DATA_DIR, 'audit_log.json')
 _audit_lock = threading.Lock()
@@ -865,6 +908,8 @@ def admin_status():
         # Count transaction-level training data (primary source)
         enriched_txn_count = 0
         try:
+            if _READONLY_FS and not _db_copy_ready.is_set():
+                _db_copy_ready.wait(timeout=60)
             conn = sqlite3.connect(_OPS_DB_PATH)
             cursor = conn.cursor()
             cursor.execute("SELECT COUNT(*) FROM transactions WHERE default_flag IS NOT NULL AND cust_age IS NOT NULL AND cust_annual_income IS NOT NULL AND loan_de_ratio IS NOT NULL AND loan_interest_coverage IS NOT NULL AND loan_classification IS NOT NULL")
@@ -921,6 +966,8 @@ def admin_data_sources():
 
         # Add enriched_transactions as primary data source
         try:
+            if _READONLY_FS and not _db_copy_ready.is_set():
+                _db_copy_ready.wait(timeout=60)
             conn = sqlite3.connect(_OPS_DB_PATH)
             cursor = conn.cursor()
             cursor.execute("SELECT COUNT(*) FROM transactions WHERE default_flag IS NOT NULL AND cust_age IS NOT NULL AND cust_annual_income IS NOT NULL AND loan_de_ratio IS NOT NULL AND loan_interest_coverage IS NOT NULL AND loan_classification IS NOT NULL")
@@ -1552,6 +1599,8 @@ def operations_db_admin():
     tables        = []
     try:
         import sqlite3 as _sa
+        if _READONLY_FS and not _db_copy_ready.is_set():
+            _db_copy_ready.wait(timeout=60)
         conn = _sa.connect(_OPS_DB_PATH)
         cur  = conn.cursor()
         cur.execute("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name")
