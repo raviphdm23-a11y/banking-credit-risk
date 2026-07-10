@@ -94,6 +94,14 @@
   tr:last-child td { border-bottom: none; }
   tr:hover td { background: #F8FAFF; }
 
+  /* Dense variant for wide data tables (e.g. Configured Models) - smaller
+     font/padding, single-line headers, so many columns fit without the
+     ragged multi-line wrap the default table style produces. */
+  .models-table-wrap { overflow-x: auto; }
+  .models-table { font-size: 12px; }
+  .models-table th { padding: 8px 10px; white-space: nowrap; font-size: 10px; cursor: help; }
+  .models-table td { padding: 8px 10px; vertical-align: top; }
+
   /* ── Forms ──────────────────────────────────────────────────────────────── */
   .form-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; }
   .form-group { display: flex; flex-direction: column; gap: 6px; }
@@ -191,10 +199,14 @@
         <option value="xgboost">XGBoost</option>
         <option value="logistic_regression">Logistic Regression</option>
       </select>
-      <select id="trainBankSelect" multiple size="4" title="Ctrl/Cmd-click to select multiple banks. Leave nothing selected to train on all banks."
+      <select id="trainBankSelect" multiple size="4" title="Ctrl/Cmd-click to select multiple banks, or use the buttons below."
               style="padding:6px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;min-width:220px">
         <option value="">Loading banks...</option>
       </select>
+      <div style="display:flex;flex-direction:column;gap:4px">
+        <button type="button" class="btn btn-sm" style="padding:4px 10px;font-size:12px" onclick="selectAllBanks()">All Banks</button>
+        <button type="button" class="btn btn-sm" style="padding:4px 10px;font-size:12px" onclick="clearBankSelection()">Clear</button>
+      </div>
       <select id="trainExposureClass" required title="Segment to train - the unsegmented 'ALL' model is retired and can no longer be trained."
               style="padding:8px 12px;border:1px solid var(--border);border-radius:6px;font-size:13px">
         <option value="CORPORATE">CORPORATE</option>
@@ -207,7 +219,7 @@
       <span id="trainMsg" class="msg"></span>
     </div>
     <p style="font-size:11px;color:var(--sub);margin-top:6px">
-      Bank filter: select one or more banks to train only on their data, or leave none selected to use all banks. Ctrl/Cmd-click to multi-select.
+      Bank filter: select one or more banks to train only on their data, or leave none selected to use all banks. Ctrl/Cmd-click to multi-select, or use the "All Banks"/"Clear" buttons.
       Exposure class: trains a dedicated model for that Basel segment (each has its own independent active model, activated/rolled back separately) - every customer is scored by their own segment's model.
       The unsegmented "ALL" model has been retired (it was never used for live scoring once segment routing shipped) and can no longer be trained or scheduled - any existing ALL entries below are historical only.
     </p>
@@ -221,6 +233,10 @@
     <p style="color:var(--sub);font-size:13px;margin-bottom:16px">
       All trained models available. Click "Activate" to switch which model is used for live credit-risk scoring.
       Select rows and click "Delete Selected" to remove models (and their pickle files) you no longer need.
+    </p>
+    <p style="font-size:12px;color:var(--sub);background:#FFF8E1;border:1px solid #FBC02D;border-radius:6px;padding:8px 14px;margin-bottom:16px">
+      <b>Trust column:</b> <b>EPV</b> (training defaults &divide; 39 features) needs &#8805;10 to be acceptable, &#8805;20 comfortable — below that, treat AUC-ROC as unreliable regardless of how high it reads.
+      &#10003;/&#10007; = whether the model's lift over a trivial CIBIL-only baseline survives a paired bootstrap significance test (not just numerically positive). <b>Hover the column values for the full numbers.</b>
     </p>
     <div style="margin-bottom:12px">
       <button class="btn btn-danger btn-sm" id="deleteSelectedBtn" onclick="deleteSelectedModels()" disabled>&#128465; Delete Selected</button>
@@ -658,12 +674,26 @@ async function loadBankOptions() {
 
 function bankIdsLabel(bankIds) {
   if (!bankIds || !bankIds.length) return 'All banks';
+  const knownBankIds = Object.keys(_bankNameById);
+  const isEveryKnownBank = knownBankIds.length > 0 &&
+    knownBankIds.every(id => bankIds.includes(id)) && bankIds.length === knownBankIds.length;
+  if (isEveryKnownBank) return `All banks (${knownBankIds.length})`;
   return bankIds.map(id => _bankNameById[id] ? `${id} (${_bankNameById[id]})` : id).join(', ');
 }
 
 function getSelectedBankIds() {
   const sel = document.getElementById('trainBankSelect');
   return Array.from(sel.selectedOptions).map(o => o.value).filter(Boolean);
+}
+
+function selectAllBanks() {
+  const sel = document.getElementById('trainBankSelect');
+  Array.from(sel.options).forEach(o => { o.selected = true; });
+}
+
+function clearBankSelection() {
+  const sel = document.getElementById('trainBankSelect');
+  Array.from(sel.options).forEach(o => { o.selected = false; });
 }
 
 // ── Panel 1: Status ─────────────────────────────────────────────────────────
@@ -752,11 +782,12 @@ async function loadConfiguredModels() {
       return;
     }
 
-    let html = '<table><tr><th style="width:30px"></th><th>Model</th><th>Segment</th><th>Banks Trained On</th>' +
-      '<th title="Diagnostic only - noisy with this few defaults, do not use to compare models">AUC-ROC (last split)</th>' +
-      '<th style="color:var(--blue)" title="Mean +/- std over 5 folds - the trustworthy estimate, use this to compare models">&#9733; AUC-ROC (5-fold CV) — use this</th>' +
-      '<th>F1</th><th>Precision</th><th>Recall</th>' +
-      '<th title="Rows used to fit the model (training split only) out of the total rows loaded for this run">Rows Trained / Total</th>' +
+    let html = '<div class="models-table-wrap"><table class="models-table"><tr><th style="width:30px"></th><th>Model</th><th>Segment</th><th>Banks</th>' +
+      '<th style="color:var(--blue)" title="Mean +/- std over 5 folds - the trustworthy estimate, use this to compare models. Parenthetical is the single last-split AUC - diagnostic only, noisy with this few defaults, do not use it to compare models.">&#9733; CV AUC — use this</th>' +
+      '<th title="Precision-Recall AUC - far more sensitive than ROC-AUC to whether the model is really separating classes vs. getting lucky with only a handful of positives">PR-AUC</th>' +
+      '<th>F1</th><th title="Precision / Recall">P / R</th>' +
+      '<th title="Rows used to fit the model (training split only) out of total rows loaded for this run">Rows</th>' +
+      '<th title="Trustworthiness at a glance - hover for full detail. EPV = training-set defaults / feature count (39); rule of thumb needs >=10 to be acceptable, >=20 comfortable. Checkmark = the model\'s lift over a trivial CIBIL-only baseline is statistically significant (paired bootstrap, 1000 resamples, judged against real default outcomes); X = the lift is indistinguishable from noise given this test set.">Trust</th>' +
       '<th>Trained On</th><th>Action</th></tr>';
     models.forEach(m => {
       const meta = m.metadata || {};
@@ -772,6 +803,27 @@ async function loadConfiguredModels() {
       const rowsText = meta.rows_trained
         ? (meta.total_rows ? `${meta.rows_trained.toLocaleString()} / ${meta.total_rows.toLocaleString()}` : meta.rows_trained.toLocaleString())
         : '—';
+
+      const epv = meta.epv || {};
+      const riskColor = { high: 'var(--red)', moderate: '#d97706', low: 'var(--green)' }[epv.overfitting_risk] || 'var(--sub)';
+
+      const baselineAuc = meta.baseline_cibil_only_auc;
+      const lift = meta.auc_lift_over_baseline;
+      const sig = meta.lift_significance || {};
+      const sigIcon = sig.significant === true ? '&#10003;' : sig.significant === false ? '&#10007;' : '—';
+      const sigColor = sig.significant === true ? 'var(--green)' : sig.significant === false ? 'var(--red)' : 'var(--sub)';
+      const trustTitle = epv.epv !== undefined && epv.epv !== null
+        ? `EPV = ${epv.epv} (${epv.overfitting_risk} overfitting risk) - training defaults / 39 features, need >= 10.\n` +
+          `CIBIL-only baseline AUC = ${fmt(baselineAuc)}, lift = ${lift >= 0 ? '+' : ''}${fmt(lift)}.\n` +
+          (sig.significant === null || sig.significant === undefined
+            ? 'Bootstrap significance: not available.'
+            : `Bootstrap significance: ${sig.significant ? 'significant' : 'NOT significant'} ` +
+              `(p=${sig.p_value_two_sided}, 95% CI=[${sig.ci_95?.[0]}, ${sig.ci_95?.[1]}]).`)
+        : 'No trustworthiness diagnostics recorded for this run.';
+      const trustText = epv.epv !== undefined && epv.epv !== null
+        ? `<span title="${trustTitle}"><b style="color:${riskColor}">EPV ${epv.epv}</b> <b style="color:${sigColor}">${sigIcon}</b></span>`
+        : '—';
+
       const bankKey = m.bank_key || 'ALL';
       const checkbox = m.is_active
         ? `<input type="checkbox" disabled title="Cannot delete the active model">`
@@ -780,19 +832,19 @@ async function loadConfiguredModels() {
       html += `<tr>
         <td>${checkbox}</td>
         <td><b>${m.model_type}</b> ${status}</td>
-        <td>${exposureClass === 'ALL' ? '<span style="color:var(--sub)">ALL (unsegmented)</span>' : `<b>${exposureClass}</b>`}</td>
-        <td style="font-size:12px">${bankIdsLabel(meta.bank_ids)}</td>
-        <td>${fmt(metrics.auc_roc)}</td>
-        <td><b>${cvText}</b></td>
+        <td>${exposureClass === 'ALL' ? '<span style="color:var(--sub)">ALL</span>' : `<b>${exposureClass}</b>`}</td>
+        <td>${bankIdsLabel(meta.bank_ids)}</td>
+        <td><b>${cvText}</b> <span style="color:var(--sub)">(${fmt(metrics.auc_roc)})</span></td>
+        <td>${fmt(metrics.pr_auc)}</td>
         <td>${fmt(metrics.f1)}</td>
-        <td>${fmt(metrics.precision)}</td>
-        <td>${fmt(metrics.recall)}</td>
+        <td>${fmt(metrics.precision)} / ${fmt(metrics.recall)}</td>
         <td>${rowsText}</td>
-        <td>${meta.date_trained ? meta.date_trained.replace('T', ' ').substring(0, 19) : '—'}</td>
+        <td>${trustText}</td>
+        <td>${meta.date_trained ? meta.date_trained.replace('T', ' ').substring(0, 16) : '—'}</td>
         <td><button class="btn btn-sm ${m.is_active ? 'btn-primary' : 'btn-orange'}" ${activateBtnDisabled} ${activateBtnClick}>${m.is_active ? '✓ Active' : 'Activate'}</button></td>
       </tr>`;
     });
-    html += '</table>';
+    html += '</table></div>';
     document.getElementById('configuredModelsTable').innerHTML = html;
     updateDeleteBtnState();
   } catch (e) {

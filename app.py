@@ -2774,6 +2774,7 @@ def reg_bank_alm(bank_id):
     is_consolidated = bank_id == 'CONSOLIDATED'
     with _ops_conn() as conn:
         _alm.backfill_fd_maturity(conn, sim_date=SIM_DATE)
+        _alm.renew_matured_fds(conn, sim_date=SIM_DATE)
         stmt = _alm.structural_liquidity_statement(
             conn, None if is_consolidated else bank_id, SIM_DATE, SIM_PERIOD)
         events = [] if is_consolidated else _alm.recent_funding_events(conn, bank_id)
@@ -3494,6 +3495,11 @@ def rm_cases():
     if request.method == 'POST':
         application = request.get_json(force=True) or {}
         rm_id = application.pop('rm_id', 'RM-DEMO')
+        if not (application.get('bank_id') or '').strip():
+            return jsonify({
+                'error': 'bank_id is required',
+                'message': 'Select the originating bank before referring this case.'
+            }), 400
         # Route through the correct segment engine (CORPORATE/SME/RETAIL_MORTGAGES/
         # RETAIL_OTHER) - this used to hardcode the legacy unsegmented
         # _assessment_engine, silently bypassing segment routing for every RM case.

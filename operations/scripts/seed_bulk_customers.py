@@ -292,7 +292,7 @@ def seed(n_per_bank=130, db_path=None, verbose=True):
             disb_d       = today_d - timedelta(days=months_back * 30)
             disb         = disb_d.isoformat()
             mat_d        = date(disb_d.year + tenure // 12 + (1 if disb_d.month + tenure % 12 > 12 else 0),
-                                (disb_d.month + tenure % 12 - 1) % 12 + 1, 28)
+                                (disb_d.month + tenure % 12 - 1) % 12 + 1, min(disb_d.day, 28))
             mat          = mat_d.isoformat()
 
             # NPA: classify explicitly; Standard: will have full EMI history

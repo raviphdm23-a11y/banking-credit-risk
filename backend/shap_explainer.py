@@ -14,8 +14,32 @@ import pandas as pd
 from datetime import datetime, timedelta
 from itertools import combinations
 import shap
+import shap.explainers._tree as _shap_tree
 
 from backend.feature_meta import FEATURE_ORDER, model_feature_frame
+
+# XGBoost >= 2.1 serializes base_score as a bracketed array string (e.g.
+# "[4.999206E-1]") to support multi-output models. shap's XGBTreeModelLoader
+# still does a bare float(...) on it, which raises ValueError and gets
+# swallowed by assessment_engine's try/except, silently disabling SHAP for
+# every model. Patch the ubjson decode step to unwrap the bracket before
+# shap parses it - the value itself is unaffected, only its string form.
+_orig_decode_ubjson_buffer = _shap_tree.decode_ubjson_buffer
+
+
+def _decode_ubjson_buffer_fixed(fp):
+    jmodel = _orig_decode_ubjson_buffer(fp)
+    try:
+        param = jmodel["learner"]["learner_model_param"]
+        base_score = param.get("base_score")
+        if isinstance(base_score, str) and base_score.startswith("[") and base_score.endswith("]"):
+            param["base_score"] = base_score.strip("[]")
+    except (KeyError, TypeError):
+        pass
+    return jmodel
+
+
+_shap_tree.decode_ubjson_buffer = _decode_ubjson_buffer_fixed
 
 
 def _convert_numpy(obj):

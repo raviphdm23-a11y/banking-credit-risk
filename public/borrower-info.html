@@ -1159,6 +1159,19 @@
                         <tbody id="saComponentBody"></tbody>
                     </table>
                 </div>
+
+                <!-- SHAP feature importance card -->
+                <div class="result-card result-card-full" id="shapResultCard" style="display:none;">
+                    <h4>Important Features Driving This PD (SHAP Analysis)</h4>
+                    <div style="font-size:0.85em;color:#666;margin-bottom:12px;">
+                        Each feature's true additive contribution to the risk prediction, accounting for feature interactions.
+                    </div>
+                    <table class="component-table">
+                        <thead><tr><th>Feature</th><th>Value</th><th>Contribution</th><th>Effect</th></tr></thead>
+                        <tbody id="shapFeatureBody"></tbody>
+                    </table>
+                    <div id="shapSummaryBox" style="margin-top:12px;font-size:0.9em;color:#444;"></div>
+                </div>
             </div>
 
             <!-- Executive Assessment Band — populated by generateReport() -->
@@ -1358,6 +1371,7 @@
 
         if (!borrowerId)              { setError('borrowerId',     'Required');                          ok = false; }
         if (!borrowerName)            { setError('borrowerName',   'Required');                          ok = false; }
+        if (!document.getElementById('bankSelect').value) { setError('bankSelect', 'Required - select the originating bank'); ok = false; }
         if (!exposureAmount || exposureAmount <= 0) { setError('exposureAmount', 'Must be > 0');         ok = false; }
         if (!sector)                  { setError('sector',         'Required');                          ok = false; }
         if (isNaN(de) || de < 0)      { setError('debtToEquity',   'Enter a valid ratio (≥ 0)');         ok = false; }
@@ -1757,8 +1771,10 @@
             collateral_value: parseFloat(document.getElementById('collateralValue').value) || 0,
             maturity: (mode === 'airb' || mode === 'both') ? (parseFloat(document.getElementById('maturityOverride').value) || 3) : 3,
             borrower_id: borrowerId,
+            ...kyc,
         };
         generateAndShowExecBand(reportInputs);
+        loadShapAnalysis(reportInputs);
 
         } catch (err) {
             console.error('Calculation error:', err);
@@ -1774,6 +1790,44 @@
         return '$' + parseFloat(v || 0).toLocaleString('en-US', { maximumFractionDigits: 0 });
     }
 
+
+    // ── SHAP feature importance (Tier 2 explainability) ───────────────────────
+    async function loadShapAnalysis(inputs) {
+        const card = document.getElementById('shapResultCard');
+        const body = document.getElementById('shapFeatureBody');
+        const summaryBox = document.getElementById('shapSummaryBox');
+        try {
+            const resp = await fetch('/api/assess-borrower-with-shap', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(inputs)
+            });
+            const findings = await resp.json();
+            const shap = findings.shap;
+            if (!resp.ok || !shap) {
+                card.style.display = 'none';
+                return;
+            }
+
+            body.innerHTML = shap.feature_contributions.slice(0, 10).map(item => {
+                const pct = (item.shap_value * 100).toFixed(3);
+                const effect = item.direction === 'increases_pd' ? 'Increases PD' : 'Decreases PD';
+                const color = item.direction === 'increases_pd' ? '#dc2626' : '#059669';
+                return `<tr>
+                    <td>${item.feature}</td>
+                    <td>${item.feature_value}</td>
+                    <td style="color:${color};font-weight:600;">${pct}</td>
+                    <td>${effect}</td>
+                </tr>`;
+            }).join('');
+
+            summaryBox.innerHTML = shap.summary ? `<strong>Summary:</strong> ${shap.summary}` : '';
+            card.style.display = 'block';
+        } catch (err) {
+            console.warn('SHAP analysis unavailable:', err.message);
+            card.style.display = 'none';
+        }
+    }
 
     // ── Executive Assessment Band ─────────────────────────────────────────────
     async function generateAndShowExecBand(inputs) {

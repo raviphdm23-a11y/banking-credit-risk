@@ -5,12 +5,19 @@ End-of-day job: derives bank_loan_metrics from actual customer loan data
 stored across customers / loans / accounts / transactions /
 credit_risk_metrics / customer_kyc / ref_lookup.
 
-Default rule (RBI 90-day NPA aligned):
+Only loans with a completed lifecycle (status = 'Closed' or 'Written-Off')
+are included. 'Active' loans are excluded because their outcome hasn't
+actually resolved yet - the model would be trained against a status that
+can still change, not the loan's real, final outcome. This is a stricter
+(and much smaller) definitive-outcome sample than the RBI 90-day rule
+alone would give.
+
+Default rule (loan's own resolved status is authoritative):
   A loan is flagged default_flag = 1 if ANY of the following:
-    1. loans.loan_classification is 'NPA', 'Doubtful', or 'Loss'
+    1. loans.status = 'Written-Off', or loans.loan_classification is
+       'NPA', 'Doubtful', or 'Loss'
     2. credit_risk_metrics.npa_flag = 1
-    3. The last 3 consecutive expected EMI months have no EMI transaction
-       recorded in the transactions table for that customer's account.
+  Otherwise (status = 'Closed', no adverse classification/flag) -> 0.
 
 KYC features (risk-ordered integer encoding via ref_lookup.risk_order):
   employment_type_enc, city_tier_enc, education_enc, residence_type_enc
@@ -21,87 +28,47 @@ Run:
 
 import os
 import sqlite3
+import sys
 from datetime import date, datetime
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from seed_ref_lookup_domains import seed as seed_ref_lookup_domains
 
 DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', 'bank.db')
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# EMI default detection
+# Default detection
 # ─────────────────────────────────────────────────────────────────────────────
 
-def expected_emi_months(disbursed_str, tenure):
+def compute_default_flag(classification, npa_flag, status):
     """
-    Return a list of (year, month) tuples for every month an EMI was due,
-    from the month after disbursement up to today.
+    Apply the default rule. Returns (flag: int, reason: str).
+
+    Only called for loans with a resolved lifecycle (status IN ('Closed',
+    'Written-Off') — see the WHERE clause in sync()). For that population,
+    status/loan_classification already hold the loan's real, final outcome
+    (as established by resolve_loan_lifecycle.py from actual observed
+    payment history), so they are authoritative and used directly:
+      - Written-Off  -> default
+      - Closed       -> not default (resolve_loan_lifecycle.py only closes
+                        loans that paid >=85% of their EMIs over their own
+                        observed window)
+    The old "3 consecutive missed EMIs measured against real wall-clock
+    today" heuristic is NOT applied here: for a loan whose transaction
+    history was seeded only for a fixed window post-disbursement, that
+    heuristic flags every resolved loan as having missed its final EMIs
+    (the seed window ended, not the borrower) - it was previously drowned
+    out by the much larger Active population, but became a 100%-false-
+    default rate once training was scoped to completed loans only.
     """
-    disbursed = datetime.strptime(disbursed_str, '%Y-%m-%d').date()
-    today     = date.today()
+    if status == 'Written-Off' or classification in ('NPA', 'Doubtful', 'Loss'):
+        return 1, 'status/classification = {}/{}'.format(status, classification)
 
-    y, m = disbursed.year, disbursed.month
-    m += 1
-    if m > 12:
-        m, y = 1, y + 1
-
-    months = []
-    for _ in range(tenure):
-        if date(y, m, 1) > today:
-            break
-        months.append((y, m))
-        m += 1
-        if m > 12:
-            m, y = 1, y + 1
-
-    return months
-
-
-def paid_emi_months(loan_id, cursor):
-    """
-    Return a set of (year, month) in which an EMI payment transaction exists
-    for the customer who holds this loan.
-    """
-    cursor.execute("""
-        SELECT DISTINCT
-            CAST(strftime('%Y', t.date) AS INTEGER) AS yr,
-            CAST(strftime('%m', t.date) AS INTEGER) AS mo
-        FROM transactions t
-        JOIN accounts   a ON a.id  = t.aid
-        JOIN loans      l ON l.cid = a.cid AND l.id = ?
-        WHERE t.desc LIKE '%EMI Payment%'
-    """, (loan_id,))
-    return {(row[0], row[1]) for row in cursor.fetchall()}
-
-
-def compute_default_flag(loan_id, disbursed, tenure, classification,
-                          npa_flag, cursor):
-    """
-    Apply the three-tier default rule. Returns (flag: int, reason: str).
-    """
-    # Rule 1: explicit adverse loan classification
-    if classification in ('NPA', 'Doubtful', 'Loss'):
-        return 1, 'loan_classification = {}'.format(classification)
-
-    # Rule 2: NPA flag set in credit risk metrics
     if npa_flag:
         return 1, 'npa_flag = 1 in credit_risk_metrics'
 
-    # Rule 3: 3 consecutive missed EMIs (RBI 90-day rule)
-    expected = expected_emi_months(disbursed, tenure)
-
-    if len(expected) < 3:
-        # Loan too new — fewer than 3 EMIs have fallen due yet
-        return 0, 'loan too recent (only {} EMI months elapsed)'.format(len(expected))
-
-    paid    = paid_emi_months(loan_id, cursor)
-    last_3  = expected[-3:]
-    missed  = [m for m in last_3 if m not in paid]
-
-    if len(missed) == 3:
-        labels = ['{}-{:02d}'.format(y, m) for y, m in last_3]
-        return 1, '3 consecutive missed EMIs: {}'.format(', '.join(labels))
-
-    paid_count = 3 - len(missed)
-    return 0, 'performing — {}/3 recent EMIs paid'.format(paid_count)
+    return 0, 'closed — fully repaid (status=Closed, no NPA/loss flag)'
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -109,6 +76,8 @@ def compute_default_flag(loan_id, disbursed, tenure, classification,
 # ─────────────────────────────────────────────────────────────────────────────
 
 def sync(db_path=DB_PATH):
+    seed_ref_lookup_domains(db_path, verbose=False)
+
     conn = sqlite3.connect(db_path)
     conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
@@ -119,6 +88,19 @@ def sync(db_path=DB_PATH):
     print("=" * 70)
     print("bank_loan_metrics sync — {}".format(today_str))
     print("=" * 70)
+
+    # "Other circumstances" columns (see conversation this was added from) -
+    # added here rather than as a separate enrichment pass like
+    # add_macro_regime_score.py/build_behavioral_features.py, since these are
+    # plain copies from customer_kyc/loans, not derived computations.
+    for col in ('ecs_bounce_count INTEGER', 'other_lender_emi_ratio REAL',
+                'income_disruption_flag INTEGER', 'sector_stress_index REAL',
+                'ltv_trend_pct REAL'):
+        try:
+            cursor.execute(f"ALTER TABLE bank_loan_metrics ADD COLUMN {col}")
+        except sqlite3.OperationalError as e:
+            if 'duplicate column' not in str(e).lower():
+                raise
 
     # Step 1: Clear ALL existing rows (removes synthetic CSV data too)
     cursor.execute("DELETE FROM bank_loan_metrics")
@@ -135,6 +117,7 @@ def sync(db_path=DB_PATH):
             l.tenure,
             l.emi,
             l.loan_classification,
+            l.status,
             c.first || ' ' || c.last    AS customer_name,
 
             -- Financial ratios from credit_risk_metrics
@@ -168,6 +151,14 @@ def sync(db_path=DB_PATH):
             kyc.num_existing_products,
             kyc.is_rural,
 
+            -- "Other circumstances" features - signals of default risk
+            -- beyond financial ratios/CIBIL (see conversation this was added from)
+            kyc.ecs_bounce_count,
+            kyc.other_lender_emi_ratio,
+            kyc.income_disruption_flag,
+            kyc.sector_stress_index,
+            l.ltv_trend_pct,
+
             -- Country
             b.country_code,
 
@@ -188,9 +179,12 @@ def sync(db_path=DB_PATH):
         FROM loans l
         JOIN banks                  b       ON b.bank_id      = l.bank_id
         JOIN customers              c       ON c.id           = l.cid
-        LEFT JOIN credit_risk_metrics crm   ON crm.lid        = l.id
-        LEFT JOIN customer_kyc      kyc     ON kyc.cid        = l.cid
-                                           AND kyc.bank_id    = l.bank_id
+        LEFT JOIN credit_risk_metrics crm   ON crm.metric_id  = (
+                                               SELECT MAX(metric_id) FROM credit_risk_metrics
+                                               WHERE lid = l.id)
+        LEFT JOIN customer_kyc      kyc     ON kyc.kyc_id     = (
+                                               SELECT MAX(kyc_id) FROM customer_kyc
+                                               WHERE cid = l.cid AND bank_id = l.bank_id)
         LEFT JOIN ref_lookup        emp_ref ON emp_ref.domain = 'employment_type'
                                            AND emp_ref.code   = kyc.employment_type
         LEFT JOIN ref_lookup        edu_ref ON edu_ref.domain = 'education_level'
@@ -205,6 +199,7 @@ def sync(db_path=DB_PATH):
                                            AND cm.period = (
                                                SELECT MAX(period) FROM country_macro
                                                WHERE country_code = b.country_code)
+        WHERE l.status IN ('Closed', 'Written-Off')
         ORDER BY l.bank_id, l.id
     """)
     loans = cursor.fetchall()
@@ -225,14 +220,11 @@ def sync(db_path=DB_PATH):
             skipped += 1
             continue
 
-        # Compute default flag using the 3-rule hierarchy
+        # Compute default flag from the loan's resolved status/classification
         default_flag, reason = compute_default_flag(
-            lid,
-            loan['disbursed'],
-            loan['tenure'],
             loan['loan_classification'],
             loan['npa_flag'],
-            cursor
+            loan['status'],
         )
 
         # FOIR = EMI / (annual_income / 12); fall back to kyc.foir_declared when income is zero
@@ -254,11 +246,13 @@ def sync(db_path=DB_PATH):
                  loan_purpose_enc, cibil_score, previous_default_flag,
                  months_as_customer, num_late_payments_past_12m,
                  existing_loans_count, num_existing_products, is_rural,
+                 ecs_bounce_count, other_lender_emi_ratio, income_disruption_flag,
+                 sector_stress_index, ltv_trend_pct,
                  country_code,
                  gdp_growth_pct, inflation_cpi_pct, policy_rate_pct, unemployment_pct,
                  delta_de_ratio, delta_cibil, months_since_origination,
                  exposure_class)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, (
             loan['bank_id'],
             loan['bank_name'],
@@ -288,6 +282,11 @@ def sync(db_path=DB_PATH):
             loan['existing_loans_count'],
             loan['num_existing_products'],
             loan['is_rural'],
+            loan['ecs_bounce_count'],
+            loan['other_lender_emi_ratio'],
+            loan['income_disruption_flag'],
+            loan['sector_stress_index'],
+            loan['ltv_trend_pct'],
             loan['country_code'],
             loan['gdp_growth_pct'],
             loan['inflation_cpi_pct'],

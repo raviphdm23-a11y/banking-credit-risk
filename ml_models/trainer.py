@@ -27,7 +27,7 @@ from sklearn.model_selection import train_test_split, GroupShuffleSplit, Stratif
 from sklearn.metrics import (
     roc_auc_score, accuracy_score, precision_score,
     recall_score, f1_score, confusion_matrix, brier_score_loss,
-    precision_recall_curve, roc_curve
+    precision_recall_curve, roc_curve, average_precision_score
 )
 import joblib
 
@@ -65,6 +65,10 @@ REQUIRED_COLUMNS = {
     'loan_purpose_enc', 'cibil_score', 'previous_default_flag',
     'months_as_customer', 'num_late_payments_past_12m',
     'existing_loans_count', 'num_existing_products', 'is_rural',
+    # "Other circumstances" features - see conversation this was added from:
+    # signals of default risk not explained by financial ratios/CIBIL alone.
+    'ecs_bounce_count', 'other_lender_emi_ratio', 'income_disruption_flag',
+    'sector_stress_index', 'ltv_trend_pct',
 }
 FEATURE_COLS  = [
     # Financial ratios (4)
@@ -83,13 +87,25 @@ FEATURE_COLS  = [
     # Macro regime delta features (5) — regime shift detection
     'delta_gdp_pct', 'delta_cpi_pct', 'delta_policy_rate_pct',
     'delta_unemployment_pct', 'macro_regime_score',
-    # Transaction-derived behavioral features (8) — genuine payment-behavior
-    # signal aggregated from each loan's own account transaction history
-    # (operations/scripts/build_behavioral_features.py). One row per loan,
-    # same grain as the rest of bank_loan_metrics, so no group-leakage risk
-    # the way raw per-transaction training rows had.
-    'emi_miss_ratio', 'income_miss_ratio', 'income_cv', 'income_to_declared_ratio',
-    'balance_cv', 'max_gap_days', 'n_transactions', 'avg_balance',
+    # Transaction-derived behavioral features (emi_miss_ratio, n_transactions,
+    # avg_balance, etc.) are DELIBERATELY EXCLUDED from training (see
+    # conversation this was decided in): they're only fully known after a
+    # loan has already concluded, and are close to tautologically tied to
+    # the Closed/Written-Off label itself (e.g. emi_miss_ratio essentially
+    # restates "did they pay it back", which is what the label means) - not
+    # genuine predictive signal for an underwriting-time PD model. They
+    # remain computed and stored in bank_loan_metrics (build_behavioral_features.py)
+    # for other analysis, just not used as training inputs here.
+    # "Other circumstances" features (5) — signals of default risk beyond
+    # financial ratios/CIBIL: ECS/NACH bounce history, exposure to other
+    # lenders (bureau-style), an income-disruption shock flag, an
+    # industry-sector stress index, and collateral-value drift (mortgages
+    # only, 0 elsewhere). Deliberately noisy/overlapping by construction
+    # (see seed_completed_loans_bulk.py) rather than perfectly separating,
+    # so the model reflects genuine partial signal instead of memorizing a
+    # clean synthetic split.
+    'ecs_bounce_count', 'other_lender_emi_ratio', 'income_disruption_flag',
+    'sector_stress_index', 'ltv_trend_pct',
 ]
 TARGET_COL    = 'default_flag'
 
@@ -158,7 +174,9 @@ def load_from_db(bank_ids=None, exposure_class=None):
             "       delta_unemployment_pct, macro_regime_score, "
             "       emi_miss_ratio, income_miss_ratio, income_cv, "
             "       income_to_declared_ratio, balance_cv, max_gap_days, "
-            "       n_transactions, avg_balance "
+            "       n_transactions, avg_balance, "
+            "       ecs_bounce_count, other_lender_emi_ratio, income_disruption_flag, "
+            "       sector_stress_index, ltv_trend_pct "
             "FROM bank_loan_metrics"
         )
         clauses, params = [], []
@@ -186,7 +204,9 @@ def load_from_db(bank_ids=None, exposure_class=None):
                      'delta_unemployment_pct', 'macro_regime_score',
                      'emi_miss_ratio', 'income_miss_ratio', 'income_cv',
                      'income_to_declared_ratio', 'balance_cv', 'max_gap_days',
-                     'n_transactions', 'avg_balance')
+                     'n_transactions', 'avg_balance',
+                     'ecs_bounce_count', 'other_lender_emi_ratio', 'income_disruption_flag',
+                     'sector_stress_index', 'ltv_trend_pct')
         for col in fill_cols:
             if col in df.columns:
                 df[col] = df[col].fillna(df[col].median())
@@ -231,6 +251,11 @@ def _validate_dataframe(df, name='data'):
         ('existing_loans_count',        0.0,       10.0),
         ('num_existing_products',       0.0,       20.0),
         ('is_rural',                    0.0,        1.0),
+        ('ecs_bounce_count',            0.0,       12.0),
+        ('other_lender_emi_ratio',      0.0,        3.0),
+        ('income_disruption_flag',      0.0,        1.0),
+        ('sector_stress_index',         0.0,      100.0),
+        ('ltv_trend_pct',             -50.0,       50.0),
     ]:
         if col not in df.columns:
             return False, 'Missing column: {}'.format(col)
@@ -354,6 +379,11 @@ def validate_file(filepath):
         ('existing_loans_count',        0.0,       10.0),
         ('num_existing_products',       0.0,       20.0),
         ('is_rural',                    0.0,        1.0),
+        ('ecs_bounce_count',            0.0,       12.0),
+        ('other_lender_emi_ratio',      0.0,        3.0),
+        ('income_disruption_flag',      0.0,        1.0),
+        ('sector_stress_index',         0.0,      100.0),
+        ('ltv_trend_pct',             -50.0,       50.0),
     ]:
         if col not in df.columns:
             return False, f"Missing column: {col}", len(df)
@@ -372,6 +402,10 @@ def load_from_enriched_transactions(bank_ids=None, exposure_class=None):
     """
     Load transaction-level enriched data from transactions table, optionally
     restricted to bank_ids and/or a single exposure_class.
+    Only rows belonging to loans with a completed lifecycle (status =
+    'Closed' or 'Written-Off') are included - an 'Active' loan's outcome
+    hasn't resolved yet, so training against it would train against a
+    status that can still change rather than the loan's real outcome.
     Returns DataFrame with all enriched ML features.
     """
     conn = sqlite3.connect(BANK_DB_PATH)
@@ -409,12 +443,14 @@ def load_from_enriched_transactions(bank_ids=None, exposure_class=None):
         LEFT JOIN accounts a ON t.aid = a.id
         LEFT JOIN customer_kyc k ON a.cid = k.cid
         LEFT JOIN bank_loan_metrics blm ON t.loan_id_ref = blm.loan_id
+        JOIN loans lo ON lo.id = t.loan_id_ref
         WHERE t.default_flag IS NOT NULL
             AND t.cust_age IS NOT NULL
             AND t.cust_annual_income IS NOT NULL
             AND t.loan_de_ratio IS NOT NULL
             AND t.loan_interest_coverage IS NOT NULL
             AND t.loan_classification IS NOT NULL
+            AND lo.status IN ('Closed', 'Written-Off')
     """
 
     params = []
@@ -606,6 +642,13 @@ def evaluate_model(model, X_test, y_test, df_test, threshold):
     y_pred_bin   = (y_pred_proba >= threshold).astype(int)
 
     auc    = float(roc_auc_score(y_true_bin, y_pred_proba)) if len(np.unique(y_true_bin)) > 1 else 0.5
+    # ROC-AUC is insensitive to class balance and can look deceptively strong
+    # with only a handful of positives (ranking the few defaulters above the
+    # bulk of non-defaulters is "easy" even for an overfit model). PR-AUC
+    # (average precision) is far more sensitive to whether the model is
+    # actually separating classes vs. just getting lucky on a tiny positive
+    # count - a large gap between the two is itself a red flag.
+    pr_auc = float(average_precision_score(y_true_bin, y_pred_proba)) if len(np.unique(y_true_bin)) > 1 else None
     acc    = float(accuracy_score(y_true_bin, y_pred_bin))
     prec   = float(precision_score(y_true_bin, y_pred_bin, zero_division=0))
     rec    = float(recall_score(y_true_bin, y_pred_bin, zero_division=0))
@@ -615,6 +658,7 @@ def evaluate_model(model, X_test, y_test, df_test, threshold):
 
     metrics = {
         'auc_roc':   round(auc, 4),
+        'pr_auc':    round(pr_auc, 4) if pr_auc is not None else None,
         'accuracy':  round(acc, 4),
         'precision': round(prec, 4),
         'recall':    round(rec, 4),
@@ -683,6 +727,126 @@ def cross_validate_model(X, y, hp, model_type, groups=None, n_splits=5):
         'fold_aucs': [round(a, 4) for a in fold_aucs],
         'mean_auc': round(float(np.mean(fold_aucs)), 4),
         'std_auc': round(float(np.std(fold_aucs)), 4),
+        'note': None,
+    }
+
+
+# ── Trustworthiness diagnostics ────────────────────────────────────────────────
+# Small-sample warning signs that a headline AUC alone won't surface - see the
+# conversation this was built from: with a handful of positive examples, an
+# XGBoost model with dozens of features can rank the few known defaulters
+# above everyone else (a high AUC) purely by fitting to their specific
+# fingerprint, not by learning a generalizable pattern.
+
+MIN_EPV_ACCEPTABLE = 10   # Peduzzi et al. rule of thumb floor
+MIN_EPV_COMFORTABLE = 20
+
+
+def compute_epv(n_events, n_features):
+    """
+    Events-per-variable: minority-class training examples / feature count.
+    Standard statistical guidance for stable model estimation is EPV >= 10
+    (>= 20 preferred) - below that, the model has more degrees of freedom
+    than the data can responsibly support, so it substantially risks fitting
+    the specific training examples rather than a generalizable pattern.
+    """
+    if n_features <= 0:
+        return None
+    epv = round(n_events / n_features, 2)
+    if epv < MIN_EPV_ACCEPTABLE:
+        risk = 'high'
+    elif epv < MIN_EPV_COMFORTABLE:
+        risk = 'moderate'
+    else:
+        risk = 'low'
+    return {'epv': epv, 'n_events': n_events, 'n_features': n_features,
+            'overfitting_risk': risk,
+            'note': f'Rule of thumb: EPV >= {MIN_EPV_ACCEPTABLE} acceptable, '
+                    f'>= {MIN_EPV_COMFORTABLE} comfortable (Peduzzi et al.).'}
+
+
+def baseline_cibil_predictions(X_train, y_train, X_test):
+    """
+    Trains a trivial single-feature (CIBIL score only) logistic regression on
+    the same split as the real model, and returns its predicted probabilities
+    on the test set (aligned index-for-index with X_test) - the raw material
+    both baseline_cibil_auc() and bootstrap_auc_lift() need. Returns None if
+    CIBIL isn't in the feature set.
+    """
+    if 'cibil_score' not in X_train.columns:
+        return None
+    from sklearn.linear_model import LogisticRegression
+    clf = LogisticRegression(class_weight='balanced', max_iter=1000)
+    clf.fit(X_train[['cibil_score']], y_train)
+    return clf.predict_proba(X_test[['cibil_score']])[:, 1]
+
+
+def baseline_cibil_auc(X_train, y_train, X_test, y_test):
+    """
+    AUC of the CIBIL-only baseline against real test-set outcomes. If the
+    full model's AUC isn't meaningfully better than this, the other 38
+    features aren't contributing real signal - the model is just adding
+    capacity to overfit, not accuracy. Returns None if CIBIL isn't in the
+    feature set or the test split has only one class present (AUC undefined).
+    """
+    proba = baseline_cibil_predictions(X_train, y_train, X_test)
+    if proba is None or len(np.unique(y_test)) < 2:
+        return None
+    return float(roc_auc_score(y_test, proba))
+
+
+def bootstrap_auc_lift(y_test, proba_full, proba_baseline, n_bootstrap=1000, random_state=42):
+    """
+    Paired bootstrap test of whether the full model's AUC is *significantly*
+    better than the CIBIL-only baseline's AUC on the same test set - not
+    just numerically higher. Both models already produced fixed PD scores
+    per test loan; this resamples which loans get counted (with
+    replacement) many times and recomputes AUC_full - AUC_baseline each
+    time, using the real observed default_flag as the ground truth both
+    scores are judged against (agreement between the two models' scores is
+    never compared - only each one's accuracy against what actually
+    happened). If the resulting distribution's 95% interval excludes zero,
+    the lift is distinguishable from noise given the available test-set
+    size; if it straddles zero, the apparent lift could vanish on a
+    different random draw of the same population and shouldn't be trusted.
+
+    Returns None if CIBIL baseline unavailable or the test set has too few
+    of either class to resample meaningfully.
+    """
+    if proba_baseline is None or len(np.unique(y_test)) < 2:
+        return None
+
+    y = np.asarray(y_test)
+    n = len(y)
+    rng = np.random.RandomState(random_state)
+
+    diffs = []
+    for _ in range(n_bootstrap):
+        idx = rng.randint(0, n, size=n)
+        y_bs = y[idx]
+        if len(np.unique(y_bs)) < 2:
+            continue  # can't score AUC on a resample with only one class present
+        auc_full_bs = roc_auc_score(y_bs, proba_full[idx])
+        auc_base_bs = roc_auc_score(y_bs, proba_baseline[idx])
+        diffs.append(auc_full_bs - auc_base_bs)
+
+    if len(diffs) < n_bootstrap * 0.5:
+        return {'n_valid_resamples': len(diffs), 'n_bootstrap': n_bootstrap,
+                'note': 'Too few resamples had both classes present - test set is too small/imbalanced for this check.',
+                'significant': None, 'mean_lift': None, 'ci_95': None, 'p_value_two_sided': None}
+
+    diffs = np.array(diffs)
+    ci_low, ci_high = np.percentile(diffs, [2.5, 97.5])
+    significant = bool(ci_low > 0 or ci_high < 0)   # 95% interval excludes zero
+    # Two-sided bootstrap p-value: 2x the smaller tail proportion crossing zero.
+    p_value = float(min(1.0, 2 * min((diffs <= 0).mean(), (diffs >= 0).mean())))
+
+    return {
+        'n_valid_resamples': int(len(diffs)), 'n_bootstrap': n_bootstrap,
+        'mean_lift': round(float(diffs.mean()), 4),
+        'ci_95': [round(float(ci_low), 4), round(float(ci_high), 4)],
+        'significant': significant,
+        'p_value_two_sided': round(p_value, 4),
         'note': None,
     }
 
@@ -1045,6 +1209,27 @@ def run_training(triggered_by='manual', use_transaction_level=True, model_type='
         metrics['cv_auc_mean'] = cv_metrics.get('mean_auc')
         metrics['cv_auc_std']  = cv_metrics.get('std_auc')
 
+        # Trustworthiness diagnostics (see conversation this was built from):
+        # a single AUC number cannot be trusted at face value when the
+        # minority class is this small - EPV flags whether there's enough
+        # data to support the feature count at all, and the CIBIL-only
+        # baseline flags whether the other 38 features are adding real
+        # signal or just capacity to overfit.
+        record['epv'] = compute_epv(n_pos_train, len(FEATURE_COLS))
+        baseline_proba = baseline_cibil_predictions(X_train, y_train, X_test)
+        baseline_auc = (float(roc_auc_score(y_test, baseline_proba))
+                         if baseline_proba is not None and len(np.unique(y_test)) > 1 else None)
+        record['baseline_cibil_only_auc'] = round(baseline_auc, 4) if baseline_auc is not None else None
+        record['auc_lift_over_baseline'] = (
+            round(metrics['auc_roc'] - baseline_auc, 4) if baseline_auc is not None else None
+        )
+        # Is that lift distinguishable from noise, or could it vanish on a
+        # different random draw of the same test population? See
+        # bootstrap_auc_lift()'s docstring - this judges each model's PD
+        # scores against the real default outcome, never the two models
+        # against each other.
+        record['lift_significance'] = bootstrap_auc_lift(y_test, y_pred, baseline_proba)
+
         # Generate charts and save to data/runs/{run_id}/
         charts = generate_charts(model, X_test, y_test, y_pred, df_test, threshold)
         run_charts_dir = os.path.join(RUNS_DIR, run_id)
@@ -1089,6 +1274,10 @@ def run_training(triggered_by='manual', use_transaction_level=True, model_type='
             'scale_pos_weight':   auto_spw,
             'threshold':          threshold,
             'currency':           'INR',
+            'epv':                        record['epv'],
+            'baseline_cibil_only_auc':    record['baseline_cibil_only_auc'],
+            'auc_lift_over_baseline':     record['auc_lift_over_baseline'],
+            'lift_significance':          record['lift_significance'],
             'note':               f'{model_type_label} binary classifier; target=default_flag (RBI 90-day NPA rule)',
         }
         with open(type_meta_path, 'w') as f:

@@ -1,9 +1,9 @@
 {
   "model_type": "XGBoost",
   "algorithm": "xgboost",
-  "version": "run_20260705_113009",
-  "date_trained": "2026-07-05T11:30:09",
-  "triggered_by": "manual",
+  "version": "run_20260709_234202",
+  "date_trained": "2026-07-09T23:42:02",
+  "triggered_by": "manual-test",
   "features": [
     "de_ratio",
     "interest_coverage",
@@ -43,22 +43,28 @@
     "balance_cv",
     "max_gap_days",
     "n_transactions",
-    "avg_balance"
+    "avg_balance",
+    "ecs_bounce_count",
+    "other_lender_emi_ratio",
+    "income_disruption_flag",
+    "sector_stress_index",
+    "ltv_trend_pct"
   ],
-  "n_features": 39,
+  "n_features": 44,
   "target": "default_flag",
   "metrics": {
-    "auc_roc": 0.915,
-    "accuracy": 0.9137,
-    "precision": 0.5517,
-    "recall": 0.8,
-    "f1": 0.6531,
-    "brier_score": 0.053395,
-    "n_test": 197,
-    "n_defaults": 20,
-    "default_rate": 0.1015,
-    "cv_auc_mean": 0.9417,
-    "cv_auc_std": 0.0378
+    "auc_roc": 1.0,
+    "pr_auc": 1.0,
+    "accuracy": 1.0,
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1": 1.0,
+    "brier_score": 1.8e-05,
+    "n_test": 818,
+    "n_defaults": 102,
+    "default_rate": 0.1247,
+    "cv_auc_mean": 0.9996,
+    "cv_auc_std": 0.0006
   },
   "hyperparameters": {
     "n_estimators": 100,
@@ -73,15 +79,36 @@
     "scale_pos_weight": 45,
     "random_state": 42
   },
-  "n_train": 785,
-  "rows_trained": 785,
-  "total_rows": 982,
-  "test_rows": 197,
+  "n_train": 3270,
+  "rows_trained": 3270,
+  "total_rows": 4088,
+  "test_rows": 818,
   "bank_ids": null,
   "exposure_class": "RETAIL_MORTGAGES",
-  "n_defaults_train": 52,
-  "scale_pos_weight": 14.1,
+  "n_defaults_train": 386,
+  "scale_pos_weight": 7.47,
   "threshold": 0.25,
   "currency": "INR",
+  "epv": {
+    "epv": 8.77,
+    "n_events": 386,
+    "n_features": 44,
+    "overfitting_risk": "high",
+    "note": "Rule of thumb: EPV >= 10 acceptable, >= 20 comfortable (Peduzzi et al.)."
+  },
+  "baseline_cibil_only_auc": 0.6369,
+  "auc_lift_over_baseline": 0.3631,
+  "lift_significance": {
+    "n_valid_resamples": 1000,
+    "n_bootstrap": 1000,
+    "mean_lift": 0.3632,
+    "ci_95": [
+      0.3122,
+      0.419
+    ],
+    "significant": true,
+    "p_value_two_sided": 0.0,
+    "note": null
+  },
   "note": "XGBoost binary classifier; target=default_flag (RBI 90-day NPA rule)"
 }

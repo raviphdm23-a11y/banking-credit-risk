@@ -107,6 +107,41 @@ def backfill_fd_maturity(conn, sim_date=None):
     return updated
 
 
+def renew_matured_fds(conn, sim_date=None):
+    """Roll forward maturity_date for Fixed Deposits that have already
+    matured - real FDs auto-renew onto a fresh term of the same tenor
+    unless the customer opts out (the default bank convention), so a
+    maturity_date sitting in the past just means it was never rolled
+    forward, not that the deposit lapsed. accounts.status is left
+    untouched - it's already 'Active' and no code branches on it for FD
+    lifecycle, only maturity_date feeds the ALM bucketing.
+    Idempotent - only touches rows whose maturity_date is <= as_of, safe
+    to call on every request (mirrors backfill_fd_maturity above).
+    """
+    _ensure_schema(conn)
+    as_of = date.fromisoformat(sim_date) if sim_date else datetime.now().date()
+    rows = conn.execute(
+        "SELECT id, open_date, maturity_date FROM accounts "
+        "WHERE type='Fixed Deposit' AND maturity_date IS NOT NULL AND maturity_date < ?",
+        (as_of.isoformat(),)
+    ).fetchall()
+    if not rows:
+        return 0
+    renewed = 0
+    for aid, open_date_str, maturity_str in rows:
+        od = date.fromisoformat(open_date_str)
+        mat = date.fromisoformat(maturity_str[:10])
+        # infer the FD's own original tenor from its current term rather
+        # than re-rolling a new random one, so renewal is deterministic
+        years = max(round(((mat.year - od.year) * 12 + (mat.month - od.month)) / 12), 1)
+        while mat < as_of:
+            mat = date(mat.year + years, mat.month, min(mat.day, 28))
+        conn.execute("UPDATE accounts SET maturity_date=? WHERE id=?", (mat.isoformat(), aid))
+        renewed += 1
+    conn.commit()
+    return renewed
+
+
 def bucket_for(as_of_date, target_date):
     """Which maturity bucket target_date falls in, relative to as_of_date.
     Already-matured/overdue dates fall into the nearest (0-3M) bucket."""
