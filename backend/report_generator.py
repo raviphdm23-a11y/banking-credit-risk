@@ -227,7 +227,7 @@ def _build_charts(M: dict, charts_dir: str) -> dict:
     point = float(pd_.get("point", 0)) * 100
     low = float(pd_.get("low", point / 100)) * 100
     high = float(pd_.get("high", point / 100)) * 100
-    fig, ax = plt.subplots(figsize=(6.6, 1.9))
+    fig, ax = plt.subplots(figsize=(6.6, 1.55))
     xmax = max(high * 1.25, PD_DECLINE_CUTOFF * 100 * 1.05, 5)
     ax.barh([0], [high - low], left=[low], height=0.4, color=NAVY, alpha=0.18,
             label="80% prediction band")
@@ -239,11 +239,12 @@ def _build_charts(M: dict, charts_dir: str) -> dict:
     ax.annotate(f"{point:.2f}%", (point, 0), textcoords="offset points", xytext=(0, -20),
                 ha="center", color=RED, fontweight="bold", fontsize=11)
     ax.set_xlim(0, xmax); ax.set_ylim(-0.6, 0.85)
-    ax.set_yticks([]); ax.set_xlabel("Probability of Default (%)")
+    ax.set_yticks([]); ax.set_xlabel("Probability of Default (%)", fontsize=8.5)
+    ax.tick_params(axis="x", labelsize=8)
     for s in ("top", "right", "left"):
         ax.spines[s].set_visible(False)
     ax.legend(loc="upper center", ncol=2, fontsize=7.5, frameon=False,
-              bbox_to_anchor=(0.5, 1.05))
+              bbox_to_anchor=(0.5, 1.08))
     out["pd_band"] = _save(fig, charts_dir, "pd_band.png")
 
     # 2. Feature attribution (reason codes) -------------------------------------
@@ -253,67 +254,27 @@ def _build_charts(M: dict, charts_dir: str) -> dict:
         names = [_short(a["display_name"]) for a in attr]
         vals = [a["contribution"] * 100 for a in attr]
         colors = [RED if v > 0 else GREEN for v in vals]
-        fig, ax = plt.subplots(figsize=(6.6, max(1.6, 0.5 * len(attr) + 0.7)))
+        fig, ax = plt.subplots(figsize=(6.6, max(1.3, 0.42 * len(attr) + 0.55)))
         ax.barh(names, vals, color=colors, height=0.6)
         ax.axvline(0, color="#CBD5E1", lw=1)
-        ax.set_xlabel("Marginal effect on PD (percentage points)")
+        ax.set_xlabel("Marginal effect on PD (percentage points)", fontsize=8.5)
+        ax.tick_params(labelsize=8.5)
         for s in ("top", "right"):
             ax.spines[s].set_visible(False)
+        # Pad both x-limits so the +x.xx / -x.xx value labels never clip at the
+        # plot edge (the old version clipped the leftmost negative label).
+        vmin, vmax = min(vals + [0]), max(vals + [0])
+        vrange = max(vmax - vmin, 1)
+        ax.set_xlim(vmin - 0.16 * vrange, vmax + 0.16 * vrange)
         for y, v in enumerate(vals):
-            ax.text(v + (0.02 if v >= 0 else -0.02) * max(abs(min(vals)), abs(max(vals)), 1),
+            ax.text(v + (0.02 if v >= 0 else -0.02) * vrange,
                     y, f"{v:+.2f}", va="center", ha="left" if v >= 0 else "right",
                     fontsize=8, color=NAVY)
         out["attribution"] = _save(fig, charts_dir, "attribution.png")
 
-    # 3. Five C's scorecard -----------------------------------------------------
-    five = M.get("five_cs") or {}
-    score_map = {"STRONG": 3, "MODERATE": 2, "WEAK": 1, "NEUTRAL": 1.5,
-                 "NOT_ASSESSED": 0}
-    order = ["character", "capacity", "capital", "collateral", "conditions"]
-    labels, scores = [], []
-    for c in order:
-        if c in five:
-            labels.append(c.capitalize())
-            scores.append(score_map.get((five[c] or {}).get("score", "NEUTRAL"), 1.5))
-    if labels:
-        cmap = {3: GREEN, 2: AMBER, 1.5: GREY, 1: RED, 0: "#CBD5E1"}
-        fig, ax = plt.subplots(figsize=(6.6, 2.2))
-        bars = ax.bar(labels, scores, color=[cmap.get(s, GREY) for s in scores], width=0.6)
-        ax.set_ylim(0, 3.4); ax.set_yticks([0, 1, 2, 3])
-        ax.set_yticklabels(["N/A", "Weak", "Moderate", "Strong"], fontsize=8)
-        for s in ("top", "right"):
-            ax.spines[s].set_visible(False)
-        for b, c in zip(bars, order[:len(labels)]):
-            sc = (five[c] or {}).get("score", "")
-            ax.text(b.get_x() + b.get_width() / 2, b.get_height() + 0.08, sc,
-                    ha="center", fontsize=7.5, color=NAVY)
-        out["five_cs"] = _save(fig, charts_dir, "five_cs.png")
-
-    # 4. Risk economics (EAD / RWA / Capital / EL) ------------------------------
-    rwa = M.get("rwa") or {}
-    el = M.get("el") or {}
-    items = [
-        ("Exposure (EAD)", float(M.get("ead") or rwa.get("exposure") or 0)),
-        ("RWA", float(rwa.get("rwa") or 0)),
-        ("Capital reqd", float(rwa.get("capital_required") or 0)),
-        ("Expected loss", float(el.get("amount_inr") or 0)),
-    ]
-    items = [(k, v) for k, v in items if v > 0]
-    if items:
-        fig, ax = plt.subplots(figsize=(6.6, 2.1))
-        names = [k for k, _ in items]
-        vals = [v for _, v in items]
-        bars = ax.barh(names[::-1], vals[::-1], color=NAVY, alpha=0.85, height=0.6)
-        ax.set_xlabel("₹ (INR)")
-        ax.set_xlim(0, max(vals) * 1.18)
-        for s in ("top", "right"):
-            ax.spines[s].set_visible(False)
-        for b, v in zip(bars, vals[::-1]):
-            ax.text(v * 1.01, b.get_y() + b.get_height() / 2,
-                    "₹" + format(int(round(v)), ",d"),
-                    va="center", fontsize=8.5, color=NAVY)
-        out["risk_econ"] = _save(fig, charts_dir, "risk_econ.png")
-
+    # Five C's scorecard and risk-economics bar chart were retired: the Five C
+    # scores render as native LaTeX colour pills and the four rupee figures as a
+    # one-row table - both carry the same information in a fraction of the space.
     return out
 
 
@@ -348,21 +309,51 @@ def _build_latex(case: dict, M: dict, charts: dict, now: datetime) -> str:
         return (f"\\begin{{center}}\\includegraphics[width={width}]"
                 f"{{charts/{charts[key]}}}\\end{{center}}")
 
-    # KPI table rows — values are already-final LaTeX (escaped where needed)
-    kpis = [
-        ("Risk grade", f"{_tex(rating.get('grade','-'))} --- {_tex(rating.get('description',''))}"),
-        ("Probability of default", f"{float((M.get('pd') or {}).get('point',0))*100:.2f}\\%"),
-        ("Confidence", f"{_tex(conf.get('class','-'))} (band "
-                       f"{float(conf.get('pd_low',0))*100:.1f}--{float(conf.get('pd_high',0))*100:.1f}\\%)"),
-        ("Loss given default", f"{(M.get('lgd') or {}).get('lgd_percentage','-')}\\%"),
-        ("Exposure at default", _inr(M.get('ead') or rwa.get('exposure') or 0)),
-        ("Risk-weighted assets", _inr(rwa.get('rwa') or 0)),
-        ("Capital required", _inr(rwa.get('capital_required') or 0)),
-        ("Expected loss", f"{_inr(el.get('amount_inr') or 0)} ({el.get('percentage','-')}\\%)"),
-        ("Indicative rate", f"{pricing.get('indicative_rate_pct','-')}\\%"),
-        ("Suggested limit", _inr(comp.get('suggested_limit') or 0)),
+    # KPI tile strip — the six numbers an approver needs before anything else.
+    pd_pct = float((M.get('pd') or {}).get('point', 0)) * 100
+    try:
+        el_pct_str = f"{float(el.get('percentage')):.2f}\\%"
+    except (TypeError, ValueError):
+        el_pct_str = "---"
+    kpi_caps = ["RISK GRADE", "DEFAULT PROBABILITY", "EL \\% OF EAD",
+                "INDICATIVE RATE", "RWA", "CAPITAL REQUIRED"]
+    kpi_vals = [
+        rf"\textcolor{{decision}}{{{_tex(rating.get('grade','-'))}}}",
+        f"{pd_pct:.2f}\\%",
+        el_pct_str,
+        f"{pricing.get('indicative_rate_pct','-')}\\%",
+        _inr_short(rwa.get('rwa') or 0),
+        _inr_short(rwa.get('capital_required') or 0),
     ]
-    kpi_rows = "\\\\\n".join(f"\\textbf{{{_tex(k)}}} & {v}" for k, v in kpis)
+    kpi_strip = (
+        r"\renewcommand{\arraystretch}{1.0}"
+        r"\begin{tabularx}{\linewidth}{*{6}{>{\centering\arraybackslash}X}}" + "\n"
+        + " & ".join(rf"\cellcolor{{lightgrey}}{{\fontsize{{6.2}}{{8}}\selectfont\textcolor{{gray}}{{{c}}}}}"
+                      for c in kpi_caps) + r" \\" + "\n"
+        + " & ".join(rf"\cellcolor{{lightgrey}}{{\fontsize{{12.5}}{{15}}\selectfont\textbf{{\textcolor{{navy}}{{{v}}}}}}}"
+                      for v in kpi_vals) + r" \\" + "\n"
+        + r"\end{tabularx}")
+
+    # Secondary decision detail — everything from the old Decision Summary list
+    # not already carried by a tile, as one compact line.
+    kpi_detail_line = (
+        rf"{{\small \textbf{{Rating}} {_tex(rating.get('description',''))} \quad"
+        rf"\textbf{{Confidence}} {_tex(conf.get('class','-'))} "
+        rf"(band {float(conf.get('pd_low',0))*100:.1f}--{float(conf.get('pd_high',0))*100:.1f}\%) \quad"
+        rf"\textbf{{LGD}} {(M.get('lgd') or {}).get('lgd_percentage','-')}\% \quad"
+        rf"\textbf{{Suggested limit}} {_inr_short(comp.get('suggested_limit') or 0)}}}")
+
+    # Five C's score pills (replaces the retired bar chart)
+    five_pills = _five_cs_pills(M)
+
+    # Risk economics one-row table (replaces the retired rupee bar chart)
+    ead_val = float(M.get('ead') or rwa.get('exposure') or 0)
+    rwa_val = float(rwa.get('rwa') or 0)
+    risk_weight_cell = f"{(rwa_val / ead_val * 100):.0f}\\%" if ead_val > 0 else "---"
+    risk_econ_row = (
+        f"{_inr(ead_val)} & {_inr(rwa_val)} & {risk_weight_cell} & "
+        f"{_inr(rwa.get('capital_required') or 0)} & "
+        f"{_inr(el.get('amount_inr') or 0)} & {el.get('percentage','-')}\\%")
 
     # page-1 high-level snapshot: all 36 model-input attribute values
     attribute_snapshot = _attribute_snapshot(M.get("application"))
@@ -394,7 +385,7 @@ def _build_latex(case: dict, M: dict, charts: dict, now: datetime) -> str:
             n_note = f" (n={peer_seg['n_peers']})" if peer_seg.get("n_peers") else ""
             seg_label = rf"\textit{{\small Compared against: {seg_name} peers{n_note}}}\\[4pt]"
         peer_section = (
-            r"\section*{\textcolor{navy}{Metrics vs Approved Borrowers}}"
+            r"\rsec{Metrics vs Approved Borrowers}"
             + seg_label +
             r"\renewcommand{\arraystretch}{1.2}"
             r"\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}X l l l l@{}}"
@@ -406,18 +397,20 @@ def _build_latex(case: dict, M: dict, charts: dict, now: datetime) -> str:
         five_detail_section = r"\vspace{4pt}" + five_detail
 
     def bullets(items):
+        # Trailing \par is mandatory even in the empty branch: without it, this
+        # text stays in the same paragraph as the \textbf{...}\par heading that
+        # precedes it AND the next heading that follows, so "Conditions
+        # attached" + "None." + "Watch items / policy flags" all ran together
+        # on one line instead of stacking as three separate labelled rows.
         if not items:
-            return "\\textit{None.}"
+            return "{\\small\\textit{None.}}\\par"
         return "\\begin{itemize}[leftmargin=1.2em,itemsep=1pt,topsep=2pt]\n" + \
                "\n".join(f"  \\item {_tex(str(x))}" for x in items) + \
                "\n\\end{itemize}"
 
-    factor_rows = ""
-    for f in top_factors:
-        eff = f.get("effect", "")
-        tag = "\\textcolor{rred}{$\\blacktriangle$ raises}" if eff == "raises risk" \
-              else "\\textcolor{rgreen}{$\\blacktriangledown$ lowers}"
-        factor_rows += f"{tag} & \\textbf{{{_tex(f.get('factor',''))}}}: {_tex(f.get('plain',''))} \\\\[2pt]\n"
+    # NOTE: the old "raises/lowers" bullet list was dropped - it repeated the
+    # Reason codes table verbatim, minus the values. The table alone carries it.
+    _ = top_factors  # retained in findings; intentionally not rendered twice
 
     # provenance summary
     prov = case.get("provenance") or []
@@ -437,11 +430,11 @@ def _build_latex(case: dict, M: dict, charts: dict, now: datetime) -> str:
 
     dcolor_tex = dcolor.lstrip("#")
 
-    return rf"""\documentclass[11pt]{{article}}
-\usepackage[a4paper,margin=2cm]{{geometry}}
+    return rf"""\documentclass[10pt]{{article}}
+\usepackage[a4paper,top=1.3cm,bottom=1.3cm,left=1.7cm,right=1.7cm,headheight=14pt]{{geometry}}
 \usepackage{{graphicx}}
 \usepackage{{amssymb}}
-\usepackage{{xcolor}}
+\usepackage[table]{{xcolor}}
 \usepackage{{enumitem}}
 \usepackage{{booktabs}}
 \usepackage{{array}}
@@ -454,90 +447,116 @@ def _build_latex(case: dict, M: dict, charts: dict, now: datetime) -> str:
 \definecolor{{rred}}{{HTML}}{{E31837}}
 \definecolor{{rgreen}}{{HTML}}{{10B981}}
 \definecolor{{ramber}}{{HTML}}{{F59E0B}}
+\definecolor{{ramberdk}}{{HTML}}{{B45309}}
 \definecolor{{decision}}{{HTML}}{{{dcolor_tex}}}
 \definecolor{{lightgrey}}{{HTML}}{{F4F6FA}}
 \definecolor{{bordergrey}}{{HTML}}{{E2E8F0}}
+\definecolor{{rgreenlt}}{{HTML}}{{E6F7F1}}
+\definecolor{{ramberlt}}{{HTML}}{{FEF3E2}}
+\definecolor{{rredlt}}{{HTML}}{{FDEBED}}
+% Slim uppercase section heading with a hairline rule - denser than \section*
+\newcommand{{\rsec}}[1]{{\par\vspace{{7pt}}\noindent{{\color{{navy}}\fontsize{{10.5}}{{13}}\selectfont\bfseries\MakeUppercase{{#1}}}}\par\vspace{{1.5pt}}\noindent{{\color{{bordergrey}}\rule{{\linewidth}}{{0.8pt}}}}\par\vspace{{3pt}}}}
 \pagestyle{{fancy}}\fancyhf{{}}
 \renewcommand{{\headrulewidth}}{{0.4pt}}
-\lhead{{\small\textcolor{{navy}}{{\textbf{{Credit Decision Report}}}}}}
-\rhead{{\small\textcolor{{navy}}{{{_tex(case.get('case_id',''))}}}}}
-\cfoot{{\small\thepage}}
+\lhead{{\footnotesize\textcolor{{navy}}{{\textbf{{CREDIT DECISION REPORT}} --- {_tex(case.get('customer_name','Applicant'))}}}}}
+\rhead{{\footnotesize\textcolor{{navy}}{{{_tex(case.get('case_id',''))}}}}}
+\lfoot{{\tiny\textcolor{{gray}}{{Confidential --- internal credit-decisioning use only}}}}
+\rfoot{{\footnotesize\textcolor{{gray}}{{Page \thepage}}}}
 \setlength{{\parindent}}{{0pt}}
-\setlength{{\parskip}}{{4pt}}
+\setlength{{\parskip}}{{3pt}}
 
 \begin{{document}}
 
-% ── header ───────────────────────────────────────────────
-{{\fontsize{{20}}{{22}}\selectfont\textcolor{{navy}}{{\textbf{{{_tex(case.get('customer_name','Applicant'))}}}}}}}\\[2pt]
-{{\color{{bordergrey}}\rule{{\linewidth}}{{1pt}}}}\\[4pt]
-\begin{{tabularx}}{{\linewidth}}{{@{{}}lX r@{{}}}}
-\textcolor{{gray}}{{Product}} & \textbf{{{_tex(case.get('product','—'))}}} &
-\colorbox{{decision}}{{\textcolor{{white}}{{\textbf{{ {_tex(decision_label)} }}}}}}\\
-\textcolor{{gray}}{{Requested}} & {_inr(case.get('requested_amount') or 0)} & \\
-\textcolor{{gray}}{{Report date}} & {now.strftime('%d %b %Y, %H:%M UTC')} & \\
+% ── page 1: letterhead band ──────────────────────────────
+\thispagestyle{{empty}}
+\noindent\colorbox{{navy}}{{\parbox{{\dimexpr\linewidth-2\fboxsep\relax}}{{%
+\vspace{{4pt}}\color{{white}}\hspace{{2pt}}{{\fontsize{{13}}{{16}}\selectfont\textbf{{CREDIT DECISION REPORT}}}}\hfill
+{{\fontsize{{7.5}}{{9}}\selectfont CONFIDENTIAL --- INTERNAL USE ONLY\hspace{{2pt}}}}\vspace{{4pt}}}}}}\\[3pt]
+{{\footnotesize\textcolor{{gray}}{{Case {_tex(case.get('case_id',''))}
+\;\textbullet\; Generated {now.strftime('%d %b %Y, %H:%M UTC')}
+\;\textbullet\; Model {model_v}
+\;\textbullet\; Policy {policy_v}}}}}
+
+\vspace{{7pt}}
+% ── borrower + decision ──────────────────────────────────
+\begin{{tabularx}}{{\linewidth}}{{@{{}}X r@{{}}}}
+{{\fontsize{{17}}{{20}}\selectfont\textcolor{{navy}}{{\textbf{{{_tex(case.get('customer_name','Applicant'))}}}}}}} &
+\raisebox{{2pt}}{{\colorbox{{decision}}{{\color{{white}}\fontsize{{11}}{{13}}\selectfont\textbf{{\ {_tex(decision_label)}\ }}}}}}\\
+\end{{tabularx}}
+\vspace{{2pt}}
+\begin{{tabularx}}{{\linewidth}}{{@{{}}XXX@{{}}}}
+{{\scriptsize\textcolor{{gray}}{{PRODUCT}}}} & {{\scriptsize\textcolor{{gray}}{{REQUESTED AMOUNT}}}} & {{\scriptsize\textcolor{{gray}}{{FINAL AUTHORITY}}}}\\
+\textbf{{{_tex(case.get('product','—'))}}} & \textbf{{{_inr(case.get('requested_amount') or 0)}}} & \textbf{{Relationship Manager}}\\
 \end{{tabularx}}
 
 \vspace{{6pt}}
+% ── KPI strip ────────────────────────────────────────────
+{kpi_strip}
+\vspace{{2pt}}\begin{{center}}{kpi_detail_line}\end{{center}}
+
+\vspace{{2pt}}
 \textit{{{headline}}}
 
-\vspace{{4pt}}
-\colorbox{{lightgrey}}{{\parbox{{\linewidth}}{{\small\textbf{{Final authority:}} Relationship Manager (accept / reject).\\
-\textbf{{Model}} {model_v} \quad\textbf{{Policy}} {policy_v}}}}}
-
 % ── page 1: high-level customer snapshot (all 36 model inputs) ───────────
-\vspace{{8pt}}
-\section*{{\textcolor{{navy}}{{Customer Attribute Snapshot (36 Model Inputs)}}}}
+\rsec{{Customer Attribute Snapshot --- 36 Model Inputs}}
 \footnotesize
 {attribute_snapshot}
 \normalsize
-\newpage
 
-% ── KPIs ─────────────────────────────────────────────────
-\section*{{\textcolor{{navy}}{{Decision Summary}}}}
-\renewcommand{{\arraystretch}}{{1.25}}
-\begin{{tabularx}}{{\linewidth}}{{@{{}}>{{\raggedright\arraybackslash}}p{{0.42\linewidth}} X@{{}}}}
-{kpi_rows}
-\end{{tabularx}}
-
-% ── PD band ──────────────────────────────────────────────
-\section*{{\textcolor{{navy}}{{Probability of Default}}}}
+% Fill the remainder of page 1 with the two most decision-relevant visuals
+% (PD gauge + Five C's summary) instead of leaving the lower half blank -
+% both are compact and belong on the cover page alongside the KPI strip.
+\vspace{{4pt}}
+\rsec{{Probability of Default}}
 {img('pd_band')}
 
-% ── attribution ──────────────────────────────────────────
-\section*{{\textcolor{{navy}}{{Key Risk Drivers}}}}
-{img('attribution')}
 \vspace{{2pt}}
-\begin{{tabularx}}{{\linewidth}}{{@{{}}l X@{{}}}}
-{factor_rows}
-\end{{tabularx}}
+\rsec{{Five C's of Credit --- Summary}}
+{five_pills}
+\newpage
+
+% ── attribution ──────────────────────────────────────────
+\rsec{{Key Risk Drivers}}
+{img('attribution')}
 {reason_section}
 
-% ── five Cs ──────────────────────────────────────────────
-\section*{{\textcolor{{navy}}{{Five C's of Credit}}}}
-{img('five_cs')}
+% ── five Cs detail ────────────────────────────────────────
+\rsec{{Five C's of Credit --- Detailed Evidence}}
 {five_detail_section}
 
 % ── peer comparison ──────────────────────────────────────
 {peer_section}
 
 % ── risk economics ───────────────────────────────────────
-\section*{{\textcolor{{navy}}{{Risk \& Capital}}}}
-{img('risk_econ')}
+\rsec{{Risk \& Capital}}
+\renewcommand{{\arraystretch}}{{1.2}}
+\begin{{tabularx}}{{\linewidth}}{{@{{}}*{{6}}{{>{{\raggedright\arraybackslash}}X}}@{{}}}}
+\toprule
+\textbf{{Exposure (EAD)}} & \textbf{{RWA}} & \textbf{{Risk weight}} & \textbf{{Capital (8\% RWA)}} & \textbf{{Expected loss}} & \textbf{{EL \% of EAD}}\\
+\midrule
+{risk_econ_row}\\
+\bottomrule
+\end{{tabularx}}
 
 % ── conditions / watch / recourse ────────────────────────
-\section*{{\textcolor{{navy}}{{Conditions \& Recourse}}}}
-\textbf{{Conditions attached}}
+\rsec{{Conditions \& Recourse}}
+\begin{{minipage}}[t]{{0.48\linewidth}}
+\textbf{{Conditions attached}}\par
 {bullets(conditions)}
-\textbf{{Watch items / policy flags}}
+\vspace{{3pt}}
+\textbf{{Watch items / policy flags}}\par
 {bullets(watch)}
-\textbf{{What could change the outcome}}
+\end{{minipage}}\hfill
+\begin{{minipage}}[t]{{0.48\linewidth}}
+\textbf{{What could change the outcome}}\par
 {bullets(recourse)}
-\vspace{{4pt}}
+\end{{minipage}}
+\vspace{{4pt}}\par
 \textbf{{Reassessment:}} {reassessment}
 
 % ── provenance ───────────────────────────────────────────
-\section*{{\textcolor{{navy}}{{Decision Provenance (hash-chained)}}}}
-\renewcommand{{\arraystretch}}{{1.15}}
+\rsec{{Decision Provenance (hash-chained)}}
+\renewcommand{{\arraystretch}}{{1.1}}
 \begin{{tabularx}}{{\linewidth}}{{@{{}}l X l l@{{}}}}
 \toprule
 \textbf{{Timestamp}} & \textbf{{Event}} & \textbf{{Actor}} & \textbf{{Hash}} \\
@@ -548,8 +567,12 @@ def _build_latex(case: dict, M: dict, charts: dict, now: datetime) -> str:
 
 {_outcome_block(outcome)}
 
-\vfill
-{{\footnotesize\color{{gray}} This report is generated from the platform's Machine Recommendation (M),
+% Fixed spacing rather than \vfill: forcing this paragraph to the very bottom
+% of the page pushed the whole 3-line disclaimer onto a near-empty extra page
+% whenever the provenance table left too little room above it to fit both the
+% stretch and the text. A small fixed gap lets it flow right after the table.
+\vspace{{10pt}}
+{{\fontsize{{7.5}}{{9.5}}\selectfont\color{{gray}} This report is generated from the platform's Machine Recommendation (M),
 the relationship manager's decision (H) and the governed organisational outcome (O).
 PD, LGD, RWA and pricing follow the Basel III AIRB methodology; capital required is 8\% of RWA.
 The relationship manager is the final approving authority. Document is reproducible from the
@@ -574,9 +597,20 @@ def _fmt_peer(v, unit) -> str:
     return f"{v:.2f}"
 
 
+_FIVE_C_STYLE = {  # score -> (label-bar background, text colour) - shared with _five_cs_pills
+    "STRONG":       ("rgreenlt", "rgreen"),
+    "MODERATE":     ("ramberlt", "ramberdk"),
+    "WEAK":         ("rredlt", "rred"),
+    "NEUTRAL":      ("lightgrey", "gray"),
+    "NOT_ASSESSED": ("lightgrey", "gray"),
+}
+
+
 def _five_cs_detail(M: dict) -> str:
     """Per-C evidence/commentary tables (the textual detail the underwriter view shows,
-    which the scorecard chart alone omits)."""
+    which the scorecard chart alone omits). Each C gets a coloured label bar (matching
+    the summary pills) plus a ruled, zebra-striped table with an explicit header row -
+    a flat run of text with no header/row separation reads as one undifferentiated block."""
     five = M.get("five_cs") or {}
     order = ["character", "capacity", "capital", "collateral", "conditions"]
     blocks = []
@@ -587,14 +621,29 @@ def _five_cs_detail(M: dict) -> str:
         items = d.get("items") or []
         if not items:
             continue
+        score = str(d.get("score", "NEUTRAL"))
+        bg, fg = _FIVE_C_STYLE.get(score, ("lightgrey", "gray"))
         rows = "".join(
             f"{_tex(it.get('label',''))} & {_tex(str(it.get('value','')))} & "
             f"{_tex(str(it.get('benchmark','')))} & {_tex(it.get('assessment',''))} \\\\\n"
             for it in items)
+        # Wrapped in a minipage so the coloured label bar can never be orphaned
+        # at the bottom of a page while its table starts on the next one -
+        # LaTeX treats a minipage as one unbreakable unit and pushes the whole
+        # block over instead. Each block is short (2-4 rows), so this never
+        # creates a large stranded gap.
         blocks.append(
-            rf"\textbf{{{c.capitalize()}}}~\textcolor{{gray}}{{[{_tex(d.get('score','-'))}]}}\\[1pt]"
+            rf"\begin{{minipage}}{{\linewidth}}"
+            rf"\colorbox{{{bg}}}{{\makebox[\dimexpr\linewidth-2\fboxsep\relax][l]{{\small"
+            rf"\textbf{{\textcolor{{navy}}{{{_tex(c.capitalize())}}}}}"
+            rf"\hfill\textbf{{\textcolor{{{fg}}}{{{_tex(score.replace('_',' '))}}}}}\ }}}}\\[3pt]"
+            rf"\rowcolors{{2}}{{white}}{{lightgrey!45}}"
+            rf"\renewcommand{{\arraystretch}}{{1.25}}"
             rf"\begin{{tabularx}}{{\linewidth}}{{@{{}}>{{\raggedright\arraybackslash}}p{{0.22\linewidth}} l l X@{{}}}}"
-            rf"{rows}\end{{tabularx}}\vspace{{5pt}}")
+            rf"\toprule \textbf{{\footnotesize Metric}} & \textbf{{\footnotesize Value}} & "
+            rf"\textbf{{\footnotesize Benchmark}} & \textbf{{\footnotesize Assessment}}\\ \midrule{{}}"
+            rf"{rows}\bottomrule\end{{tabularx}}"
+            rf"\end{{minipage}}\vspace{{7pt}}")
     return "\n".join(blocks)
 
 
@@ -629,7 +678,7 @@ def _recourse_items(M: dict, be: dict) -> list:
 def _outcome_block(outcome: dict) -> str:
     if not outcome:
         return ""
-    return (rf"""\section*{{\textcolor{{navy}}{{Post-Decision Outcome}}}}
+    return (rf"""\rsec{{Post-Decision Outcome}}
 \begin{{tabularx}}{{\linewidth}}{{@{{}}l X@{{}}}}
 \textbf{{Performance}} & {_tex(str(outcome.get('performance_status','—')))} \\
 \textbf{{Days past due}} & {outcome.get('dpd',0)} \\
@@ -736,10 +785,13 @@ def _resolve_attribute_value(key: str, application: dict):
 def _attribute_snapshot(application: dict) -> str:
     """Page-1 'high-level view of the customer': all 36 model-input attribute
     values, grouped by the Five C's, laid out as two columns so it fits on a
-    single page regardless of the analysis that follows on page 2+."""
+    single page regardless of the analysis that follows on page 2+.
+
+    Columns are balanced by row count: Character+Capacity+Capital (19 rows) on
+    the left, Collateral+Conditions (17 rows) on the right."""
     application = application or {}
-    left_groups = _ATTRIBUTE_SNAPSHOT_GROUPS[:4]   # Character, Capacity, Capital, Collateral
-    right_groups = _ATTRIBUTE_SNAPSHOT_GROUPS[4:]  # Conditions
+    left_groups = _ATTRIBUTE_SNAPSHOT_GROUPS[:3]   # Character, Capacity, Capital
+    right_groups = _ATTRIBUTE_SNAPSHOT_GROUPS[3:]  # Collateral, Conditions
 
     def col(groups):
         blocks = []
@@ -749,9 +801,10 @@ def _attribute_snapshot(application: dict) -> str:
                 for key, display in items
             )
             blocks.append(
-                rf"\textbf{{\textcolor{{navy}}{{{_tex(label)}}}}}\\[1pt]"
+                rf"\colorbox{{lightgrey}}{{\makebox[\dimexpr\linewidth-2\fboxsep\relax][l]"
+                rf"{{\scriptsize\textbf{{\textcolor{{navy}}{{{_tex(label.upper())}}}}}}}}}\\[2pt]"
                 rf"\begin{{tabularx}}{{\linewidth}}{{@{{}}X r@{{}}}}"
-                rf"{rows}\end{{tabularx}}\vspace{{4pt}}")
+                rf"{rows}\end{{tabularx}}\vspace{{5pt}}")
         return "\n".join(blocks)
 
     return (
@@ -759,6 +812,49 @@ def _attribute_snapshot(application: dict) -> str:
         r"\hfill"
         r"\begin{minipage}[t]{0.48\linewidth}" + "\n" + col(right_groups) + "\n" + r"\end{minipage}"
     )
+
+
+def _inr_short(v) -> str:
+    """Compact rupee figure for KPI tiles: Rs 6.25 Cr / Rs 50.00 L / Rs 43,785."""
+    try:
+        v = float(v)
+    except (TypeError, ValueError):
+        return "—"
+    if abs(v) >= 1e7:
+        return f"Rs.~{v / 1e7:.2f}~Cr"
+    if abs(v) >= 1e5:
+        return f"Rs.~{v / 1e5:.2f}~L"
+    return "Rs.~" + format(int(round(v)), ",d")
+
+
+def _five_cs_pills(M: dict) -> str:
+    """Five C scores as a row of colour-tinted cells - replaces the retired
+    bar chart with the same information at a fraction of the page height."""
+    five = M.get("five_cs") or {}
+    order = ["character", "capacity", "capital", "collateral", "conditions"]
+    style = {  # score -> (cell background, text colour)
+        "STRONG":       ("rgreenlt", "rgreen"),
+        "MODERATE":     ("ramberlt", "ramberdk"),
+        "WEAK":         ("rredlt", "rred"),
+        "NEUTRAL":      ("lightgrey", "gray"),
+        "NOT_ASSESSED": ("lightgrey", "gray"),
+    }
+    present = [c for c in order if five.get(c)]
+    if not present:
+        return ""
+    name_cells, score_cells = [], []
+    for c in present:
+        score = str((five[c] or {}).get("score", "NEUTRAL"))
+        bg, fg = style.get(score, ("lightgrey", "gray"))
+        name_cells.append(rf"\cellcolor{{{bg}}}{{\small\textbf{{{_tex(c.capitalize())}}}}}")
+        score_cells.append(rf"\cellcolor{{{bg}}}{{\scriptsize\textbf{{\textcolor{{{fg}}}{{{_tex(score.replace('_', ' '))}}}}}}}")
+    ncols = len(present)
+    return (
+        rf"\renewcommand{{\arraystretch}}{{1.15}}"
+        rf"\begin{{tabularx}}{{\linewidth}}{{*{{{ncols}}}{{>{{\centering\arraybackslash}}X}}}}"
+        + " & ".join(name_cells) + r" \\" + "\n"
+        + " & ".join(score_cells) + r" \\" + "\n"
+        + r"\end{tabularx}")
 
 
 def _short(s, n=26):
