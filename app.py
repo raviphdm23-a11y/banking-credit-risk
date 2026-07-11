@@ -3200,7 +3200,31 @@ def _fin_gather(conn, bank, period=None):
         "SELECT * FROM bank_balance_sheet WHERE bank_id=? AND period=?", (bid, period)).fetchone())
     pl = _row_to_dict(conn.execute(
         "SELECT * FROM bank_profit_loss WHERE bank_id=? AND period=?", (bid, period)).fetchone())
-    cap = _reg.bank_capital_report(bid, loans, accts, metrics, balance_sheet=bs)
+
+    # Phase 5 — source exposures from fact_credit_risk (the gold layer the
+    # regulatory batch already populated) instead of re-running
+    # client_exposure() live for every loan on every financial-report page
+    # load. Falls back to the live path if the batch hasn't run yet for this
+    # bank (fresh DB, or a brand-new bank with no batch history).
+    precomputed_exposures = None
+    try:
+        from backend.fact_credit_risk import get_fact_credit_risk
+        fact_rows = get_fact_credit_risk(conn, bank_id=bid)
+        if fact_rows:
+            precomputed_exposures = [{
+                'cid': r['cid'], 'customer_name': r['customer_name'], 'loan_id': r['loan_id'],
+                'loan_type': r['product'], 'rwa_approach': r['rwa_approach'],
+                'exposure_class': r['exposure_class'], 'classification': r['loan_classification'],
+                'ead': r['ead'] or 0.0, 'pd': r['pd_current'] or 0.0, 'lgd': r['lgd'] or 0.0,
+                'risk_weight': r['risk_weight'] or 0.0, 'rw_basis': None,
+                'rwa': r['rwa'] or 0.0, 'capital_charge': r['capital_charge'] or 0.0,
+                'expected_loss': r['expected_loss'] or 0.0, 'provision': r['provision'] or 0.0,
+            } for r in fact_rows]
+    except Exception:
+        precomputed_exposures = None   # fall back to live derivation below
+
+    cap = _reg.bank_capital_report(bid, loans, accts, metrics, balance_sheet=bs,
+                                   precomputed_exposures=precomputed_exposures)
     liq = _reg.bank_liquidity_report(bid, accts, loans, cap['total_capital'], balance_sheet=bs)
     mix = {}
     for e in cap['exposures']:
@@ -4064,7 +4088,7 @@ def _enrich_transaction_with_ml_features(txn_id):
                 SELECT gdp_growth_pct, inflation_cpi_pct, policy_rate_pct, unemployment_pct,
                        delta_gdp_pct, delta_cpi_pct, delta_policy_rate_pct, delta_unemployment_pct,
                        macro_regime_score
-                FROM country_macro WHERE country_code = 'IN' AND period <= ?
+                FROM country_macro WHERE country_code = 'IND' AND period <= ?
                 ORDER BY period DESC LIMIT 1
             """, (txn_date[:7],))
             macro_row = cursor.fetchone()

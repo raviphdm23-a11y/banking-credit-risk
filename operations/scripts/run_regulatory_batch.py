@@ -62,7 +62,7 @@ CREATE TABLE IF NOT EXISTS reg_liquidity_reports (
 CREATE TABLE IF NOT EXISTS reg_client_exposures (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     bank_id TEXT, report_date TEXT, cid TEXT, customer_name TEXT,
-    loan_id TEXT, loan_type TEXT, classification TEXT,
+    loan_id TEXT, loan_type TEXT, rwa_approach TEXT, classification TEXT,
     ead REAL, pd REAL, lgd REAL, risk_weight REAL, rwa REAL,
     capital_charge REAL, expected_loss REAL, provision REAL,
     generated_at TEXT
@@ -109,7 +109,7 @@ _LIQ_COLS = ['bank_id', 'report_date', 'retail_deposits', 'wholesale_funding',
              'rsf', 'nsfr', 'crr_ratio', 'slr_ratio', 'lcr_status', 'nsfr_status',
              'crr_status', 'slr_status']
 
-_EXP_COLS = ['cid', 'customer_name', 'loan_id', 'loan_type', 'classification',
+_EXP_COLS = ['cid', 'customer_name', 'loan_id', 'loan_type', 'rwa_approach', 'classification',
              'ead', 'pd', 'lgd', 'risk_weight', 'rwa', 'capital_charge',
              'expected_loss', 'provision']
 
@@ -132,6 +132,11 @@ def run_batch(db_path=DB_PATH, report_date=None, verbose=True):
     conn.row_factory = sqlite3.Row
     cur = conn.cursor()
     cur.executescript(SCHEMA)
+    try:
+        cur.execute("ALTER TABLE reg_client_exposures ADD COLUMN rwa_approach TEXT")
+    except sqlite3.OperationalError as e:
+        if 'duplicate column' not in str(e).lower():
+            raise
     cur.executemany(
         "INSERT OR IGNORE INTO regulatory_requirements "
         "(requirement_id, title, description, regulator, category) VALUES (?,?,?,?,?)",
@@ -161,6 +166,22 @@ def run_batch(db_path=DB_PATH, report_date=None, verbose=True):
     for bank in banks:
         bid = bank['bank_id']
         loans    = [dict(r) for r in cur.execute("SELECT * FROM loans WHERE bank_id=?", (bid,)).fetchall()]
+        # Merge in collateral_register (Phase 2) so client_exposure()'s AIRB
+        # branch (Phase 3) has collateral_type/collateral_value for its LGD
+        # calc — regulatory_engine.py stays a pure function, DB reads happen
+        # only here.
+        try:
+            collateral_by_loan = {
+                r['loan_id']: dict(r) for r in cur.execute(
+                    "SELECT * FROM collateral_register WHERE bank_id=?", (bid,)).fetchall()
+            }
+        except sqlite3.OperationalError:
+            collateral_by_loan = {}   # table not created yet (no collateral booked anywhere)
+        for l in loans:
+            c = collateral_by_loan.get(l.get('id'))
+            if c:
+                l['collateral_type'] = c['collateral_type']
+                l['collateral_value'] = c['collateral_value']
         accounts = [dict(r) for r in cur.execute("SELECT * FROM accounts WHERE bank_id=?", (bid,)).fetchall()]
         metrics  = {r['lid']: dict(r) for r in
                     cur.execute("SELECT * FROM credit_risk_metrics WHERE bank_id=?", (bid,)).fetchall()}
@@ -207,6 +228,15 @@ def run_batch(db_path=DB_PATH, report_date=None, verbose=True):
                 "VALUES (?, ?, {}, ?)".format(
                     ', '.join(_EXP_COLS), ', '.join('?' * len(_EXP_COLS))),
                 [bid, report_date] + [e[c] for c in _EXP_COLS] + [now])
+
+        # ── Phase 5 — rebuild fact_credit_risk (gold layer) for this bank+date,
+        # now that reg_client_exposures exists for it. See backend/fact_credit_risk.py.
+        try:
+            from backend.fact_credit_risk import build_fact_credit_risk
+            build_fact_credit_risk(conn, bid, report_date)
+        except Exception as e:
+            if verbose:
+                print(f"[warn] fact_credit_risk build skipped for {bid}: {e}")
 
         # ── refresh regulatory_compliance for this bank ──
         cur.execute("DELETE FROM regulatory_compliance WHERE bank_id=?", (bid,))
