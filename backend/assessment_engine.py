@@ -114,11 +114,35 @@ class AssessmentEngine:
         # 3. Policy knockouts (Tier 1: now uses uncertainty band)
         knockouts = self._check_knockouts(inputs, pd_point, pd_low, pd_high)
 
-        # 4. Feature attribution (reason codes)
-        attribution = self._compute_attribution(inputs, pd_point)
-
-        # 4b. SHAP values & feature interactions (Tier 2)
+        # 4. Feature attribution (reason codes) - prefer real SHAP values, which
+        # cover all 36 model features and mathematically sum to the prediction.
+        # Falls back to the narrower leave-one-out method (the original 4 core
+        # ratios only) if SHAP is unavailable in this process (e.g. shap
+        # library/model incompatibility) - see _compute_attribution's docstring.
         shap_data = self._compute_shap(inputs) if self._shap_explainer else None
+        if shap_data and shap_data.get("feature_contributions"):
+            attribution = shap_data["feature_contributions"]
+        else:
+            attribution = self._compute_attribution(inputs, pd_point)
+
+        # 4b. Once a loan is actually booked, collateral_register (Phase 2 - see
+        # backend/collateral_store.py) is the durable source of truth for its
+        # collateral - not whatever a caller happens to pass in `inputs` for a
+        # later re-assessment. A brand-new origination has no loan_id yet, so
+        # this is a no-op and inputs['collateral_type'/'collateral_value'] (from
+        # the borrower-info.html form) are used as before.
+        if self._db_path and inputs.get('loan_id'):
+            try:
+                import sqlite3
+                from backend.collateral_store import get_collateral
+                _conn = sqlite3.connect(self._db_path)
+                stored = get_collateral(_conn, inputs['loan_id'])
+                _conn.close()
+                if stored:
+                    inputs['collateral_type'] = stored['collateral_type']
+                    inputs['collateral_value'] = stored['collateral_value']
+            except Exception:
+                pass
 
         # 5. LGD
         lgd_result = AIRBCalculations.calculate_lgd(
