@@ -1166,6 +1166,7 @@
                     <div style="font-size:0.85em;color:#666;margin-bottom:12px;">
                         Each feature's true additive contribution to the risk prediction, accounting for feature interactions.
                     </div>
+                    <div id="shapTornadoChart" style="max-width:420px;margin:0 auto 16px;"></div>
                     <table class="component-table">
                         <thead><tr><th>Feature</th><th>Value</th><th>Contribution</th><th>Effect</th></tr></thead>
                         <tbody id="shapFeatureBody"></tbody>
@@ -1192,6 +1193,7 @@
 </div>
 
 <script src="standardized-approach.js"></script>
+<script src="report-charts.js"></script>
 <script>
     // ── Mode/section visibility ────────────────────────────────────────────────
     function getMode() {
@@ -1503,6 +1505,19 @@
             document.getElementById('loanType').value = scenario === 'healthy' ? 'Term Loan Long' : (scenario === 'medium' ? 'Term Loan Short' : 'Working Capital');  // Loan type based on scenario
             document.getElementById('exposureAmount').value = '5000000';
             document.getElementById('exposureClass').value = 'CORPORATE';  // Required for SA mode
+
+            // Originating Bank - required for "Refer to Relationship Manager";
+            // without it the RM case create call fails with "bank_id is required".
+            // The dropdown is populated async from /operations/api/banks at page
+            // load, so guard against it still being empty on a very fast click.
+            const bankSel = document.getElementById('bankSelect');
+            if (bankSel) {
+                if (bankSel.querySelector('option[value="BANK001"]')) {
+                    bankSel.value = 'BANK001';
+                } else if (bankSel.options.length > 1) {
+                    bankSel.selectedIndex = 1;  // first real bank, skip the placeholder option
+                }
+            }
 
             // Financial Metrics (Section 1)
             document.getElementById('debtToEquity').value = data.debtToEquity;
@@ -1816,17 +1831,29 @@
                 return;
             }
 
-            body.innerHTML = shap.feature_contributions.slice(0, 10).map(item => {
-                const pct = (item.shap_value * 100).toFixed(3);
+            const top10 = shap.feature_contributions.slice(0, 10);
+
+            body.innerHTML = top10.map(item => {
+                // Was item.feature_value / item.shap_value - neither key exists on the
+                // API response (backend/shap_explainer.py returns "value" and
+                // "contribution"), so this always rendered "undefined" and, for the
+                // percentage, would have shown the raw margin-space SHAP value (which
+                // can run into the hundreds) instead of the actual PD-fraction
+                // contribution in percentage points.
+                const pct = (item.contribution * 100).toFixed(3);
                 const effect = item.direction === 'increases_pd' ? 'Increases PD' : 'Decreases PD';
                 const color = item.direction === 'increases_pd' ? '#dc2626' : '#059669';
                 return `<tr>
-                    <td>${item.feature}</td>
-                    <td>${item.feature_value}</td>
+                    <td>${item.display_name || item.feature}</td>
+                    <td>${item.value}</td>
                     <td style="color:${color};font-weight:600;">${pct}</td>
                     <td>${effect}</td>
                 </tr>`;
             }).join('');
+
+            if (typeof ReportCharts !== 'undefined') {
+                ReportCharts.drawTornado(document.getElementById('shapTornadoChart'), top10);
+            }
 
             summaryBox.innerHTML = shap.summary ? `<strong>Summary:</strong> ${shap.summary}` : '';
             card.style.display = 'block';
@@ -1958,11 +1985,13 @@
             exposure_class: txt('exposureClass') || null,
             bank_id:        txt('bankSelect') || null,
             ltv_ratio:      num('ltvRatio') ? num('ltvRatio') / 100 : null,
+            calculation_methodology: getMode(),
             external_rating: null,  // placeholder for future rated-exposure entry
             requested_amount: num('exposureAmount'),
             exposure:         num('exposureAmount'),
             existing_exposure: 0,
             collateral_value: collateral,
+            collateral_type: (txt('collateralType') && txt('collateralType') !== 'None') ? txt('collateralType') : null,
             annual_income:    income,
             applicant_age:    intv('kycAge'),
             tenure_years:     Math.max(1, Math.round(num('maturityOverride')) || maturity),
