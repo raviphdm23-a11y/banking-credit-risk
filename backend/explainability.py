@@ -192,6 +192,14 @@ class CounterfactualEngine:
             if attr["contribution"] <= 0.002:
                 # Not a meaningful risk driver — skip
                 continue
+            if feat not in FEATURE_META:
+                # Counterfactual search needs a curated risk_direction/baseline,
+                # which only exists for the 4 core ratios. Now that attribution
+                # covers all 36 model features (real SHAP, not just those 4),
+                # any of the other 32 can legitimately be the top driver here -
+                # skip generating an actionable suggestion for those rather
+                # than crashing on a missing FEATURE_META entry.
+                continue
 
             meta = FEATURE_META[feat]
             direction = "decrease" if meta["risk_direction"] == "higher_is_worse" else "increase"

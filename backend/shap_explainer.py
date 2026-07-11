@@ -16,7 +16,63 @@ from itertools import combinations
 import shap
 import shap.explainers._tree as _shap_tree
 
-from backend.feature_meta import FEATURE_ORDER, model_feature_frame
+from backend.feature_meta import (
+    FEATURE_ORDER, FEATURE_META, EXTRA_FEATURE_DEFAULTS,
+    FEATURE_DISPLAY_NAMES, FEATURE_FIVE_C, feature_unit, model_feature_frame,
+)
+
+
+def _fmt_val(value, unit: str) -> str:
+    """Format one feature value for a reason-text sentence."""
+    try:
+        v = float(value)
+    except (TypeError, ValueError):
+        return str(value)
+    if unit == "percent":
+        return f"{v:.1f}%"
+    if unit == "percent_fraction":
+        return f"{v * 100:.1f}%"
+    if unit == "inr":
+        return "Rs. " + format(int(round(v)), ",d")
+    if unit == "int":
+        return f"{int(round(v))}"
+    if unit == "ratio":
+        return f"{v:.2f}x"
+    return f"{v:.2f}"  # plain 0-100 style index/score - no misleading "x" suffix
+
+
+def _reason_for(feat: str, meta: dict, value: float, contribution: float, display_name: str):
+    """Reason code + human-readable sentence for one feature's contribution.
+
+    The 4 core ratios have curated benchmark copy (bench_label, reason_high/low)
+    in FEATURE_META - reuse that. The other 32 features have no curated
+    benchmark text, so they get a generic model-learned framing instead of a
+    fabricated threshold."""
+    if meta:
+        bench_label = meta.get("bench_label", "")
+        risk_dir = meta["risk_direction"]
+        val_str = _fmt_val(value, meta["unit"])
+        if contribution > 0.002:
+            reason_code = meta.get("reason_high") if risk_dir == "higher_is_worse" else meta.get("reason_low")
+            reason_text = (
+                f"{display_name} of {val_str} is above the risk threshold (benchmark {bench_label})"
+                if risk_dir == "higher_is_worse" else
+                f"{display_name} of {val_str} is below benchmark ({bench_label}) - increases default risk"
+            )
+        elif contribution < -0.002:
+            reason_code = meta.get("reason_low") if risk_dir == "higher_is_worse" else meta.get("reason_high")
+            reason_text = f"{display_name} of {val_str} is a positive factor - reduces default risk"
+        else:
+            reason_code = None
+            reason_text = f"{display_name} of {val_str} is broadly in line with benchmark ({bench_label})"
+        return reason_code, reason_text
+
+    val_str = _fmt_val(value, feature_unit(feat))
+    if contribution > 0.002:
+        return None, f"{display_name} of {val_str} is a risk factor (model-learned) - increases default risk"
+    if contribution < -0.002:
+        return None, f"{display_name} of {val_str} is a positive factor (model-learned) - reduces default risk"
+    return None, f"{display_name} of {val_str} has a negligible effect on this assessment"
 
 # XGBoost >= 2.1 serializes base_score as a bracketed array string (e.g.
 # "[4.999206E-1]") to support multi-output models. shap's XGBTreeModelLoader
@@ -196,8 +252,10 @@ class SHAPExplainer:
                 cached["cached"] = True
                 return cached
 
-        # Build feature frame
+        # Build feature frame - aligned to model.feature_names_in_, i.e. ALL 36
+        # training features, not just the 4-item legacy FEATURE_ORDER constant.
         X = model_feature_frame(inputs, self.model)
+        feature_names = list(X.columns)
 
         # Compute SHAP values for default class (index 1 = default)
         try:
@@ -212,29 +270,49 @@ class SHAPExplainer:
         except Exception as e:
             raise RuntimeError(f"Failed to compute SHAP values: {e}")
 
-        # Build feature contributions
+        # shap.TreeExplainer on an XGBoost classifier returns values in the
+        # model's raw margin (log-odds) space by default, not probability -
+        # convert to an approximate PD-percentage-point contribution via the
+        # logistic derivative p*(1-p), so this is comparable to (and can
+        # replace) the older leave-one-out method's contribution units.
+        pd_point = float(np.clip(self.model.predict_proba(X)[0, 1], 1e-4, 1 - 1e-4))
+        margin_to_pd = pd_point * (1 - pd_point)
+
+        importances = getattr(self.model, "feature_importances_", None)
+
+        # Build feature contributions - one per REAL model feature (36), not
+        # just the 4 core ratios.
         feature_contributions = []
-        for i, feat in enumerate(FEATURE_ORDER):
-            feature_value = float(inputs.get(feat, 0))
-            shap_value = float(np.asarray(shap_vals[i]).item())  # Convert numpy scalar to Python float
+        for i, feat in enumerate(feature_names):
+            feature_value = float(X.iloc[0][feat])
+            shap_value = float(np.asarray(shap_vals[i]).item())  # margin-space
+            contribution = shap_value * margin_to_pd              # PD-fraction space
 
-            # Get baseline value for comparison
-            baseline_value = inputs.get(f"baseline_{feat}", 0)
+            meta = FEATURE_META.get(feat)
+            baseline_value = meta["baseline"] if meta else EXTRA_FEATURE_DEFAULTS.get(feat, 0.0)
+            display_name = FEATURE_DISPLAY_NAMES.get(feat, feat)
+            five_c = FEATURE_FIVE_C.get(feat, "conditions")
+            reason_code, reason_text = _reason_for(feat, meta, feature_value, contribution, display_name)
 
-            contribution = {
-                "feature": feat,
-                "shap_value": round(shap_value, 6),
-                "feature_value": round(feature_value, 4),
-                "baseline_value": round(baseline_value, 4),
-                "direction": "increases_pd" if shap_value > 0 else "decreases_pd",
-            }
-            feature_contributions.append(contribution)
+            feature_contributions.append({
+                "feature":        feat,
+                "display_name":   display_name,
+                "value":          round(feature_value, 4),
+                "baseline_value": round(float(baseline_value), 4),
+                "contribution":   round(contribution, 6),
+                "shap_value":     round(shap_value, 6),
+                "direction":      "increases_pd" if contribution > 0 else "decreases_pd",
+                "reason_code":    reason_code,
+                "reason_text":    reason_text,
+                "five_c":         five_c,
+                "xgb_importance": round(float(importances[i]), 4) if importances is not None and i < len(importances) else 0.0,
+            })
 
-        # Sort by absolute SHAP value (strongest drivers first)
-        feature_contributions.sort(key=lambda x: abs(x["shap_value"]), reverse=True)
+        # Sort by absolute PD contribution (strongest real drivers first)
+        feature_contributions.sort(key=lambda x: abs(x["contribution"]), reverse=True)
 
         # Detect interactions
-        interactions = self._find_interactions(inputs, shap_vals, feature_contributions)
+        interactions = self._find_interactions(inputs, shap_vals, feature_contributions, feature_names)
 
         # Generate summary
         summary = self._generate_summary(feature_contributions, interactions)
@@ -268,7 +346,7 @@ class SHAPExplainer:
         return result
 
     def _find_interactions(self, inputs: dict, shap_vals: np.ndarray,
-                          contributions: list) -> list:
+                          contributions: list, feature_names: list) -> list:
         """
         Detect significant feature interactions.
 
@@ -287,8 +365,8 @@ class SHAPExplainer:
 
         # Check all pairs in top features
         for feat1, feat2 in combinations(top_features, 2):
-            idx1 = FEATURE_ORDER.index(feat1)
-            idx2 = FEATURE_ORDER.index(feat2)
+            idx1 = feature_names.index(feat1)
+            idx2 = feature_names.index(feat2)
 
             shap1 = shap_vals[idx1]
             shap2 = shap_vals[idx2]

@@ -111,6 +111,111 @@ EXTRA_FEATURE_DEFAULTS = {
     "avg_balance":               3600000.0,
 }
 
+# ---------------------------------------------------------------------------
+# Canonical display names / Five-C grouping / unit formatting for all 36
+# model-input features - single source of truth shared by report_generator.py
+# (page-1 attribute snapshot), shap_explainer.py (driver display names), and
+# report-underwriter.html (mirrors this by hand in JS - keep both in sync).
+# The 4 core ratios also appear in FEATURE_META with their own display_name;
+# these groups are the canonical version for the other 32.
+# ---------------------------------------------------------------------------
+ATTRIBUTE_GROUPS = [
+    ("Character", [
+        ("age", "Borrower Age"),
+        ("employment_type_enc", "Employment Type (enc.)"),
+        ("years_employed", "Years Employed"),
+        ("city_tier_enc", "City Tier (enc.)"),
+        ("education_enc", "Education (enc.)"),
+        ("cibil_score", "CIBIL Score"),
+        ("months_as_customer", "Months as Customer"),
+        ("num_late_payments_past_12m", "Late Payments (12m)"),
+    ]),
+    ("Capacity", [
+        ("de_ratio", "Debt / Equity Ratio"),
+        ("interest_coverage", "Interest Coverage"),
+        ("annual_income", "Annual Income"),
+        ("foir", "FOIR"),
+        ("num_dependents", "Dependents"),
+        ("loan_purpose_enc", "Loan Purpose (enc.)"),
+        ("existing_loans_count", "Existing Loans"),
+    ]),
+    ("Capital", [
+        ("profitability", "Net Profit Margin"),
+        ("liquidity_ratio", "Current Ratio"),
+        ("residence_type_enc", "Residence Type (enc.)"),
+        ("num_existing_products", "Existing Bank Products"),
+    ]),
+    ("Collateral", [
+        ("ltv_trend_pct", "LTV Drift"),
+    ]),
+    ("Conditions", [
+        ("gdp_growth_pct", "GDP Growth Rate"),
+        ("inflation_cpi_pct", "Inflation (CPI)"),
+        ("policy_rate_pct", "Policy Rate"),
+        ("unemployment_pct", "Unemployment Rate"),
+        ("delta_de_ratio", "Chg. D/E Ratio"),
+        ("delta_cibil", "Chg. CIBIL Score"),
+        ("months_since_origination", "Months Since Origination"),
+        ("delta_gdp_pct", "Chg. GDP Growth"),
+        ("delta_cpi_pct", "Chg. Inflation"),
+        ("delta_policy_rate_pct", "Chg. Policy Rate"),
+        ("delta_unemployment_pct", "Chg. Unemployment"),
+        ("macro_regime_score", "Macro Regime Score"),
+        ("ecs_bounce_count", "ECS/NACH Bounces"),
+        ("other_lender_emi_ratio", "Other-Lender EMI Ratio"),
+        ("income_disruption_flag", "Income Disruption Flag"),
+        ("sector_stress_index", "Sector Stress Index"),
+    ]),
+]
+
+# Flat feature -> display name / five_c lookups derived from ATTRIBUTE_GROUPS,
+# falling back to FEATURE_META's own display_name/five_c for the 4 core ratios.
+FEATURE_DISPLAY_NAMES = {feat: label for _, items in ATTRIBUTE_GROUPS for feat, label in items}
+FEATURE_FIVE_C = {feat: grp.lower() for grp, items in ATTRIBUTE_GROUPS for feat, _ in items}
+for _feat, _meta in FEATURE_META.items():
+    FEATURE_DISPLAY_NAMES.setdefault(_feat, _meta["display_name"])
+    FEATURE_FIVE_C.setdefault(_feat, _meta["five_c"])
+
+# Value-formatting classification for the 32 non-core features (the 4 core
+# ratios use FEATURE_META[feat]["unit"] instead: "ratio" or "percent").
+ATTR_PERCENT = {"profitability", "gdp_growth_pct", "inflation_cpi_pct",
+                 "policy_rate_pct", "unemployment_pct", "delta_gdp_pct", "delta_cpi_pct",
+                 "delta_policy_rate_pct", "delta_unemployment_pct", "ltv_trend_pct"}
+# foir is stored as a 0-1 fraction (unlike the fields above, which are already in
+# percentage-point units) - needs x100 before the % suffix.
+ATTR_PERCENT_FRACTION = {"foir"}
+ATTR_INR = {"annual_income"}
+ATTR_INT = {"age", "employment_type_enc", "city_tier_enc", "education_enc", "cibil_score",
+             "months_as_customer", "num_late_payments_past_12m", "num_dependents",
+             "loan_purpose_enc", "existing_loans_count", "residence_type_enc",
+             "num_existing_products", "delta_cibil", "months_since_origination",
+             "ecs_bounce_count", "income_disruption_flag"}
+
+
+# True ratio-style features outside the 4 core ones (deserve an "x" suffix,
+# e.g. "0.35x") - everything else not otherwise classified is a plain 0-100
+# style index/score (macro_regime_score, sector_stress_index) and should NOT
+# get a misleading "x" suffix.
+ATTR_RATIO = {"other_lender_emi_ratio"}
+
+
+def feature_unit(feat: str) -> str:
+    """Return a formatting hint for one feature: percent/percent_fraction/inr/int/ratio/plain."""
+    if feat in FEATURE_META:
+        return FEATURE_META[feat]["unit"]
+    if feat in ATTR_PERCENT_FRACTION:
+        return "percent_fraction"
+    if feat in ATTR_PERCENT:
+        return "percent"
+    if feat in ATTR_INR:
+        return "inr"
+    if feat in ATTR_INT:
+        return "int"
+    if feat in ATTR_RATIO:
+        return "ratio"
+    return "plain"
+
+
 _MACRO_COLS = (
     'gdp_growth_pct', 'inflation_cpi_pct', 'policy_rate_pct', 'unemployment_pct',
     'delta_gdp_pct', 'delta_cpi_pct', 'delta_policy_rate_pct',
