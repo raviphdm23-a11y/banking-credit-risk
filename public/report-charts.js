@@ -161,6 +161,16 @@ const ReportCharts = (() => {
     const H = items.length * ROW + 40;
     const maxContrib = Math.max(...items.map(a => Math.abs(a.contribution)));
     const barWidth = W - PAD_LEFT - PAD_RIGHT;
+    // The zero-line sits at PAD_LEFT, so the two directions do NOT have equal
+    // room: bars increasing PD extend right into `barWidth` (215px), but bars
+    // decreasing PD extend left into only PAD_LEFT (145px) before hitting the
+    // canvas edge at x=0. Scaling both directions by the same factor of
+    // `barWidth` means a long enough negative bar - and its "-X.XXpp" label -
+    // runs off the left edge and gets clipped by the SVG's own viewBox
+    // (confirmed: happened to the longest bar(s) at both 0.85x and 0.72x).
+    // LABEL_RESERVE leaves room for an "+XX.XXpp"-width label past the bar tip.
+    const LABEL_RESERVE = 46;
+    const maxBarLen = Math.max(20, Math.min(barWidth, PAD_LEFT) - LABEL_RESERVE);
 
     const root = svg('svg', { viewBox: `0 0 ${W} ${H}`, role: 'img',
       'aria-label': 'Feature attribution tornado chart' });
@@ -176,7 +186,7 @@ const ReportCharts = (() => {
       const contrib = attr.contribution;
       const absContrib = Math.abs(contrib);
       const isUp = contrib > 0;
-      const barLen = (absContrib / (maxContrib || 1)) * (barWidth * 0.85);
+      const barLen = (absContrib / (maxContrib || 1)) * maxBarLen;
       const color = isUp ? COLORS.red : COLORS.green;
       const barX = isUp ? PAD_LEFT : PAD_LEFT - barLen;
 

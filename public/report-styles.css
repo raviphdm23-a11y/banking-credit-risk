@@ -160,11 +160,15 @@ body {
 
 /* ── Customer Attribute Snapshot (36 model inputs) ────────────── */
 .attr-snapshot-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 0 28px;
+  /* CSS multi-column instead of a 2-col grid: the 5 attribute groups have
+     very uneven row counts (Collateral has 1 row, Conditions has 16), and a
+     row-major 2-col grid left large blank cells wherever a short group
+     shared a grid row with nothing on the other side. Columns let groups
+     flow and balance naturally instead. */
+  column-count: 2;
+  column-gap: 28px;
 }
-.attr-snap-group { margin-bottom: 14px; }
+.attr-snap-group { margin-bottom: 14px; break-inside: avoid; }
 .attr-snap-group-title {
   font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em;
   color: var(--grey); font-weight: 700; margin-bottom: 6px;

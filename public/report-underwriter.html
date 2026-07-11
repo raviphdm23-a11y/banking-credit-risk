@@ -516,7 +516,13 @@ function renderReport(f, rmCtx) {
     document.getElementById('gaugeChart'),
     { pd: f.pd?.point || 0, pdLow: f.pd?.low || 0, pdHigh: f.pd?.high || 0, grade }
   );
-  ReportCharts.drawTornado(document.getElementById('tornadoChart'), f.attribution);
+  // Chart is a quick-glance top-drivers view, not the full disclosure - the
+  // complete ~30-row attribution table below (with baseline + driver text)
+  // remains the full audit-grade record. Un-sliced, the tornado was
+  // rendering every model feature (~28-30 bars), stretching the SVG to
+  // ~1780px tall and forcing the equal-height gauge/tornado grid row to
+  // leave ~1400px of blank space next to the much shorter gauge.
+  ReportCharts.drawTornado(document.getElementById('tornadoChart'), (f.attribution || []).slice(0, 10));
 
   // Reason codes
   const rcDiv = document.getElementById('reasonCodes');
