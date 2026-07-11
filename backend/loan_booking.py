@@ -62,6 +62,31 @@ def _next_id(conn, table, id_col, prefix):
     return (row[0] or 0) + 1
 
 
+def _ensure_loan_columns(conn):
+    """Phase 3 — self-migrating ALTER TABLE, same defensive pattern used
+    elsewhere in this codebase (see sync_bank_loan_metrics.py). Adds the
+    columns that let a booked loan durably record which RWA approach and
+    seniority tier it was originated under - previously the RM's AIRB/
+    Standardized choice on borrower-info.html and the seniority tier were
+    both computed live for the assessment, then discarded at booking time
+    (see this session's investigation into where 'calcMode' went)."""
+    for col in ('rwa_approach TEXT', 'seniority TEXT'):
+        try:
+            conn.execute(f"ALTER TABLE loans ADD COLUMN {col}")
+        except Exception as e:
+            if 'duplicate column' not in str(e).lower():
+                raise
+
+
+# borrower-info.html's calcMode radio -> a single definitive approach a
+# booked loan is treated under going forward. 'both' was a same-screen
+# AIRB-vs-SA comparison tool at assessment time (see this session's earlier
+# investigation) with no representable "both" state once the loan is on
+# the books - it resolves to the regulator-conservative default,
+# Standardized, rather than silently picking AIRB.
+_METHODOLOGY_MAP = {'airb': 'AIRB', 'standardized': 'STANDARDIZED', 'both': 'STANDARDIZED'}
+
+
 def book_loan(conn, case_row):
     """
     Book the approved case's loan into its originating bank's ledger.
@@ -84,6 +109,7 @@ def book_loan(conn, case_row):
 
     sim_date, sim_period = _load_sim_clock()
     cur = conn.cursor()
+    _ensure_loan_columns(conn)
 
     bank_row = cur.execute("SELECT bank_name, country_code FROM banks WHERE bank_id=?", (bank_id,)).fetchone()
     if not bank_row:
@@ -174,12 +200,42 @@ def book_loan(conn, case_row):
     maturity = (date.fromisoformat(sim_date) + timedelta(days=tenure_months * 30.44)).isoformat()
     exposure_class = app_.get('exposure_class')
     product = app_.get('product', 'Personal Loan')
+    ltv_ratio = app_.get('ltv_ratio')
+    ltv_ratio = float(ltv_ratio) if ltv_ratio not in (None, '') else None
+    rwa_approach = _METHODOLOGY_MAP.get(
+        (app_.get('calculation_methodology') or 'standardized').lower(), 'STANDARDIZED')
+    seniority = app_.get('seniority') or 'Senior Unsecured'
 
     cur.execute(
-        "INSERT INTO loans (id,bank_id,cid,type,principal,rate,tenure,emi,disbursed,maturity,outstanding,status,branch_id,loan_classification,exposure_class) "
-        "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+        "INSERT INTO loans (id,bank_id,cid,type,principal,rate,tenure,emi,disbursed,maturity,outstanding,status,branch_id,loan_classification,exposure_class,ltv_ratio,rwa_approach,seniority) "
+        "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
         (lid, bank_id, cid, product, principal, rate, tenure_months, loan_emi,
-         sim_date, maturity, principal, 'Active', branch_id, 'Standard', exposure_class))
+         sim_date, maturity, principal, 'Active', branch_id, 'Standard', exposure_class, ltv_ratio,
+         rwa_approach, seniority))
+
+    # ── Collateral (Phase 2 — collateral_register, see backend/collateral_store.py) ──
+    # Previously discarded entirely: collateral_type/collateral_value were
+    # captured on borrower-info.html and used for the live LGD calc at
+    # assessment time, but book_loan() never wrote them anywhere (same
+    # discard pattern the AIRB/SA methodology flag had). An unsecured loan
+    # (no collateral_type/value on the application) correctly gets no row.
+    from backend import collateral_store as _collateral
+    _collateral.record_collateral(
+        conn, lid, bank_id,
+        collateral_type=app_.get('collateral_type'),
+        collateral_value=app_.get('collateral_value'),
+        valuation_date=sim_date,
+        ltv_ratio=ltv_ratio,
+        source='origination',
+    )
+
+    # Phase 4 — link this loan back to the prediction_store row that assessed
+    # it (report_id lives on M, set when the case was created), so a booked
+    # loan's PD/rating/RWA at origination stays queryable by loan_id.
+    report_id = M.get('report_id')
+    if report_id:
+        from backend import prediction_store as _prediction
+        _prediction.link_to_loan(conn, report_id, lid)
 
     # ── Risk metrics (this loan's own row) ──────────────────────────────────
     de = float(app_.get('de_ratio') or 0)

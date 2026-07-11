@@ -1,5 +1,8 @@
 import math
 import json
+from statistics import NormalDist
+
+_STANDARD_NORMAL = NormalDist()
 
 class AIRBCalculations:
     """Advanced Internal Ratings Based (AIRB) Approach calculations"""
@@ -156,18 +159,33 @@ class AIRBCalculations:
 
             ma = ma_result['maturity_adjustment']
 
-            # Normal inverse cumulative distribution (approximation)
-            # For simplification: use a lookup-based approach
+            # Basel II/III AIRB corporate risk-weight formula (BCBS128, para 272):
+            #   K = [LGD * N( sqrt(1/(1-R))*G(PD) + sqrt(R/(1-R))*G(0.999) ) - PD*LGD] * MA
+            #   RW% = K * 12.5 * 100
+            #
+            # PREVIOUSLY BUGGY: this used inverse_pd*sqrt(R/(1-R)) (wrong
+            # coefficient - should be 1/sqrt(1-R) on the G(PD) term, and
+            # sqrt(R/(1-R)) belongs on the G(0.999) term instead, matching
+            # below) and, critically, never wrapped the bracketed term in the
+            # standard normal CDF N(.) before treating it as a probability -
+            # it used the raw Z-score-like value directly. That made RW
+            # explode to the 1250% cap for completely ordinary PD/LGD
+            # combinations (verified: PD=2%, LGD=35%, M=2.5y -> old code gave
+            # 1250%; correct Basel formula gives ~45%).
             inverse_pd = AIRBCalculations._inverse_normal(pd_val)
             inverse_999 = 3.09  # Φ^(-1)(0.999)
 
-            # Risk weight formula (simplified)
-            rw_base = (inverse_pd * math.sqrt(r / (1 - r)) + inverse_999 * math.sqrt((1 - r) / r) - pd_val)
-            rw = rw_base * (1 + (float(maturity) - 2.5) * ma_result['b_coefficient']) / (1 - 1.5 * ma_result['b_coefficient'])
+            correlation_term = (
+                (1.0 / math.sqrt(1 - r)) * inverse_pd
+                + math.sqrt(r / (1 - r)) * inverse_999
+            )
+            conditional_pd = AIRBCalculations._normal_cdf(correlation_term)
+
+            capital_requirement = (lgd_val * conditional_pd - pd_val * lgd_val) * ma
 
             # Cap at max 1250 (1250% in percentage terms, or 12.5 as decimal)
-            rw = min(rw * 12.5 * lgd_val * 100, 1250)  # Convert to percentage
-            rw = max(rw, 0)
+            rw = capital_requirement * 12.5 * 100  # Convert to percentage
+            rw = max(0, min(rw, 1250))
 
             return {
                 'risk_weight': round(rw, 2),
@@ -181,27 +199,42 @@ class AIRBCalculations:
             return {'error': f'Invalid input: {str(e)}'}
 
     @staticmethod
+    def _normal_cdf(x):
+        """Standard normal CDF N(x), exact (via math.erf, not an approximation)."""
+        return 0.5 * (1.0 + math.erf(x / math.sqrt(2)))
+
+    @staticmethod
     def _inverse_normal(p):
-        """Approximate inverse normal CDF using rational approximation"""
+        """Inverse standard normal CDF (exact, via statistics.NormalDist).
+
+        PREVIOUSLY BUGGY: a hand-rolled rational approximation whose
+        coefficients didn't correspond to any standard algorithm - e.g.
+        Φ⁻¹(0.20) returned -2.12 instead of the correct -0.842. Silently
+        wrong for every PD except round tail values, which is why the
+        AIRB risk-weight formula (calculate_risk_weight, which consumes
+        this) produced nonsensical results (see that function's docstring)."""
         if p <= 0 or p >= 1:
             return 0
-
-        # Wichura's algorithm for inverse normal
-        if p < 0.02425:
-            t = math.sqrt(-2 * math.log(p))
-            return -(((2.56274 * t + 4.77846) * t - 2.28319) * t + 2.78681) / (((t + 2.05319) * t - 2.78556) * t + 1)
-        elif p <= 0.97575:
-            t = p - 0.5
-            return (((67.4862 * t * t - 78.6569) * t + 24.6008) * t + 2.78147 * t) / (((17.6515 + 14.6514 * t * t) * t - 14.155) * t + 1)
-        else:
-            t = math.sqrt(-2 * math.log(1 - p))
-            return (((2.56274 * t + 4.77846) * t - 2.28319) * t + 2.78681) / (((t + 2.05319) * t - 2.78556) * t + 1)
+        return _STANDARD_NORMAL.inv_cdf(p)
 
     # Basel III finalized-reforms minimum LGD input floor (BCBS 424, para 79) -
     # even a fully/over-collateralized exposure may not be treated as risk-free;
     # a regulator-set floor guards against an AIRB model implying near-zero loss
     # severity purely from collateral coverage assumptions.
     REGULATORY_LGD_FLOOR = 0.10  # 10%
+
+    # Financial-collateral haircuts (Basel comprehensive approach, simplified
+    # supervisory haircuts). Class-level constant so backend/collateral_store.py
+    # can reuse the exact same table when persisting a collateral_register row,
+    # instead of a second hand-typed copy silently drifting from this one.
+    COLLATERAL_HAIRCUTS = {
+        'Cash': 0.00,
+        'Government Securities': 0.05,
+        'Corporate Bonds': 0.10,
+        'Equities': 0.20,
+        'Other': 0.25,
+    }
+    DEFAULT_HAIRCUT = 0.25  # unrecognised collateral_type
 
     @staticmethod
     def calculate_lgd(seniority, collateral_type=None, collateral_value=0, exposure=0):
@@ -237,15 +270,8 @@ class AIRBCalculations:
 
             # Apply collateral adjustment
             if collateral_type and collateral_value > 0 and exposure > 0:
-                haircuts = {
-                    'Cash': 0.00,
-                    'Government Securities': 0.05,
-                    'Corporate Bonds': 0.10,
-                    'Equities': 0.20,
-                    'Other': 0.25
-                }
-
-                haircut = haircuts.get(collateral_type, 0.25)
+                haircut = AIRBCalculations.COLLATERAL_HAIRCUTS.get(
+                    collateral_type, AIRBCalculations.DEFAULT_HAIRCUT)
                 effective_collateral = collateral_value * (1 - haircut)
 
                 # LGD applies only to the uncovered portion of exposure - NOT a
@@ -344,13 +370,11 @@ class StandardizedApproachCalculations:
         }
     }
 
-    HAIRCUTS = {
-        'Cash': 0.00,
-        'Government Securities': 0.05,
-        'Corporate Bonds': 0.10,
-        'Equities': 0.20,
-        'Other': 0.25
-    }
+    # Phase 6 — was a hand-typed duplicate of AIRBCalculations.COLLATERAL_HAIRCUTS
+    # (identical values, by luck, with nothing enforcing that). Reference the
+    # single source instead so the AIRB and SA collateral haircut tables can
+    # never silently diverge.
+    HAIRCUTS = AIRBCalculations.COLLATERAL_HAIRCUTS
 
     @staticmethod
     def get_risk_weight(category, rating):

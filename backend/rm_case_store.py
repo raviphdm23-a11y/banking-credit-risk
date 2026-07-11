@@ -142,6 +142,18 @@ def create_case(conn, M, rm_id="RM-DEMO"):
                           "model_content_hash": M["model_content_hash"],
                           "content_hash": M["content_hash"]})
     conn.commit()
+
+    # Phase 4 — prediction_store (backend/prediction_store.py): structured,
+    # queryable columns for this assessment's outputs, alongside (not
+    # replacing) the machine_json blob already stored above.
+    try:
+        from backend.model_registry import get_active_model_id
+        from backend.prediction_store import record_prediction
+        model_id = get_active_model_id(conn, app_.get('exposure_class'))
+        record_prediction(conn, M, case_id=case_id, model_id=model_id)
+    except Exception as e:
+        print(f"[rm_case_store] prediction_store write failed for {case_id} (non-fatal): {e}")
+
     return case_id
 
 
@@ -285,7 +297,15 @@ def _finalise(conn, case_id, final_decision, actor_id, actor_role, machine_reco,
             booking = book_loan(conn, _case_row(conn, case_id))
         except Exception as e:
             booking = None
-            print(f"[rm_case_store] Loan booking failed for {case_id}: {e}")
+            # book_loan() writes customers/accounts/loans/credit_risk_metrics/
+            # bank_loan_metrics/collateral_register/ALM funding in one
+            # transaction, committing only at its very end - if it raises
+            # partway through, those inserts are still pending on this shared
+            # connection. Without an explicit rollback here, a later unrelated
+            # conn.commit() elsewhere in the request would silently persist a
+            # half-booked loan (e.g. a loan row with no ALM funding behind it).
+            conn.rollback()
+            print(f"[rm_case_store] Loan booking failed for {case_id}, rolled back: {e}")
         if booking:
             _update(conn, case_id, booked_loan_id=booking["loan_id"],
                     booked_customer_id=booking["customer_id"])

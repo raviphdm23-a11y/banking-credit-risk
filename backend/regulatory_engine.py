@@ -28,6 +28,14 @@ anchors are assumed.
 
 from datetime import date
 
+# Phase 3 — AIRB branch for loans booked with rwa_approach='AIRB' (see
+# backend/loan_booking.py). Reuses the exact same PD->RW chain the live
+# assessment engine uses (backend/assessment_engine.py._compute_rwa), so a
+# loan's regulatory capital treatment matches what the RM was actually
+# shown and approved, instead of every booked loan silently defaulting to
+# Standardized regardless of what was chosen on borrower-info.html.
+from backend.calculations import AIRBCalculations
+
 # ── RBI / Basel III regulatory minimums (India, FY2024 norms) ────────────────
 RBI_THRESHOLDS = {
     'car_min':      11.5,   # CRAR: 9.0% Pillar-1 + 2.5% Capital Conservation Buffer
@@ -242,15 +250,25 @@ def bs_total_deposits(bs):
 # CLIENT-LEVEL EXPOSURE
 # ════════════════════════════════════════════════════════════════════════════
 def client_exposure(loan, metrics=None, customer_name=None):
-    """Regulatory exposure for a single loan — Basel III.1 Standardized Approach.
+    """Regulatory exposure for a single loan — Basel III.1.
+
+    Approach is per-loan (`loan['rwa_approach']`, set once at booking time
+    from the RM's borrower-info.html selection — see loan_booking.py):
+        - 'AIRB': PD/LGD-driven internal-ratings RWA (AIRBCalculations),
+          the same chain the live assessment engine uses.
+        - anything else (including unset, for loans booked before Phase 3):
+          Standardized Approach, as before.
 
     Args:
         loan (dict): row from `loans` (type, outstanding, loan_classification,
-                     exposure_class, external_rating, ltv_ratio, …)
+                     exposure_class, external_rating, ltv_ratio, rwa_approach,
+                     seniority, …) optionally merged with collateral_type/
+                     collateral_value from collateral_register by the caller
+                     (see operations/scripts/run_regulatory_batch.py)
         metrics (dict|None): row from `credit_risk_metrics` (pd_score, …)
         customer_name (str|None)
 
-    Risk weight resolution priority:
+    Standardized risk weight resolution priority (unchanged):
         1. NPA → always 150%
         2. exposure_class + external_rating → Basel III.1 rating table
         3. exposure_class + ltv_ratio → LTV band table (real estate)
@@ -269,10 +287,31 @@ def client_exposure(loan, metrics=None, customer_name=None):
         pd = 0.95 if is_npa else 0.02
     pd = max(0.0003, min(1.0, pd))
 
-    lgd = LGD_BY_TYPE.get(ltype, DEFAULT_LGD)
+    is_airb = (loan.get('rwa_approach') or '').upper() == 'AIRB'
 
-    # Basel III.1 SA risk weight (replaces old hard-coded type→RW mapping)
-    risk_weight, rw_basis = _resolve_risk_weight(loan, is_npa)
+    if is_airb:
+        lgd_result = AIRBCalculations.calculate_lgd(
+            seniority        = loan.get('seniority') or 'Senior Unsecured',
+            collateral_type  = loan.get('collateral_type'),
+            collateral_value = loan.get('collateral_value') or 0,
+            exposure         = ead,
+        )
+        lgd = lgd_result.get('lgd', DEFAULT_LGD)
+
+        maturity_years = max(1.0, min(5.0, (float(loan.get('tenure') or 36)) / 12.0))
+        rw_result = AIRBCalculations.calculate_risk_weight(pd, lgd * 100, ead, maturity_years)
+        if 'error' in rw_result:
+            # Fall back to SA if the AIRB chain can't resolve (e.g. pathological
+            # inputs) rather than silently mis-stating capital as zero.
+            is_airb = False
+        else:
+            risk_weight = rw_result['risk_weight'] / 100.0
+            rw_basis = f'AIRB internal-ratings (PD={pd:.2%}, LGD={lgd:.1%}, M={maturity_years:.1f}y)'
+
+    if not is_airb:
+        lgd = LGD_BY_TYPE.get(ltype, DEFAULT_LGD)
+        # Basel III.1 SA risk weight (replaces old hard-coded type→RW mapping)
+        risk_weight, rw_basis = _resolve_risk_weight(loan, is_npa)
 
     rwa = ead * risk_weight
     capital_charge = rwa * (RBI_THRESHOLDS['car_min'] / 100.0)
@@ -288,6 +327,7 @@ def client_exposure(loan, metrics=None, customer_name=None):
         'customer_name':  customer_name,
         'loan_id':        loan.get('id'),
         'loan_type':      ltype,
+        'rwa_approach':   'AIRB' if is_airb else 'STANDARDIZED',
         'exposure_class': loan.get('exposure_class') or 'UNCLASSIFIED',
         'classification': classification,
         'ead':            round(ead, 2),
@@ -306,23 +346,37 @@ def client_exposure(loan, metrics=None, customer_name=None):
 # BANK-LEVEL CAPITAL ADEQUACY
 # ════════════════════════════════════════════════════════════════════════════
 def bank_capital_report(bank_id, loans, accounts, metrics_by_lid, report_date=None,
-                        balance_sheet=None):
+                        balance_sheet=None, precomputed_exposures=None):
     """Basel III capital-adequacy return for one bank.
 
     If `balance_sheet` (a bank_balance_sheet row dict) is supplied, the capital
     base and total assets are read from it (real figures); otherwise the
     synthetic proxies are used.
+
+    `precomputed_exposures` (Phase 5 - see backend/fact_credit_risk.py): when
+    supplied, skips re-running client_exposure() per loan and uses this list
+    instead (same shape client_exposure() returns). Lets callers source
+    exposures from the already-computed, already-AIRB/SA-branched gold layer
+    (fact_credit_risk) instead of every report page independently re-deriving
+    RWA/provisions from raw loans - both paths use the identical
+    client_exposure() logic, this just avoids recomputing it redundantly.
     """
     report_date = report_date or date.today().isoformat()
 
     exposures = []
     credit_rwa = 0.0
     total_provisions = 0.0
-    for l in loans:
-        e = client_exposure(l, metrics_by_lid.get(l.get('id')))
-        exposures.append(e)
-        credit_rwa += e['rwa']
-        total_provisions += e['provision']
+    if precomputed_exposures is not None:
+        for e in precomputed_exposures:
+            exposures.append(e)
+            credit_rwa += e['rwa']
+            total_provisions += e['provision']
+    else:
+        for l in loans:
+            e = client_exposure(l, metrics_by_lid.get(l.get('id')))
+            exposures.append(e)
+            credit_rwa += e['rwa']
+            total_provisions += e['provision']
 
     loan_book   = sum(float(l.get('outstanding') or 0) for l in loans)
     deposits    = sum(float(a.get('balance') or 0) for a in accounts)
