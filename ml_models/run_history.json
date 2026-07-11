@@ -1,5 +1,895 @@
 [
   {
+    "run_id": "run_20260711_120803",
+    "timestamp": "2026-07-11T12:08:03",
+    "triggered_by": "phase4_model_registry_smoketest",
+    "data_source": "bank_loan_metrics (CUSTOMER-LEVEL)",
+    "use_transaction_level": false,
+    "model_type": "xgboost",
+    "bank_ids": null,
+    "exposure_class": "RETAIL_OTHER",
+    "status": "success",
+    "files_used": [
+      {
+        "filename": "bank_loan_metrics (bank.db - CUSTOMER LEVEL) [segment: RETAIL_OTHER]",
+        "rows": 3658
+      }
+    ],
+    "files_skipped": [],
+    "total_rows": 3658,
+    "train_rows": 2926,
+    "test_rows": 732,
+    "metrics": {
+      "auc_roc": 0.7796,
+      "pr_auc": 0.4371,
+      "accuracy": 0.6598,
+      "precision": 0.2565,
+      "recall": 0.798,
+      "f1": 0.3882,
+      "brier_score": 0.128022,
+      "n_test": 732,
+      "n_defaults": 99,
+      "default_rate": 0.1352,
+      "cv_auc_mean": 0.7631,
+      "cv_auc_std": 0.0208
+    },
+    "confusion_matrix": [
+      [
+        404,
+        229
+      ],
+      [
+        20,
+        79
+      ]
+    ],
+    "model_promoted": true,
+    "duration_seconds": 4.65,
+    "error": null,
+    "split_strategy": "row_level_random",
+    "cv_metrics": {
+      "n_splits": 5,
+      "fold_aucs": [
+        0.7445,
+        0.778,
+        0.7863,
+        0.7324,
+        0.7741
+      ],
+      "mean_auc": 0.7631,
+      "std_auc": 0.0208,
+      "note": null
+    },
+    "epv": {
+      "epv": 10.81,
+      "n_events": 389,
+      "n_features": 36,
+      "overfitting_risk": "moderate",
+      "note": "Rule of thumb: EPV >= 10 acceptable, >= 20 comfortable (Peduzzi et al.)."
+    },
+    "baseline_cibil_only_auc": 0.6414,
+    "auc_lift_over_baseline": 0.1382,
+    "lift_significance": {
+      "n_valid_resamples": 1000,
+      "n_bootstrap": 1000,
+      "mean_lift": 0.1381,
+      "ci_95": [
+        0.0673,
+        0.2105
+      ],
+      "significant": true,
+      "p_value_two_sided": 0.0,
+      "note": null
+    },
+    "promotion_check": {
+      "auc": 0.7796,
+      "n_trained": 2926,
+      "min_rows_floor": 100,
+      "rows_ok": true
+    }
+  },
+  {
+    "run_id": "run_20260711_102340",
+    "timestamp": "2026-07-11T10:23:40",
+    "triggered_by": "phase1_feature_store_backfill",
+    "data_source": "bank_loan_metrics (CUSTOMER-LEVEL)",
+    "use_transaction_level": false,
+    "model_type": "xgboost",
+    "bank_ids": null,
+    "exposure_class": "RETAIL_OTHER",
+    "status": "success",
+    "files_used": [
+      {
+        "filename": "bank_loan_metrics (bank.db - CUSTOMER LEVEL) [segment: RETAIL_OTHER]",
+        "rows": 3658
+      }
+    ],
+    "files_skipped": [],
+    "total_rows": 3658,
+    "train_rows": 2926,
+    "test_rows": 732,
+    "metrics": {
+      "auc_roc": 0.7713,
+      "pr_auc": 0.457,
+      "accuracy": 0.6434,
+      "precision": 0.2484,
+      "recall": 0.8081,
+      "f1": 0.38,
+      "brier_score": 0.130319,
+      "n_test": 732,
+      "n_defaults": 99,
+      "default_rate": 0.1352,
+      "cv_auc_mean": 0.7636,
+      "cv_auc_std": 0.0191
+    },
+    "confusion_matrix": [
+      [
+        391,
+        242
+      ],
+      [
+        19,
+        80
+      ]
+    ],
+    "model_promoted": true,
+    "duration_seconds": 3.23,
+    "error": null,
+    "split_strategy": "row_level_random",
+    "cv_metrics": {
+      "n_splits": 5,
+      "fold_aucs": [
+        0.7451,
+        0.7848,
+        0.7889,
+        0.7501,
+        0.7491
+      ],
+      "mean_auc": 0.7636,
+      "std_auc": 0.0191,
+      "note": null
+    },
+    "epv": {
+      "epv": 10.81,
+      "n_events": 389,
+      "n_features": 36,
+      "overfitting_risk": "moderate",
+      "note": "Rule of thumb: EPV >= 10 acceptable, >= 20 comfortable (Peduzzi et al.)."
+    },
+    "baseline_cibil_only_auc": 0.6414,
+    "auc_lift_over_baseline": 0.1299,
+    "lift_significance": {
+      "n_valid_resamples": 1000,
+      "n_bootstrap": 1000,
+      "mean_lift": 0.1304,
+      "ci_95": [
+        0.0566,
+        0.2037
+      ],
+      "significant": true,
+      "p_value_two_sided": 0.0,
+      "note": null
+    },
+    "promotion_check": {
+      "auc": 0.7713,
+      "n_trained": 2926,
+      "min_rows_floor": 100,
+      "rows_ok": true
+    }
+  },
+  {
+    "run_id": "run_20260711_102337",
+    "timestamp": "2026-07-11T10:23:37",
+    "triggered_by": "phase1_feature_store_backfill",
+    "data_source": "bank_loan_metrics (CUSTOMER-LEVEL)",
+    "use_transaction_level": false,
+    "model_type": "xgboost",
+    "bank_ids": null,
+    "exposure_class": "RETAIL_MORTGAGES",
+    "status": "success",
+    "files_used": [
+      {
+        "filename": "bank_loan_metrics (bank.db - CUSTOMER LEVEL) [segment: RETAIL_MORTGAGES]",
+        "rows": 4088
+      }
+    ],
+    "files_skipped": [],
+    "total_rows": 4088,
+    "train_rows": 3270,
+    "test_rows": 818,
+    "metrics": {
+      "auc_roc": 0.7523,
+      "pr_auc": 0.2781,
+      "accuracy": 0.6259,
+      "precision": 0.2119,
+      "recall": 0.7353,
+      "f1": 0.3289,
+      "brier_score": 0.132902,
+      "n_test": 818,
+      "n_defaults": 102,
+      "default_rate": 0.1247,
+      "cv_auc_mean": 0.7452,
+      "cv_auc_std": 0.02
+    },
+    "confusion_matrix": [
+      [
+        437,
+        279
+      ],
+      [
+        27,
+        75
+      ]
+    ],
+    "model_promoted": true,
+    "duration_seconds": 3.44,
+    "error": null,
+    "split_strategy": "row_level_random",
+    "cv_metrics": {
+      "n_splits": 5,
+      "fold_aucs": [
+        0.7173,
+        0.7593,
+        0.7247,
+        0.7648,
+        0.7599
+      ],
+      "mean_auc": 0.7452,
+      "std_auc": 0.02,
+      "note": null
+    },
+    "epv": {
+      "epv": 10.72,
+      "n_events": 386,
+      "n_features": 36,
+      "overfitting_risk": "moderate",
+      "note": "Rule of thumb: EPV >= 10 acceptable, >= 20 comfortable (Peduzzi et al.)."
+    },
+    "baseline_cibil_only_auc": 0.6369,
+    "auc_lift_over_baseline": 0.1154,
+    "lift_significance": {
+      "n_valid_resamples": 1000,
+      "n_bootstrap": 1000,
+      "mean_lift": 0.1146,
+      "ci_95": [
+        0.0553,
+        0.1746
+      ],
+      "significant": true,
+      "p_value_two_sided": 0.0,
+      "note": null
+    },
+    "promotion_check": {
+      "auc": 0.7523,
+      "n_trained": 3270,
+      "min_rows_floor": 100,
+      "rows_ok": true
+    }
+  },
+  {
+    "run_id": "run_20260711_102333",
+    "timestamp": "2026-07-11T10:23:33",
+    "triggered_by": "phase1_feature_store_backfill",
+    "data_source": "bank_loan_metrics (CUSTOMER-LEVEL)",
+    "use_transaction_level": false,
+    "model_type": "xgboost",
+    "bank_ids": null,
+    "exposure_class": "SME",
+    "status": "success",
+    "files_used": [
+      {
+        "filename": "bank_loan_metrics (bank.db - CUSTOMER LEVEL) [segment: SME]",
+        "rows": 3925
+      }
+    ],
+    "files_skipped": [],
+    "total_rows": 3925,
+    "train_rows": 3140,
+    "test_rows": 785,
+    "metrics": {
+      "auc_roc": 0.7714,
+      "pr_auc": 0.3214,
+      "accuracy": 0.6051,
+      "precision": 0.2098,
+      "recall": 0.7938,
+      "f1": 0.3319,
+      "brier_score": 0.136201,
+      "n_test": 785,
+      "n_defaults": 97,
+      "default_rate": 0.1236,
+      "cv_auc_mean": 0.7396,
+      "cv_auc_std": 0.0154
+    },
+    "confusion_matrix": [
+      [
+        398,
+        290
+      ],
+      [
+        20,
+        77
+      ]
+    ],
+    "model_promoted": true,
+    "duration_seconds": 3.27,
+    "error": null,
+    "split_strategy": "row_level_random",
+    "cv_metrics": {
+      "n_splits": 5,
+      "fold_aucs": [
+        0.7327,
+        0.7284,
+        0.7648,
+        0.7228,
+        0.7493
+      ],
+      "mean_auc": 0.7396,
+      "std_auc": 0.0154,
+      "note": null
+    },
+    "epv": {
+      "epv": 10.86,
+      "n_events": 391,
+      "n_features": 36,
+      "overfitting_risk": "moderate",
+      "note": "Rule of thumb: EPV >= 10 acceptable, >= 20 comfortable (Peduzzi et al.)."
+    },
+    "baseline_cibil_only_auc": 0.6542,
+    "auc_lift_over_baseline": 0.1172,
+    "lift_significance": {
+      "n_valid_resamples": 1000,
+      "n_bootstrap": 1000,
+      "mean_lift": 0.1185,
+      "ci_95": [
+        0.0568,
+        0.1868
+      ],
+      "significant": true,
+      "p_value_two_sided": 0.0,
+      "note": null
+    },
+    "promotion_check": {
+      "auc": 0.7714,
+      "n_trained": 3140,
+      "min_rows_floor": 100,
+      "rows_ok": true
+    }
+  },
+  {
+    "run_id": "run_20260711_102330",
+    "timestamp": "2026-07-11T10:23:30",
+    "triggered_by": "phase1_feature_store_backfill",
+    "data_source": "bank_loan_metrics (CUSTOMER-LEVEL)",
+    "use_transaction_level": false,
+    "model_type": "xgboost",
+    "bank_ids": null,
+    "exposure_class": "CORPORATE",
+    "status": "success",
+    "files_used": [
+      {
+        "filename": "bank_loan_metrics (bank.db - CUSTOMER LEVEL) [segment: CORPORATE]",
+        "rows": 3678
+      }
+    ],
+    "files_skipped": [],
+    "total_rows": 3678,
+    "train_rows": 2942,
+    "test_rows": 736,
+    "metrics": {
+      "auc_roc": 0.7431,
+      "pr_auc": 0.3417,
+      "accuracy": 0.6033,
+      "precision": 0.2035,
+      "recall": 0.7582,
+      "f1": 0.3209,
+      "brier_score": 0.135056,
+      "n_test": 736,
+      "n_defaults": 91,
+      "default_rate": 0.1236,
+      "cv_auc_mean": 0.7669,
+      "cv_auc_std": 0.0216
+    },
+    "confusion_matrix": [
+      [
+        375,
+        270
+      ],
+      [
+        22,
+        69
+      ]
+    ],
+    "model_promoted": true,
+    "duration_seconds": 3.58,
+    "error": null,
+    "split_strategy": "row_level_random",
+    "cv_metrics": {
+      "n_splits": 5,
+      "fold_aucs": [
+        0.7667,
+        0.7895,
+        0.7761,
+        0.776,
+        0.7262
+      ],
+      "mean_auc": 0.7669,
+      "std_auc": 0.0216,
+      "note": null
+    },
+    "epv": {
+      "epv": 11.03,
+      "n_events": 397,
+      "n_features": 36,
+      "overfitting_risk": "moderate",
+      "note": "Rule of thumb: EPV >= 10 acceptable, >= 20 comfortable (Peduzzi et al.)."
+    },
+    "baseline_cibil_only_auc": 0.6218,
+    "auc_lift_over_baseline": 0.1213,
+    "lift_significance": {
+      "n_valid_resamples": 1000,
+      "n_bootstrap": 1000,
+      "mean_lift": 0.1212,
+      "ci_95": [
+        0.0371,
+        0.2044
+      ],
+      "significant": true,
+      "p_value_two_sided": 0.006,
+      "note": null
+    },
+    "promotion_check": {
+      "auc": 0.7431,
+      "n_trained": 2942,
+      "min_rows_floor": 100,
+      "rows_ok": true
+    }
+  },
+  {
+    "run_id": "run_20260711_101349",
+    "timestamp": "2026-07-11T10:13:49",
+    "triggered_by": "phase1_feature_schema_smoketest",
+    "data_source": "bank_loan_metrics (CUSTOMER-LEVEL)",
+    "use_transaction_level": false,
+    "model_type": "xgboost",
+    "bank_ids": null,
+    "exposure_class": "SME",
+    "status": "success",
+    "files_used": [
+      {
+        "filename": "bank_loan_metrics (bank.db - CUSTOMER LEVEL) [segment: SME]",
+        "rows": 3925
+      }
+    ],
+    "files_skipped": [],
+    "total_rows": 3925,
+    "train_rows": 3140,
+    "test_rows": 785,
+    "metrics": {
+      "auc_roc": 0.7664,
+      "pr_auc": 0.3214,
+      "accuracy": 0.6102,
+      "precision": 0.2073,
+      "recall": 0.7629,
+      "f1": 0.326,
+      "brier_score": 0.134413,
+      "n_test": 785,
+      "n_defaults": 97,
+      "default_rate": 0.1236,
+      "cv_auc_mean": 0.7452,
+      "cv_auc_std": 0.0204
+    },
+    "confusion_matrix": [
+      [
+        405,
+        283
+      ],
+      [
+        23,
+        74
+      ]
+    ],
+    "model_promoted": true,
+    "duration_seconds": 13.0,
+    "error": null,
+    "split_strategy": "row_level_random",
+    "cv_metrics": {
+      "n_splits": 5,
+      "fold_aucs": [
+        0.7198,
+        0.7356,
+        0.7765,
+        0.7336,
+        0.7605
+      ],
+      "mean_auc": 0.7452,
+      "std_auc": 0.0204,
+      "note": null
+    },
+    "epv": {
+      "epv": 10.86,
+      "n_events": 391,
+      "n_features": 36,
+      "overfitting_risk": "moderate",
+      "note": "Rule of thumb: EPV >= 10 acceptable, >= 20 comfortable (Peduzzi et al.)."
+    },
+    "baseline_cibil_only_auc": 0.6542,
+    "auc_lift_over_baseline": 0.1122,
+    "lift_significance": {
+      "n_valid_resamples": 1000,
+      "n_bootstrap": 1000,
+      "mean_lift": 0.1133,
+      "ci_95": [
+        0.0539,
+        0.1753
+      ],
+      "significant": true,
+      "p_value_two_sided": 0.0,
+      "note": null
+    },
+    "promotion_check": {
+      "auc": 0.7664,
+      "n_trained": 3140,
+      "min_rows_floor": 100,
+      "rows_ok": true
+    }
+  },
+  {
+    "run_id": "run_20260711_064903",
+    "timestamp": "2026-07-11T06:49:03",
+    "triggered_by": "manual_macro_retrain",
+    "data_source": "bank_loan_metrics (CUSTOMER-LEVEL)",
+    "use_transaction_level": false,
+    "model_type": "xgboost",
+    "bank_ids": null,
+    "exposure_class": "RETAIL_OTHER",
+    "status": "success",
+    "files_used": [
+      {
+        "filename": "bank_loan_metrics (bank.db - CUSTOMER LEVEL) [segment: RETAIL_OTHER]",
+        "rows": 3658
+      }
+    ],
+    "files_skipped": [],
+    "total_rows": 3658,
+    "train_rows": 2926,
+    "test_rows": 732,
+    "metrics": {
+      "auc_roc": 0.7707,
+      "pr_auc": 0.4185,
+      "accuracy": 0.6571,
+      "precision": 0.25,
+      "recall": 0.7677,
+      "f1": 0.3772,
+      "brier_score": 0.130782,
+      "n_test": 732,
+      "n_defaults": 99,
+      "default_rate": 0.1352,
+      "cv_auc_mean": 0.7676,
+      "cv_auc_std": 0.0225
+    },
+    "confusion_matrix": [
+      [
+        405,
+        228
+      ],
+      [
+        23,
+        76
+      ]
+    ],
+    "model_promoted": true,
+    "duration_seconds": 3.26,
+    "error": null,
+    "split_strategy": "row_level_random",
+    "cv_metrics": {
+      "n_splits": 5,
+      "fold_aucs": [
+        0.7372,
+        0.7899,
+        0.7938,
+        0.7471,
+        0.7699
+      ],
+      "mean_auc": 0.7676,
+      "std_auc": 0.0225,
+      "note": null
+    },
+    "epv": {
+      "epv": 10.81,
+      "n_events": 389,
+      "n_features": 36,
+      "overfitting_risk": "moderate",
+      "note": "Rule of thumb: EPV >= 10 acceptable, >= 20 comfortable (Peduzzi et al.)."
+    },
+    "baseline_cibil_only_auc": 0.6414,
+    "auc_lift_over_baseline": 0.1293,
+    "lift_significance": {
+      "n_valid_resamples": 1000,
+      "n_bootstrap": 1000,
+      "mean_lift": 0.1294,
+      "ci_95": [
+        0.0559,
+        0.2029
+      ],
+      "significant": true,
+      "p_value_two_sided": 0.004,
+      "note": null
+    },
+    "promotion_check": {
+      "auc": 0.7707,
+      "n_trained": 2926,
+      "min_rows_floor": 100,
+      "rows_ok": true
+    }
+  },
+  {
+    "run_id": "run_20260711_064859",
+    "timestamp": "2026-07-11T06:48:59",
+    "triggered_by": "manual_macro_retrain",
+    "data_source": "bank_loan_metrics (CUSTOMER-LEVEL)",
+    "use_transaction_level": false,
+    "model_type": "xgboost",
+    "bank_ids": null,
+    "exposure_class": "RETAIL_MORTGAGES",
+    "status": "success",
+    "files_used": [
+      {
+        "filename": "bank_loan_metrics (bank.db - CUSTOMER LEVEL) [segment: RETAIL_MORTGAGES]",
+        "rows": 4088
+      }
+    ],
+    "files_skipped": [],
+    "total_rows": 4088,
+    "train_rows": 3270,
+    "test_rows": 818,
+    "metrics": {
+      "auc_roc": 0.7338,
+      "pr_auc": 0.2657,
+      "accuracy": 0.6467,
+      "precision": 0.2258,
+      "recall": 0.7549,
+      "f1": 0.3476,
+      "brier_score": 0.134843,
+      "n_test": 818,
+      "n_defaults": 102,
+      "default_rate": 0.1247,
+      "cv_auc_mean": 0.7501,
+      "cv_auc_std": 0.0201
+    },
+    "confusion_matrix": [
+      [
+        452,
+        264
+      ],
+      [
+        25,
+        77
+      ]
+    ],
+    "model_promoted": true,
+    "duration_seconds": 3.18,
+    "error": null,
+    "split_strategy": "row_level_random",
+    "cv_metrics": {
+      "n_splits": 5,
+      "fold_aucs": [
+        0.7289,
+        0.7548,
+        0.7247,
+        0.7745,
+        0.7678
+      ],
+      "mean_auc": 0.7501,
+      "std_auc": 0.0201,
+      "note": null
+    },
+    "epv": {
+      "epv": 10.72,
+      "n_events": 386,
+      "n_features": 36,
+      "overfitting_risk": "moderate",
+      "note": "Rule of thumb: EPV >= 10 acceptable, >= 20 comfortable (Peduzzi et al.)."
+    },
+    "baseline_cibil_only_auc": 0.6369,
+    "auc_lift_over_baseline": 0.0969,
+    "lift_significance": {
+      "n_valid_resamples": 1000,
+      "n_bootstrap": 1000,
+      "mean_lift": 0.0958,
+      "ci_95": [
+        0.0323,
+        0.1563
+      ],
+      "significant": true,
+      "p_value_two_sided": 0.002,
+      "note": null
+    },
+    "promotion_check": {
+      "auc": 0.7338,
+      "n_trained": 3270,
+      "min_rows_floor": 100,
+      "rows_ok": true
+    }
+  },
+  {
+    "run_id": "run_20260711_064856",
+    "timestamp": "2026-07-11T06:48:56",
+    "triggered_by": "manual_macro_retrain",
+    "data_source": "bank_loan_metrics (CUSTOMER-LEVEL)",
+    "use_transaction_level": false,
+    "model_type": "xgboost",
+    "bank_ids": null,
+    "exposure_class": "SME",
+    "status": "success",
+    "files_used": [
+      {
+        "filename": "bank_loan_metrics (bank.db - CUSTOMER LEVEL) [segment: SME]",
+        "rows": 3925
+      }
+    ],
+    "files_skipped": [],
+    "total_rows": 3925,
+    "train_rows": 3140,
+    "test_rows": 785,
+    "metrics": {
+      "auc_roc": 0.7647,
+      "pr_auc": 0.3018,
+      "accuracy": 0.6217,
+      "precision": 0.2175,
+      "recall": 0.7938,
+      "f1": 0.3415,
+      "brier_score": 0.135313,
+      "n_test": 785,
+      "n_defaults": 97,
+      "default_rate": 0.1236,
+      "cv_auc_mean": 0.7507,
+      "cv_auc_std": 0.0243
+    },
+    "confusion_matrix": [
+      [
+        411,
+        277
+      ],
+      [
+        20,
+        77
+      ]
+    ],
+    "model_promoted": true,
+    "duration_seconds": 3.25,
+    "error": null,
+    "split_strategy": "row_level_random",
+    "cv_metrics": {
+      "n_splits": 5,
+      "fold_aucs": [
+        0.717,
+        0.7397,
+        0.7896,
+        0.7442,
+        0.7627
+      ],
+      "mean_auc": 0.7507,
+      "std_auc": 0.0243,
+      "note": null
+    },
+    "epv": {
+      "epv": 10.86,
+      "n_events": 391,
+      "n_features": 36,
+      "overfitting_risk": "moderate",
+      "note": "Rule of thumb: EPV >= 10 acceptable, >= 20 comfortable (Peduzzi et al.)."
+    },
+    "baseline_cibil_only_auc": 0.6542,
+    "auc_lift_over_baseline": 0.1105,
+    "lift_significance": {
+      "n_valid_resamples": 1000,
+      "n_bootstrap": 1000,
+      "mean_lift": 0.1123,
+      "ci_95": [
+        0.0498,
+        0.1785
+      ],
+      "significant": true,
+      "p_value_two_sided": 0.0,
+      "note": null
+    },
+    "promotion_check": {
+      "auc": 0.7647,
+      "n_trained": 3140,
+      "min_rows_floor": 100,
+      "rows_ok": true
+    }
+  },
+  {
+    "run_id": "run_20260711_064851",
+    "timestamp": "2026-07-11T06:48:51",
+    "triggered_by": "manual_macro_retrain",
+    "data_source": "bank_loan_metrics (CUSTOMER-LEVEL)",
+    "use_transaction_level": false,
+    "model_type": "xgboost",
+    "bank_ids": null,
+    "exposure_class": "CORPORATE",
+    "status": "success",
+    "files_used": [
+      {
+        "filename": "bank_loan_metrics (bank.db - CUSTOMER LEVEL) [segment: CORPORATE]",
+        "rows": 3678
+      }
+    ],
+    "files_skipped": [],
+    "total_rows": 3678,
+    "train_rows": 2942,
+    "test_rows": 736,
+    "metrics": {
+      "auc_roc": 0.7518,
+      "pr_auc": 0.3136,
+      "accuracy": 0.5992,
+      "precision": 0.1982,
+      "recall": 0.7363,
+      "f1": 0.3124,
+      "brier_score": 0.137486,
+      "n_test": 736,
+      "n_defaults": 91,
+      "default_rate": 0.1236,
+      "cv_auc_mean": 0.7639,
+      "cv_auc_std": 0.0169
+    },
+    "confusion_matrix": [
+      [
+        374,
+        271
+      ],
+      [
+        24,
+        67
+      ]
+    ],
+    "model_promoted": true,
+    "duration_seconds": 5.04,
+    "error": null,
+    "split_strategy": "row_level_random",
+    "cv_metrics": {
+      "n_splits": 5,
+      "fold_aucs": [
+        0.7615,
+        0.7536,
+        0.7679,
+        0.7935,
+        0.7433
+      ],
+      "mean_auc": 0.7639,
+      "std_auc": 0.0169,
+      "note": null
+    },
+    "epv": {
+      "epv": 11.03,
+      "n_events": 397,
+      "n_features": 36,
+      "overfitting_risk": "moderate",
+      "note": "Rule of thumb: EPV >= 10 acceptable, >= 20 comfortable (Peduzzi et al.)."
+    },
+    "baseline_cibil_only_auc": 0.6218,
+    "auc_lift_over_baseline": 0.13,
+    "lift_significance": {
+      "n_valid_resamples": 1000,
+      "n_bootstrap": 1000,
+      "mean_lift": 0.1301,
+      "ci_95": [
+        0.0507,
+        0.2107
+      ],
+      "significant": true,
+      "p_value_two_sided": 0.004,
+      "note": null
+    },
+    "promotion_check": {
+      "auc": 0.7518,
+      "n_trained": 2942,
+      "min_rows_floor": 100,
+      "rows_ok": true
+    }
+  },
+  {
     "run_id": "run_20260709_234743",
     "timestamp": "2026-07-09T23:47:43",
     "triggered_by": "manual-test",
@@ -3235,676 +4125,6 @@
     "promotion_check": {
       "auc": 0.915,
       "n_trained": 785,
-      "min_rows_floor": 100,
-      "rows_ok": true
-    }
-  },
-  {
-    "run_id": "run_20260705_114340",
-    "timestamp": "2026-07-05T11:43:40",
-    "triggered_by": "manual",
-    "data_source": "bank_loan_metrics (CUSTOMER-LEVEL)",
-    "use_transaction_level": false,
-    "model_type": "xgboost",
-    "bank_ids": null,
-    "exposure_class": "SME",
-    "status": "success",
-    "files_used": [
-      {
-        "filename": "bank_loan_metrics (bank.db - CUSTOMER LEVEL) [segment: SME]",
-        "rows": 768
-      }
-    ],
-    "files_skipped": [],
-    "total_rows": 768,
-    "train_rows": 614,
-    "test_rows": 154,
-    "metrics": {
-      "auc_roc": 0.9377,
-      "accuracy": 0.8831,
-      "precision": 0.36,
-      "recall": 0.8182,
-      "f1": 0.5,
-      "brier_score": 0.045508,
-      "n_test": 154,
-      "n_defaults": 11,
-      "default_rate": 0.0714,
-      "cv_auc_mean": 0.9036,
-      "cv_auc_std": 0.0494
-    },
-    "confusion_matrix": [
-      [
-        127,
-        16
-      ],
-      [
-        2,
-        9
-      ]
-    ],
-    "model_promoted": true,
-    "duration_seconds": 1.61,
-    "error": null,
-    "split_strategy": "row_level_random",
-    "cv_metrics": {
-      "n_splits": 5,
-      "fold_aucs": [
-        0.9542,
-        0.895,
-        0.8908,
-        0.822,
-        0.9558
-      ],
-      "mean_auc": 0.9036,
-      "std_auc": 0.0494,
-      "note": null
-    },
-    "promotion_check": {
-      "auc": 0.9377,
-      "n_trained": 614,
-      "min_rows_floor": 100,
-      "rows_ok": true
-    }
-  },
-  {
-    "run_id": "run_20260705_114330",
-    "timestamp": "2026-07-05T11:43:30",
-    "triggered_by": "manual",
-    "data_source": "bank_loan_metrics (CUSTOMER-LEVEL)",
-    "use_transaction_level": false,
-    "model_type": "xgboost",
-    "bank_ids": null,
-    "exposure_class": "CORPORATE",
-    "status": "success",
-    "files_used": [
-      {
-        "filename": "bank_loan_metrics (bank.db - CUSTOMER LEVEL) [segment: CORPORATE]",
-        "rows": 1422
-      }
-    ],
-    "files_skipped": [],
-    "total_rows": 1422,
-    "train_rows": 1137,
-    "test_rows": 285,
-    "metrics": {
-      "auc_roc": 0.9496,
-      "accuracy": 0.9544,
-      "precision": 0.3125,
-      "recall": 0.7143,
-      "f1": 0.4348,
-      "brier_score": 0.027795,
-      "n_test": 285,
-      "n_defaults": 7,
-      "default_rate": 0.0246,
-      "cv_auc_mean": 0.9618,
-      "cv_auc_std": 0.0191
-    },
-    "confusion_matrix": [
-      [
-        267,
-        11
-      ],
-      [
-        2,
-        5
-      ]
-    ],
-    "model_promoted": true,
-    "duration_seconds": 1.77,
-    "error": null,
-    "split_strategy": "row_level_random",
-    "cv_metrics": {
-      "n_splits": 5,
-      "fold_aucs": [
-        0.9785,
-        0.9796,
-        0.954,
-        0.9684,
-        0.9282
-      ],
-      "mean_auc": 0.9618,
-      "std_auc": 0.0191,
-      "note": null
-    },
-    "promotion_check": {
-      "auc": 0.9496,
-      "n_trained": 1137,
-      "min_rows_floor": 100,
-      "rows_ok": true
-    }
-  },
-  {
-    "run_id": "run_20260705_113019",
-    "timestamp": "2026-07-05T11:30:19",
-    "triggered_by": "manual",
-    "data_source": "bank_loan_metrics (CUSTOMER-LEVEL)",
-    "use_transaction_level": false,
-    "model_type": "xgboost",
-    "bank_ids": null,
-    "exposure_class": "RETAIL_OTHER",
-    "status": "success",
-    "files_used": [
-      {
-        "filename": "bank_loan_metrics (bank.db - CUSTOMER LEVEL) [segment: RETAIL_OTHER]",
-        "rows": 1028
-      }
-    ],
-    "files_skipped": [],
-    "total_rows": 1028,
-    "train_rows": 822,
-    "test_rows": 206,
-    "metrics": {
-      "auc_roc": 0.8135,
-      "accuracy": 0.9126,
-      "precision": 0.381,
-      "recall": 0.6154,
-      "f1": 0.4706,
-      "brier_score": 0.044414,
-      "n_test": 206,
-      "n_defaults": 13,
-      "default_rate": 0.0631,
-      "cv_auc_mean": 0.8584,
-      "cv_auc_std": 0.0579
-    },
-    "confusion_matrix": [
-      [
-        180,
-        13
-      ],
-      [
-        5,
-        8
-      ]
-    ],
-    "model_promoted": true,
-    "duration_seconds": 1.55,
-    "error": null,
-    "split_strategy": "row_level_random",
-    "cv_metrics": {
-      "n_splits": 5,
-      "fold_aucs": [
-        0.8501,
-        0.7999,
-        0.7995,
-        0.9523,
-        0.8902
-      ],
-      "mean_auc": 0.8584,
-      "std_auc": 0.0579,
-      "note": null
-    },
-    "promotion_check": {
-      "auc": 0.8135,
-      "n_trained": 822,
-      "min_rows_floor": 100,
-      "rows_ok": true
-    }
-  },
-  {
-    "run_id": "run_20260705_113009",
-    "timestamp": "2026-07-05T11:30:09",
-    "triggered_by": "manual",
-    "data_source": "bank_loan_metrics (CUSTOMER-LEVEL)",
-    "use_transaction_level": false,
-    "model_type": "xgboost",
-    "bank_ids": null,
-    "exposure_class": "RETAIL_MORTGAGES",
-    "status": "success",
-    "files_used": [
-      {
-        "filename": "bank_loan_metrics (bank.db - CUSTOMER LEVEL) [segment: RETAIL_MORTGAGES]",
-        "rows": 982
-      }
-    ],
-    "files_skipped": [],
-    "total_rows": 982,
-    "train_rows": 785,
-    "test_rows": 197,
-    "metrics": {
-      "auc_roc": 0.915,
-      "accuracy": 0.9137,
-      "precision": 0.5517,
-      "recall": 0.8,
-      "f1": 0.6531,
-      "brier_score": 0.053395,
-      "n_test": 197,
-      "n_defaults": 20,
-      "default_rate": 0.1015,
-      "cv_auc_mean": 0.9417,
-      "cv_auc_std": 0.0378
-    },
-    "confusion_matrix": [
-      [
-        164,
-        13
-      ],
-      [
-        4,
-        16
-      ]
-    ],
-    "model_promoted": true,
-    "duration_seconds": 1.78,
-    "error": null,
-    "split_strategy": "row_level_random",
-    "cv_metrics": {
-      "n_splits": 5,
-      "fold_aucs": [
-        0.9223,
-        0.8861,
-        0.9784,
-        0.989,
-        0.9329
-      ],
-      "mean_auc": 0.9417,
-      "std_auc": 0.0378,
-      "note": null
-    },
-    "promotion_check": {
-      "auc": 0.915,
-      "n_trained": 785,
-      "min_rows_floor": 100,
-      "rows_ok": true
-    }
-  },
-  {
-    "run_id": "run_20260705_112959",
-    "timestamp": "2026-07-05T11:29:59",
-    "triggered_by": "manual",
-    "data_source": "bank_loan_metrics (CUSTOMER-LEVEL)",
-    "use_transaction_level": false,
-    "model_type": "xgboost",
-    "bank_ids": null,
-    "exposure_class": "SME",
-    "status": "success",
-    "files_used": [
-      {
-        "filename": "bank_loan_metrics (bank.db - CUSTOMER LEVEL) [segment: SME]",
-        "rows": 768
-      }
-    ],
-    "files_skipped": [],
-    "total_rows": 768,
-    "train_rows": 614,
-    "test_rows": 154,
-    "metrics": {
-      "auc_roc": 0.9377,
-      "accuracy": 0.8831,
-      "precision": 0.36,
-      "recall": 0.8182,
-      "f1": 0.5,
-      "brier_score": 0.045508,
-      "n_test": 154,
-      "n_defaults": 11,
-      "default_rate": 0.0714,
-      "cv_auc_mean": 0.9036,
-      "cv_auc_std": 0.0494
-    },
-    "confusion_matrix": [
-      [
-        127,
-        16
-      ],
-      [
-        2,
-        9
-      ]
-    ],
-    "model_promoted": true,
-    "duration_seconds": 1.6,
-    "error": null,
-    "split_strategy": "row_level_random",
-    "cv_metrics": {
-      "n_splits": 5,
-      "fold_aucs": [
-        0.9542,
-        0.895,
-        0.8908,
-        0.822,
-        0.9558
-      ],
-      "mean_auc": 0.9036,
-      "std_auc": 0.0494,
-      "note": null
-    },
-    "promotion_check": {
-      "auc": 0.9377,
-      "n_trained": 614,
-      "min_rows_floor": 100,
-      "rows_ok": true
-    }
-  },
-  {
-    "run_id": "run_20260705_112949",
-    "timestamp": "2026-07-05T11:29:49",
-    "triggered_by": "manual",
-    "data_source": "bank_loan_metrics (CUSTOMER-LEVEL)",
-    "use_transaction_level": false,
-    "model_type": "xgboost",
-    "bank_ids": null,
-    "exposure_class": "CORPORATE",
-    "status": "success",
-    "files_used": [
-      {
-        "filename": "bank_loan_metrics (bank.db - CUSTOMER LEVEL) [segment: CORPORATE]",
-        "rows": 1422
-      }
-    ],
-    "files_skipped": [],
-    "total_rows": 1422,
-    "train_rows": 1137,
-    "test_rows": 285,
-    "metrics": {
-      "auc_roc": 0.9496,
-      "accuracy": 0.9544,
-      "precision": 0.3125,
-      "recall": 0.7143,
-      "f1": 0.4348,
-      "brier_score": 0.027795,
-      "n_test": 285,
-      "n_defaults": 7,
-      "default_rate": 0.0246,
-      "cv_auc_mean": 0.9618,
-      "cv_auc_std": 0.0191
-    },
-    "confusion_matrix": [
-      [
-        267,
-        11
-      ],
-      [
-        2,
-        5
-      ]
-    ],
-    "model_promoted": true,
-    "duration_seconds": 2.17,
-    "error": null,
-    "split_strategy": "row_level_random",
-    "cv_metrics": {
-      "n_splits": 5,
-      "fold_aucs": [
-        0.9785,
-        0.9796,
-        0.954,
-        0.9684,
-        0.9282
-      ],
-      "mean_auc": 0.9618,
-      "std_auc": 0.0191,
-      "note": null
-    },
-    "promotion_check": {
-      "auc": 0.9496,
-      "n_trained": 1137,
-      "min_rows_floor": 100,
-      "rows_ok": true
-    }
-  },
-  {
-    "run_id": "run_20260705_112449",
-    "timestamp": "2026-07-05T11:24:49",
-    "triggered_by": "manual",
-    "data_source": "bank_loan_metrics (CUSTOMER-LEVEL)",
-    "use_transaction_level": false,
-    "model_type": "xgboost",
-    "bank_ids": null,
-    "exposure_class": "RETAIL_OTHER",
-    "status": "success",
-    "files_used": [
-      {
-        "filename": "bank_loan_metrics (bank.db - CUSTOMER LEVEL) [segment: RETAIL_OTHER]",
-        "rows": 1028
-      }
-    ],
-    "files_skipped": [],
-    "total_rows": 1028,
-    "train_rows": 822,
-    "test_rows": 206,
-    "metrics": {
-      "auc_roc": 0.8622,
-      "accuracy": 0.966,
-      "precision": 0.5,
-      "recall": 0.8571,
-      "f1": 0.6316,
-      "brier_score": 0.014688,
-      "n_test": 206,
-      "n_defaults": 7,
-      "default_rate": 0.034,
-      "cv_auc_mean": 0.9157,
-      "cv_auc_std": 0.048
-    },
-    "confusion_matrix": [
-      [
-        193,
-        6
-      ],
-      [
-        1,
-        6
-      ]
-    ],
-    "model_promoted": true,
-    "duration_seconds": 1.72,
-    "error": null,
-    "split_strategy": "row_level_random",
-    "cv_metrics": {
-      "n_splits": 5,
-      "fold_aucs": [
-        0.9356,
-        0.8211,
-        0.9535,
-        0.9383,
-        0.9301
-      ],
-      "mean_auc": 0.9157,
-      "std_auc": 0.048,
-      "note": null
-    },
-    "promotion_check": {
-      "auc": 0.8622,
-      "n_trained": 822,
-      "min_rows_floor": 100,
-      "rows_ok": true
-    }
-  },
-  {
-    "run_id": "run_20260705_112439",
-    "timestamp": "2026-07-05T11:24:39",
-    "triggered_by": "manual",
-    "data_source": "bank_loan_metrics (CUSTOMER-LEVEL)",
-    "use_transaction_level": false,
-    "model_type": "xgboost",
-    "bank_ids": null,
-    "exposure_class": "RETAIL_MORTGAGES",
-    "status": "success",
-    "files_used": [
-      {
-        "filename": "bank_loan_metrics (bank.db - CUSTOMER LEVEL) [segment: RETAIL_MORTGAGES]",
-        "rows": 982
-      }
-    ],
-    "files_skipped": [],
-    "total_rows": 982,
-    "train_rows": 785,
-    "test_rows": 197,
-    "metrics": {
-      "auc_roc": 0.9586,
-      "accuracy": 0.9898,
-      "precision": 0.9286,
-      "recall": 0.9286,
-      "f1": 0.9286,
-      "brier_score": 0.011899,
-      "n_test": 197,
-      "n_defaults": 14,
-      "default_rate": 0.0711,
-      "cv_auc_mean": 0.9912,
-      "cv_auc_std": 0.0142
-    },
-    "confusion_matrix": [
-      [
-        182,
-        1
-      ],
-      [
-        1,
-        13
-      ]
-    ],
-    "model_promoted": true,
-    "duration_seconds": 2.12,
-    "error": null,
-    "split_strategy": "row_level_random",
-    "cv_metrics": {
-      "n_splits": 5,
-      "fold_aucs": [
-        0.9967,
-        0.9628,
-        0.9982,
-        0.9991,
-        0.9992
-      ],
-      "mean_auc": 0.9912,
-      "std_auc": 0.0142,
-      "note": null
-    },
-    "promotion_check": {
-      "auc": 0.9586,
-      "n_trained": 785,
-      "min_rows_floor": 100,
-      "rows_ok": true
-    }
-  },
-  {
-    "run_id": "run_20260705_112429",
-    "timestamp": "2026-07-05T11:24:29",
-    "triggered_by": "manual",
-    "data_source": "bank_loan_metrics (CUSTOMER-LEVEL)",
-    "use_transaction_level": false,
-    "model_type": "xgboost",
-    "bank_ids": null,
-    "exposure_class": "SME",
-    "status": "success",
-    "files_used": [
-      {
-        "filename": "bank_loan_metrics (bank.db - CUSTOMER LEVEL) [segment: SME]",
-        "rows": 768
-      }
-    ],
-    "files_skipped": [],
-    "total_rows": 768,
-    "train_rows": 614,
-    "test_rows": 154,
-    "metrics": {
-      "auc_roc": 0.9989,
-      "accuracy": 0.9805,
-      "precision": 0.8125,
-      "recall": 1.0,
-      "f1": 0.8966,
-      "brier_score": 0.008662,
-      "n_test": 154,
-      "n_defaults": 13,
-      "default_rate": 0.0844,
-      "cv_auc_mean": 0.9948,
-      "cv_auc_std": 0.0095
-    },
-    "confusion_matrix": [
-      [
-        138,
-        3
-      ],
-      [
-        0,
-        13
-      ]
-    ],
-    "model_promoted": true,
-    "duration_seconds": 1.42,
-    "error": null,
-    "split_strategy": "row_level_random",
-    "cv_metrics": {
-      "n_splits": 5,
-      "fold_aucs": [
-        0.9759,
-        0.9988,
-        1.0,
-        0.9994,
-        1.0
-      ],
-      "mean_auc": 0.9948,
-      "std_auc": 0.0095,
-      "note": null
-    },
-    "promotion_check": {
-      "auc": 0.9989,
-      "n_trained": 614,
-      "min_rows_floor": 100,
-      "rows_ok": true
-    }
-  },
-  {
-    "run_id": "run_20260705_112419",
-    "timestamp": "2026-07-05T11:24:19",
-    "triggered_by": "manual",
-    "data_source": "bank_loan_metrics (CUSTOMER-LEVEL)",
-    "use_transaction_level": false,
-    "model_type": "xgboost",
-    "bank_ids": null,
-    "exposure_class": "CORPORATE",
-    "status": "success",
-    "files_used": [
-      {
-        "filename": "bank_loan_metrics (bank.db - CUSTOMER LEVEL) [segment: CORPORATE]",
-        "rows": 1122
-      }
-    ],
-    "files_skipped": [],
-    "total_rows": 1122,
-    "train_rows": 897,
-    "test_rows": 225,
-    "metrics": {
-      "auc_roc": 1.0,
-      "accuracy": 1.0,
-      "precision": 1.0,
-      "recall": 1.0,
-      "f1": 1.0,
-      "brier_score": 0.000666,
-      "n_test": 225,
-      "n_defaults": 12,
-      "default_rate": 0.0533,
-      "cv_auc_mean": 0.9915,
-      "cv_auc_std": 0.0169
-    },
-    "confusion_matrix": [
-      [
-        213,
-        0
-      ],
-      [
-        0,
-        12
-      ]
-    ],
-    "model_promoted": true,
-    "duration_seconds": 2.1,
-    "error": null,
-    "split_strategy": "row_level_random",
-    "cv_metrics": {
-      "n_splits": 5,
-      "fold_aucs": [
-        1.0,
-        1.0,
-        0.9577,
-        1.0,
-        1.0
-      ],
-      "mean_auc": 0.9915,
-      "std_auc": 0.0169,
-      "note": null
-    },
-    "promotion_check": {
-      "auc": 1.0,
-      "n_trained": 897,
       "min_rows_floor": 100,
       "rows_ok": true
     }

@@ -3,24 +3,24 @@
     "model_type": "xgboost",
     "bank_key": "ALL",
     "exposure_class": "CORPORATE",
-    "activated_at": "2026-07-10T00:09:21"
+    "activated_at": "2026-07-11T10:23:33"
   },
   "SME": {
     "model_type": "xgboost",
     "bank_key": "ALL",
     "exposure_class": "SME",
-    "activated_at": "2026-07-09T23:47:38"
+    "activated_at": "2026-07-11T10:23:37"
   },
   "RETAIL_MORTGAGES": {
     "model_type": "xgboost",
     "bank_key": "ALL",
     "exposure_class": "RETAIL_MORTGAGES",
-    "activated_at": "2026-07-09T23:47:43"
+    "activated_at": "2026-07-11T10:23:40"
   },
   "RETAIL_OTHER": {
     "model_type": "xgboost",
     "bank_key": "ALL",
     "exposure_class": "RETAIL_OTHER",
-    "activated_at": "2026-07-09T23:47:47"
+    "activated_at": "2026-07-11T12:08:08"
   }
 }

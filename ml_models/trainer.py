@@ -31,6 +31,12 @@ from sklearn.metrics import (
 )
 import joblib
 
+import sys as _sys
+_ROOT_FOR_IMPORT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _ROOT_FOR_IMPORT not in _sys.path:
+    _sys.path.insert(0, _ROOT_FOR_IMPORT)
+from backend.feature_schema import FEATURE_COLS, REQUIRED_COLUMNS, validate_no_nulls
+
 # ── Paths ─────────────────────────────────────────────────────────────────────
 _ROOT         = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 TRAINING_DIR  = os.path.join(_ROOT, 'data', 'training')
@@ -55,58 +61,17 @@ HISTORY_PATH     = os.path.join(ML_DIR, 'run_history.json')
 HPARAM_PATH      = os.path.join(ML_DIR, 'hyperparameters.json')
 BENCHMARKS_PATH  = os.path.join(ML_DIR, 'peer_benchmarks.json')
 
-REQUIRED_COLUMNS = {
-    'bank_id', 'loan_id', 'de_ratio', 'interest_coverage',
-    'profitability', 'liquidity_ratio', 'default_flag', 'observation_date',
-    # KYC — character & capacity
-    'age', 'employment_type_enc', 'years_employed', 'annual_income',
-    'foir', 'num_dependents', 'city_tier_enc', 'education_enc', 'residence_type_enc',
-    # KYC — context
-    'loan_purpose_enc', 'cibil_score', 'previous_default_flag',
-    'months_as_customer', 'num_late_payments_past_12m',
-    'existing_loans_count', 'num_existing_products', 'is_rural',
-    # "Other circumstances" features - see conversation this was added from:
-    # signals of default risk not explained by financial ratios/CIBIL alone.
-    'ecs_bounce_count', 'other_lender_emi_ratio', 'income_disruption_flag',
-    'sector_stress_index', 'ltv_trend_pct',
-}
-FEATURE_COLS  = [
-    # Financial ratios (4)
-    'de_ratio', 'interest_coverage', 'profitability', 'liquidity_ratio',
-    # KYC — character & capacity (9)
-    'age', 'employment_type_enc', 'years_employed', 'annual_income',
-    'foir', 'num_dependents', 'city_tier_enc', 'education_enc', 'residence_type_enc',
-    # KYC — context (7) - REMOVED: previous_default_flag (potential leakage)
-    'loan_purpose_enc', 'cibil_score',
-    'months_as_customer', 'num_late_payments_past_12m',
-    'existing_loans_count', 'num_existing_products',
-    # Country macro levels (4)
-    'gdp_growth_pct', 'inflation_cpi_pct', 'policy_rate_pct', 'unemployment_pct',
-    # Trend features (3) — direction of travel since loan origination
-    'delta_de_ratio', 'delta_cibil', 'months_since_origination',
-    # Macro regime delta features (5) — regime shift detection
-    'delta_gdp_pct', 'delta_cpi_pct', 'delta_policy_rate_pct',
-    'delta_unemployment_pct', 'macro_regime_score',
-    # Transaction-derived behavioral features (emi_miss_ratio, n_transactions,
-    # avg_balance, etc.) are DELIBERATELY EXCLUDED from training (see
-    # conversation this was decided in): they're only fully known after a
-    # loan has already concluded, and are close to tautologically tied to
-    # the Closed/Written-Off label itself (e.g. emi_miss_ratio essentially
-    # restates "did they pay it back", which is what the label means) - not
-    # genuine predictive signal for an underwriting-time PD model. They
-    # remain computed and stored in bank_loan_metrics (build_behavioral_features.py)
-    # for other analysis, just not used as training inputs here.
-    # "Other circumstances" features (5) — signals of default risk beyond
-    # financial ratios/CIBIL: ECS/NACH bounce history, exposure to other
-    # lenders (bureau-style), an income-disruption shock flag, an
-    # industry-sector stress index, and collateral-value drift (mortgages
-    # only, 0 elsewhere). Deliberately noisy/overlapping by construction
-    # (see seed_completed_loans_bulk.py) rather than perfectly separating,
-    # so the model reflects genuine partial signal instead of memorizing a
-    # clean synthetic split.
-    'ecs_bounce_count', 'other_lender_emi_ratio', 'income_disruption_flag',
-    'sector_stress_index', 'ltv_trend_pct',
-]
+# REQUIRED_COLUMNS / FEATURE_COLS now come from backend.feature_schema — the
+# single canonical definition shared with sync_bank_loan_metrics.py's
+# validation gate, instead of three independently hand-typed copies (see
+# feature_schema.py's docstring for why that divergence was a real bug).
+#
+# Transaction-derived behavioral features (emi_miss_ratio, n_transactions,
+# avg_balance, etc.) are DELIBERATELY EXCLUDED from training (see
+# conversation this was decided in): they're only fully known after a loan
+# has already concluded, and are close to tautologically tied to the
+# Closed/Written-Off label itself. They remain computed and stored in
+# bank_loan_metrics for other analysis, just not part of FEATURE_COLS.
 TARGET_COL    = 'default_flag'
 
 # Sovereign rating → ordinal (1 = AAA best; higher number = worse credit)
@@ -210,6 +175,16 @@ def load_from_db(bank_ids=None, exposure_class=None):
         for col in fill_cols:
             if col in df.columns:
                 df[col] = df[col].fillna(df[col].median())
+
+        # Loudly flag any canonical feature column that's fully NULL (median-fill
+        # is a no-op on those, so they'd otherwise train with zero variance and
+        # get exactly 0.000000 feature_importances_ with no error anywhere — the
+        # exact failure mode that hit macro_regime_score for months undetected).
+        full_null_cols = [col for col in FEATURE_COLS
+                           if col in df.columns and df[col].isna().all()]
+        if full_null_cols:
+            print(f'[WARN] bank_loan_metrics: these feature columns are 100% NULL '
+                  f'and will contribute zero signal to training: {full_null_cols}')
         return df
     except Exception as e:
         print('[WARN] Could not load from bank.db: {}'.format(e))
@@ -1307,6 +1282,23 @@ def run_training(triggered_by='manual', use_transaction_level=True, model_type='
                 activate_model(model_type, combo_key, exposure_class)
                 record['model_promoted'] = True
                 _refresh_peer_benchmarks(merged, exposure_class)
+
+                # Phase 4 — model_registry (backend/model_registry.py): a real,
+                # queryable record of which model version this promotion was,
+                # so prediction_store rows can point at an actual model_id
+                # instead of just a free-text model_version string.
+                try:
+                    from backend.model_registry import register_promotion
+                    _conn = sqlite3.connect(BANK_DB_PATH)
+                    register_promotion(
+                        _conn, exposure_class, model_type, run_id=run_id,
+                        trained_at=timestamp,
+                        promoted_at=datetime.now().isoformat(timespec='seconds'),
+                        metrics=metrics, n_train=n_trained, bank_ids=bank_ids,
+                    )
+                    _conn.close()
+                except Exception as e:
+                    print(f'[WARN] model_registry write failed (non-fatal): {e}')
 
         # Archive used files
         archive_training_files(files_used, run_id)

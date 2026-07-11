@@ -54,60 +54,60 @@
   },
   "CORPORATE": {
     "_meta": {
-      "generated_at": "2026-07-09T09:31:23",
+      "generated_at": "2026-07-11T10:23:33",
       "source": "bank_loan_metrics (default_flag=0, exposure_class=CORPORATE)",
-      "n_approved": 102,
-      "n_total": 131,
-      "default_rate": 0.2214
+      "n_approved": 3190,
+      "n_total": 3678,
+      "default_rate": 0.1327
     },
     "de_ratio": {
       "label": "Debt-to-Equity",
-      "median": 1.05,
-      "p25": 0.63,
-      "p75": 1.48,
-      "p10": 0.47,
-      "p90": 1.758,
+      "median": 1.08,
+      "p25": 0.75,
+      "p75": 1.56,
+      "p10": 0.54,
+      "p90": 2.091,
       "min": 0.05,
-      "max": 3.41,
-      "n": 102
+      "max": 5.97,
+      "n": 3190
     },
     "interest_coverage": {
       "label": "Interest Coverage",
-      "median": 7.145,
-      "p25": 4.9175,
-      "p75": 9.7725,
-      "p10": 3.492,
-      "p90": 11.179,
-      "min": 0.6,
+      "median": 4.57,
+      "p25": 2.62,
+      "p75": 6.4775,
+      "p10": 0.729,
+      "p90": 8.26,
+      "min": 0.1,
       "max": 15.29,
-      "n": 102
+      "n": 3190
     },
     "profitability": {
       "label": "Net Profit Margin (%)",
-      "median": 13.1,
-      "p25": 10.3,
-      "p75": 17.0,
-      "p10": 7.93,
-      "p90": 19.49,
+      "median": 6.6,
+      "p25": 0.325,
+      "p75": 12.6,
+      "p10": -4.9,
+      "p90": 18.1,
       "min": -24.1,
-      "max": 31.8,
-      "n": 102
+      "max": 35.3,
+      "n": 3190
     },
     "liquidity_ratio": {
       "label": "Current Ratio",
-      "median": 1.92,
-      "p25": 1.61,
-      "p75": 2.22,
-      "p10": 1.266,
-      "p90": 2.48,
-      "min": 0.39,
+      "median": 1.56,
+      "p25": 1.19,
+      "p75": 1.93,
+      "p10": 0.839,
+      "p90": 2.26,
+      "min": 0.15,
       "max": 3.97,
-      "n": 102
+      "n": 3190
     }
   },
   "SME": {
     "_meta": {
-      "generated_at": "2026-07-09T23:47:38",
+      "generated_at": "2026-07-11T10:23:37",
       "source": "bank_loan_metrics (default_flag=0, exposure_class=SME)",
       "n_approved": 3437,
       "n_total": 3925,
@@ -160,7 +160,7 @@
   },
   "RETAIL_MORTGAGES": {
     "_meta": {
-      "generated_at": "2026-07-09T23:47:43",
+      "generated_at": "2026-07-11T10:23:40",
       "source": "bank_loan_metrics (default_flag=0, exposure_class=RETAIL_MORTGAGES)",
       "n_approved": 3600,
       "n_total": 4088,
@@ -213,7 +213,7 @@
   },
   "RETAIL_OTHER": {
     "_meta": {
-      "generated_at": "2026-07-09T23:47:47",
+      "generated_at": "2026-07-11T12:08:08",
       "source": "bank_loan_metrics (default_flag=0, exposure_class=RETAIL_OTHER)",
       "n_approved": 3170,
       "n_total": 3658,
