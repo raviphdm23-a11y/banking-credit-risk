@@ -103,6 +103,7 @@ def orchestrate(application: dict, engine) -> dict:
         "five_cs":         findings["five_cs"],
         "counterfactuals": counterfactuals,
         "peer_health":     findings.get("peer_health"),
+        "macro_regime":    findings.get("macro_regime"),
         # decision-support layers
         "policy":          policy,
         "confidence":      {"class": confidence_class, "band_width": band_width,

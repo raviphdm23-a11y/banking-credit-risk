@@ -441,6 +441,7 @@ function mapCaseToFindings(M, c) {
     rating:         M.rating,
     recommendation: M.model_recommendation,
     pd:             M.pd,
+    lgd:            M.lgd,
     el:             M.el,
     pricing:        M.pricing,
     rwa:            M.rwa,
@@ -449,6 +450,7 @@ function mapCaseToFindings(M, c) {
     peer_health:    M.peer_health,
     peer_segment:   M.peer_segment,
     counterfactuals: M.counterfactuals,
+    macro_regime:   M.macro_regime,
   };
 }
 
@@ -536,12 +538,14 @@ function renderReport(f, rmCtx) {
     const sign = isUp ? '+' : '';
     const barColor = isUp ? '#dc2626' : '#16a34a';
     const barPct   = Math.min(100, Math.abs(a.contribution) * 1000);
-    const unit = a.feature === 'profitability' ? 'percent' : 'ratio';
+    // Now that attribution covers all 36 model features (real SHAP, not just
+    // the 4 core ratios), a 2-branch percent/ratio guess no longer covers it -
+    // reuse the same per-feature formatter as the attribute snapshot table.
     tbody.innerHTML += `
       <tr>
         <td><strong>${a.display_name}</strong></td>
-        <td>${fmtVal(a.value, unit)}</td>
-        <td style="color:#94a3b8">${fmtVal(a.baseline_value, unit)}</td>
+        <td>${fmtAttr(a.feature, a.value)}</td>
+        <td style="color:#94a3b8">${fmtAttr(a.feature, a.baseline_value)}</td>
         <td class="contrib-bar-wrap">
           <span class="${cls}">${sign}${(a.contribution * 100).toFixed(2)}pp</span>
           <div class="contrib-bar" style="width:${barPct}px;background:${barColor};margin-left:6px;opacity:0.6"></div>
