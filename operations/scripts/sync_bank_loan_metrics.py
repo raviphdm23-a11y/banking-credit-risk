@@ -34,6 +34,10 @@ from datetime import date, datetime
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from seed_ref_lookup_domains import seed as seed_ref_lookup_domains
 
+_REPO_ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..')
+if _REPO_ROOT not in sys.path:
+    sys.path.insert(0, _REPO_ROOT)
+
 DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', 'bank.db')
 
 
@@ -168,6 +172,16 @@ def sync(db_path=DB_PATH):
             cm.policy_rate_pct,
             cm.unemployment_pct,
 
+            -- Macro regime shift vs prior period (see backfill_macro_deltas.py -
+            -- previously NULL for every row here since this SELECT never asked
+            -- for them, which meant 100% missing training data and exactly
+            -- 0.000000 XGBoost feature_importances_ for all 5 columns)
+            cm.delta_gdp_pct,
+            cm.delta_cpi_pct,
+            cm.delta_policy_rate_pct,
+            cm.delta_unemployment_pct,
+            cm.macro_regime_score,
+
             -- Trend features (direction of travel since origination)
             ROUND(crm.de - crm.prior_de, 4)                                   AS delta_de_ratio,
             ROUND(CAST(kyc.cibil_score AS REAL) - CAST(crm.prior_cibil AS REAL), 1) AS delta_cibil,
@@ -250,9 +264,11 @@ def sync(db_path=DB_PATH):
                  sector_stress_index, ltv_trend_pct,
                  country_code,
                  gdp_growth_pct, inflation_cpi_pct, policy_rate_pct, unemployment_pct,
+                 delta_gdp_pct, delta_cpi_pct, delta_policy_rate_pct,
+                 delta_unemployment_pct, macro_regime_score,
                  delta_de_ratio, delta_cibil, months_since_origination,
                  exposure_class)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, (
             loan['bank_id'],
             loan['bank_name'],
@@ -292,6 +308,11 @@ def sync(db_path=DB_PATH):
             loan['inflation_cpi_pct'],
             loan['policy_rate_pct'],
             loan['unemployment_pct'],
+            loan['delta_gdp_pct'],
+            loan['delta_cpi_pct'],
+            loan['delta_policy_rate_pct'],
+            loan['delta_unemployment_pct'],
+            loan['macro_regime_score'],
             loan['delta_de_ratio'],
             loan['delta_cibil'],
             loan['months_since_origination'],
@@ -319,12 +340,31 @@ def sync(db_path=DB_PATH):
     """)
     summary = cursor.fetchall()
 
+    # Phase 6 — this SELECT/INSERT column list is still hand-maintained (not
+    # dynamically generated from feature_schema.py; the SQL joins are too
+    # specific to auto-derive), so the one thing that CAN be automatic is
+    # catching the moment a column silently goes missing again - the exact
+    # bug that started this whole restructuring (macro_regime_score and 4
+    # delta columns were NULL for 15,349 rows because this SELECT never
+    # asked for them). Fail loudly here instead of leaving it to be
+    # discovered later via 0.000000 feature_importances_.
+    from backend.feature_schema import validate_no_nulls
+    bad = validate_no_nulls(conn, table='bank_loan_metrics', raise_on_fail=False)
+
     conn.close()
 
     print()
     print("=" * 70)
     print("Sync complete  |  Inserted: {}  |  Skipped (no metrics): {}".format(
         inserted, skipped))
+    if bad:
+        print()
+        print("!! feature_schema validation FAILED - these columns have NULLs "
+              "or are missing from bank_loan_metrics:")
+        for col, n, t in bad:
+            print(f"   - {col}: {n}/{t} NULL" if n is not None else f"   - {col}: MISSING")
+        print("!! Any model trained on this table will silently see zero "
+              "variance in these columns. Fix the SELECT/INSERT above before retraining.")
     print()
     print("{:<10} {:<25} {:>6} {:>8} {:>8}".format(
         "bank_id", "bank_name", "loans", "defaults", "avg_pd"))
