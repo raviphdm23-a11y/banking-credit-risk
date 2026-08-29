@@ -26,6 +26,76 @@ app.config.from_object(config[config_name])
 # Enable CORS for all routes
 CORS(app, resources={r"/api/*": {"origins": "*"}, r"/operations/api/*": {"origins": "*"}})
 
+# Detect readonly filesystem (Cloud Run, App Engine, etc.) early
+# so GCS download thread can be started below
+_READONLY_FS = (os.environ.get('READONLY_FS', 'false').lower() == 'true'
+                 or os.environ.get('GAE_ENV', '').startswith('standard')
+                 or bool(os.environ.get('GAE_APPLICATION'))
+                 or bool(os.environ.get('K_SERVICE')))
+
+# ── Cloud Storage Integration (GCS for persistent data on Cloud Run) ──────────
+# On production (Cloud Run), download bank.db and ML models from GCS on startup
+try:
+    from backend.cloud_storage import CloudStorageManager
+    _GCS_PROJECT = os.environ.get('GCP_PROJECT_ID', 'render-demo-06062141')
+    _GCS_DATA_BUCKET = os.environ.get('GCS_DATA_BUCKET', 'banking-credit-risk-data')
+    _GCS_MANAGER = None
+
+    def _init_gcs():
+        """Initialize GCS manager on startup"""
+        global _GCS_MANAGER
+        print(f"[GCS] Initializing manager (project={_GCS_PROJECT}, bucket={_GCS_DATA_BUCKET})...")
+        try:
+            _GCS_MANAGER = CloudStorageManager(_GCS_PROJECT, _GCS_DATA_BUCKET)
+            print("[GCS] Manager initialized successfully")
+        except Exception as e:
+            print(f"[GCS] Warning: Could not initialize GCS manager: {e}")
+            _GCS_MANAGER = None
+
+    def _download_from_gcs():
+        """Download bank.db and ML models from GCS (async, non-blocking)"""
+        if not _READONLY_FS or not _GCS_MANAGER:
+            return
+
+        def _download_bg():
+            try:
+                # Download bank.db
+                local_db = '/tmp/bank.db'
+                if not os.path.exists(local_db) and _GCS_MANAGER.file_exists('database/bank.db'):
+                    print('[GCS] Downloading bank.db from cloud storage...')
+                    _GCS_MANAGER.download_file('database/bank.db', local_db)
+
+                # Download ML models
+                models_dir = '/tmp/ml_models'
+                os.makedirs(models_dir, exist_ok=True)
+
+                model_files = _GCS_MANAGER.list_files('models/')
+                if model_files:
+                    print(f'[GCS] Found {len(model_files)} model files in cloud storage')
+                    for model_blob in model_files:
+                        local_path = os.path.join(models_dir, os.path.basename(model_blob))
+                        if not os.path.exists(local_path):
+                            print(f'[GCS] Downloading {os.path.basename(model_blob)}...')
+                            _GCS_MANAGER.download_file(model_blob, local_path)
+                    print(f'[GCS] Downloaded {len(model_files)} model files')
+            except Exception as e:
+                print(f'[GCS] Download error (non-fatal, will use local files if available): {e}')
+
+        # Start download in background thread (non-blocking)
+        thread = threading.Thread(target=_download_bg, daemon=True, name='GCS-Download-Thread')
+        thread.start()
+
+    # Initialize GCS on startup
+    _init_gcs()
+
+    # Start downloading files from GCS (async, non-blocking)
+    if _READONLY_FS:
+        _download_from_gcs()
+
+except ImportError:
+    print('[GCS] Cloud Storage module not available (OK for local development)')
+    _GCS_MANAGER = None
+
 # ── Simulation clock (frozen for the Axis Bank experiment) ───────────────────
 # Single source of truth is simulation_clock.json in the repo root.
 # Advance by editing that file and re-running the seeders + regulatory batch.
@@ -65,9 +135,6 @@ _OPS_DB_PATH = os.path.join(os.path.dirname(__file__), 'bank.db')
 # Instead, the copy runs in a background thread while gunicorn is free to bind
 # and pass health checks immediately; _ops_conn() waits on it only if a request
 # for the DB arrives before the copy has finished.
-_READONLY_FS = (os.environ.get('GAE_ENV', '').startswith('standard')
-                 or bool(os.environ.get('GAE_APPLICATION'))
-                 or bool(os.environ.get('K_SERVICE')))
 _db_copy_ready = _threading.Event()
 
 if _READONLY_FS:
@@ -76,11 +143,29 @@ if _READONLY_FS:
 
     def _copy_db_to_tmp_bg():
         try:
-            src = os.path.join(os.path.dirname(__file__), 'bank.db')
             if not os.path.exists(_tmp_db_path):
-                partial_path = _tmp_db_path + '.partial'
-                shutil.copy2(src, partial_path)
-                os.replace(partial_path, _tmp_db_path)  # atomic - no reader ever sees a half-written file
+                # [1] Try GCS first (Cloud Run production)
+                print(f'[DB] GCS_MANAGER available: {_GCS_MANAGER is not None}')
+                if _GCS_MANAGER:
+                    try:
+                        print('[GCS] Downloading bank.db from cloud storage...')
+                        _GCS_MANAGER.download_file('database/bank.db', _tmp_db_path)
+                        print('[GCS] bank.db downloaded successfully')
+                        return
+                    except Exception as e:
+                        print(f'[GCS] Download failed, falling back to local copy: {e}')
+
+                # [2] Fallback: copy from local source (for development/testing)
+                src = os.path.join(os.path.dirname(__file__), 'bank.db')
+                print(f'[DB] Checking for local bank.db at: {src}')
+                if os.path.exists(src):
+                    partial_path = _tmp_db_path + '.partial'
+                    print(f'[DB] Copying from {src} to {_tmp_db_path}')
+                    shutil.copy2(src, partial_path)
+                    os.replace(partial_path, _tmp_db_path)
+                    print(f'[DB] bank.db copied to {_tmp_db_path}')
+                else:
+                    print(f'[DB] Warning: bank.db not found at {src}')
         finally:
             _db_copy_ready.set()
 
@@ -96,15 +181,50 @@ def _ops_conn():
     conn.row_factory = _sqlite3.Row
     return conn
 
-# Load ML model once at startup (not on every request)
+
+def _ensure_banks_world_column():
+    """One-time defensive migration for bank.db files created before the
+    Utopian/Real Earth world concept existed (setup_fresh_db.py's CREATE
+    TABLE now includes it for new DBs). Existing 9 banks default to
+    'utopian' - only newly onboarded banks (e.g. Bank of Punjab) get 'real'."""
+    try:
+        conn = _sqlite3.connect(_OPS_DB_PATH)
+        conn.execute("ALTER TABLE banks ADD COLUMN world TEXT NOT NULL DEFAULT 'utopian'")
+        conn.commit()
+        conn.close()
+    except Exception as e:
+        if 'duplicate column' not in str(e).lower():
+            print(f"WARNING: banks.world migration failed: {e}")
+
+
+try:
+    _ensure_banks_world_column()
+except Exception:
+    pass
+
+# Lazy-load ML model (on first use, not on startup)
+# This allows app to start even if GCS download is still in progress
 import joblib as _joblib
 
-_MODEL_PATH = os.path.join(os.path.dirname(__file__), 'ml_models', 'pd_model.pkl')
-try:
-    _pd_model = _joblib.load(_MODEL_PATH)
-except Exception as e:
-    print(f"WARNING: Could not load ML model at startup: {e}")
-    _pd_model = None
+# In Cloud Run with readonly filesystem, models are downloaded to /tmp/ml_models
+# Otherwise, use local ml_models directory
+_MODELS_DIR = '/tmp/ml_models' if _READONLY_FS else os.path.join(os.path.dirname(__file__), 'ml_models')
+_MODEL_PATH = os.path.join(_MODELS_DIR, 'pd_model.pkl')
+_pd_model = None
+_model_load_attempted = False
+
+def _get_pd_model():
+    global _pd_model, _model_load_attempted
+    if _model_load_attempted:
+        return _pd_model
+    _model_load_attempted = True
+    try:
+        _pd_model = _joblib.load(_MODEL_PATH)
+        print(f"[MODEL] Loaded PD model from {_MODEL_PATH}")
+    except Exception as e:
+        print(f"[MODEL] Could not load PD model: {e}")
+        _pd_model = None
+    return _pd_model
 
 # Initialise AssessmentEngine once — stateless, thread-safe per request
 from backend.assessment_engine import AssessmentEngine as _AssessmentEngine
@@ -112,13 +232,13 @@ from backend.feature_meta import model_feature_frame
 
 def _get_model_version():
     try:
-        meta_path = os.path.join(os.path.dirname(__file__), 'ml_models', 'pd_model_metadata.json')
+        meta_path = os.path.join(_MODELS_DIR, 'pd_model_metadata.json')
         with open(meta_path) as f:
             return json.load(f).get('version', 'unknown')
     except Exception:
         return 'unknown'
 
-_assessment_engine = _AssessmentEngine(_pd_model, _get_model_version(), db_path=_OPS_DB_PATH)
+_assessment_engine = _AssessmentEngine(_get_pd_model(), _get_model_version(), db_path=_OPS_DB_PATH)
 
 # ── Segmented PD models (one per Basel exposure_class) ───────────────────────
 # A live system must score a CORPORATE loan with the CORPORATE model and a
@@ -130,16 +250,49 @@ _assessment_engine = _AssessmentEngine(_pd_model, _get_model_version(), db_path=
 EXPOSURE_CLASSES = ['CORPORATE', 'SME', 'RETAIL_MORTGAGES', 'RETAIL_OTHER']
 
 
-def _segment_model_paths(exposure_class):
-    ml_dir = os.path.join(os.path.dirname(__file__), 'ml_models')
+def _segment_model_paths(exposure_class, bank_id=None):
+    """Paths for a segment's active model slot. When bank_id is given,
+    resolves to that bank's own scoped active slot (see trainer.py's
+    _segment_paths bank_combo param) instead of the shared cross-bank slot -
+    same file-naming convention on both sides."""
+    seg = exposure_class
+    if bank_id:
+        suffix = f'{seg}_{bank_id}'
+        return (
+            os.path.join(_MODELS_DIR, f'pd_model_{suffix}.pkl'),
+            os.path.join(_MODELS_DIR, f'pd_model_metadata_{suffix}.json'),
+        )
     return (
-        os.path.join(ml_dir, f'pd_model_{exposure_class}.pkl'),
-        os.path.join(ml_dir, f'pd_model_metadata_{exposure_class}.json'),
+        os.path.join(_MODELS_DIR, f'pd_model_{seg}.pkl'),
+        os.path.join(_MODELS_DIR, f'pd_model_metadata_{seg}.json'),
     )
 
 
-def _segment_model_version(exposure_class):
-    _, meta_path = _segment_model_paths(exposure_class)
+def _resolve_model_lab_pkl_path(model_type, bank_key, exposure_class):
+    """Resolve the .pkl path for a SPECIFIC configured model (not necessarily
+    the active one) out of the 3-level 'models/<model_type>/<bank_combo>/
+    <exposure_class>/' layout scanned by /admin/api/models, with the same
+    back-compat fallbacks that endpoint uses for older, shallower layouts.
+    Used by Model Lab so research (e.g. global SHAP) can target any trained
+    model, active or not."""
+    models_dir = os.path.join(_MODELS_DIR, 'models')
+    bank_key = bank_key or 'ALL'
+    exposure_class = exposure_class or 'ALL'
+
+    seg_path = os.path.join(models_dir, model_type, bank_key, exposure_class, 'pd_model.pkl')
+    if os.path.exists(seg_path):
+        return seg_path
+    combo_path = os.path.join(models_dir, model_type, bank_key, 'pd_model.pkl')
+    if exposure_class == 'ALL' and os.path.exists(combo_path):
+        return combo_path
+    flat_path = os.path.join(models_dir, model_type, 'pd_model.pkl')
+    if bank_key == 'ALL' and exposure_class == 'ALL' and os.path.exists(flat_path):
+        return flat_path
+    return None
+
+
+def _segment_model_version(exposure_class, bank_id=None):
+    _, meta_path = _segment_model_paths(exposure_class, bank_id)
     try:
         with open(meta_path) as f:
             return json.load(f).get('version', 'unknown')
@@ -147,45 +300,104 @@ def _segment_model_version(exposure_class):
         return 'unknown'
 
 
-def _build_segment_engine(exposure_class):
-    model_path, _ = _segment_model_paths(exposure_class)
+def _build_segment_engine(exposure_class, bank_id=None):
+    model_path, _ = _segment_model_paths(exposure_class, bank_id)
     try:
         model = _joblib.load(model_path)
     except Exception as e:
-        print(f"WARNING: No trained model yet for segment '{exposure_class}': {e}")
+        if not bank_id:
+            print(f"WARNING: No trained model yet for segment '{exposure_class}': {e}")
         return None
-    return _AssessmentEngine(model, _segment_model_version(exposure_class), db_path=_OPS_DB_PATH, exposure_class=exposure_class)
+    # Bank-scoped models are trained with bank_scoped=True (trainer.py's
+    # _validate_dataframe), which leaves real NaN in partially-populated
+    # feature columns instead of imputing/dropping - XGBoost natively
+    # learns a default split direction for them. Tagging the loaded model
+    # object here (not threading a new parameter through every
+    # model_feature_frame() call site) lets live inference honor the same
+    # "genuinely unknown" semantics the model was actually trained under,
+    # instead of silently substituting a fabricated default value that
+    # follows a completely different, uncalibrated path through the trees.
+    # Utopian Earth's combined models (bank_id=None here) never see this
+    # flag set, so their existing default-fill behavior is unchanged.
+    model.allow_missing_features_ = bool(bank_id)
+    return _AssessmentEngine(model, _segment_model_version(exposure_class, bank_id), db_path=_OPS_DB_PATH, exposure_class=exposure_class)
 
 
 _segment_engines = {seg: _build_segment_engine(seg) for seg in EXPOSURE_CLASSES}
+
+# Model-routing switch: lazily-populated cache for bank-specific engines
+# (segment-specific AND bank-generic). Not pre-built at startup like
+# _segment_engines - the number of (bank, segment) combinations can grow
+# arbitrarily as more banks get their own models, so these are built on
+# first use and cached thereafter (a miss - key mapped to None - is cached
+# too, so an untrained bank/segment combo doesn't hit disk every request).
+GENERIC_SEGMENT = 'GENERIC'   # bank-wide model, no exposure_class segmentation
+_bank_engine_cache: dict = {}
+
+
+def _resolve_bank_engine(bank_id, exposure_class):
+    """3-tier fallback for a bank-aware request: bank+segment -> bank+GENERIC
+    -> (None, None) (caller falls back to the shared cross-bank segment
+    engine). Returns (engine, scope_label) so the caller can record which
+    tier actually served the request."""
+    for key, seg, label in (
+        (f'{bank_id}::{exposure_class}', exposure_class, 'bank_specific_segment'),
+        (f'{bank_id}::{GENERIC_SEGMENT}', GENERIC_SEGMENT, 'bank_specific_generic'),
+    ):
+        if key not in _bank_engine_cache:
+            _bank_engine_cache[key] = _build_segment_engine(seg, bank_id=bank_id)
+        if _bank_engine_cache[key] is not None:
+            return _bank_engine_cache[key], label
+    return None, None
 
 
 def _resolve_segment_engine(data):
     """
     Validate the exposure_class on a scoring request and return its engine.
-    Returns (engine, None) on success, or (None, (json_response, status)) on
-    failure - per the confirmed decision, a missing/unrecognized/untrained
-    exposure_class is REJECTED rather than silently falling back to a
-    default segment or a blended model.
+    Returns (engine, scope_used, None) on success, or (None, None,
+    (json_response, status)) on failure - per the confirmed decision, a
+    missing/unrecognized/untrained exposure_class is REJECTED rather than
+    silently falling back to a default segment or a blended model.
+
+    Model-routing switch (opt-in, backward compatible): a request that sets
+    model_scope='bank_specific' and provides bank_id prefers that bank's own
+    model (segment-specific, else bank-generic) over the shared cross-bank
+    segment model. Any request that doesn't set model_scope - i.e. every
+    caller before this switch existed - behaves exactly as before, and
+    scope_used comes back as 'combined'.
     """
     exposure_class = (data.get('exposure_class') or '').strip().upper()
     if not exposure_class:
-        return None, (jsonify({
+        return None, None, (jsonify({
             'error': 'exposure_class is required',
             'message': f'Provide exposure_class as one of: {", ".join(EXPOSURE_CLASSES)}'
         }), 400)
     if exposure_class not in EXPOSURE_CLASSES:
-        return None, (jsonify({
+        return None, None, (jsonify({
             'error': 'Unrecognized exposure_class',
             'message': f'exposure_class must be one of: {", ".join(EXPOSURE_CLASSES)}'
         }), 400)
+
+    bank_id = (data.get('bank_id') or '').strip()
+    model_scope = (data.get('model_scope') or 'combined').strip().lower()
+    if model_scope == 'bank_specific' and bank_id:
+        bank_engine, scope_label = _resolve_bank_engine(bank_id, exposure_class)
+        if bank_engine is not None:
+            return bank_engine, scope_label, None
+        # No bank-specific model exists for this bank/segment - fall through
+        # to the shared model, flagged distinctly so it's clear the RM's
+        # choice couldn't actually be honoured for this assessment.
+        fallback_scope = 'combined_fallback'
+    else:
+        fallback_scope = 'combined'
+
     engine = _segment_engines.get(exposure_class)
     if engine is None:
-        return None, (jsonify({
+        return None, None, (jsonify({
             'error': 'No trained model available for this segment',
             'message': f'No active model has been trained/activated yet for exposure_class={exposure_class}'
         }), 503)
-    return engine, None
+    return engine, fallback_scope, None
 
 # In-memory report cache keyed by report_id (uuid).
 _report_cache: dict = {}
@@ -516,7 +728,7 @@ def predict_pd_ml():
     try:
         data = request.get_json()
 
-        engine, err = _resolve_segment_engine(data)
+        engine, model_scope_used, err = _resolve_segment_engine(data)
         if err:
             return err
         model = engine._model
@@ -530,18 +742,24 @@ def predict_pd_ml():
         pd_decimal = float(model.predict_proba(features)[0][1])
         pd_decimal = max(0.0001, min(1.0, pd_decimal))
 
-        breakdown = {
-            'base_rate': 0.5,
-            'de_ratio_adjustment': round(float(data.get('de_ratio', 0)) * 0.8, 4),
-            'interest_coverage_adjustment': round(max(0, (4.0 - float(data.get('interest_coverage', 0))) * 0.5), 4),
-            'profitability_adjustment': round(max(0, -float(data.get('profitability', 0)) * 0.15), 4),
-            'liquidity_adjustment': round(max(0, (1.5 - float(data.get('liquidity_ratio', 0))) * 3.0), 4)
-        }
+        # Get actual model type from the metadata of the SAME slot the engine
+        # was actually resolved from above (bank-scoped segment/generic slot,
+        # or the shared cross-bank slot) - previously this always re-read the
+        # shared slot's metadata regardless of which engine was really used,
+        # so a bank-specific model's own model_type (e.g. after activating a
+        # non-XGBoost model for one bank) never showed up in the response.
+        exposure_class = (data.get('exposure_class') or '').strip().upper()
+        bank_id = (data.get('bank_id') or '').strip()
+        if model_scope_used == 'bank_specific_segment':
+            meta_exposure_class, meta_bank_id = exposure_class, bank_id
+        elif model_scope_used == 'bank_specific_generic':
+            meta_exposure_class, meta_bank_id = GENERIC_SEGMENT, bank_id
+        else:
+            meta_exposure_class, meta_bank_id = exposure_class, None
 
-        # Get actual model type from this segment's own metadata
         model_type_label = 'Unknown'
         try:
-            _, seg_meta_path = _segment_model_paths(data.get('exposure_class', '').strip().upper())
+            _, seg_meta_path = _segment_model_paths(meta_exposure_class, meta_bank_id)
             if os.path.exists(seg_meta_path):
                 with open(seg_meta_path) as f:
                     metadata = json.load(f)
@@ -555,8 +773,6 @@ def predict_pd_ml():
             'method': 'ML',
             'model_type': model_type_label,
             'model_version': '1.0.0',
-            'breakdown': breakdown,
-            'note': 'ML prediction with rule-based component breakdown for transparency'
         }), 200
 
     except Exception as e:
@@ -583,6 +799,137 @@ def model_info():
 
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/model-availability', methods=['GET'])
+def model_availability():
+    """Model-routing switch (Phase 2): does bank_id have its own promoted
+    model for exposure_class - or, failing that, a bank-wide GENERIC model?
+    Lets borrower-info.html's "use this bank's own model" checkbox know
+    whether checking it would actually do anything, instead of silently
+    falling back to the shared model with no indication to the RM."""
+    bank_id = (request.args.get('bank_id') or '').strip()
+    exposure_class = (request.args.get('exposure_class') or '').strip().upper()
+    if not bank_id or exposure_class not in EXPOSURE_CLASSES:
+        return jsonify({'available': False, 'scope': None}), 200
+
+    key_seg = f'{bank_id}::{exposure_class}'
+    key_gen = f'{bank_id}::{GENERIC_SEGMENT}'
+    if key_seg not in _bank_engine_cache:
+        _bank_engine_cache[key_seg] = _build_segment_engine(exposure_class, bank_id=bank_id)
+    if _bank_engine_cache[key_seg] is not None:
+        return jsonify({'available': True, 'scope': 'segment',
+                        'model_version': _segment_model_version(exposure_class, bank_id)}), 200
+
+    if key_gen not in _bank_engine_cache:
+        _bank_engine_cache[key_gen] = _build_segment_engine(GENERIC_SEGMENT, bank_id=bank_id)
+    if _bank_engine_cache[key_gen] is not None:
+        return jsonify({'available': True, 'scope': 'generic',
+                        'model_version': _segment_model_version(GENERIC_SEGMENT, bank_id)}), 200
+
+    return jsonify({'available': False, 'scope': None}), 200
+
+
+@app.route('/api/bank-model-schema/<bank_id>')
+def bank_model_schema(bank_id):
+    """
+    Returns which features a bank's active model actually uses, split into:
+      - canonical_features: subset of the fixed 37-feature schema this bank's
+        model uses (the caller already has form inputs for all of these -
+        this just says which ones matter for this bank, for highlighting).
+      - bank_specific_fields: features beyond the canonical schema (e.g.
+        BANK011's repay_status_m1..6) that have NO existing form input -
+        full display metadata included so the frontend can render one.
+      - derived_fields: bank-specific features that are computed from other
+        already-collected fields, never asked directly (see
+        backend/bank_field_meta.py's 'derived' kind).
+    Falls back segment -> GENERIC, same resolution order as
+    /api/model-availability.
+    """
+    from backend.feature_schema import FEATURE_COLS
+    from backend.feature_meta import FEATURE_DISPLAY_NAMES, feature_unit
+    from backend.bank_field_meta import BANK_FIELD_META
+
+    exposure_class = (request.args.get('exposure_class') or '').strip().upper()
+    engine, scope, model_version = None, None, None
+
+    if exposure_class and exposure_class in EXPOSURE_CLASSES:
+        key_seg = f'{bank_id}::{exposure_class}'
+        if key_seg not in _bank_engine_cache:
+            _bank_engine_cache[key_seg] = _build_segment_engine(exposure_class, bank_id=bank_id)
+        if _bank_engine_cache[key_seg] is not None:
+            engine, scope = _bank_engine_cache[key_seg], 'segment'
+            model_version = _segment_model_version(exposure_class, bank_id)
+
+    if engine is None:
+        key_gen = f'{bank_id}::{GENERIC_SEGMENT}'
+        if key_gen not in _bank_engine_cache:
+            _bank_engine_cache[key_gen] = _build_segment_engine(GENERIC_SEGMENT, bank_id=bank_id)
+        if _bank_engine_cache[key_gen] is not None:
+            engine, scope = _bank_engine_cache[key_gen], 'generic'
+            model_version = _segment_model_version(GENERIC_SEGMENT, bank_id)
+
+    if engine is None:
+        return jsonify({'available': False, 'error': f'No trained model found for {bank_id}'}), 404
+
+    feature_names = list(getattr(engine._model, 'feature_names_in_', []))
+    field_meta = BANK_FIELD_META.get(bank_id, {})
+
+    canonical_features = []
+    bank_specific_fields = {}
+    derived_fields = {}
+    unmetadata_fields = []
+
+    for name in feature_names:
+        if name in FEATURE_COLS:
+            canonical_features.append({
+                'name': name,
+                'label': FEATURE_DISPLAY_NAMES.get(name, name),
+                'unit': feature_unit(name),
+            })
+        elif name in field_meta:
+            meta = field_meta[name]
+            if meta.get('kind') == 'derived':
+                derived_fields[name] = meta
+            else:
+                bank_specific_fields[name] = meta
+        else:
+            unmetadata_fields.append(name)
+
+    return jsonify({
+        'available': True,
+        'bank_id': bank_id,
+        'scope': scope,
+        'model_version': model_version,
+        'canonical_features': canonical_features,
+        'bank_specific_fields': bank_specific_fields,
+        'derived_fields': derived_fields,
+        'unmetadata_fields': unmetadata_fields,  # should stay empty - flags a gap if a new auto-discovered field has no display metadata yet
+    }), 200
+
+
+def _json_safe(obj):
+    """Recursively replace NaN/Infinity floats with None (JSON null).
+
+    A bank-scoped model can genuinely leave a resolved feature value as NaN
+    when the applicant didn't supply it (allow_missing_features_) - correct
+    model input, but literal NaN/Infinity are not valid JSON (RFC 8259).
+    Python's json.dumps emits them anyway (allow_nan=True by default), which
+    Flask's jsonify inherits, so a genuinely-missing bank-specific field
+    silently breaks every consumer's response.json() on the frontend with no
+    indication why. This is a defensive catch-all on top of the two sites
+    that were found and fixed directly (assessment_engine.py's
+    model_inputs_resolved, shap_explainer.py's feature_contributions) - in
+    case NaN reaches a findings response from anywhere else in the future.
+    """
+    if isinstance(obj, float):
+        return None if (obj != obj or obj in (float('inf'), float('-inf'))) else obj
+    if isinstance(obj, dict):
+        return {k: _json_safe(v) for k, v in obj.items()}
+    if isinstance(obj, list):
+        return [_json_safe(v) for v in obj]
+    return obj
+
 
 # ============================================================================
 # ASSESSMENT ENGINE — full borrower assessment (Step 1 engine core)
@@ -620,11 +967,11 @@ def assess_borrower():
     """
     try:
         data = request.get_json(force=True) or {}
-        engine, err = _resolve_segment_engine(data)
+        engine, _model_scope_used, err = _resolve_segment_engine(data)
         if err:
             return err
         findings = engine.assess(data)
-        return jsonify(findings), 200
+        return jsonify(_json_safe(findings)), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
@@ -681,12 +1028,15 @@ def assess_borrower_with_shap():
     """
     try:
         data = request.get_json(force=True) or {}
-        engine, err = _resolve_segment_engine(data)
+        engine, model_scope_used, err = _resolve_segment_engine(data)
         if err:
             return err
         findings = engine.assess(data)
         # SHAP is automatically included in findings if explainer available
-        return jsonify(findings), 200
+        # Model-routing switch (Phase 2): which model actually scored this,
+        # so the report can show it - not just what the RM requested.
+        findings['model_scope'] = model_scope_used
+        return jsonify(_json_safe(findings)), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
@@ -743,10 +1093,11 @@ def generate_report():
     """
     try:
         data = request.get_json(force=True) or {}
-        engine, err = _resolve_segment_engine(data)
+        engine, model_scope_used, err = _resolve_segment_engine(data)
         if err:
             return err
         findings = engine.assess(data)
+        findings['model_scope'] = model_scope_used
         report_id = findings['report_id']
         _report_cache[report_id] = findings
 
@@ -780,6 +1131,7 @@ def generate_report():
             'confidence':      rec['confidence'],
             'key_drivers':     rec['key_drivers'],
             'is_investment_grade': r['is_investment_grade'],
+            'model_scope':     model_scope_used,
         }), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -794,7 +1146,7 @@ def get_report(report_id):
     # Warm memory cache on disk hit
     _report_cache.setdefault(report_id, findings)
     _log_audit('REPORT_VIEWED', report_id, findings, actor='officer')
-    return jsonify(findings), 200
+    return jsonify(_json_safe(findings)), 200
 
 
 # ============================================================================
@@ -1013,8 +1365,28 @@ def admin_save_hyperparameters():
     if not _check_admin_auth(): return _admin_auth_error()
     try:
         data = request.get_json()
+        try:
+            with open(_HPARAM_PATH) as f:
+                old = json.load(f)
+        except Exception:
+            old = {}
         with open(_HPARAM_PATH, 'w') as f:
             json.dump(data, f, indent=2)
+        # Governance audit: record which top-level blocks changed (hash-chained).
+        try:
+            changed = sorted(k for k in set(old) | set(data or {})
+                             if old.get(k) != (data or {}).get(k))
+            if changed:
+                with _gov_conn() as _gc:
+                    _gov.append_audit_event(
+                        _gc, 'HYPERPARAMS_CHANGED', actor_id='admin',
+                        actor_role='admin', object_type='config',
+                        object_id='hyperparameters.json',
+                        payload={'changed_blocks': changed,
+                                 'old': {k: old.get(k) for k in changed},
+                                 'new': {k: (data or {}).get(k) for k in changed}})
+        except Exception as _e:
+            print(f'[governance] hyperparams audit failed (non-fatal): {_e}')
         return jsonify({'status': 'saved'}), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -1110,6 +1482,16 @@ def admin_trigger_train():
         elif request.args.get('bank_ids'):
             bank_ids = [b.strip() for b in request.args.get('bank_ids').split(',') if b.strip()]
 
+        # Bank-scoped auto-discovery skips gender_enc/marital_status_enc by
+        # default (see ml_models.trainer.COMPLIANCE_EXCLUDED_COLS). Off unless
+        # explicitly requested - for research/benchmark comparison against a
+        # published result that used all raw dataset columns, not for a model
+        # intended to make a real lending decision.
+        include_compliance_excluded = (
+            bool(body.get('include_compliance_excluded'))
+            or request.args.get('include_compliance_excluded', '0') == '1'
+        )
+
         # exposure_class is now REQUIRED - the unsegmented 'ALL' model has been
         # retired (it was never used for actual scoring once segment routing
         # went live; only a leftover from before segmentation). Only the 4
@@ -1121,18 +1503,38 @@ def admin_trigger_train():
                 'message': 'The unsegmented "ALL" model has been retired. '
                            'Train one of: CORPORATE, SME, RETAIL_MORTGAGES, RETAIL_OTHER.'
             }), 400
-        if exposure_class not in EXPOSURE_CLASSES:
+        # Model-routing switch: exposure_class='GENERIC' trains a bank-wide,
+        # unsegmented model - only valid for exactly one bank_id (see
+        # trainer.run_training()'s own validation, mirrored here so the
+        # error surfaces immediately instead of after a background thread starts).
+        if exposure_class == 'GENERIC':
+            if not bank_ids or len(bank_ids) != 1:
+                return jsonify({
+                    'error': "exposure_class='GENERIC' requires exactly one bank_id",
+                    'message': 'A bank-wide, unsegmented model must be scoped to a single bank.'
+                }), 400
+        elif exposure_class not in EXPOSURE_CLASSES:
             return jsonify({
                 'error': 'Unrecognized exposure_class',
-                'message': f'exposure_class must be one of: {", ".join(EXPOSURE_CLASSES)}'
+                'message': f'exposure_class must be one of: {", ".join(EXPOSURE_CLASSES)}, or GENERIC (single-bank only)'
             }), 400
 
         def _run():
             result = run_training(triggered_by='manual', use_transaction_level=use_transaction_level,
-                                   model_type=model_type, bank_ids=bank_ids, exposure_class=exposure_class)
+                                   model_type=model_type, bank_ids=bank_ids, exposure_class=exposure_class,
+                                   include_compliance_excluded=include_compliance_excluded)
             if result['status'] == 'success' and result['model_promoted']:
-                _segment_engines[exposure_class] = _build_segment_engine(exposure_class)
-                print(f"Segment engine reloaded for {exposure_class} after training run {result['run_id']}")
+                if bank_ids and len(bank_ids) == 1:
+                    # Bank-scoped promotion - invalidate just this bank's cached
+                    # entry (see _resolve_bank_engine) so the next request picks
+                    # up the newly promoted model instead of a stale cached miss.
+                    bank_id = bank_ids[0]
+                    cache_key = f'{bank_id}::{exposure_class}'
+                    _bank_engine_cache[cache_key] = _build_segment_engine(exposure_class, bank_id=bank_id)
+                    print(f"Bank-specific engine reloaded for {bank_id}/{exposure_class} after training run {result['run_id']}")
+                else:
+                    _segment_engines[exposure_class] = _build_segment_engine(exposure_class)
+                    print(f"Segment engine reloaded for {exposure_class} after training run {result['run_id']}")
 
         t = threading.Thread(target=_run, daemon=True)
         t.start()
@@ -1156,7 +1558,8 @@ def admin_get_models():
         registry = _load_active_model_registry()  # {segment: {model_type, bank_key, exposure_class, activated_at}}
 
         def is_active(model_type, bank_combo, seg):
-            entry = registry.get(seg) or {}
+            reg_key = seg if bank_combo == 'ALL' else f'{seg}::{bank_combo}'
+            entry = registry.get(reg_key) or {}
             return entry.get('model_type') == model_type and entry.get('bank_key') == bank_combo
 
         # Scan the 3-level layout: models/<model_type>/<bank_combo>/<exposure_class>/pd_model_metadata.json
@@ -1253,7 +1656,11 @@ def admin_activate_model(model_type):
 
         # Reload the affected slot in-process only - activating a segment's
         # model must not disturb the other segments' already-loaded engines.
-        if exposure_class:
+        if bank_combo and bank_combo != 'ALL':
+            seg = exposure_class or GENERIC_SEGMENT
+            cache_key = f'{bank_combo}::{seg}'
+            _bank_engine_cache[cache_key] = _build_segment_engine(seg, bank_id=bank_combo)
+        elif exposure_class:
             _segment_engines[exposure_class] = _build_segment_engine(exposure_class)
         else:
             global _pd_model
@@ -1279,7 +1686,8 @@ def admin_delete_model(model_type, bank_key):
         registry = _load_active_model_registry()
 
         if exposure_class:
-            entry = registry.get(exposure_class) or {}
+            reg_key = exposure_class if bank_key == 'ALL' else f'{exposure_class}::{bank_key}'
+            entry = registry.get(reg_key) or {}
             if entry.get('model_type') == model_type and entry.get('bank_key') == bank_key:
                 return jsonify({'error': f"Cannot delete the currently active {exposure_class} model. Activate a different one first."}), 400
         else:
@@ -1317,6 +1725,154 @@ def admin_delete_model(model_type, bank_key):
         return jsonify({'status': 'deleted', 'model_type': model_type, 'bank_key': bank_key, 'exposure_class': exposure_class or 'ALL'}), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+# ============================================================================
+# ADMIN API — MODEL LAB (research: filterable run comparison + global SHAP)
+# ============================================================================
+
+@app.route('/admin/api/model-lab/runs', methods=['GET'])
+def admin_model_lab_runs():
+    """Filterable view over run_history.json - every run already carries its
+    full classification-metrics block (auc_roc, pr_auc, accuracy, precision,
+    recall, f1, brier_score, confusion_matrix) from trainer.evaluate_model(),
+    so this is a read + filter, no new computation.
+
+    Defaults to one row per (model_type, exposure_class, bank scope) - the
+    single latest run - rather than every historical retrain of the same
+    dataset/segment, which gets unreadable fast once a model's been
+    retrained a dozen times. Pass ?all=1 to see full history for a scope."""
+    if not _check_admin_auth(): return _admin_auth_error()
+    try:
+        if not os.path.exists(_HISTORY_PATH):
+            return jsonify({'runs': [], 'total': 0}), 200
+        with open(_HISTORY_PATH) as f:
+            history = json.load(f)
+
+        model_type = request.args.get('model_type') or None
+        exposure_class = request.args.get('exposure_class') or None
+        bank_id = request.args.get('bank_id') or None
+        status = request.args.get('status') or None
+        show_all = request.args.get('all') == '1'
+
+        def matches(r):
+            if model_type and r.get('model_type') != model_type:
+                return False
+            if exposure_class and (r.get('exposure_class') or 'ALL') != exposure_class:
+                return False
+            if bank_id and bank_id not in (r.get('bank_ids') or []):
+                return False
+            if status and r.get('status') != status:
+                return False
+            return True
+
+        filtered = [r for r in history if matches(r)]
+        filtered.sort(key=lambda r: r.get('timestamp') or '', reverse=True)
+
+        if not show_all:
+            seen = set()
+            latest_only = []
+            for r in filtered:
+                key = (r.get('model_type'), r.get('exposure_class') or 'ALL',
+                       tuple(sorted(r.get('bank_ids') or [])))
+                if key in seen:
+                    continue
+                seen.add(key)
+                latest_only.append(r)
+            filtered = latest_only
+
+        summary = [{k: v for k, v in r.items() if k != 'error'} for r in filtered]
+        return jsonify({'runs': summary, 'total': len(summary)}), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/admin/api/model-lab/shap', methods=['POST'])
+def admin_model_lab_shap():
+    """Compute global (aggregate) SHAP importance for a chosen configured
+    model's architecture, run against a fresh sample of eligible training
+    rows, plus a noise-baseline ratio per feature (see
+    backend/shap_explainer.py: compute_global_shap - it retrains a small
+    'shadow' model of the same type + the selected model's own saved
+    hyperparameters, with a synthetic noise feature included, since a
+    noise column has to be genuinely trained-on to get a meaningful SHAP
+    reading for it). Runs synchronously - a ~200 row sample completes in a
+    few seconds."""
+    if not _check_admin_auth(): return _admin_auth_error()
+    try:
+        import joblib
+        import pandas as pd
+        from ml_models.trainer import load_from_enriched_transactions, load_from_db
+        from backend.shap_explainer import compute_global_shap
+
+        body = request.get_json(silent=True) or {}
+        model_type = (body.get('model_type') or '').strip()
+        bank_key = (body.get('bank_key') or 'ALL').strip() or 'ALL'
+        exposure_class = (body.get('exposure_class') or 'ALL').strip() or 'ALL'
+        sample_size = min(int(body.get('sample_size') or 200), 500)
+
+        if not model_type:
+            return jsonify({'error': 'model_type is required'}), 400
+
+        pkl_path = _resolve_model_lab_pkl_path(model_type, bank_key, exposure_class)
+        if not pkl_path:
+            return jsonify({'error': f"No trained model found for {model_type}/{bank_key}/{exposure_class}"}), 404
+        model = joblib.load(pkl_path)
+
+        meta_path = os.path.join(os.path.dirname(pkl_path), 'pd_model_metadata.json')
+        saved_hp = {}
+        try:
+            with open(meta_path) as f:
+                saved_hp = json.load(f).get('hyperparameters', {}) or {}
+        except Exception:
+            pass
+        hp = {'models': {model_type: saved_hp}}
+
+        # GENERIC is a bank-wide "no segmentation" sentinel at the app/model
+        # level (see GENERIC_SEGMENT in app.py) - it isn't a real
+        # blm.exposure_class value in the DB, so filtering on it there would
+        # just return zero rows. Same treatment as 'ALL': no DB filter.
+        db_exposure_class = exposure_class if exposure_class not in ('ALL', 'GENERIC') else None
+        df = load_from_enriched_transactions(
+            bank_ids=[bank_key] if bank_key != 'ALL' else None,
+            exposure_class=db_exposure_class,
+            include_active=True,
+        )
+        # Some banks (e.g. newer Real Earth onboardings) were trained on
+        # bank_loan_metrics CUSTOMER-LEVEL data because they have no rows in
+        # `transactions` at all (see run_training's use_transaction_level
+        # switch) - fall back to the same source for sampling when the
+        # transaction-level query comes back empty or single-class.
+        if df is None or len(df) == 0 or df['default_flag'].nunique() < 2:
+            df = load_from_db(
+                bank_ids=[bank_key] if bank_key != 'ALL' else None,
+                exposure_class=db_exposure_class,
+            )
+        if df is None or len(df) == 0:
+            return jsonify({'error': 'No eligible training rows available for this scope'}), 404
+        if df['default_flag'].nunique() < 2:
+            return jsonify({'error': 'This scope has no defaults in its eligible rows - a shadow model cannot be trained on a single class'}), 404
+
+        n = min(sample_size, len(df))
+        # Plain random sampling can accidentally draw zero defaults when the
+        # default rate is low (e.g. CORPORATE), which trains a degenerate
+        # shadow model that predicts a near-constant probability and yields
+        # all-zero SHAP values - stratifying preserves the real default rate
+        # in the sample regardless of sample_size.
+        if n < len(df):
+            from sklearn.model_selection import train_test_split
+            df_sample, _ = train_test_split(df, train_size=n, stratify=df['default_flag'], random_state=42)
+        else:
+            df_sample = df
+        rows = [model_feature_frame(row.to_dict(), model) for _, row in df_sample.iterrows()]
+        X_sample = pd.concat(rows, ignore_index=True)
+        y_sample = df_sample['default_flag'].reset_index(drop=True)
+
+        result = compute_global_shap(model_type, X_sample, y_sample, hp)
+        result.update({'bank_key': bank_key, 'exposure_class': exposure_class})
+        return jsonify(result), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 
 # ============================================================================
 # ADMIN API — CHARTS
@@ -1371,6 +1927,16 @@ def admin_rollback():
             global _pd_model
             _pd_model = joblib.load(_MODEL_PATH)
             _assessment_engine.__init__(_pd_model, _get_model_version(), db_path=_OPS_DB_PATH)
+
+        # Governance audit: rollbacks are model-lifecycle events (hash-chained).
+        try:
+            with _gov_conn() as _gc:
+                _gov.append_audit_event(
+                    _gc, 'MODEL_ROLLBACK', actor_id='admin', actor_role='admin',
+                    object_type='model', object_id=exposure_class or 'ALL',
+                    payload=result)
+        except Exception as _e:
+            print(f'[governance] rollback audit failed (non-fatal): {_e}')
 
         return jsonify(result), 200
     except Exception as e:
@@ -1569,6 +2135,13 @@ def _start_scheduler():
                            id='npa_batch', replace_existing=True)
     except Exception as e:
         print(f'[npa-batch] could not schedule daily batch: {e}')
+    # Daily Governance drift/KPI monitor — PSI, AUC stability, fairness at 03:00.
+    try:
+        _scheduler.add_job(_run_governance_monitor_job, 'cron', hour=3, minute=0,
+                           id='governance_monitor', replace_existing=True)
+        print('[governance] daily drift/KPI monitor scheduled 03:00')
+    except Exception as e:
+        print(f'[governance] could not schedule daily monitor: {e}')
     # Ensure today's reports exist on startup (App Engine instances are ephemeral).
     _ensure_regulatory_reports()
 
@@ -3576,13 +4149,17 @@ def rm_cases():
         # Route through the correct segment engine (CORPORATE/SME/RETAIL_MORTGAGES/
         # RETAIL_OTHER) - this used to hardcode the legacy unsegmented
         # _assessment_engine, silently bypassing segment routing for every RM case.
-        engine, err = _resolve_segment_engine(application)
+        engine, model_scope_used, err = _resolve_segment_engine(application)
         if err:
             return err
         try:
             M = _orchestrate(application, engine)
         except Exception as e:
             return jsonify({'error': f'Assessment failed: {e}'}), 500
+        # Which model actually scored this case (Phase 2 model-routing switch) -
+        # recorded on M so rm_case_store.create_case() -> prediction_store
+        # captures it, not just the RM's requested model_scope.
+        M['model_scope'] = model_scope_used
         with _rm_conn() as conn:
             case_id = _rm.create_case(conn, M, rm_id=rm_id)
         return jsonify({'success': True, 'case_id': case_id,
@@ -3692,6 +4269,260 @@ def rm_report_pdf(case_id, version):
     download = request.args.get('dl') in ('1', 'true', 'yes')
     return _send_file(path, mimetype='application/pdf', as_attachment=download,
                       download_name=f'{case_id}_{version}.pdf')
+
+
+# ============================================================================
+# MODEL GOVERNANCE DEPARTMENT — SR 11-7 / Basel / EU AI Act controls
+# KPI monitoring (PSI drift, AUC stability, fairness gap), threshold alerts,
+# per-model governance wiki, six-pillar validation sign-offs, regulatory
+# mapping, and the hash-chained model-lifecycle audit trail.
+# ============================================================================
+from backend import governance_store as _gov
+from backend import drift_monitor as _drift
+
+_gov_schema_ready = False
+
+def _gov_conn():
+    """bank.db connection with the governance schema ensured once."""
+    global _gov_schema_ready
+    conn = _ops_conn()
+    if not _gov_schema_ready:
+        _gov.init_schema(conn)
+        _gov_schema_ready = True
+    return conn
+
+
+def _run_governance_monitor_job():
+    """APScheduler entry point for the daily drift/KPI monitor (03:00)."""
+    try:
+        with _gov_conn() as conn:
+            summary = _drift.run_monitor(conn)
+        print(f"[governance] monitor completed: {summary['kpis_written']} KPIs, "
+              f"{summary['alerts_created']} alerts, {len(summary['breaches'])} breaches")
+    except Exception as e:
+        print(f'[governance] monitor error: {e}')
+
+
+@app.route('/governance/')
+@app.route('/governance')
+def governance_home():
+    return send_from_directory('public/governance', 'index.html')
+
+
+@app.route('/governance/api/summary')
+def gov_summary():
+    """Dashboard payload: model inventory, latest KPIs, alerts, oversight, chain."""
+    with _gov_conn() as conn:
+        slots = _gov._load_active_registry()
+        inventory = []
+        for slot_key in slots:
+            seg, bank = _gov.parse_slot(slot_key)
+            reg = _gov._latest_registry_row(conn, seg, bank)
+            signoffs = _gov.get_signoffs(conn, slot_key)
+            latest = {}
+            for kpi in ('psi_score', 'psi_feature', 'auc_stability', 'fairness_gap',
+                        'prediction_volume'):
+                row = conn.execute(
+                    "SELECT value, threshold, status, run_ts FROM gov_kpi_snapshots "
+                    "WHERE slot_key=? AND kpi=? AND feature IS NULL "
+                    "ORDER BY run_ts DESC LIMIT 1", (slot_key, kpi)).fetchone()
+                if row:
+                    latest[kpi] = {'value': row[0], 'threshold': row[1],
+                                   'status': row[2], 'run_ts': row[3]}
+            open_alerts = conn.execute(
+                "SELECT COUNT(*) FROM gov_alerts WHERE slot_key=? AND status='OPEN'",
+                (slot_key,)).fetchone()[0]
+            wiki_row = conn.execute(
+                "SELECT risk_tier, version, updated_at FROM gov_wiki_entries "
+                "WHERE slot_key=?", (slot_key,)).fetchone()
+            inventory.append({
+                'slot_key': slot_key, 'exposure_class': seg, 'bank_scope': bank,
+                'model_type': (slots[slot_key] or {}).get('model_type'),
+                'activated_at': (slots[slot_key] or {}).get('activated_at'),
+                'model_id': (reg or {}).get('model_id'),
+                'auc_roc': (reg or {}).get('auc_roc'),
+                'promoted_at': (reg or {}).get('promoted_at'),
+                'risk_tier': wiki_row[0] if wiki_row else None,
+                'wiki_version': wiki_row[1] if wiki_row else None,
+                'validation_signed': signoffs['signed_off'],
+                'validation_total': signoffs['total'],
+                'open_alerts': open_alerts,
+                'kpis': latest,
+            })
+        alerts_open = _gov.list_alerts(conn, status='OPEN')
+        last_run = conn.execute(
+            "SELECT MAX(run_ts) FROM gov_kpi_snapshots").fetchone()[0]
+        override_row = conn.execute(
+            "SELECT value, detail_json, run_ts FROM gov_kpi_snapshots "
+            "WHERE slot_key='SYSTEM' AND kpi='override_rate' "
+            "ORDER BY run_ts DESC LIMIT 1").fetchone()
+        try:
+            oversight = _rm.insights(conn)
+        except Exception:
+            oversight = {}
+        chain = _gov.verify_chain(conn)
+    return jsonify({
+        'inventory': inventory,
+        'open_alerts': alerts_open,
+        'open_alert_count': len(alerts_open),
+        'last_monitor_run': last_run,
+        'override_kpi': ({'value': override_row[0],
+                          'detail': json.loads(override_row[1] or '{}'),
+                          'run_ts': override_row[2]} if override_row else None),
+        'oversight': oversight,
+        'audit_chain': chain,
+        'thresholds': _drift.load_thresholds(),
+    })
+
+
+@app.route('/governance/api/models')
+def gov_models():
+    with _gov_conn() as conn:
+        slots = _gov._load_active_registry()
+        out = []
+        for slot_key in slots:
+            seg, bank = _gov.parse_slot(slot_key)
+            reg = _gov._latest_registry_row(conn, seg, bank)
+            out.append({'slot_key': slot_key, 'exposure_class': seg,
+                        'bank_scope': bank,
+                        'model_type': (slots[slot_key] or {}).get('model_type'),
+                        'model_id': (reg or {}).get('model_id'),
+                        'auc_roc': (reg or {}).get('auc_roc'),
+                        'promoted_at': (reg or {}).get('promoted_at'),
+                        'n_train': (reg or {}).get('n_train')})
+    return jsonify({'models': out})
+
+
+@app.route('/governance/api/models/<path:slot_key>/kpis')
+def gov_model_kpis(slot_key):
+    limit = int(request.args.get('limit', 30))
+    with _gov_conn() as conn:
+        rows = conn.execute(
+            "SELECT run_ts, kpi, feature, value, threshold, status, detail_json "
+            "FROM gov_kpi_snapshots WHERE slot_key=? "
+            "ORDER BY run_ts DESC, kpi LIMIT ?", (slot_key, limit * 8)).fetchall()
+    history = []
+    for r in rows:
+        history.append({'run_ts': r[0], 'kpi': r[1], 'feature': r[2],
+                        'value': r[3], 'threshold': r[4], 'status': r[5],
+                        'detail': json.loads(r[6] or '{}')})
+    return jsonify({'slot_key': slot_key, 'history': history})
+
+
+@app.route('/governance/api/alerts')
+def gov_alerts():
+    with _gov_conn() as conn:
+        alerts = _gov.list_alerts(conn, status=request.args.get('status'),
+                                  slot_key=request.args.get('slot_key'))
+    return jsonify({'alerts': alerts})
+
+
+@app.route('/governance/api/alerts/<alert_id>/ack', methods=['POST'])
+def gov_ack_alert(alert_id):
+    if not _check_admin_auth(): return _admin_auth_error()
+    body = request.get_json(force=True) or {}
+    with _gov_conn() as conn:
+        result, code = _gov.ack_alert(conn, alert_id, body.get('acked_by'),
+                                      body.get('action_taken'))
+        conn.commit()
+    return jsonify(result), code
+
+
+@app.route('/governance/api/models/<path:slot_key>/wiki', methods=['GET', 'POST'])
+def gov_wiki(slot_key):
+    if request.method == 'POST':
+        if not _check_admin_auth(): return _admin_auth_error()
+        body = request.get_json(force=True) or {}
+        with _gov_conn() as conn:
+            result, code = _gov.update_wiki(conn, slot_key, body.get('fields'),
+                                            body.get('author'),
+                                            body.get('change_description'))
+            conn.commit()
+        return jsonify(result), code
+    with _gov_conn() as conn:
+        entry = _gov.get_wiki(conn, slot_key)
+    return jsonify(entry)
+
+
+@app.route('/governance/api/models/<path:slot_key>/wiki/versions/<int:version>')
+def gov_wiki_version(slot_key, version):
+    with _gov_conn() as conn:
+        snap = _gov.get_wiki_version(conn, slot_key, version)
+    if not snap:
+        return jsonify({'error': 'Version not found'}), 404
+    return jsonify(snap)
+
+
+@app.route('/governance/api/models/<path:slot_key>/validation', methods=['GET', 'POST'])
+def gov_validation(slot_key):
+    if request.method == 'POST':
+        if not _check_admin_auth(): return _admin_auth_error()
+        body = request.get_json(force=True) or {}
+        with _gov_conn() as conn:
+            result, code = _gov.sign_off(conn, slot_key, body.get('pillar'),
+                                         body.get('validator'), body.get('status'),
+                                         body.get('notes'))
+        return jsonify(result), code
+    with _gov_conn() as conn:
+        signoffs = _gov.get_signoffs(conn, slot_key)
+    return jsonify(signoffs)
+
+
+@app.route('/governance/api/models/<path:slot_key>/regulatory')
+def gov_regulatory(slot_key):
+    with _gov_conn() as conn:
+        mapping = _gov.regulatory_mapping(conn, slot_key)
+    return jsonify(mapping)
+
+
+@app.route('/governance/api/audit')
+def gov_audit():
+    with _gov_conn() as conn:
+        events = _gov.list_audit_events(conn,
+                                        limit=int(request.args.get('limit', 100)),
+                                        object_id=request.args.get('object_id'))
+    return jsonify({'events': events})
+
+
+@app.route('/governance/api/audit/verify')
+def gov_audit_verify():
+    with _gov_conn() as conn:
+        result = _gov.verify_chain(conn)
+    return jsonify(result)
+
+
+@app.route('/governance/api/run-monitor', methods=['POST'])
+def gov_run_monitor():
+    """Manual monitor trigger (mirrors POST /regulatory/api/run-batch)."""
+    try:
+        with _gov_conn() as conn:
+            summary = _drift.run_monitor(conn)
+        return jsonify(summary), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/governance/api/force-promote', methods=['POST'])
+def gov_force_promote():
+    if not _check_admin_auth(): return _admin_auth_error()
+    body = request.get_json(force=True) or {}
+    try:
+        from ml_models.trainer import force_promote
+        result = force_promote(
+            body.get('model_type'), body.get('bank_combo') or 'ALL',
+            body.get('exposure_class'),
+            actor_id=body.get('actor_id'), rationale=body.get('rationale'))
+        # reload the in-process engine so the forced model serves immediately
+        seg = body.get('exposure_class')
+        if seg and seg in _segment_engines:
+            _segment_engines[seg] = _build_segment_engine(seg)
+        return jsonify(result), 200
+    except ValueError as e:
+        return jsonify({'error': str(e)}), 400
+    except FileNotFoundError as e:
+        return jsonify({'error': str(e)}), 404
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 
 # Start scheduler only in the main process (not the Flask reloader watcher).
