@@ -290,7 +290,8 @@ def _slot_metadata(model_type, bank_key, exposure_class):
 def _latest_registry_row(conn, exposure_class, bank_scope):
     try:
         row = conn.execute(
-            "SELECT model_id, auc_roc, promoted_at, n_train, metrics_json FROM model_registry "
+            "SELECT model_id, auc_roc, promoted_at, n_train, metrics_json, "
+            "run_id, trained_at, model_type FROM model_registry "
             "WHERE exposure_class=? AND bank_scope=? ORDER BY promoted_at DESC LIMIT 1",
             (exposure_class, bank_scope)).fetchone()
     except sqlite3.OperationalError:
@@ -298,7 +299,43 @@ def _latest_registry_row(conn, exposure_class, bank_scope):
     if not row:
         return None
     return {'model_id': row[0], 'auc_roc': row[1], 'promoted_at': row[2],
-            'n_train': row[3], 'metrics': json.loads(row[4]) if row[4] else {}}
+            'n_train': row[3], 'metrics': json.loads(row[4]) if row[4] else {},
+            'run_id': row[5], 'trained_at': row[6], 'model_type': row[7]}
+
+
+def dataset_info(conn, slot_key):
+    """Which bank/dataset this slot's active model was actually trained on,
+    and when — for the Model Trust Ledger's 'Run Details' block. Every
+    timestamp returned here is either tz-aware UTC (has an offset/'Z') or a
+    naive server-local wall-clock string (this deployment's server clock is
+    IST) — callers render both correctly by checking for a suffix."""
+    seg, bank = parse_slot(slot_key)
+    reg_row = _latest_registry_row(conn, seg, bank) or {}
+    bank_name, country_code = None, None
+    if bank and bank != 'ALL':
+        row = conn.execute(
+            "SELECT bank_name, country_code FROM banks WHERE bank_id=?", (bank,)).fetchone()
+        if row:
+            bank_name, country_code = row
+    total_rows = None
+    try:
+        if bank and bank != 'ALL':
+            total_rows = conn.execute(
+                "SELECT COUNT(*) FROM bank_loan_metrics WHERE bank_id=?", (bank,)).fetchone()[0]
+        else:
+            total_rows = conn.execute("SELECT COUNT(*) FROM bank_loan_metrics").fetchone()[0]
+    except sqlite3.OperationalError:
+        pass
+    metrics = reg_row.get('metrics') or {}
+    return {
+        'slot_key': slot_key, 'exposure_class': seg, 'bank_scope': bank,
+        'bank_name': bank_name, 'country_code': country_code,
+        'model_type': reg_row.get('model_type'), 'run_id': reg_row.get('run_id'),
+        'trained_at': reg_row.get('trained_at'), 'promoted_at': reg_row.get('promoted_at'),
+        'dataset_table': 'bank_loan_metrics', 'dataset_total_rows': total_rows,
+        'n_train': reg_row.get('n_train'), 'n_test': metrics.get('n_test'),
+        'default_rate': metrics.get('default_rate'),
+    }
 
 
 def build_auto_block(conn, slot_key):
@@ -658,3 +695,93 @@ def regulatory_mapping(conn, slot_key):
     return {'slot_key': slot_key, 'model_id': signoffs['model_id'],
             'requirements': requirements,
             'satisfied': satisfied, 'total': len(requirements)}
+
+
+# ── per-run story snapshots ──────────────────────────────────────────────────
+REPORTS_DIR = Path(__file__).resolve().parent.parent / 'data' / 'governance_reports'
+
+
+def snapshot_story(conn, slot_key, reports_dir=None):
+    """Freeze everything the Model Trust Ledger page needs for slot_key's
+    CURRENT active model and write it to disk, keyed by run_id, so the story
+    survives the next retrain (which would otherwise overwrite live state).
+    Call this right after a model is promoted. Non-fatal by convention —
+    callers should wrap this in try/except, same as _snapshot_baseline."""
+    reg = regulatory_mapping(conn, slot_key)
+    signoffs = get_signoffs(conn, slot_key)
+    seg, bank = parse_slot(slot_key)
+    reg_row = _latest_registry_row(conn, seg, bank) or {}
+    model_id = reg.get('model_id') or reg_row.get('model_id')
+    run_id = reg_row.get('run_id') or model_id or f'unknown_{int(datetime.now().timestamp())}'
+
+    kpis = {}
+    for kpi in ('psi_score', 'psi_feature', 'auc_stability', 'fairness_gap', 'prediction_volume'):
+        row = conn.execute(
+            "SELECT value, threshold, status, run_ts, detail_json FROM gov_kpi_snapshots "
+            "WHERE slot_key=? AND kpi=? AND feature IS NULL "
+            "ORDER BY run_ts DESC LIMIT 1", (slot_key, kpi)).fetchone()
+        if row:
+            kpis[kpi] = {'value': row[0], 'threshold': row[1], 'status': row[2],
+                        'run_ts': row[3],
+                        'detail': json.loads(row[4]) if row[4] else {}}
+
+    snapshot = {
+        'slot_key': slot_key,
+        'model_id': model_id,
+        'run_id': run_id,
+        'exposure_class': seg,
+        'bank_scope': bank,
+        'auc_roc': reg_row.get('auc_roc'),
+        'n_train': reg_row.get('n_train'),
+        'promoted_at': reg_row.get('promoted_at'),
+        'generated_at': _now(),
+        'dataset': dataset_info(conn, slot_key),
+        'regulatory': reg,
+        'validation': signoffs,
+        'kpis': kpis,
+        'audit_events': list_audit_events(conn, limit=8),
+        'audit_chain': verify_chain(conn),
+    }
+
+    base = Path(reports_dir) if reports_dir else REPORTS_DIR
+    out_dir = base / run_id
+    out_dir.mkdir(parents=True, exist_ok=True)
+    with open(out_dir / 'story.json', 'w', encoding='utf-8') as f:
+        json.dump(snapshot, f, indent=2, default=str)
+    return snapshot
+
+
+def list_story_snapshots(reports_dir=None):
+    """Index of every saved snapshot, newest first, for the 'Past Reports' list."""
+    base = Path(reports_dir) if reports_dir else REPORTS_DIR
+    if not base.exists():
+        return []
+    out = []
+    for d in base.iterdir():
+        f = d / 'story.json'
+        if not f.exists():
+            continue
+        try:
+            with open(f, encoding='utf-8') as fh:
+                snap = json.load(fh)
+            ds = snap.get('dataset') or {}
+            out.append({'run_id': snap.get('run_id'), 'slot_key': snap.get('slot_key'),
+                        'model_id': snap.get('model_id'), 'auc_roc': snap.get('auc_roc'),
+                        'promoted_at': snap.get('promoted_at'),
+                        'generated_at': snap.get('generated_at'),
+                        'bank_name': ds.get('bank_name'), 'bank_scope': ds.get('bank_scope'),
+                        'satisfied': (snap.get('regulatory') or {}).get('satisfied'),
+                        'total': (snap.get('regulatory') or {}).get('total')})
+        except Exception:
+            continue
+    out.sort(key=lambda r: r.get('generated_at') or '', reverse=True)
+    return out
+
+
+def get_story_snapshot(run_id, reports_dir=None):
+    base = Path(reports_dir) if reports_dir else REPORTS_DIR
+    f = base / run_id / 'story.json'
+    if not f.exists():
+        return None
+    with open(f, encoding='utf-8') as fh:
+        return json.load(fh)

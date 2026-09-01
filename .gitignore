@@ -91,3 +91,10 @@ test_report.pdf
 
 # ML model binaries — too large for GitHub (>50 MB); deploy separately or use LFS
 ml_models/*.pkl
+ml_models/models/**/*.pkl
+
+# Session backups (bank.db / ml_models / data snapshots taken before destructive cleanup)
+backups/
+
+# Model Trust Ledger snapshots (regenerated automatically on every promotion)
+data/governance_reports/

@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Model Trust Ledger — Model Governance &amp; AI Risk</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Serif:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#161f2b; --ink-soft:#53637a; --ink-faint:#8291a3;
+    --paper:#eef1ef; --surface:#ffffff; --surface-2:#f5f7f6;
+    --line:#d8ded9; --line-soft:#e6e9e6;
+    --accent:#1f5f5b; --accent-ink:#0e3532; --accent-tint:#e2eeec;
+    --ok:#2f7a4f; --ok-bg:#e6f2ea; --ok-line:#bfe0cb;
+    --warn:#93630a; --warn-bg:#faf1dc; --warn-line:#eed9a6;
+    --gap:#ab3a2e; --gap-bg:#fbe9e6; --gap-line:#f0c4bc;
+    --shadow: 0 1px 2px rgba(22,31,43,0.04), 0 6px 20px -8px rgba(22,31,43,0.10);
+  }
+  *{ box-sizing:border-box; }
+  body{ background:var(--paper); color:var(--ink); font-family:"IBM Plex Sans",ui-sans-serif,system-ui,sans-serif; font-size:16px; line-height:1.6; margin:0; -webkit-font-smoothing:antialiased; }
+  a{ color:var(--accent-ink); }
+  h1,h2,h3{ font-family:"IBM Plex Serif",Georgia,serif; color:var(--ink); text-wrap:balance; margin:0; }
+  .mono{ font-family:"IBM Plex Mono",ui-monospace,monospace; font-variant-numeric:tabular-nums; }
+
+  .topbar{
+    background:var(--ink); color:#fff; padding:0 24px; height:52px;
+    display:flex; align-items:center; justify-content:space-between; position:sticky; top:0; z-index:10;
+  }
+  .topbar a{ color:rgba(255,255,255,0.6); text-decoration:none; font-size:12px; }
+  .topbar a:hover{ color:#fff; }
+  .topbar-right{ display:flex; gap:10px; align-items:center; }
+  .btn{
+    font-family:"IBM Plex Sans"; font-size:12.5px; font-weight:600; cursor:pointer;
+    border:1px solid rgba(255,255,255,0.25); background:transparent; color:#fff;
+    padding:7px 14px; border-radius:6px;
+  }
+  .btn:hover{ border-color:#fff; }
+  .btn-accent{ background:var(--accent); border-color:var(--accent); }
+
+  .page{ max-width:840px; margin:0 auto; padding:48px 24px 96px; }
+  .masthead{ display:flex; justify-content:space-between; align-items:flex-end; gap:24px; border-bottom:2px solid var(--ink); padding-bottom:18px; margin-bottom:8px; flex-wrap:wrap; }
+  .masthead .eyebrow{ font-family:"IBM Plex Mono"; font-size:11px; letter-spacing:0.12em; text-transform:uppercase; color:var(--accent-ink); margin-bottom:8px; display:block; }
+  .masthead h1{ font-size:32px; font-weight:600; letter-spacing:-0.01em; }
+  .masthead .meta{ text-align:right; font-family:"IBM Plex Mono"; font-size:12px; color:var(--ink-faint); line-height:1.7; }
+  .lede{ font-size:17px; color:var(--ink-soft); max-width:66ch; margin:22px 0 8px; }
+  .lede strong{ color:var(--ink); font-weight:600; }
+
+  section{ margin-top:56px; }
+  section > h2{ font-size:22px; font-weight:600; margin-bottom:6px; }
+  .section-sub{ color:var(--ink-soft); max-width:64ch; font-size:14.5px; margin-bottom:22px; }
+
+  .scorecard{ display:grid; grid-template-columns:auto 1fr auto auto; align-items:center; gap:28px; background:var(--surface); border:1px solid var(--line); border-radius:8px; padding:22px 26px; box-shadow:var(--shadow); }
+  .score-ring-wrap{ position:relative; width:84px; height:84px; flex:none; }
+  .score-ring{ width:84px; height:84px; border-radius:50%; background:conic-gradient(var(--accent) calc(var(--pct)), var(--line-soft) 0); }
+  .score-ring::after{ content:""; width:64px; height:64px; border-radius:50%; background:var(--surface); position:absolute; }
+  .score-num{ position:absolute; inset:0; z-index:1; display:flex; align-items:center; justify-content:center; font-family:"IBM Plex Mono"; font-weight:600; font-size:20px; color:var(--ink); }
+  .score-label{ font-size:13px; color:var(--ink-soft); line-height:1.5; }
+  .score-label b{ color:var(--ink); font-weight:600; }
+  .scorecard .stat .k{ font-size:11px; text-transform:uppercase; letter-spacing:0.08em; color:var(--ink-faint); margin-bottom:3px; }
+  .scorecard .stat .v{ font-family:"IBM Plex Mono"; font-size:14px; color:var(--ink); }
+  @media (max-width:640px){ .scorecard{ grid-template-columns:auto 1fr; row-gap:16px; } .scorecard .stat{ grid-column:2; } }
+
+  .frameworks{ display:flex; gap:14px; flex-wrap:wrap; margin-top:22px; }
+  .fw-card{ flex:1 1 200px; background:var(--surface-2); border:1px solid var(--line-soft); border-radius:6px; padding:14px 16px; }
+  .fw-card .tag{ font-family:"IBM Plex Mono"; font-size:11px; font-weight:600; color:var(--accent-ink); letter-spacing:0.03em; }
+  .fw-card p{ margin:6px 0 0; font-size:13px; color:var(--ink-soft); }
+
+  .chip{ display:inline-flex; align-items:center; gap:6px; font-family:"IBM Plex Mono"; font-size:11.5px; font-weight:600; letter-spacing:0.03em; text-transform:uppercase; padding:4px 10px; border-radius:100px; border:1px solid transparent; white-space:nowrap; }
+  .chip::before{ content:""; width:6px; height:6px; border-radius:50%; background:currentColor; }
+  .chip.ok{ background:var(--ok-bg); color:var(--ok); border-color:var(--ok-line); }
+  .chip.warn{ background:var(--warn-bg); color:var(--warn); border-color:var(--warn-line); }
+  .chip.gap{ background:var(--gap-bg); color:var(--gap); border-color:var(--gap-line); }
+
+  .req{ background:var(--surface); border:1px solid var(--line); border-radius:8px; padding:22px 24px; margin-bottom:14px; break-inside:avoid; }
+  .req-top{ display:flex; justify-content:space-between; align-items:flex-start; gap:16px; flex-wrap:wrap; }
+  .req-title{ font-size:17px; font-weight:600; font-family:"IBM Plex Serif"; }
+  .req-tags{ display:flex; gap:6px; margin-top:6px; flex-wrap:wrap; }
+  .req-tag{ font-family:"IBM Plex Mono"; font-size:10px; letter-spacing:0.04em; color:var(--ink-faint); border:1px solid var(--line-soft); padding:2px 7px; border-radius:4px; }
+  .req-why{ color:var(--ink-soft); font-size:14.5px; margin-top:12px; max-width:62ch; }
+  .req-evidence{ margin-top:14px; padding-top:14px; border-top:1px dashed var(--line-soft); font-size:13.5px; color:var(--ink-soft); display:flex; gap:8px; }
+  .req-evidence .lbl{ color:var(--ink-faint); flex:none; }
+  .req-todo{ margin-top:12px; background:var(--gap-bg); border:1px solid var(--gap-line); border-radius:6px; padding:10px 14px; font-size:13.5px; color:var(--gap); display:flex; gap:8px; }
+  .req-todo .lbl{ font-weight:600; flex:none; }
+
+  .pillars{ border:1px solid var(--line); border-radius:8px; overflow:hidden; background:var(--surface); }
+  .pillar-row{ display:grid; grid-template-columns:32px 1fr auto; gap:14px; align-items:center; padding:14px 20px; border-bottom:1px solid var(--line-soft); }
+  .pillar-row:last-child{ border-bottom:none; }
+  .pillar-num{ font-family:"IBM Plex Mono"; font-size:13px; color:var(--ink-faint); width:28px; height:28px; border:1px solid var(--line-soft); border-radius:50%; display:flex; align-items:center; justify-content:center; }
+  .pillar-name{ font-weight:500; font-size:14.5px; }
+  .pillar-desc{ font-size:12.5px; color:var(--ink-faint); margin-top:2px; }
+
+  .kpi-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:14px; }
+  .kpi-card{ background:var(--surface); border:1px solid var(--line); border-radius:8px; padding:18px 20px; break-inside:avoid; }
+  .kpi-head{ display:flex; justify-content:space-between; align-items:center; gap:10px; }
+  .kpi-name{ font-weight:600; font-size:14px; }
+  .kpi-val{ font-family:"IBM Plex Mono"; font-size:22px; font-weight:600; margin-top:10px; }
+  .kpi-thresh{ font-family:"IBM Plex Mono"; font-size:11.5px; color:var(--ink-faint); margin-top:2px; }
+  .kpi-desc{ font-size:12.5px; color:var(--ink-soft); margin-top:10px; padding-top:10px; border-top:1px dashed var(--line-soft); }
+
+  .chain{ display:flex; align-items:stretch; gap:0; overflow-x:auto; padding:4px 2px 12px; }
+  .link{ flex:none; width:230px; background:var(--surface); border:1px solid var(--line); border-radius:8px; padding:14px 16px; position:relative; margin-right:28px; }
+  .link:not(:last-child)::after{ content:"→"; position:absolute; right:-26px; top:50%; transform:translateY(-50%); color:var(--ink-faint); font-size:16px; }
+  .link .seq{ font-family:"IBM Plex Mono"; font-size:11px; color:var(--ink-faint); }
+  .link .ev{ font-weight:600; font-size:13.5px; margin-top:4px; }
+  .link .hash{ font-family:"IBM Plex Mono"; font-size:10.5px; color:var(--ink-faint); margin-top:8px; word-break:break-all; }
+
+  .actions{ list-style:none; padding:0; margin:0; display:flex; flex-direction:column; gap:10px; }
+  .actions li{ display:flex; gap:14px; align-items:flex-start; background:var(--surface); border:1px solid var(--line); border-radius:8px; padding:14px 18px; break-inside:avoid; }
+  .actions .n{ font-family:"IBM Plex Mono"; font-weight:600; font-size:13px; color:var(--accent-ink); background:var(--accent-tint); width:26px; height:26px; border-radius:50%; display:flex; align-items:center; justify-content:center; flex:none; margin-top:1px; }
+  .actions .body b{ display:block; font-size:14.5px; margin-bottom:2px; }
+  .actions .body span{ font-size:13px; color:var(--ink-soft); }
+  .actions.done li{ opacity:0.55; }
+
+  footer{ margin-top:64px; padding-top:20px; border-top:1px solid var(--line); font-size:12px; color:var(--ink-faint); font-family:"IBM Plex Mono"; display:flex; justify-content:space-between; flex-wrap:wrap; gap:8px; }
+  .details-card{ background:var(--surface); border:1px solid var(--line); border-radius:8px; padding:6px 24px; margin-top:22px; }
+  .details-row{ display:grid; grid-template-columns:200px 1fr; gap:16px; padding:13px 0; border-bottom:1px solid var(--line-soft); align-items:baseline; }
+  .details-row:last-child{ border-bottom:none; }
+  .details-row .dk{ font-size:11px; text-transform:uppercase; letter-spacing:0.06em; color:var(--ink-faint); }
+  .details-row .dv{ font-size:14px; color:var(--ink); }
+  .details-row .dv .mono{ font-size:13px; }
+  @media (max-width:560px){ .details-row{ grid-template-columns:1fr; gap:4px; } }
+  .empty-state{ padding:40px; text-align:center; color:var(--ink-soft); background:var(--surface); border:1px solid var(--line); border-radius:8px; }
+  .model-sep{ margin:72px 0 40px; border:none; border-top:1px dashed var(--line); }
+  .model-heading{ font-family:"IBM Plex Mono"; font-size:12px; letter-spacing:0.08em; text-transform:uppercase; color:var(--accent-ink); margin-bottom:8px; }
+
+  .snap-banner{
+    display:flex; justify-content:space-between; align-items:center; gap:16px; flex-wrap:wrap;
+    background:var(--accent-tint); border:1px solid var(--accent); color:var(--accent-ink);
+    border-radius:8px; padding:12px 18px; font-size:13.5px; margin-top:8px;
+  }
+  .snap-banner a{ font-weight:600; }
+
+  .reports-toggle{
+    display:flex; align-items:center; gap:8px; margin-top:18px; cursor:pointer;
+    font-family:"IBM Plex Mono"; font-size:12px; color:var(--ink-soft); user-select:none;
+  }
+  .reports-toggle:hover{ color:var(--accent-ink); }
+  .reports-list{ margin-top:10px; border:1px solid var(--line); border-radius:8px; overflow:hidden; background:var(--surface); }
+  .report-row{
+    display:grid; grid-template-columns:1fr auto auto auto; gap:14px; align-items:center;
+    padding:11px 16px; border-bottom:1px solid var(--line-soft); text-decoration:none; color:inherit; font-size:13px;
+  }
+  .report-row:last-child{ border-bottom:none; }
+  .report-row:hover{ background:var(--surface-2); }
+  .report-row.current{ background:var(--accent-tint); }
+  .report-row .run{ font-family:"IBM Plex Mono"; font-weight:600; }
+  .report-row .date{ font-family:"IBM Plex Mono"; color:var(--ink-faint); white-space:nowrap; }
+  .report-row .score{ font-family:"IBM Plex Mono"; color:var(--ink-soft); white-space:nowrap; }
+  @media print{ .reports-toggle, .reports-list, .snap-banner .btn{ display:none; } }
+
+  @media print{
+    .topbar{ display:none; }
+    body{ background:#fff; }
+    .page{ max-width:none; padding:0 8mm; }
+    .req, .kpi-card, .link, .actions li{ box-shadow:none; }
+    a[href]{ color:inherit; text-decoration:none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <a href="/governance/">← Model Risk Dashboard</a>
+  <div class="topbar-right">
+    <span id="genTs" style="font-size:11px;color:rgba(255,255,255,0.4);font-family:'IBM Plex Mono',monospace"></span>
+    <button class="btn" onclick="refresh()">↻ Refresh</button>
+    <button class="btn btn-accent" onclick="window.print()">⬇ Save as PDF</button>
+  </div>
+</div>
+
+<div class="page" id="page">
+  <div class="masthead">
+    <div>
+      <span class="eyebrow">Model Governance · Compliance Narrative</span>
+      <h1>The Model Trust Ledger</h1>
+    </div>
+    <div class="meta" id="mastheadMeta">Loading…</div>
+  </div>
+
+  <p class="lede">
+    This page walks through what the <strong>Model Risk Dashboard</strong> is actually checking for —
+    and exactly where every active model stands against three real regulatory frameworks.
+    Every status below is read live from the governance database, not asserted — if something says
+    <strong>Gap</strong>, the system genuinely hasn't done that thing yet.
+  </p>
+
+  <div class="frameworks">
+    <div class="fw-card">
+      <span class="tag">SR 11-7</span>
+      <p>US Federal Reserve / OCC guidance: banks must independently validate, document and monitor
+        any model used to make credit decisions — not just build it well.</p>
+    </div>
+    <div class="fw-card">
+      <span class="tag">BASEL</span>
+      <p>The Basel Committee's model-risk principles for capital models: sound methodology,
+        data quality, and demonstrated stress-testing before a model can size real capital.</p>
+    </div>
+    <div class="fw-card">
+      <span class="tag">EU AI ACT</span>
+      <p>Credit scoring is a "high-risk" AI use case under the Act: it requires human oversight,
+        transparency to the person being scored, and continuous post-market monitoring.</p>
+    </div>
+  </div>
+
+  <div id="snapBanner"></div>
+
+  <div class="reports-toggle" id="reportsToggle" onclick="toggleReports()">▸ Past reports (one snapshot per promoted training run)</div>
+  <div class="reports-list" id="reportsList" style="display:none"></div>
+
+  <div id="modelsRoot"></div>
+
+  <footer>
+    <span>Model Trust Ledger · generated from live governance data, not asserted</span>
+    <span id="footerDb">bank.db</span>
+  </footer>
+</div>
+
+<script>
+const REQ_META = {
+  'Governance & Accountability': {
+    why: "Regulators want a named owner and a written escalation path for every model in production — so when something goes wrong, someone specific is accountable and knows what to do.",
+    toClose: "Open this model's Governance Wiki tab and fill in its purpose and escalation rules."
+  },
+  'Independent Validation': {
+    why: "SR 11-7's core idea: the people who built a model shouldn't be the only ones who check it. A second, independent reviewer works through six standard pillars — is the approach sound, is the data clean, was the build process followed, do the outcomes hold up, is it being watched, is it governed — and signs off on each one.",
+    toClose: "Open Model Governance → this model → Validation, and have a reviewer (not the person who trained it) sign each of the six pillars."
+  },
+  'Documentation': {
+    why: "A model has to be explainable to someone who didn't build it — its assumptions, what data trained it, and how it should be reviewed — with a version history so that documentation can't quietly drift from what the model actually does.",
+    toClose: "Fill in the empty sections of this model's Governance Wiki (purpose, assumptions, data lineage, validation methods)."
+  },
+  'Stress Testing': {
+    why: "Basel wants proof the model doesn't just look good on one lucky train/test split — it needs to hold up across resampled folds and under different economic conditions before it's trusted to size real capital.",
+    toClose: "Retrain with cross-validation enabled so CV/significance diagnostics land in the model's metadata."
+  },
+  'Ongoing Monitoring': {
+    why: "A model that passed validation on day one can still quietly go stale — the population it scores shifts, or its accuracy erodes. Both frameworks require this to be checked on a running basis, not just once at launch.",
+    toClose: "Run the monitor once (button on the Model Risk Dashboard, or POST /governance/api/run-monitor) to snapshot this model's own PSI/AUC/fairness baseline, then let the daily 03:00 job keep it current."
+  },
+  'Human Oversight': {
+    why: "The EU AI Act doesn't allow a credit decision to be fully automated end-to-end — a human relationship manager has to see the model's recommendation and finalise (accept or reject) every case.",
+    toClose: "Run at least one applicant through the credit calculator → \"Refer to Relationship Manager\", then accept or reject it from the Relationship Management queue."
+  },
+  'Transparency': {
+    why: "The person being scored has a right to know why — a real, specific reason, not \"the algorithm said so.\" This means feature-level reasons behind every decision."
+  }
+};
+
+const PILLAR_DESC = {
+  'Conceptual Soundness': "Does the modelling approach make sense for what it's being used for?",
+  'Data Quality Assessment': "Is the training data clean, representative, and free of leakage?",
+  'Process Verification': "Was the model actually built the way its documentation says it was?",
+  'Outcomes Analysis': "Do its predictions hold up against what actually happened?",
+  'Ongoing Monitoring': "Is there a plan to keep watching it after launch?",
+  'Governance Framework': "Is there a named owner and an escalation path if it misbehaves?"
+};
+
+const KPI_META = {
+  psi_score: { name: 'Population Shift (PSI)', unit: '', fmt: v => v.toFixed(3),
+    desc: v => v.status === 'NO_DATA'
+      ? "\"Have the people applying for credit changed since the model was trained?\" No training-time snapshot has been taken yet for this model, so there's nothing to compare against."
+      : `PSI of ${v.value.toFixed(3)} against the training-time score distribution.` },
+  psi_feature: { name: 'Feature Shift (PSI)', unit: '', fmt: v => v.toFixed(3),
+    desc: v => v.status === 'NO_DATA'
+      ? "Same idea as population shift, but checked feature-by-feature. No training-time feature baseline has been snapshotted yet."
+      : `Largest per-feature PSI: ${v.value.toFixed(3)}.` },
+  auc_stability: { name: 'Accuracy Stability', unit: 'pp', fmt: v => v.toFixed(1),
+    desc: v => v.status === 'NO_DATA'
+      ? "\"Is the model as good as it was on day one?\" Needs at least 10 matured real-world outcomes (loans that have since defaulted or not) to check — none exist yet in this environment."
+      : `AUC has moved ${v.value.toFixed(1)} points from its training-time baseline.` },
+  fairness_gap: { name: 'Fairness Gap', unit: 'pp', fmt: v => (v*100).toFixed(1),
+    desc: v => {
+      if (v.status === 'NO_DATA') return "Checks whether predicted default rates differ sharply across protected groups. No comparison available yet.";
+      const g = v.detail && v.detail.groups;
+      if (g && Object.keys(g).length === 2) {
+        const [a,b] = Object.values(g);
+        return `Predicted default rate differs by ${(v.value*100).toFixed(1)} points between groups (${(a.mean*100).toFixed(1)}% vs ${(b.mean*100).toFixed(1)}%).`;
+      }
+      return `Predicted default rate differs by ${(v.value*100).toFixed(1)} points across groups.`;
+    } },
+  prediction_volume: { name: 'Prediction Volume', unit: '×', fmt: v => v.toFixed(1),
+    desc: v => v.status === 'NO_DATA'
+      ? "Checks whether the model is being called about as often as expected — silently unused, or suspiciously overused, both matter."
+      : `The model is being called at ${v.value.toFixed(1)}× the expected rate for its 30-day window.` }
+};
+
+function chipClass(status){
+  if (status === 'OK' || status === 'SATISFIED' || status === 'SIGNED_OFF') return 'ok';
+  if (status === 'WATCH' || status === 'PARTIAL' || status === 'PENDING') return 'warn';
+  if (status === 'BREACH' || status === 'GAP' || status === 'FINDINGS') return 'gap';
+  return 'warn';
+}
+function chipLabel(status){
+  return ({SATISFIED:'Satisfied', PARTIAL:'Partial', GAP:'Gap', SIGNED_OFF:'Signed Off',
+           PENDING:'Pending', OK:'OK', WATCH:'Watch', BREACH:'Breach', NO_DATA:'No Data'})[status] || status;
+}
+function esc(s){ return (s===undefined||s===null) ? '' : String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+// This deployment's server clock is set to IST, so a timestamp with no
+// timezone suffix (trained_at/promoted_at, written via Python's naive
+// datetime.now()) is already IST wall-clock time — just label it. A
+// timestamp WITH a 'Z' or +hh:mm offset (audit/KPI timestamps, written in
+// UTC) needs +5:30 added before display. Parsed manually (not via toLocale*)
+// so the result doesn't depend on the viewer's own browser timezone.
+function fmtTs(ts){
+  if (!ts) return '—';
+  const hasTz = /Z$|[+-]\d{2}:\d{2}$/.test(ts);
+  const pad = n => String(n).padStart(2, '0');
+  try {
+    if (hasTz) {
+      const ist = new Date(new Date(ts).getTime() + 5.5 * 3600 * 1000);
+      return `${ist.getUTCFullYear()}-${pad(ist.getUTCMonth()+1)}-${pad(ist.getUTCDate())} `
+           + `${pad(ist.getUTCHours())}:${pad(ist.getUTCMinutes())} IST`;
+    }
+    const m = ts.match(/^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})/);
+    return m ? `${m[1]}-${m[2]}-${m[3]} ${m[4]}:${m[5]} IST` : ts + ' IST';
+  } catch (e) { return ts; }
+}
+function hoursAgo(ts){ if(!ts) return Infinity; return (Date.now() - new Date(ts).getTime())/36e5; }
+
+async function fetchJSON(url, opts){
+  const r = await fetch(url, opts);
+  if (!r.ok) throw new Error(url+' -> '+r.status);
+  return r.json();
+}
+
+function scoreRing(satisfied, total){
+  const pct = total ? (satisfied/total*100).toFixed(1) : 0;
+  return `<div class="score-ring-wrap">
+    <div class="score-ring" style="--pct:${pct}%"></div>
+    <div class="score-num">${satisfied}/${total}</div>
+  </div>`;
+}
+
+function renderRequirements(requirements){
+  return requirements.map(r => {
+    const meta = REQ_META[r.requirement] || {};
+    const showTodo = r.status !== 'SATISFIED' && meta.toClose;
+    return `<div class="req">
+      <div class="req-top">
+        <div>
+          <div class="req-title">${esc(r.requirement)}</div>
+          <div class="req-tags">${r.frameworks.map(f=>`<span class="req-tag">${esc(f)}</span>`).join('')}</div>
+        </div>
+        <span class="chip ${chipClass(r.status)}">${chipLabel(r.status)}</span>
+      </div>
+      ${meta.why ? `<p class="req-why">${esc(meta.why)}</p>` : ''}
+      <div class="req-evidence"><span class="lbl">Evidence —</span> ${esc(r.evidence)}</div>
+      ${showTodo ? `<div class="req-todo"><span class="lbl">To close:</span> ${esc(meta.toClose)}</div>` : ''}
+    </div>`;
+  }).join('');
+}
+
+function renderPillars(pillars){
+  return `<div class="pillars">` + pillars.map(p => `
+    <div class="pillar-row">
+      <div class="pillar-num mono">${p.pillar}</div>
+      <div><div class="pillar-name">${esc(p.pillar_name)}</div><div class="pillar-desc">${esc(PILLAR_DESC[p.pillar_name]||'')}</div></div>
+      <span class="chip ${chipClass(p.status)}">${chipLabel(p.status)}</span>
+    </div>`).join('') + `</div>`;
+}
+
+function renderKpis(kpiMap){
+  const order = ['psi_score','psi_feature','auc_stability','fairness_gap','prediction_volume'];
+  return `<div class="kpi-grid">` + order.filter(k=>kpiMap[k]).map(k => {
+    const v = kpiMap[k], meta = KPI_META[k];
+    const valStr = (v.status === 'NO_DATA' || v.value === null || v.value === undefined) ? '—' : meta.fmt(v.value);
+    return `<div class="kpi-card">
+      <div class="kpi-head"><span class="kpi-name">${meta.name}</span><span class="chip ${chipClass(v.status)}">${chipLabel(v.status)}</span></div>
+      <div class="kpi-val" style="${valStr==='—'?'color:var(--ink-faint)':''}">${valStr}${valStr!=='—'&&meta.unit?`<span style="font-size:13px">${meta.unit}</span>`:''}</div>
+      <div class="kpi-thresh">${v.threshold!==null&&v.threshold!==undefined?`alert threshold ${v.threshold}`:'no fixed threshold'}</div>
+      <div class="kpi-desc">${esc(meta.desc(v))}</div>
+    </div>`;
+  }).join('') + `</div>`;
+}
+
+function renderChain(events, chainStatus){
+  const chrono = [...events].reverse();
+  const links = chrono.map(e => `
+    <div class="link">
+      <div class="seq">SEQ ${e.seq}</div>
+      <div class="ev">${esc(e.event_type.replace(/_/g,' '))}</div>
+      <div class="pillar-desc" style="margin-top:6px">${esc(e.object_id||'')}</div>
+      <div class="hash">${esc((e.hash||'').slice(0,10))}…</div>
+    </div>`).join('');
+  return `<div class="chain">${links || '<div class="empty-state">No audit events recorded yet.</div>'}</div>
+  <p class="section-sub" style="margin-top:4px">
+    Current chain: <span class="chip ${chainStatus.intact?'ok':'gap'}" style="vertical-align:middle">${chainStatus.intact?'Intact':'Broken'}</span>
+    &nbsp;— ${chainStatus.events} event${chainStatus.events===1?'':'s'}, verified from genesis${chainStatus.intact?', zero breaks.':`, first break at seq ${chainStatus.first_broken_seq}.`}
+  </p>`;
+}
+
+function renderActions(requirements, pillarsComplete){
+  const items = [];
+  requirements.forEach(r => {
+    if (r.status !== 'SATISFIED') {
+      const meta = REQ_META[r.requirement];
+      if (meta && meta.toClose) items.push({title: r.requirement, text: meta.toClose});
+    }
+  });
+  if (!items.length) {
+    return `<div class="empty-state">Every requirement is currently Satisfied for this model. Re-run this page after the next training run or monitor cycle to keep it that way.</div>`;
+  }
+  return `<ol class="actions">` + items.map((a,i) => `
+    <li><div class="n">${i+1}</div><div class="body"><b>${esc(a.title)}</b><span>${esc(a.text)}</span></div></li>
+  `).join('') + `</ol>`;
+}
+
+function renderRunDetails(ds){
+  if (!ds) return '';
+  const bankLine = ds.bank_name
+    ? `${esc(ds.bank_name)} <span class="mono" style="color:var(--ink-faint)">(${esc(ds.bank_scope)}${ds.country_code?', '+esc(ds.country_code):''})</span>`
+    : `<span class="mono">${esc(ds.bank_scope||'ALL')}</span> <span style="color:var(--ink-faint)">(bank-agnostic — trained across all banks)</span>`;
+  const rowsLine = ds.dataset_total_rows!==null && ds.dataset_total_rows!==undefined
+    ? `${ds.dataset_total_rows.toLocaleString()} total rows`
+      + (ds.n_train!==null&&ds.n_train!==undefined ? ` · ${ds.n_train.toLocaleString()} trained on` : '')
+      + (ds.n_test!==null&&ds.n_test!==undefined ? ` · ${ds.n_test.toLocaleString()} held out for testing` : '')
+    : '—';
+  const defRate = ds.default_rate!==null && ds.default_rate!==undefined ? `${(ds.default_rate*100).toFixed(1)}%` : '—';
+  return `<div class="details-card">
+    <div class="details-row"><span class="dk">Bank / Portfolio</span><span class="dv">${bankLine}</span></div>
+    <div class="details-row"><span class="dk">Exposure Class</span><span class="dv mono">${esc(ds.exposure_class||'—')} <span style="color:var(--ink-faint);font-family:'IBM Plex Sans'">segment · ${esc(ds.model_type||'—')} model</span></span></div>
+    <div class="details-row"><span class="dk">Dataset Source</span><span class="dv"><span class="mono">${esc(ds.dataset_table||'—')}</span> table — ${rowsLine}</span></div>
+    <div class="details-row"><span class="dk">Historical Default Rate</span><span class="dv">${defRate}</span></div>
+    <div class="details-row"><span class="dk">Training Run</span><span class="dv mono">${esc(ds.run_id||'—')}</span></div>
+    <div class="details-row"><span class="dk">Trained At</span><span class="dv mono">${fmtTs(ds.trained_at)}</span></div>
+    <div class="details-row"><span class="dk">Promoted At</span><span class="dv mono">${fmtTs(ds.promoted_at)}</span></div>
+  </div>`;
+}
+
+function renderModel(source, isOnly){
+  const { slot, regulatory, validation, events, chainVerify, auc_roc, promoted_at, kpiMap, dataset } = source;
+
+  const heading = isOnly ? '' : `<hr class="model-sep"><div class="model-heading">Model Slot</div>`;
+
+  return `
+  ${heading}
+  <section style="${isOnly?'margin-top:36px':'margin-top:8px'}">
+    <div class="scorecard">
+      ${scoreRing(regulatory.satisfied, regulatory.total)}
+      <div class="score-label">
+        Regulatory requirements currently <b>Satisfied</b> for <span class="mono">${esc(slot)}</span>.<br>
+        ${regulatory.total - regulatory.satisfied} open gap${(regulatory.total-regulatory.satisfied)===1?'':'s'} — explained below, with the exact next step to close each one.
+      </div>
+      <div class="stat"><div class="k">Model AUC-ROC</div><div class="v">${auc_roc!==null&&auc_roc!==undefined?auc_roc.toFixed(3):'—'}</div></div>
+      <div class="stat"><div class="k">Promoted</div><div class="v">${fmtTs(promoted_at)}</div></div>
+    </div>
+    ${renderRunDetails(dataset)}
+  </section>
+
+  <section>
+    <h2>What's expected, and what's actually true today</h2>
+    <p class="section-sub">Seven checks, each mapped to one or more of the frameworks above. <strong>Satisfied</strong> means the system found real evidence in the database. <strong>Gap</strong> means the feature exists but hasn't been used yet on this model.</p>
+    ${renderRequirements(regulatory.requirements)}
+  </section>
+
+  <section>
+    <h2>Independent Validation, pillar by pillar</h2>
+    <p class="section-sub">This is the "Independent Validation" row above, broken into the six specific things SR 11-7 asks a second reviewer to check.</p>
+    ${renderPillars(validation.pillars)}
+  </section>
+
+  <section>
+    <h2>What the drift monitor is actually measuring</h2>
+    <p class="section-sub">Three questions, checked automatically: has the population changed since training, is the model still as accurate as it was, and is it fair across groups?
+      ${hoursAgo(Object.values(kpiMap)[0]?.run_ts) > 48 ? ' These values are from the last monitor run — stale, since it predates this model\'s promotion.' : ''}</p>
+    ${renderKpis(kpiMap)}
+  </section>
+
+  <section>
+    <h2>The audit trail behind this model</h2>
+    <p class="section-sub">Every governance action — a training run, a promotion, an alert, a sign-off — is written to a single chain where each entry's hash depends on the one before it. If any past entry were edited after the fact, the chain from that point on would no longer verify.</p>
+    ${renderChain(events, chainVerify)}
+  </section>
+
+  <section>
+    <h2>What would move this from ${regulatory.satisfied}/${regulatory.total} to ${regulatory.total}/${regulatory.total}</h2>
+    ${renderActions(regulatory.requirements, validation.complete)}
+  </section>
+  `;
+}
+
+async function loadStory(){
+  const root = document.getElementById('modelsRoot');
+  document.getElementById('snapBanner').innerHTML = '';
+  root.innerHTML = '<div class="empty-state">Loading live governance data…</div>';
+  try {
+    const summary = await fetchJSON('/governance/api/summary');
+    const inventory = summary.inventory || [];
+    document.getElementById('mastheadMeta').innerHTML =
+      `${inventory.length} active model slot${inventory.length===1?'':'s'}<br>
+       Last monitor run ${fmtTs(summary.last_monitor_run)}<br>
+       Generated ${fmtTs(new Date().toISOString())}`;
+    document.getElementById('genTs').textContent = fmtTs(new Date().toISOString());
+
+    if (!inventory.length) {
+      root.innerHTML = `<div class="empty-state">No active model in the registry yet. Train and promote one from the Admin dashboard, then reload this page.</div>`;
+      return;
+    }
+    const sources = await Promise.all(inventory.map(async inv => {
+      const slot = inv.slot_key;
+      const [regulatory, validation, auditData, chainVerify, dataset] = await Promise.all([
+        fetchJSON(`/governance/api/models/${encodeURIComponent(slot)}/regulatory`),
+        fetchJSON(`/governance/api/models/${encodeURIComponent(slot)}/validation`),
+        fetchJSON('/governance/api/audit?limit=8'),
+        fetchJSON('/governance/api/audit/verify'),
+        fetchJSON(`/governance/api/models/${encodeURIComponent(slot)}/dataset`)
+      ]);
+      return { slot, regulatory, validation, events: auditData.events || [], chainVerify,
+               auc_roc: inv.auc_roc, promoted_at: inv.promoted_at, kpiMap: inv.kpis || {}, dataset };
+    }));
+    root.innerHTML = sources.map((s,i) => renderModel(s, sources.length===1)).join('');
+  } catch (e) {
+    root.innerHTML = `<div class="empty-state">Couldn't load governance data (${esc(e.message)}). Is the Flask app running?</div>`;
+  }
+}
+
+async function loadSnapshot(runId){
+  const root = document.getElementById('modelsRoot');
+  root.innerHTML = '<div class="empty-state">Loading saved report…</div>';
+  try {
+    const snap = await fetchJSON(`/governance/api/reports/${encodeURIComponent(runId)}`);
+    document.getElementById('mastheadMeta').innerHTML =
+      `Viewing 1 saved report<br>
+       Promoted ${fmtTs(snap.promoted_at)}<br>
+       Snapshot taken ${fmtTs(snap.generated_at)}`;
+    document.getElementById('genTs').textContent = 'snapshot: ' + runId;
+    document.getElementById('snapBanner').innerHTML = `
+      <div class="snap-banner">
+        <span>📌 You're viewing a <strong>saved snapshot</strong> from <span class="mono">${esc(fmtTs(snap.generated_at))}</span> (run <span class="mono">${esc(runId)}</span>) — not the live dashboard.</span>
+        <a href="/governance/story">View live report →</a>
+      </div>`;
+    const source = {
+      slot: snap.slot_key, regulatory: snap.regulatory, validation: snap.validation,
+      events: snap.audit_events || [], chainVerify: snap.audit_chain,
+      auc_roc: snap.auc_roc, promoted_at: snap.promoted_at, kpiMap: snap.kpis || {},
+      dataset: snap.dataset
+    };
+    root.innerHTML = renderModel(source, true);
+  } catch (e) {
+    root.innerHTML = `<div class="empty-state">Couldn't load that report (${esc(e.message)}).</div>`;
+  }
+}
+
+let reportsLoaded = false;
+async function toggleReports(){
+  const list = document.getElementById('reportsList');
+  const toggle = document.getElementById('reportsToggle');
+  if (list.style.display !== 'none') { list.style.display = 'none'; toggle.textContent = '▸ Past reports (one snapshot per promoted training run)'; return; }
+  list.style.display = 'block';
+  toggle.textContent = '▾ Past reports (one snapshot per promoted training run)';
+  if (reportsLoaded) return;
+  reportsLoaded = true;
+  try {
+    const data = await fetchJSON('/governance/api/reports');
+    const reports = data.reports || [];
+    const currentRun = new URLSearchParams(location.search).get('run');
+    if (!reports.length) {
+      list.innerHTML = `<div class="empty-state">No saved reports yet — one gets written automatically every time a model is promoted. The current live model predates this feature, so its first snapshot lands on the next retrain or force-promote.</div>`;
+      return;
+    }
+    list.innerHTML = reports.map(r => `
+      <a class="report-row ${r.run_id===currentRun?'current':''}" href="/governance/story?run=${encodeURIComponent(r.run_id)}">
+        <span><span class="run">${esc(r.run_id)}</span> <span style="color:var(--ink-faint)">· ${esc(r.bank_name || r.bank_scope || r.slot_key)}</span></span>
+        <span class="score">${r.satisfied}/${r.total} satisfied</span>
+        <span class="score">AUC ${r.auc_roc!==null&&r.auc_roc!==undefined?r.auc_roc.toFixed(3):'—'}</span>
+        <span class="date">${esc(fmtTs(r.generated_at))}</span>
+      </a>`).join('');
+  } catch (e) {
+    list.innerHTML = `<div class="empty-state">Couldn't load the reports index (${esc(e.message)}).</div>`;
+  }
+}
+
+const runParam = new URLSearchParams(location.search).get('run');
+function refresh(){ runParam ? loadSnapshot(runParam) : loadStory(); }
+refresh();
+</script>
+</body>
+</html>

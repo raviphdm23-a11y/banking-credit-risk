@@ -1,80 +1,8 @@
 {
-  "CORPORATE": {
-    "model_type": "xgboost",
-    "bank_key": "ALL",
-    "exposure_class": "CORPORATE",
-    "activated_at": "2026-07-18T16:23:11"
-  },
-  "SME": {
-    "model_type": "xgboost",
-    "bank_key": "ALL",
-    "exposure_class": "SME",
-    "activated_at": "2026-07-11T18:17:34"
-  },
-  "RETAIL_MORTGAGES": {
-    "model_type": "xgboost",
-    "bank_key": "ALL",
-    "exposure_class": "RETAIL_MORTGAGES",
-    "activated_at": "2026-07-11T18:17:48"
-  },
-  "RETAIL_OTHER": {
-    "model_type": "xgboost",
-    "bank_key": "ALL",
-    "exposure_class": "RETAIL_OTHER",
-    "activated_at": "2026-07-11T18:18:02"
-  },
-  "CORPORATE::BANK001": {
-    "model_type": "xgboost",
-    "bank_key": "BANK001",
-    "exposure_class": "CORPORATE",
-    "activated_at": "2026-07-11T18:30:14"
-  },
-  "GENERIC::BANK002": {
-    "model_type": "xgboost",
-    "bank_key": "BANK002",
-    "exposure_class": "GENERIC",
-    "activated_at": "2026-07-11T16:48:23"
-  },
-  "GENERIC::BANK010": {
-    "model_type": "xgboost",
-    "bank_key": "BANK010",
-    "exposure_class": "GENERIC",
-    "activated_at": "2026-07-12T22:44:29"
-  },
   "GENERIC::BANK011": {
     "model_type": "random_forest",
     "bank_key": "BANK011",
     "exposure_class": "GENERIC",
-    "activated_at": "2026-07-12T22:36:18"
-  },
-  "GENERIC::BANK012": {
-    "model_type": "xgboost",
-    "bank_key": "BANK012",
-    "exposure_class": "GENERIC",
-    "activated_at": "2026-07-12T21:34:31"
-  },
-  "GENERIC::BANK013": {
-    "model_type": "xgboost",
-    "bank_key": "BANK013",
-    "exposure_class": "GENERIC",
-    "activated_at": "2026-07-12T21:34:03"
-  },
-  "GENERIC::BANK014": {
-    "model_type": "xgboost",
-    "bank_key": "BANK014",
-    "exposure_class": "GENERIC",
-    "activated_at": "2026-07-12T21:34:13"
-  },
-  "GENERIC::BANK015": {
-    "model_type": "xgboost",
-    "bank_key": "BANK015",
-    "exposure_class": "GENERIC",
-    "activated_at": "2026-07-12T22:11:13"
-  },
-  "GENERIC::BANK016": {
-    "model_type": "xgboost",
-    "bank_key": "BANK016",
-    "exposure_class": "GENERIC",
-    "activated_at": "2026-07-12T22:11:19"
+    "activated_at": "2026-09-01T23:14:20"
   }
 }

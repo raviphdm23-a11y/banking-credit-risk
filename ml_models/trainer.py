@@ -1286,6 +1286,21 @@ def _gov_record(event_type, actor_id='system', object_type=None, object_id=None,
         print(f'[GOV] audit write failed (non-fatal): {e}')
 
 
+def _snapshot_story(slot_key):
+    """Freeze the Model Trust Ledger's data for this slot's just-promoted model
+    to disk, keyed by run_id, so past reports survive the next retrain.
+    Non-fatal on any failure."""
+    try:
+        from backend import governance_store as _gov
+        _conn = sqlite3.connect(BANK_DB_PATH)
+        _gov.init_schema(_conn)
+        snap = _gov.snapshot_story(_conn, slot_key)
+        _conn.close()
+        print(f'[GOV] story snapshot saved for {slot_key}: run_id={snap.get("run_id")}')
+    except Exception as e:
+        print(f'[GOV] story snapshot failed (non-fatal): {e}')
+
+
 def _snapshot_baseline(run_id, slot_key, X_train, model):
     """Persist training-time score/feature distributions for later PSI
     monitoring (backend/drift_monitor.py). Non-fatal on any failure."""
@@ -1718,6 +1733,7 @@ def run_training(triggered_by='manual', use_transaction_level=True, model_type='
                                      'champion_auc': champion_auc,
                                      'triggered_by': triggered_by})
                 _snapshot_baseline(run_id, reg_key, X_train, model)
+                _snapshot_story(reg_key)
             elif not gate_ok:
                 # Challenger regressed beyond tolerance: keep the saved pkl +
                 # metadata (already written above), but do NOT activate. A
@@ -1973,6 +1989,7 @@ def force_promote(model_type, bank_combo='ALL', exposure_class=None,
 
     # Re-snapshot PSI baselines from the promoted model's training data isn't
     # possible here (training frame is gone) — the next retrain refreshes them.
+    _snapshot_story(reg_key)
     result['forced'] = True
     result['model_id'] = model_id
     return result

@@ -4309,6 +4309,11 @@ def governance_home():
     return send_from_directory('public/governance', 'index.html')
 
 
+@app.route('/governance/story')
+def governance_story():
+    return send_from_directory('public/governance', 'story.html')
+
+
 @app.route('/governance/api/summary')
 def gov_summary():
     """Dashboard payload: model inventory, latest KPIs, alerts, oversight, chain."""
@@ -4473,6 +4478,27 @@ def gov_regulatory(slot_key):
     with _gov_conn() as conn:
         mapping = _gov.regulatory_mapping(conn, slot_key)
     return jsonify(mapping)
+
+
+@app.route('/governance/api/models/<path:slot_key>/dataset')
+def gov_dataset(slot_key):
+    with _gov_conn() as conn:
+        info = _gov.dataset_info(conn, slot_key)
+    return jsonify(info)
+
+
+@app.route('/governance/api/reports')
+def gov_reports():
+    """Index of saved Model Trust Ledger snapshots, one per promoted training run."""
+    return jsonify({'reports': _gov.list_story_snapshots()})
+
+
+@app.route('/governance/api/reports/<run_id>')
+def gov_report_detail(run_id):
+    snap = _gov.get_story_snapshot(run_id)
+    if not snap:
+        return jsonify({'error': 'Report not found'}), 404
+    return jsonify(snap)
 
 
 @app.route('/governance/api/audit')
