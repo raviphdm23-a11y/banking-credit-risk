@@ -104,8 +104,15 @@ class AssessmentEngine:
         # value where supplied, else the same calibrated defaults model_feature_frame
         # used) - exposed so the report can show "what the model actually saw" for
         # every one of the 36 training features, not just whatever the applicant
-        # happened to submit.
-        model_inputs_resolved = {k: float(v) for k, v in self._feature_vector(inputs).iloc[0].items()}
+        # happened to submit. A bank-scoped model (allow_missing_features_) can
+        # genuinely leave a value as NaN when the applicant didn't supply it -
+        # that's correct model input, but literal NaN is not valid JSON (RFC
+        # 8259) and breaks every consumer's response.json() on the frontend.
+        # None (-> JSON null) is the honest "genuinely unknown" representation.
+        def _json_safe(v):
+            v = float(v)
+            return None if v != v else v  # v != v is the standard NaN test
+        model_inputs_resolved = {k: _json_safe(v) for k, v in self._feature_vector(inputs).iloc[0].items()}
 
         # 2. Rating grade
         rating = pd_to_grade(pd_point)

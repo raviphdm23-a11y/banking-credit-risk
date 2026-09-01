@@ -1,9 +1,9 @@
 {
   "model_type": "XGBoost",
   "algorithm": "xgboost",
-  "version": "run_20260711_102333",
-  "date_trained": "2026-07-11T10:23:33",
-  "triggered_by": "phase1_feature_store_backfill",
+  "version": "run_20260711_181721",
+  "date_trained": "2026-07-11T18:17:21",
+  "triggered_by": "phase4_months_in_residence",
   "features": [
     "de_ratio",
     "interest_coverage",
@@ -18,6 +18,7 @@
     "city_tier_enc",
     "education_enc",
     "residence_type_enc",
+    "months_in_residence",
     "loan_purpose_enc",
     "cibil_score",
     "months_as_customer",
@@ -42,21 +43,21 @@
     "sector_stress_index",
     "ltv_trend_pct"
   ],
-  "n_features": 36,
+  "n_features": 37,
   "target": "default_flag",
   "metrics": {
-    "auc_roc": 0.7714,
-    "pr_auc": 0.3214,
-    "accuracy": 0.6051,
-    "precision": 0.2098,
-    "recall": 0.7938,
-    "f1": 0.3319,
-    "brier_score": 0.136201,
+    "auc_roc": 0.7615,
+    "pr_auc": 0.3064,
+    "accuracy": 0.6089,
+    "precision": 0.2034,
+    "recall": 0.7423,
+    "f1": 0.3193,
+    "brier_score": 0.134172,
     "n_test": 785,
     "n_defaults": 97,
     "default_rate": 0.1236,
-    "cv_auc_mean": 0.7396,
-    "cv_auc_std": 0.0154
+    "cv_auc_mean": 0.7445,
+    "cv_auc_std": 0.0306
   },
   "hyperparameters": {
     "n_estimators": 100,
@@ -82,21 +83,21 @@
   "threshold": 0.25,
   "currency": "INR",
   "epv": {
-    "epv": 10.86,
+    "epv": 10.57,
     "n_events": 391,
-    "n_features": 36,
+    "n_features": 37,
     "overfitting_risk": "moderate",
     "note": "Rule of thumb: EPV >= 10 acceptable, >= 20 comfortable (Peduzzi et al.)."
   },
   "baseline_cibil_only_auc": 0.6542,
-  "auc_lift_over_baseline": 0.1172,
+  "auc_lift_over_baseline": 0.1073,
   "lift_significance": {
     "n_valid_resamples": 1000,
     "n_bootstrap": 1000,
-    "mean_lift": 0.1185,
+    "mean_lift": 0.1088,
     "ci_95": [
-      0.0568,
-      0.1868
+      0.0449,
+      0.1754
     ],
     "significant": true,
     "p_value_two_sided": 0.0,

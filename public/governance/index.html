@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Model Governance &amp; AI Risk — India Banking Intelligence</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --navy:#0D1B2A;--steel:#546E7A;--teal:#26A69A;
+  --red:#E31837;--white:#FFF;--off:#F4F6FA;--border:#E2E8F0;
+  --t1:#0D1B2A;--t2:#4A5568;--t3:#8A9AB0;
+  --green:#10B981;--amber:#F59E0B;--blue:#3B82F6;
+}
+body{font-family:'IBM Plex Sans',sans-serif;background:var(--off);color:var(--t1)}
+.topnav{background:var(--navy);padding:0 32px;height:58px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:20}
+.topnav-left{display:flex;align-items:center;gap:14px}
+.home-link{color:rgba(255,255,255,0.5);text-decoration:none;font-size:11px;letter-spacing:0.5px}
+.home-link:hover{color:rgba(255,255,255,0.85)}
+.topnav-title{font-weight:700;font-size:15px;color:#fff}
+.topnav-right{display:flex;align-items:center;gap:10px}
+.chain-badge{font-size:10px;font-weight:600;padding:4px 11px;border-radius:100px;letter-spacing:0.3px}
+.chain-badge.ok{background:rgba(16,185,129,0.18);color:#6EE7B7}
+.chain-badge.broken{background:rgba(227,24,55,0.22);color:#FCA5A5}
+.last-run{font-size:10px;color:rgba(255,255,255,0.4);font-family:'IBM Plex Mono',monospace}
+.btn{padding:8px 16px;border-radius:8px;font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;border:1px solid var(--border);background:#fff;color:var(--t2);transition:all .18s}
+.btn:hover{border-color:var(--teal);color:var(--teal)}
+.btn-primary{background:var(--teal);color:#fff;border-color:var(--teal)}
+.btn-primary:hover{background:#1E8E84;color:#fff}
+.btn-sm{padding:5px 11px;font-size:11px;border-radius:7px}
+.btn:disabled{opacity:0.5;cursor:not-allowed}
+.content{padding:26px 34px 60px;max-width:1500px;margin:0 auto;display:flex;flex-direction:column;gap:24px}
+.sl{font-size:9.5px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:var(--t3);margin-bottom:12px;display:flex;align-items:center;gap:10px}
+.sl::after{content:'';flex:1;height:1px;background:var(--border)}
+.page-head{display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:12px}
+.page-title{font-weight:800;font-size:25px;letter-spacing:-0.5px}
+.page-desc{font-size:13px;color:var(--t3);margin-top:4px;max-width:720px;line-height:1.55}
+
+.kpi-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:14px}
+@media(max-width:1100px){.kpi-grid{grid-template-columns:repeat(2,1fr)}}
+.kpi-card{background:#fff;border-radius:14px;padding:16px 18px;border:1px solid var(--border);position:relative;overflow:hidden}
+.kpi-card::before{content:'';position:absolute;top:0;left:0;width:4px;height:100%;background:var(--t3)}
+.kpi-card.OK::before,.kpi-card.green::before{background:var(--green)}
+.kpi-card.WATCH::before{background:var(--amber)}
+.kpi-card.BREACH::before{background:var(--red)}
+.kpi-card.NO_DATA::before{background:#CBD5E1}
+.kpi-label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.8px;color:var(--t3)}
+.kpi-value{font-weight:700;font-size:26px;margin-top:7px;line-height:1;font-family:'IBM Plex Mono',monospace}
+.kpi-sub{font-size:10.5px;color:var(--t3);margin-top:7px;line-height:1.45}
+.kpi-legend{font-size:9px;color:var(--t3);margin-top:8px;font-style:italic;border-top:1px dashed var(--border);padding-top:6px}
+
+.badge{font-size:9.5px;font-weight:700;padding:3px 10px;border-radius:100px;letter-spacing:0.3px;display:inline-block}
+.badge.OK,.badge.SATISFIED,.badge.SIGNED_OFF,.badge.promoted{background:#D1FAE5;color:#065F46}
+.badge.WATCH,.badge.PARTIAL,.badge.FINDINGS{background:#FEF3C7;color:#92400E}
+.badge.BREACH,.badge.GAP,.badge.OPEN{background:#FEE2E2;color:#991B1B}
+.badge.NO_DATA,.badge.PENDING{background:#E2E8F0;color:#475569}
+.badge.ACKNOWLEDGED{background:#DBEAFE;color:#1E40AF}
+.badge.HIGH{background:#FEE2E2;color:#991B1B}
+.badge.MEDIUM{background:#FEF3C7;color:#92400E}
+.badge.LOW{background:#D1FAE5;color:#065F46}
+
+.card{background:#fff;border-radius:14px;padding:22px 24px;border:1px solid var(--border)}
+.card-title{font-weight:700;font-size:15px;margin-bottom:4px;display:flex;align-items:center;justify-content:space-between;gap:10px}
+.card-sub{font-size:11px;color:var(--t3);margin-bottom:16px}
+.tbl{width:100%;border-collapse:collapse;font-size:12px}
+.tbl th{text-align:left;padding:9px 12px;font-size:9.5px;font-weight:600;text-transform:uppercase;letter-spacing:0.6px;color:var(--t3);border-bottom:2px solid var(--border);white-space:nowrap}
+.tbl td{padding:10px 12px;border-bottom:1px solid var(--border);color:var(--t2);vertical-align:middle}
+.tbl tr:last-child td{border-bottom:none}
+.tbl .mono{font-family:'IBM Plex Mono',monospace;font-size:11.5px}
+.tbl tr.clickable{cursor:pointer}
+.tbl tr.clickable:hover td{background:var(--off)}
+.empty{padding:26px;text-align:center;color:var(--t3);font-size:12px}
+
+/* drill-in */
+#drill{display:none}
+.drill-head{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:14px}
+.drill-title{font-weight:800;font-size:19px}
+.drill-meta{font-size:11px;color:var(--t3);font-family:'IBM Plex Mono',monospace}
+.tabs{display:flex;gap:6px;border-bottom:2px solid var(--border);margin-bottom:18px;flex-wrap:wrap}
+.tab{padding:9px 18px;font-size:12.5px;font-weight:600;color:var(--t3);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px}
+.tab.active{color:var(--teal);border-bottom-color:var(--teal)}
+.tab-pane{display:none}
+.tab-pane.active{display:block}
+
+.wiki-auto{background:var(--off);border-radius:10px;padding:14px 16px;font-size:11.5px;margin-bottom:16px;font-family:'IBM Plex Mono',monospace;line-height:1.7;color:var(--t2)}
+.wfield{margin-bottom:14px}
+.wfield label{display:block;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;color:var(--t3);margin-bottom:5px}
+.wfield textarea,.wfield input,.wfield select{width:100%;padding:9px 12px;border-radius:8px;border:1px solid var(--border);font-family:inherit;font-size:12.5px;color:var(--t1);background:#fff;resize:vertical}
+.wfield textarea{min-height:64px;line-height:1.5}
+.wfield textarea:focus,.wfield input:focus,.wfield select:focus{outline:none;border-color:var(--teal)}
+.wiki-save-row{display:grid;grid-template-columns:1fr 2fr auto;gap:10px;align-items:end;margin-top:6px}
+.pillar-row{display:grid;grid-template-columns:34px 1.4fr 130px 1fr 1.6fr auto;gap:10px;align-items:center;padding:11px 0;border-bottom:1px solid var(--border)}
+.pillar-row:last-child{border-bottom:none}
+.pillar-num{width:28px;height:28px;border-radius:8px;background:var(--off);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;color:var(--t2)}
+.pillar-name{font-size:12.5px;font-weight:600}
+.pillar-row select,.pillar-row input{padding:7px 10px;border-radius:7px;border:1px solid var(--border);font-family:inherit;font-size:11.5px;width:100%}
+.msg{font-size:11.5px;padding:9px 13px;border-radius:8px;margin-top:10px;display:none}
+.msg.ok{background:#D1FAE5;color:#065F46;display:block}
+.msg.err{background:#FEE2E2;color:#991B1B;display:block}
+.footer{text-align:center;font-size:10px;color:var(--t3);padding:18px}
+.fw{display:flex;gap:8px;flex-wrap:wrap}
+.chip{font-size:10px;background:var(--off);border:1px solid var(--border);border-radius:100px;padding:3px 10px;color:var(--t2);font-family:'IBM Plex Mono',monospace}
+</style>
+</head>
+<body>
+
+<div class="topnav">
+  <div class="topnav-left">
+    <a class="home-link" href="/">← Home</a>
+    <div class="topnav-title">🛡️ Model Governance &amp; AI Risk</div>
+  </div>
+  <div class="topnav-right">
+    <span class="last-run" id="lastRun">—</span>
+    <span class="chain-badge ok" id="chainBadge">chain: …</span>
+    <button class="btn btn-sm" onclick="loadSummary()">↻ Refresh</button>
+    <button class="btn btn-sm btn-primary" id="runMonBtn" onclick="runMonitor()">▶ Run Monitor Now</button>
+  </div>
+</div>
+
+<div class="content">
+
+  <div class="page-head">
+    <div>
+      <div class="page-title">Model Risk Dashboard</div>
+      <div class="page-desc">SR 11-7 / Basel / EU AI Act aligned governance over every active PD model:
+        data-drift (PSI), performance stability (AUC), fairness-gap monitoring, champion/challenger
+        promotion gating, six-pillar independent validation, and a hash-chained model-lifecycle audit trail.</div>
+    </div>
+  </div>
+
+  <div>
+    <div class="sl">Governance KPIs — worst across all model slots</div>
+    <div class="kpi-grid" id="kpiGrid"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Open Alerts <span id="alertCount" class="badge OPEN">0</span></div>
+    <div class="card-sub">Threshold breaches requiring acknowledgement. Every acknowledgement (who + action taken, min 20 chars) is recorded on the audit chain.</div>
+    <div id="alertsBox"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Model Inventory</div>
+    <div class="card-sub">One governance record per active model slot (active_model.json). Click a row for the wiki, validation checklist, KPI history, and regulatory mapping.</div>
+    <div id="inventoryBox"></div>
+  </div>
+
+  <div class="card" id="drill">
+    <div class="drill-head">
+      <div>
+        <div class="drill-title" id="drillTitle">—</div>
+        <div class="drill-meta" id="drillMeta">—</div>
+      </div>
+      <button class="btn btn-sm" onclick="closeDrill()">✕ Close</button>
+    </div>
+    <div class="tabs">
+      <div class="tab active" data-tab="kpis" onclick="switchTab('kpis')">KPI History</div>
+      <div class="tab" data-tab="wiki" onclick="switchTab('wiki')">Governance Wiki</div>
+      <div class="tab" data-tab="validation" onclick="switchTab('validation')">Six-Pillar Validation</div>
+      <div class="tab" data-tab="regulatory" onclick="switchTab('regulatory')">Regulatory Mapping</div>
+    </div>
+    <div class="tab-pane active" id="pane-kpis"></div>
+    <div class="tab-pane" id="pane-wiki"></div>
+    <div class="tab-pane" id="pane-validation"></div>
+    <div class="tab-pane" id="pane-regulatory"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Audit Trail <span style="font-size:10px;color:var(--t3);font-weight:400">hash-chained · tamper-evident</span></div>
+    <div class="card-sub">Model-lifecycle events: training runs, promotions, blocked promotions, force-promotes, rollbacks, hyperparameter changes, wiki edits, sign-offs, alerts, monitor runs.</div>
+    <div id="auditBox"></div>
+  </div>
+
+</div>
+<div class="footer">Model Governance &amp; AI Risk · KPI thresholds: PSI &gt; 0.25 · AUC drop &gt; 5% · Fairness gap &gt; 0.05 · India Banking Intelligence Platform</div>
+
+<script>
+const API = '/governance/api';
+let SUMMARY = null, CURRENT_SLOT = null;
+
+function adminPw(){
+  let pw = sessionStorage.getItem('gov_admin_pw');
+  if (!pw){
+    pw = prompt('Admin password required for governance write actions:');
+    if (pw) sessionStorage.setItem('gov_admin_pw', pw);
+  }
+  return pw;
+}
+async function apiGet(path){ const r = await fetch(API+path); return r.json(); }
+async function apiPost(path, body, auth=true){
+  const headers = {'Content-Type':'application/json'};
+  if (auth){ const pw = adminPw(); if (!pw) throw new Error('cancelled'); headers['X-Admin-Password']=pw; }
+  const r = await fetch(API+path, {method:'POST', headers, body: JSON.stringify(body||{})});
+  const data = await r.json();
+  if (r.status === 401){ sessionStorage.removeItem('gov_admin_pw'); }
+  return {ok:r.ok, status:r.status, data};
+}
+const esc = s => String(s==null?'':s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmt = (v,d=3) => (v==null||isNaN(v)) ? '—' : Number(v).toFixed(d);
+
+/* ── summary / dashboard ── */
+async function loadSummary(){
+  SUMMARY = await apiGet('/summary');
+  renderChain(SUMMARY.audit_chain);
+  document.getElementById('lastRun').textContent = SUMMARY.last_monitor_run ? ('last monitor: '+SUMMARY.last_monitor_run) : 'monitor never run';
+  renderKpis(); renderAlerts(); renderInventory(); loadAudit();
+  if (CURRENT_SLOT) openModel(CURRENT_SLOT, false);
+}
+function renderChain(chain){
+  const b = document.getElementById('chainBadge');
+  if (!chain){ b.textContent='chain: ?'; return; }
+  if (chain.intact){ b.className='chain-badge ok'; b.textContent=`chain intact · ${chain.events} events`; }
+  else { b.className='chain-badge broken'; b.textContent=`⚠ chain BROKEN at seq ${chain.first_broken_seq}`; }
+}
+function worst(kpi){
+  let w = null;
+  for (const m of SUMMARY.inventory){
+    const k = m.kpis[kpi];
+    if (!k || k.value==null) continue;
+    if (!w || k.value > w.value) w = {...k, slot:m.slot_key};
+  }
+  return w;
+}
+function renderKpis(){
+  const t = SUMMARY.thresholds || {};
+  const ps = worst('psi_score'), pf = worst('psi_feature'), au = worst('auc_stability'), fg = worst('fairness_gap');
+  const psi = (ps && pf) ? (ps.value>pf.value?ps:pf) : (ps||pf);
+  const ov = SUMMARY.override_kpi;
+  const cards = [
+    {label:'Data Drift — worst PSI', v:psi, thr:t.psi_major, d:3,
+     legend:'Risk: Data Drift → KPI: PSI → Mitigation: Monitoring Dashboard'},
+    {label:'AUC Degradation %', v:au, thr:t.auc_drop_pct, d:2,
+     legend:'Risk: Performance Degradation → KPI: AUC Stability → Mitigation: Retraining Trigger'},
+    {label:'Fairness Gap', v:fg, thr:t.fairness_gap, d:4,
+     legend:'Risk: Bias &amp; Fairness → KPI: Fairness Gap → Mitigation: Fairness Audit'},
+    {label:'Open Alerts', raw:SUMMARY.open_alert_count,
+     cls:SUMMARY.open_alert_count>0?'BREACH':'OK',
+     sub:SUMMARY.open_alert_count>0?'require acknowledgement':'all clear',
+     legend:'Escalation: acknowledge with actor + action taken'},
+    {label:'Human Override Rate', raw:(ov&&ov.value!=null)?ov.value+'%':'—', cls:'green',
+     sub:ov?('of '+((ov.detail||{}).decisions_final||0)+' final RM decisions'):'no monitor run yet',
+     legend:'EU AI Act Art. 14 — human oversight via RM accept/reject'},
+  ];
+  document.getElementById('kpiGrid').innerHTML = cards.map(c=>{
+    if ('raw' in c) return `<div class="kpi-card ${c.cls}"><div class="kpi-label">${c.label}</div>
+      <div class="kpi-value">${c.raw}</div><div class="kpi-sub">${c.sub}</div>
+      <div class="kpi-legend">${c.legend}</div></div>`;
+    const st = c.v ? c.v.status : 'NO_DATA';
+    return `<div class="kpi-card ${st}"><div class="kpi-label">${c.label}</div>
+      <div class="kpi-value">${c.v?fmt(c.v.value,c.d):'—'}</div>
+      <div class="kpi-sub">${c.v?('worst slot: '+esc(c.v.slot)+' · '):''}threshold ${c.thr??'—'} · <b>${st}</b></div>
+      <div class="kpi-legend">${c.legend}</div></div>`;
+  }).join('');
+}
+function renderAlerts(){
+  const alerts = SUMMARY.open_alerts || [];
+  document.getElementById('alertCount').textContent = alerts.length;
+  document.getElementById('alertCount').className = 'badge ' + (alerts.length? 'OPEN':'OK');
+  if (!alerts.length){ document.getElementById('alertsBox').innerHTML = '<div class="empty">No open alerts — all monitored KPIs within thresholds.</div>'; return; }
+  document.getElementById('alertsBox').innerHTML = `<table class="tbl"><thead><tr>
+    <th>Alert</th><th>Type</th><th>Slot</th><th>KPI</th><th>Value</th><th>Threshold</th><th>Raised</th><th></th></tr></thead><tbody>` +
+    alerts.map(a=>`<tr><td class="mono">${esc(a.alert_id)}</td>
+      <td><span class="badge BREACH">${esc(a.alert_type)}</span></td>
+      <td class="mono">${esc(a.slot_key)}</td><td class="mono">${esc(a.kpi)}</td>
+      <td class="mono">${fmt(a.value,4)}</td><td class="mono">${fmt(a.threshold,4)}</td>
+      <td class="mono">${esc((a.created_at||'').slice(0,16))}</td>
+      <td><button class="btn btn-sm" onclick="ackAlert('${esc(a.alert_id)}')">Acknowledge</button></td></tr>`).join('') +
+    '</tbody></table>';
+}
+async function ackAlert(alertId){
+  const who = prompt('Your name (acknowledging as):'); if (!who) return;
+  const action = prompt('Action taken (min 20 characters):'); if (action==null) return;
+  const res = await apiPost(`/alerts/${alertId}/ack`, {acked_by:who, action_taken:action});
+  if (!res.ok) { alert('Error: ' + (res.data.error||res.status)); return; }
+  loadSummary();
+}
+function renderInventory(){
+  const inv = SUMMARY.inventory || [];
+  if (!inv.length){ document.getElementById('inventoryBox').innerHTML = '<div class="empty">No active models found.</div>'; return; }
+  document.getElementById('inventoryBox').innerHTML = `<table class="tbl"><thead><tr>
+    <th>Slot</th><th>Type</th><th>Scope</th><th>AUC</th><th>Promoted</th><th>Risk Tier</th>
+    <th>Validation</th><th>PSI</th><th>AUC Stab.</th><th>Alerts</th></tr></thead><tbody>` +
+    inv.map(m=>{
+      const psi = m.kpis.psi_score||m.kpis.psi_feature, auc = m.kpis.auc_stability;
+      return `<tr class="clickable" onclick="openModel('${esc(m.slot_key)}')">
+        <td class="mono"><b>${esc(m.slot_key)}</b></td>
+        <td>${esc(m.model_type||'—')}</td><td class="mono">${esc(m.bank_scope)}</td>
+        <td class="mono">${m.auc_roc!=null?fmt(m.auc_roc,4):'—'}</td>
+        <td class="mono">${esc((m.promoted_at||'—').slice(0,10))}</td>
+        <td>${m.risk_tier?`<span class="badge ${esc(m.risk_tier)}">${esc(m.risk_tier)}</span>`:'—'}</td>
+        <td><span class="badge ${m.validation_signed===m.validation_total?'SIGNED_OFF':(m.validation_signed>0?'PARTIAL':'PENDING')}">${m.validation_signed}/${m.validation_total}</span></td>
+        <td>${psi?`<span class="badge ${psi.status}">${psi.status}</span>`:'<span class="badge NO_DATA">—</span>'}</td>
+        <td>${auc?`<span class="badge ${auc.status}">${auc.status}</span>`:'<span class="badge NO_DATA">—</span>'}</td>
+        <td>${m.open_alerts?`<span class="badge OPEN">${m.open_alerts}</span>`:'<span class="badge OK">0</span>'}</td></tr>`;
+    }).join('') + '</tbody></table>';
+}
+
+/* ── drill-in ── */
+function switchTab(name){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active', t.dataset.tab===name));
+  document.querySelectorAll('.tab-pane').forEach(p=>p.classList.toggle('active', p.id==='pane-'+name));
+}
+function closeDrill(){ document.getElementById('drill').style.display='none'; CURRENT_SLOT=null; history.replaceState(null,'',location.pathname); }
+async function openModel(slot, scroll=true){
+  CURRENT_SLOT = slot;
+  history.replaceState(null,'','#model='+encodeURIComponent(slot));
+  const d = document.getElementById('drill'); d.style.display='block';
+  const inv = (SUMMARY?.inventory||[]).find(m=>m.slot_key===slot) || {};
+  document.getElementById('drillTitle').textContent = slot;
+  document.getElementById('drillMeta').textContent =
+    `${inv.model_type||'?'} · ${inv.model_id||'unregistered'} · AUC ${inv.auc_roc!=null?fmt(inv.auc_roc,4):'—'}`;
+  if (scroll) d.scrollIntoView({behavior:'smooth'});
+  const enc = encodeURIComponent(slot);
+  const [kpis, wiki, val, reg] = await Promise.all([
+    apiGet(`/models/${enc}/kpis?limit=30`), apiGet(`/models/${enc}/wiki`),
+    apiGet(`/models/${enc}/validation`), apiGet(`/models/${enc}/regulatory`)]);
+  renderKpiHistory(kpis); renderWiki(wiki); renderValidation(val); renderRegulatory(reg);
+}
+function renderKpiHistory(data){
+  const rows = (data.history||[]);
+  const headline = rows.filter(r=>!r.feature);
+  const feats = rows.filter(r=>r.feature);
+  let html = '';
+  if (!headline.length) html += '<div class="empty">No KPI history yet — click "Run Monitor Now".</div>';
+  else html += `<table class="tbl"><thead><tr><th>Run</th><th>KPI</th><th>Value</th><th>Threshold</th><th>Status</th><th>Detail</th></tr></thead><tbody>` +
+    headline.map(r=>`<tr><td class="mono">${esc(r.run_ts.slice(0,16))}</td><td class="mono">${esc(r.kpi)}</td>
+      <td class="mono">${fmt(r.value,4)}</td><td class="mono">${fmt(r.threshold,4)}</td>
+      <td><span class="badge ${esc(r.status)}">${esc(r.status)}</span></td>
+      <td style="font-size:10.5px">${esc(JSON.stringify(r.detail).slice(0,140))}</td></tr>`).join('') + '</tbody></table>';
+  if (feats.length){
+    const latestTs = feats[0].run_ts;
+    const latest = feats.filter(f=>f.run_ts===latestTs).sort((a,b)=>b.value-a.value).slice(0,15);
+    html += `<div class="sl" style="margin-top:20px">Per-feature PSI — latest run (top ${latest.length})</div>
+      <table class="tbl"><thead><tr><th>Feature</th><th>PSI</th><th>Status</th></tr></thead><tbody>` +
+      latest.map(f=>`<tr><td class="mono">${esc(f.feature)}</td><td class="mono">${fmt(f.value,4)}</td>
+        <td><span class="badge ${esc(f.status)}">${esc(f.status)}</span></td></tr>`).join('') + '</tbody></table>';
+  }
+  document.getElementById('pane-kpis').innerHTML = html;
+}
+function renderWiki(w){
+  const a = w.auto||{};
+  const metrics = a.metrics||{};
+  const auto = `
+    <div class="wiki-auto">
+      <b>Auto-populated from live model state</b> (refreshed ${esc((a.refreshed_at||'').slice(0,16))})<br>
+      model_id: ${esc(a.model_id||'unregistered')} · type: ${esc(a.model_type||'?')} · activated: ${esc(a.activated_at||'—')}<br>
+      n_train: ${esc(a.n_train||'—')} · features: ${esc(a.feature_count||'—')} · trained: ${esc(a.trained_at||'—')}<br>
+      AUC-ROC: ${fmt(metrics.auc_roc,4)} · PR-AUC: ${fmt(metrics.pr_auc,4)} · Recall: ${fmt(metrics.recall,3)} · Brier: ${fmt(metrics.brier_score,4)}
+      ${a.compliance_excluded_cols_included ? '<br><b style="color:#B91C1C">⚠ protected attributes were INCLUDED in training (audited opt-in)</b>' : ''}
+    </div>`;
+  const fields = ['purpose','assumptions','validation_methods','data_lineage','escalation_rules','review_cadence','regulatory_references'];
+  const labels = {purpose:'Purpose', assumptions:'Assumptions', validation_methods:'Validation Methods',
+    data_lineage:'Data Lineage', escalation_rules:'Escalation Rules (who / when / how)',
+    review_cadence:'Review Cadence', regulatory_references:'Regulatory References'};
+  let html = auto + `<div class="wfield"><label>Risk Tier (drives review cadence)</label>
+    <select id="w_risk_tier">${['HIGH','MEDIUM','LOW'].map(t=>`<option ${w.risk_tier===t?'selected':''}>${t}</option>`).join('')}</select></div>`;
+  html += fields.map(f=>`<div class="wfield"><label>${labels[f]}</label>
+    <textarea id="w_${f}">${esc(w[f]||'')}</textarea></div>`).join('');
+  html += `<div class="wiki-save-row">
+      <div class="wfield" style="margin:0"><label>Author</label><input id="w_author" placeholder="Your name"></div>
+      <div class="wfield" style="margin:0"><label>Change description</label><input id="w_changedesc" placeholder="What changed and why"></div>
+      <button class="btn btn-primary" onclick="saveWiki()">Save (new version)</button>
+    </div><div class="msg" id="wikiMsg"></div>`;
+  html += `<div class="sl" style="margin-top:22px">Version History (v${w.version})</div>
+    <table class="tbl"><thead><tr><th>Version</th><th>Date</th><th>Author</th><th>Changes Made</th></tr></thead><tbody>` +
+    (w.versions||[]).map(v=>`<tr><td class="mono">v${v.version}</td>
+      <td class="mono">${esc((v.edited_at||'').slice(0,16))}</td><td>${esc(v.edited_by)}</td>
+      <td>${esc(v.change_description)}</td></tr>`).join('') + '</tbody></table>';
+  document.getElementById('pane-wiki').innerHTML = html;
+}
+async function saveWiki(){
+  const fields = {risk_tier: document.getElementById('w_risk_tier').value};
+  for (const f of ['purpose','assumptions','validation_methods','data_lineage','escalation_rules','review_cadence','regulatory_references'])
+    fields[f] = document.getElementById('w_'+f).value;
+  const res = await apiPost(`/models/${encodeURIComponent(CURRENT_SLOT)}/wiki`,
+    {fields, author: document.getElementById('w_author').value,
+     change_description: document.getElementById('w_changedesc').value});
+  const m = document.getElementById('wikiMsg');
+  m.className = 'msg ' + (res.ok?'ok':'err');
+  m.textContent = res.ok ? ('Saved as version '+res.data.version) : ('Error: '+(res.data.error||res.status));
+  if (res.ok) setTimeout(()=>openModel(CURRENT_SLOT,false), 800);
+}
+function renderValidation(v){
+  let html = `<div class="card-sub">Independent validation of <span class="chip">${esc(v.model_id)}</span> —
+    ${v.signed_off}/${v.total} pillars signed off. A newly promoted model resets to a fresh PENDING checklist.
+    Sign-offs are recorded on the audit chain (SR 11-7 independent-validation requirement).</div>`;
+  html += (v.pillars||[]).map(p=>`
+    <div class="pillar-row">
+      <div class="pillar-num">${p.pillar}</div>
+      <div class="pillar-name">${esc(p.pillar_name)}</div>
+      <select id="p_status_${p.pillar}">
+        ${['PENDING','SIGNED_OFF','FINDINGS'].map(s=>`<option ${p.status===s?'selected':''}>${s}</option>`).join('')}
+      </select>
+      <input id="p_validator_${p.pillar}" placeholder="Validator name" value="${esc(p.validator||'')}">
+      <input id="p_notes_${p.pillar}" placeholder="Notes" value="${esc(p.notes||'')}">
+      <button class="btn btn-sm" onclick="signOff(${p.pillar})">Save</button>
+    </div>`).join('');
+  html += '<div class="msg" id="valMsg"></div>';
+  document.getElementById('pane-validation').innerHTML = html;
+}
+async function signOff(pillar){
+  const res = await apiPost(`/models/${encodeURIComponent(CURRENT_SLOT)}/validation`, {
+    pillar, status: document.getElementById('p_status_'+pillar).value,
+    validator: document.getElementById('p_validator_'+pillar).value,
+    notes: document.getElementById('p_notes_'+pillar).value});
+  const m = document.getElementById('valMsg');
+  m.className = 'msg ' + (res.ok?'ok':'err');
+  m.textContent = res.ok ? `Pillar ${pillar} saved (${res.data.signed_off}/${res.data.total} signed off)` : ('Error: '+(res.data.error||res.status));
+  if (res.ok){ renderValidation(res.data); document.getElementById('valMsg').className='msg ok';
+    document.getElementById('valMsg').textContent=`Pillar ${pillar} saved (${res.data.signed_off}/${res.data.total} signed off)`; loadSummary(); }
+}
+function renderRegulatory(r){
+  const html = `<div class="card-sub">Requirement status is derived from live governance state — it can never claim
+    more than the system actually does. ${r.satisfied}/${r.total} requirements satisfied for <span class="chip">${esc(r.model_id)}</span>.</div>
+    <table class="tbl"><thead><tr><th>Requirement</th><th>Frameworks</th><th>Status</th><th>Evidence</th></tr></thead><tbody>` +
+    (r.requirements||[]).map(q=>`<tr>
+      <td style="font-weight:600">${esc(q.requirement)}</td>
+      <td><div class="fw">${q.frameworks.map(f=>`<span class="chip">${esc(f)}</span>`).join('')}</div></td>
+      <td><span class="badge ${esc(q.status)}">${esc(q.status)}</span></td>
+      <td style="font-size:11px;line-height:1.5">${esc(q.evidence)}</td></tr>`).join('') + '</tbody></table>';
+  document.getElementById('pane-regulatory').innerHTML = html;
+}
+
+/* ── audit + monitor ── */
+async function loadAudit(){
+  const data = await apiGet('/audit?limit=40');
+  const evts = data.events||[];
+  if (!evts.length){ document.getElementById('auditBox').innerHTML='<div class="empty">No governance events yet.</div>'; return; }
+  document.getElementById('auditBox').innerHTML = `<table class="tbl"><thead><tr>
+    <th>Seq</th><th>Time</th><th>Event</th><th>Actor</th><th>Object</th><th>Hash</th></tr></thead><tbody>` +
+    evts.map(e=>`<tr><td class="mono">${e.seq}</td><td class="mono">${esc((e.ts||'').slice(0,16))}</td>
+      <td><span class="badge ${['PROMOTION_BLOCKED','ALERT_RAISED'].includes(e.event_type)?'BREACH':(e.event_type==='MODEL_PROMOTED'?'OK':'NO_DATA')}">${esc(e.event_type)}</span></td>
+      <td>${esc(e.actor_id)}</td><td class="mono" style="font-size:10.5px">${esc(e.object_id||'')}</td>
+      <td class="mono" style="font-size:10px" title="${esc(e.hash)}">${esc((e.hash||'').slice(0,12))}…</td></tr>`).join('') +
+    '</tbody></table>';
+}
+async function runMonitor(){
+  const btn = document.getElementById('runMonBtn');
+  btn.disabled = true; btn.textContent = '… running';
+  try{
+    const res = await apiPost('/run-monitor', {}, false);
+    if (res.ok) alert(`Monitor complete: ${res.data.kpis_written} KPIs written, ${res.data.alerts_created} alerts, ${res.data.breaches.length} breaches.`);
+    else alert('Monitor failed: ' + (res.data.error||res.status));
+  } finally { btn.disabled=false; btn.textContent='▶ Run Monitor Now'; loadSummary(); }
+}
+
+/* init */
+loadSummary().then(()=>{
+  const m = location.hash.match(/#model=(.+)/);
+  if (m) openModel(decodeURIComponent(m[1]));
+});
+</script>
+</body>
+</html>

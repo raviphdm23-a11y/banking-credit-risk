@@ -31,6 +31,7 @@ CREATE TABLE IF NOT EXISTS prediction_store (
     exposure_class  TEXT,
     model_id        TEXT,                 -- FK -> model_registry.model_id (nullable: pre-Phase-4 model versions)
     model_version    TEXT,
+    model_scope     TEXT,                 -- 'combined' | 'bank_specific_segment' | 'bank_specific_generic' | 'combined_fallback'
     calculation_methodology TEXT,         -- AIRB | STANDARDIZED | BOTH, from the application
     pd_point        REAL,
     pd_low          REAL,
@@ -56,6 +57,10 @@ CREATE INDEX IF NOT EXISTS idx_prediction_customer ON prediction_store(customer_
 
 def _ensure_schema(conn):
     conn.executescript(SCHEMA)
+    try:
+        conn.execute("ALTER TABLE prediction_store ADD COLUMN model_scope TEXT")
+    except Exception:
+        pass  # already exists (table created by an earlier version of this module)
 
 
 def record_prediction(conn, M, case_id=None, model_id=None):
@@ -92,14 +97,14 @@ def record_prediction(conn, M, case_id=None, model_id=None):
     cur = conn.execute(
         """INSERT INTO prediction_store
            (report_id, case_id, bank_id, customer_id, customer_name, exposure_class,
-            model_id, model_version, calculation_methodology,
+            model_id, model_version, model_scope, calculation_methodology,
             pd_point, pd_low, pd_high, rating_grade, lgd, ead, rwa, risk_weight,
             expected_loss, capital_charge, recommendation, macro_regime_score,
             content_hash, as_of_date)
-           VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+           VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
         (report_id, case_id, app_.get('bank_id'), app_.get('customer_id'),
          app_.get('customer_name'), app_.get('exposure_class'),
-         model_id, M.get('model_version'), methodology,
+         model_id, M.get('model_version'), M.get('model_scope'), methodology,
          pd_block.get('point'), pd_block.get('low'), pd_block.get('high'),
          (M.get('rating') or {}).get('grade'),
          lgd_block.get('lgd'), M.get('ead'), rwa_amount, rwa_block.get('risk_weight'),

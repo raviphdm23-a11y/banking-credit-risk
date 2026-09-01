@@ -39,26 +39,39 @@
 
     <!-- Executive Decision Band -->
     <div class="exec-band">
-      <div class="grade-badge" id="gradeBadge">
+      <!-- Internal AAA-D rating masterscale badge - not shown yet, pending
+           policy research on how the grade thresholds should be set. -->
+      <div class="grade-badge" id="gradeBadge" style="display:none">
         <span class="grade-letter" id="gradeLetter">—</span>
         <span class="grade-sub" id="gradeLabel">—</span>
       </div>
       <div class="exec-pd">
         <div class="pd-label">Probability of Default</div>
         <div class="pd-value" id="pdValue">—</div>
-        <div class="pd-band" id="pdBand">—</div>
       </div>
       <div class="exec-col">
         <div class="col-val" id="elValue">—</div>
         <div class="col-label">Expected Loss</div>
       </div>
       <div class="exec-col">
-        <div class="col-val" id="rateValue">—</div>
-        <div class="col-label">Indicative Rate</div>
+        <div class="col-val" id="exposureTypeValue">—</div>
+        <div class="col-label">Exposure Type</div>
       </div>
       <div class="exec-col">
-        <div class="col-val" id="rwaValue">—</div>
-        <div class="col-label">RWA</div>
+        <div class="col-val" id="lgdValue">—</div>
+        <div class="col-label">Loss Given Default</div>
+      </div>
+      <div class="exec-col">
+        <div class="col-val" id="eadValue">—</div>
+        <div class="col-label">Exposure at Default</div>
+      </div>
+      <div class="exec-col">
+        <div class="col-val" id="rwaAirbValue">—</div>
+        <div class="col-label">RWA (AIRB)</div>
+      </div>
+      <div class="exec-col">
+        <div class="col-val" id="rwaSaValue">—</div>
+        <div class="col-label">RWA (Standardized)</div>
       </div>
       <div class="decision-pill" id="decisionPill">—</div>
     </div>
@@ -484,11 +497,15 @@ function renderReport(f, rmCtx) {
   document.getElementById('gradeLabel').textContent  = f.rating?.label || '';
 
   document.getElementById('pdValue').textContent = `${(f.pd?.point * 100).toFixed(1)}%`;
-  document.getElementById('pdBand').textContent  = `80% band: ${(f.pd?.low*100).toFixed(1)} – ${(f.pd?.high*100).toFixed(1)}%`;
 
   document.getElementById('elValue').textContent   = fmtCurrency(f.el?.amount_inr);
-  document.getElementById('rateValue').textContent = f.pricing?.indicative_rate_pct != null ? `${f.pricing.indicative_rate_pct.toFixed(1)}%` : '—';
-  document.getElementById('rwaValue').textContent  = fmtCurrency(f.rwa?.rwa);
+  document.getElementById('exposureTypeValue').textContent = f.inputs?.exposure_class || '—';
+  document.getElementById('lgdValue').textContent  = f.lgd?.lgd_percentage != null ? `${f.lgd.lgd_percentage.toFixed(1)}%` : '—';
+  document.getElementById('eadValue').textContent  = f.ead != null ? fmtCurrency(f.ead) : '—';
+  document.getElementById('rwaAirbValue').textContent = f.rwa?.rwa != null ? fmtCurrency(f.rwa.rwa) : '—';
+  // Standardized Approach RWA isn't computed as part of this assessment
+  // engine's findings (AIRB-only pipeline) - dash until that's wired up.
+  document.getElementById('rwaSaValue').textContent = f.rwa_sa?.rwa != null ? fmtCurrency(f.rwa_sa.rwa) : '—';
 
   const pill = document.getElementById('decisionPill');
   const modelDec = f.recommendation?.decision_label || dec;
@@ -907,6 +924,7 @@ window.runRestructureQuote = async function() {
     collateral_value:parseFloat(document.getElementById('pwa-collateral-value').value)|| 0,
     maturity:        parseFloat(document.getElementById('pwa-maturity').value)        || inp.maturity,
     borrower_id:     inp.borrower_id || 'restructure',
+    exposure_class:  inp.exposure_class,
   };
 
   const resultEl = document.getElementById('pwaResult');

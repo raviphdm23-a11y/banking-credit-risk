@@ -67,6 +67,13 @@ EXTRA_FEATURE_DEFAULTS = {
     "city_tier_enc":             1.0,
     "education_enc":             2.0,
     "residence_type_enc":        1.0,
+    # Residential stability ("Character") - added from Bank of Punjab
+    # onboarding analysis (MONTHS_IN_RESIDENCE in the source data showed real
+    # signal: 9.91mo avg for non-defaulters vs 9.20mo for defaulters).
+    # Default = ~6.82yr, the actual average of customer_kyc.years_at_address
+    # across the existing 9-bank book (20,876 KYC rows) - not an arbitrary
+    # guess, since that column already existed with real historical data.
+    "months_in_residence":       82.0,
     "loan_purpose_enc":          1.0,
     "cibil_score":               720.0,
     "previous_default_flag":     0.0,
@@ -128,6 +135,7 @@ ATTRIBUTE_GROUPS = [
         ("education_enc", "Education (enc.)"),
         ("cibil_score", "CIBIL Score"),
         ("months_as_customer", "Months as Customer"),
+        ("months_in_residence", "Months at Current Residence"),
         ("num_late_payments_past_12m", "Late Payments (12m)"),
     ]),
     ("Capacity", [
@@ -186,7 +194,7 @@ ATTR_PERCENT = {"profitability", "gdp_growth_pct", "inflation_cpi_pct",
 ATTR_PERCENT_FRACTION = {"foir"}
 ATTR_INR = {"annual_income"}
 ATTR_INT = {"age", "employment_type_enc", "city_tier_enc", "education_enc", "cibil_score",
-             "months_as_customer", "num_late_payments_past_12m", "num_dependents",
+             "months_as_customer", "months_in_residence", "num_late_payments_past_12m", "num_dependents",
              "loan_purpose_enc", "existing_loans_count", "residence_type_enc",
              "num_existing_products", "delta_cibil", "months_since_origination",
              "ecs_bounce_count", "income_disruption_flag"}
@@ -264,12 +272,26 @@ def model_feature_frame(inputs: dict, model=None):
 
     Uses ``model.feature_names_in_`` when available (so it tracks whatever schema
     the deployed pickle was trained on); otherwise falls back to the 4 ratios.
-    Missing values come from the application, then FEATURE_META baselines, then
-    EXTRA_FEATURE_DEFAULTS.
+
+    Missing-value behavior depends on how the model was trained (see
+    app.py's _build_segment_engine, which tags the loaded model object):
+      - Utopian Earth / combined models (the default): missing values fall
+        back to the application, then FEATURE_META baselines, then
+        EXTRA_FEATURE_DEFAULTS - these models were trained on complete
+        data, so a fabricated "typical new applicant" default is the
+        closest honest substitute.
+      - Bank-scoped Real Earth models (model.allow_missing_features_ is
+        True): a genuinely unsupplied value becomes real NaN instead, so
+        XGBoost routes it down whatever default direction it actually
+        learned for "unknown" at training time - not a fabricated number
+        that follows a completely different, uncalibrated path through
+        the trees.
     """
+    import math
     import pandas as pd
     names_attr = getattr(model, "feature_names_in_", None)
     names = list(names_attr) if names_attr is not None and len(names_attr) > 0 else list(FEATURE_ORDER)
+    allow_missing = bool(getattr(model, "allow_missing_features_", False))
 
     def _val(name):
         if name in inputs and inputs[name] is not None:
@@ -277,6 +299,8 @@ def model_feature_frame(inputs: dict, model=None):
                 return float(inputs[name])
             except (TypeError, ValueError):
                 pass
+        if allow_missing:
+            return math.nan
         if name in FEATURE_META:
             return float(FEATURE_META[name]["baseline"])
         return float(EXTRA_FEATURE_DEFAULTS.get(name, 0.0))

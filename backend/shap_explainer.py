@@ -8,13 +8,19 @@ Perfect decomposition: base_value + sum(shap_values) = model_prediction
 """
 
 import hashlib
+import io
+import base64
 import json
 import numpy as np
 import pandas as pd
 from datetime import datetime, timedelta
 from itertools import combinations
+import matplotlib
+matplotlib.use('Agg')  # non-interactive backend - safe under Flask/threads
+import matplotlib.pyplot as plt
 import shap
 import shap.explainers._tree as _shap_tree
+from sklearn.pipeline import Pipeline
 
 from backend.feature_meta import (
     FEATURE_ORDER, FEATURE_META, EXTRA_FEATURE_DEFAULTS,
@@ -294,10 +300,17 @@ class SHAPExplainer:
             five_c = FEATURE_FIVE_C.get(feat, "conditions")
             reason_code, reason_text = _reason_for(feat, meta, feature_value, contribution, display_name)
 
+            # A bank-scoped model can genuinely leave feature_value as NaN
+            # when the applicant didn't supply it - correct model input, but
+            # literal NaN is not valid JSON (RFC 8259) and breaks
+            # response.json() on every consumer. None (-> JSON null) is the
+            # honest "genuinely unknown" representation.
+            json_safe_value = None if feature_value != feature_value else round(feature_value, 4)
+
             feature_contributions.append({
                 "feature":        feat,
                 "display_name":   display_name,
-                "value":          round(feature_value, 4),
+                "value":          json_safe_value,
                 "baseline_value": round(float(baseline_value), 4),
                 "contribution":   round(contribution, 6),
                 "shap_value":     round(shap_value, 6),
@@ -440,3 +453,132 @@ def create_shap_explainer(model, model_version: str) -> SHAPExplainer:
         findings = explainer.explain_assessment(inputs)
     """
     return SHAPExplainer(model, model_version)
+
+
+# ── Global (aggregate) SHAP — Model Lab research tab ─────────────────────────
+#
+# The class above only explains ONE assessment at a time (local attribution).
+# This section computes an aggregate, dataset-level view: which features
+# actually carry signal for a given trained model type, expressed relative
+# to a synthetic random "noise" feature - any real feature whose mean|SHAP|
+# is only ~1x the noise column's is statistically indistinguishable from a
+# coin flip.
+#
+# The noise column has to be a genuine TRAINED-ON feature for this to mean
+# anything: a pretrained model that never saw it literally cannot depend on
+# it (its predict_proba would either hard-error on the extra column, for a
+# raw XGBoost booster, or just ignore it), so any "SHAP value" computed that
+# way would be a trivial, uninformative zero - not a real signal-vs-noise
+# comparison. Instead this fits a *shadow* model: same model_type and the
+# same hyperparameters the selected model was actually trained with (see
+# admin_model_lab_shap in app.py, which reads them off that model's own
+# pd_model_metadata.json), refit on the sampled rows plus the injected
+# noise column together, via trainer.py's train_model() dispatcher - the
+# same builder function production training uses. Whatever real advantage
+# the trained-on features have over noise, this shadow model reveals it
+# structurally, the same way Boruta-style shadow-feature selection does.
+def compute_global_shap(model_type: str, X_sample: pd.DataFrame, y_sample, hp: dict) -> dict:
+    """Aggregate SHAP importance + noise-baseline ratio for a shadow model of
+    `model_type`, retrained on `X_sample` (real features) + `y_sample`
+    (default_flag) with a synthetic `__noise__` column injected so its
+    trained-in importance can serve as a "statistically indistinguishable
+    from chance" floor for every real feature."""
+    from ml_models.trainer import train_model
+
+    rng = np.random.RandomState(42)
+    X = X_sample.reset_index(drop=True).copy()
+    y = pd.Series(y_sample).reset_index(drop=True)
+    X['__noise__'] = rng.standard_normal(len(X))
+    feature_names = list(X.columns)
+
+    shadow_model = train_model(X, y, hp, model_type=model_type)
+
+    # The selected model's own hyperparameters were tuned for its FULL
+    # training set (thousands of rows) - reused as-is on a much smaller
+    # research sample, regularization knobs like min_child_weight/gamma can
+    # occasionally block every split, collapsing the shadow model to a
+    # single constant prediction. SHAP on a constant-output model is
+    # trivially all-zero for every feature including noise, which looks
+    # like a broken chart rather than what it is - surface it explicitly.
+    shadow_proba = shadow_model.predict_proba(X)[:, 1]
+    if float(np.std(shadow_proba)) < 1e-6:
+        raise ValueError(
+            "The shadow model collapsed to a constant prediction on this sample "
+            "(this model's saved hyperparameters are tuned for a much larger training "
+            "set, and its regularization blocked every split on this small a sample) - "
+            "try a larger sample_size."
+        )
+
+    inner = shadow_model.named_steps['clf'] if hasattr(shadow_model, 'named_steps') else shadow_model
+    is_tree = inner.__class__.__name__ in (
+        'XGBClassifier', 'RandomForestClassifier', 'ExtraTreesClassifier', 'GradientBoostingClassifier',
+    )
+
+    if is_tree:
+        if hasattr(shadow_model, 'named_steps'):
+            pre = Pipeline(shadow_model.steps[:-1])
+            X_explain = pd.DataFrame(pre.transform(X), columns=feature_names, index=X.index)
+        else:
+            X_explain = X
+        explainer = shap.TreeExplainer(inner)
+        raw_values = explainer.shap_values(X_explain)
+        shap_vals = raw_values[1] if isinstance(raw_values, list) else raw_values
+        explainer_mode = 'tree'
+    else:
+        background = shap.sample(X, min(50, len(X)), random_state=42)
+        masker = shap.maskers.Independent(background, max_samples=len(background))
+
+        def _predict_default_proba(arr):
+            return shadow_model.predict_proba(pd.DataFrame(arr, columns=feature_names))[:, 1]
+
+        explainer = shap.Explainer(_predict_default_proba, masker)
+        shap_vals = np.asarray(explainer(X).values)
+        explainer_mode = 'permutation'
+
+    mean_abs = np.abs(shap_vals).mean(axis=0)
+    mean_abs_shap = {f: float(v) for f, v in zip(feature_names, mean_abs)}
+    noise_baseline = mean_abs_shap.pop('__noise__')
+    real_features = [f for f in feature_names if f != '__noise__']
+    shap_ratio = {
+        f: (round(mean_abs_shap[f] / noise_baseline, 3) if noise_baseline > 1e-12 else None)
+        for f in real_features
+    }
+
+    ranked = sorted(real_features, key=lambda f: mean_abs_shap[f], reverse=True)
+
+    for _style in ('seaborn-v0_8-whitegrid', 'seaborn-whitegrid', 'ggplot', 'default'):
+        try:
+            plt.style.use(_style)
+            break
+        except OSError:
+            continue
+    order = list(reversed(ranked))
+    fig, ax = plt.subplots(figsize=(8, max(4, 0.32 * len(order))))
+    ax.barh(order, [mean_abs_shap[f] for f in order], color='#2196F3')
+    ax.axvline(noise_baseline, color='#E91E63', linestyle='--', lw=1.5,
+               label=f'Random noise baseline ({noise_baseline:.4f})')
+    ax.set_xlabel('Mean |SHAP value|')
+    ax.set_title(f'Global SHAP Importance — {model_type} ({explainer_mode})', fontsize=13, fontweight='bold')
+    ax.tick_params(axis='y', labelsize=9)
+    ax.legend(loc='lower right')
+    buf = io.BytesIO()
+    fig.savefig(buf, format='png', dpi=90, bbox_inches='tight')
+    buf.seek(0)
+    chart_png_b64 = base64.b64encode(buf.read()).decode('utf-8')
+    plt.close(fig)
+
+    return {
+        'model_type': model_type,
+        'explainer_mode': explainer_mode,
+        'n_samples': int(len(X_sample)),
+        'noise_baseline': round(float(noise_baseline), 6),
+        'features': [
+            {
+                'feature': f,
+                'mean_abs_shap': round(mean_abs_shap[f], 6),
+                'shap_ratio': shap_ratio[f],
+            }
+            for f in ranked
+        ],
+        'chart_png_b64': chart_png_b64,
+    }

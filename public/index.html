@@ -285,6 +285,31 @@
             box-shadow: 0 4px 18px rgba(245,158,11,0.4);
         }
 
+        .dept-card.gov::before {
+            background: linear-gradient(135deg, rgba(84,110,122,0.16), rgba(56,142,142,0.12));
+        }
+        .dept-card.gov .dept-icon {
+            background: linear-gradient(135deg, rgba(84,110,122,0.28), rgba(56,142,142,0.22));
+            border: 1px solid rgba(120,144,156,0.35);
+        }
+        .dept-card.gov .dept-tag {
+            background: rgba(96,125,139,0.22);
+            color: #b0bec5;
+        }
+        .dept-card.gov .dept-features li::before {
+            content: '';
+            width: 6px;
+            height: 6px;
+            background: #78909c;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+        .dept-card.gov .dept-cta {
+            background: linear-gradient(135deg, #546E7A, #26A69A);
+            color: white;
+            box-shadow: 0 4px 18px rgba(84,110,122,0.4);
+        }
+
         .dept-card:hover {
             border-color: rgba(255,255,255,0.22);
             transform: translateY(-4px);
@@ -603,6 +628,23 @@
                     <li>NPA count · NPA ratio · provisions over time</li>
                 </ul>
                 <span class="dept-cta">Open Analytics →</span>
+            </a>
+
+            <!-- Model Governance Department -->
+            <a href="/governance/" class="dept-card gov">
+                <div class="dept-icon">🛡️</div>
+                <div class="dept-tag">Governance</div>
+                <div class="dept-title">Model Governance &amp; AI Risk</div>
+                <div class="dept-desc">SR 11-7 / Basel / EU AI Act aligned model-risk management — KPI drift monitoring, challenger-vs-champion promotion gating, independent validation, and a tamper-evident audit trail.</div>
+                <ul class="dept-features">
+                    <li>PSI data-drift &amp; AUC-stability monitoring</li>
+                    <li>Fairness-gap audit with bias alerts</li>
+                    <li>Champion/challenger promotion gate</li>
+                    <li>Six-pillar validation sign-off workflow</li>
+                    <li>Hash-chained model-lifecycle audit trail</li>
+                    <li>Per-model governance wiki with version history</li>
+                </ul>
+                <span class="dept-cta">Open Governance →</span>
             </a>
 
         </div>

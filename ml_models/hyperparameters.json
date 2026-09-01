@@ -20,6 +20,30 @@
       "max_iter": 1000,
       "class_weight": "balanced",
       "random_state": 42
+    },
+    "random_forest": {
+      "n_estimators": 300,
+      "max_depth": 8,
+      "min_samples_leaf": 5,
+      "max_features": "sqrt",
+      "class_weight": "balanced",
+      "random_state": 42
+    },
+    "extra_trees": {
+      "n_estimators": 300,
+      "max_depth": 8,
+      "min_samples_leaf": 5,
+      "max_features": "sqrt",
+      "class_weight": "balanced",
+      "random_state": 42
+    },
+    "gradient_boosting": {
+      "n_estimators": 200,
+      "max_depth": 3,
+      "learning_rate": 0.05,
+      "subsample": 0.8,
+      "min_samples_leaf": 5,
+      "random_state": 42
     }
   },
   "model": {
@@ -46,5 +70,13 @@
     "day_of_week": "sun",
     "hour": 2,
     "minute": 0
+  },
+  "governance": {
+    "promotion_gate_enabled": true,
+    "auc_regression_tolerance": 0.01,
+    "psi_major": 0.25,
+    "psi_watch": 0.1,
+    "auc_drop_pct": 5.0,
+    "fairness_gap": 0.05
   }
 }

@@ -1,0 +1,173 @@
+{
+  "bank_id": "BANK010",
+  "bank_name": "Banco Bradesco S.A.",
+  "country_code": "BRA",
+  "identity_correction": "This dataset was FIRST onboarded (in error) as 'Bank of Punjab' (India). Corrected: PAK.csv is the PAKDD 2010 Credit Scoring competition dataset - real Brazilian state/city names, a NACIONALITY field, and income figures that don't fit an Indian applicant population at all (validated against the platform's INR-scale check: annual_income at face value came out ~2000x too small to be real INR). Re-onboarded as a real Brazilian bank, which is what the source data actually is. See currency_conversion below for how this was resolved.",
+  "source_file": "sample datasets/PAK.csv",
+  "source_description": "50,000-row applicant-level credit dataset (PAKDD 2010 Credit Scoring competition format). Demographic/card-ownership/income data with a real binary outcome column (target). No loan terms, no financial ratios, no bureau score, no transaction history.",
+  "profiled_on": "2026-07-11",
+  "profiling_method": "Direct read of sample datasets/PAK.csv (50,000 rows) via pandas: null%, value_counts(), describe(), and groupby('target').mean() for every candidate column before it was assigned a mapping type below - nothing here is a guess.",
+
+  "mappings": [
+    {
+      "source_column": "target",
+      "target_table": "bank_loan_metrics",
+      "target_field": "default_flag",
+      "mapping_type": "direct",
+      "formula": "default_flag = target",
+      "confidence": "high",
+      "notes": "Real labeled outcome, 0% missing, base rate 26.1%. This is the strongest asset in this dataset - most acquisitions don't arrive pre-labeled."
+    },
+    {
+      "source_column": "AGE",
+      "target_table": "customer_kyc / bank_loan_metrics",
+      "target_field": "age",
+      "mapping_type": "derived",
+      "formula": "age = min(max(AGE, 18), 85)",
+      "confidence": "high",
+      "notes": "Raw range is 6-106 (data-entry defects at both tails). Clip to the platform's validated range (trainer.py: 18.0-100.0); using 85 as the practical upper clip since the loan-appropriate range is narrower than the model's outer validation bound."
+    },
+    {
+      "source_column": "QUANT_DEPENDANTS",
+      "target_table": "customer_kyc / bank_loan_metrics",
+      "target_field": "num_dependents",
+      "mapping_type": "direct",
+      "formula": "num_dependents = min(QUANT_DEPENDANTS, 20)",
+      "confidence": "high",
+      "notes": "0% missing, clean integer range. Clip at 20 to match trainer.py's validated range."
+    },
+    {
+      "source_column": "PERSONAL_MONTHLY_INCOME",
+      "target_table": "customer_kyc / bank_loan_metrics",
+      "target_field": "annual_income",
+      "mapping_type": "derived_with_currency_conversion",
+      "formula": "annual_income_usd = min(PERSONAL_MONTHLY_INCOME / fx_rate_brl_per_usd, P99_usd) * 12, where fx_rate_brl_per_usd comes from country_macro.BRA.fx_rate_per_usd (5.20, latest period)",
+      "confidence": "medium",
+      "notes": "REVISED from the original mapping, which treated the raw figures as already INR-denominated with no conversion - that produced annual_income values ~2000x below the platform's INR validation floor (₹100,000), which is what surfaced the original India mislabeling. PERSONAL_MONTHLY_INCOME is genuinely BRL (source data confirmed Brazilian). Converted to USD via the platform's own country_macro.fx_rate_per_usd reference field (not a new mechanism), THEN capped at the post-conversion P99 to control outliers, THEN annualized. Real Earth monetary values are canonically USD-denominated, not each bank's native currency and not INR like Utopian Earth."
+    },
+    {
+      "source_column": "EDUCATION_LEVEL_2",
+      "target_table": "customer_kyc / bank_loan_metrics",
+      "target_field": "education_enc",
+      "mapping_type": "risk_ordered_encoding",
+      "formula": "Rank EDUCATION_LEVEL_2's 6 categories (0-5) by their OWN observed target rate within this file (ascending risk), assign 1..6 - same convention already used by ref_lookup.risk_order for every other bank's employment_type/education/city_tier/residence_type encodings, not a new invented scheme.",
+      "confidence": "medium",
+      "notes": "IMPORTANT: EDUCATION_LEVEL (the obviously-named column) is dead - constant value 0 for all 50,000 rows, zero variance, unusable. EDUCATION_LEVEL_2 is the column that actually carries signal (default rate ranges 6.1%-27.0% across its 6 categories) but is 64.7% missing - coverage caveat applies to roughly two-thirds of applicants."
+    },
+    {
+      "source_column": "RESIDENCE_TYPE",
+      "target_table": "customer_kyc / bank_loan_metrics",
+      "target_field": "residence_type_enc",
+      "mapping_type": "risk_ordered_encoding",
+      "formula": "Rank RESIDENCE_TYPE's 6 categories (0-5) by observed target rate (19.9%-29.7% range), assign ordinal 1..6.",
+      "confidence": "low-medium",
+      "notes": "Real category cardinality and real (if modest) default-rate spread. Semantic meaning of each numeric code (e.g. which value = 'owned') is unknown without a data dictionary - the risk-ordered encoding sidesteps needing that, since only relative risk rank matters to the model, not the literal label."
+    },
+    {
+      "source_column": "OCCUPATION_TYPE",
+      "target_table": "customer_kyc / bank_loan_metrics",
+      "target_field": "employment_type_enc",
+      "mapping_type": "risk_ordered_encoding",
+      "formula": "Rank OCCUPATION_TYPE's 6 categories (0-5) by observed target rate (20.3%-28.9% range), assign ordinal 1..6.",
+      "confidence": "low-medium",
+      "notes": "Same opaque-code situation as RESIDENCE_TYPE. PROFESSION_CODE (19 categories) is a higher-cardinality alternative source for the same concept - not used here to avoid overfitting a 19-bucket categorical onto a 7-value target scale from one bank's 50K rows; kept as a candidate if OCCUPATION_TYPE proves too coarse in practice."
+    },
+    {
+      "source_column": "FLAG_VISA + FLAG_MASTERCARD + FLAG_DINERS + FLAG_AMERICAN_EXPRESS + FLAG_OTHER_CARDS",
+      "target_table": "customer_kyc / bank_loan_metrics",
+      "target_field": "num_existing_products",
+      "mapping_type": "derived",
+      "formula": "num_existing_products = FLAG_VISA + FLAG_MASTERCARD + FLAG_DINERS + FLAG_AMERICAN_EXPRESS + FLAG_OTHER_CARDS  (each flag is 0/1; sum = count of card products held)",
+      "confidence": "high",
+      "notes": "0% missing on all 5 flags, clean binary encoding. Reasonable proxy for existing product depth."
+    },
+    {
+      "source_column": "MONTHS_IN_THE_JOB",
+      "target_table": "customer_kyc / bank_loan_metrics",
+      "target_field": "years_employed",
+      "mapping_type": "derived",
+      "formula": "years_employed = MONTHS_IN_THE_JOB / 12",
+      "confidence": "low",
+      "notes": "FLAGGED LOW CONFIDENCE: 75th percentile of MONTHS_IN_THE_JOB is 0 across the whole file - this field is functionally near-dead, not a data-entry accident on a few rows. Mapping is mechanically correct but the source signal itself is weak. Do not treat years_employed as reliable for this bank without confirming with the source why this field collapsed to ~0."
+    },
+    {
+      "source_column": "PRODUCT",
+      "target_table": "loans",
+      "target_field": "type",
+      "mapping_type": "risk_ordered_encoding",
+      "formula": "3 raw values (1, 2, 7) -> decode by observed target rate: 1 and 2 are statistically indistinguishable (25.94% vs 25.94% default rate) and could plausibly be the same product coded twice; 7 is meaningfully higher risk (31.58%, n=1,295).",
+      "confidence": "low",
+      "notes": "Opaque numeric product codes, no literal product-name mapping possible without a data dictionary. NOT CURRENTLY USED: this onboarding pass is training-only (see decision below) - no `loans` table rows are created at all, so this mapping is documented for a possible future pass but has no live consumer today."
+    },
+    {
+      "source_column": "MONTHS_IN_RESIDENCE",
+      "target_table": "bank_loan_metrics",
+      "target_field": "months_in_residence",
+      "mapping_type": "direct",
+      "formula": "months_in_residence = MONTHS_IN_RESIDENCE (already in months, same unit as the canonical feature added specifically because of this column - see proposed_new_fields below)",
+      "confidence": "high",
+      "notes": "Missed in the first pass of this mapping file - was only recorded under proposed_new_fields as the rationale for ADDING months_in_residence to the canonical schema, never wired as an actual mapping once the field existed. 7.6% missing, left NULL (not imputed) for those rows."
+    }
+  ],
+
+  "not_mapped_dead_columns": [
+    {"column": "EDUCATION_LEVEL", "reason": "Constant (single value 0) across all 50,000 rows - zero variance, zero signal."},
+    {"column": "FLAG_ACSP_RECORD", "reason": "Constant ('N') across all 50,000 rows."},
+    {"column": "FLAG_HOME_ADDRESS_DOCUMENT", "reason": "Constant (0) across all 50,000 rows."},
+    {"column": "FLAG_RG", "reason": "Constant (0) across all 50,000 rows."},
+    {"column": "FLAG_CPF", "reason": "Constant (0) across all 50,000 rows."},
+    {"column": "FLAG_INCOME_PROOF", "reason": "Constant (0) across all 50,000 rows."}
+  ],
+
+  "not_mapped_no_target_field": [
+    "SEX", "MARITAL_STATUS", "NACIONALITY", "STATE_OF_BIRTH", "CITY_OF_BIRTH",
+    "POSTAL_ADDRESS_TYPE", "FLAG_RESIDENCIAL_PHONE", "RESIDENCIAL_PHONE_AREA_CODE",
+    "FLAG_MOBILE_PHONE", "FLAG_EMAIL", "COMPANY", "PROFESSIONAL_STATE",
+    "PROFESSIONAL_CITY", "PROFESSIONAL_BOROUGH", "FLAG_PROFESSIONAL_PHONE",
+    "PROFESSIONAL_PHONE_AREA_CODE", "MATE_PROFESSION_CODE", "RESIDENCIAL_ZIP_3",
+    "PROFESSIONAL_ZIP_3", "QUANT_SPECIAL_BANKING_ACCOUNTS", "QUANT_CARS",
+    "PERSONAL_ASSETS_VALUE", "APPLICATION_SUBMISSION_TYPE", "QUANT_ADDITIONAL_CARDS",
+    "PAYMENT_DAY"
+  ],
+  "not_mapped_no_target_field_note": "SEX/MARITAL_STATUS/NACIONALITY deliberately excluded on principle - this platform's model never uses gender/marital status/nationality as scoring inputs (NACIONALITY was also the field that helped confirm this is genuinely Brazilian source data). PERSONAL_ASSETS_VALUE and FLAG_ACSP_RECORD were both evaluated as candidate NEW fields (see proposed_new_fields) and rejected on the evidence, not just unmapped by default - see notes there.",
+
+  "unmapped_required_fields_no_source_at_all": [
+    "de_ratio", "interest_coverage", "profitability", "liquidity_ratio",
+    "loan_purpose_enc", "cibil_score", "num_late_payments_past_12m", "previous_default_flag",
+    "gdp_growth_pct", "inflation_cpi_pct", "policy_rate_pct", "unemployment_pct",
+    "delta_de_ratio", "delta_cibil", "months_since_origination",
+    "delta_gdp_pct", "delta_cpi_pct", "delta_policy_rate_pct", "delta_unemployment_pct", "macro_regime_score",
+    "ecs_bounce_count", "other_lender_emi_ratio", "income_disruption_flag", "sector_stress_index", "ltv_trend_pct",
+    "months_as_customer", "city_tier_enc"
+  ],
+  "unmapped_required_fields_note": "The 4 core financial ratios, bureau/CIBIL fields, and all trend/delta fields have no source column in PAK.csv at all - this is applicant/demographic data, not loan-performance data. Macro fields come from country_macro via country_code assignment (BRA), same as every other bank - not from this file. Fill approach for the rest deliberately NOT generalized - case-by-case, matching the platform's blank-column-exclusion training logic.",
+
+  "proposed_new_fields": [
+    {
+      "source_column": "MONTHS_IN_RESIDENCE",
+      "proposed_field": "months_in_residence (added to canonical schema)",
+      "rationale": "Residential stability is a classic Five-C's 'Character' signal (frequent movers correlate with higher risk in traditional underwriting) that the platform's schema had no equivalent for - months_as_customer measures bank relationship tenure, not housing stability, a genuinely different concept.",
+      "evidence": "7.6% missing (workable). Real distribution: P25=1mo, P50=6mo, P75=15mo, max=228mo - not degenerate. Mean months-in-residence for non-defaulters (9.91) vs defaulters (9.20) - modest but directionally sensible separation.",
+      "status": "Implemented - added to backend/feature_schema.py's FEATURE_COLS and retrained across all Utopian Earth segment models."
+    }
+  ],
+  "rejected_new_field_candidates": [
+    {
+      "source_column": "PERSONAL_ASSETS_VALUE",
+      "rejected_because": "95.2% of rows are exactly 0 (only 4.78% nonzero). The apparent mean-by-target difference (2,420 vs 2,045) is almost certainly driven by a handful of outliers (max=6,000,000) rather than broad-based signal. Too degenerate to recommend as a platform-wide addition."
+    },
+    {
+      "source_column": "FLAG_ACSP_RECORD",
+      "rejected_because": "Constant across all 50,000 rows ('N' always) - conceptually appealing (credit-bureau-record/thin-file flag) but zero actual variance in this file, so nothing to learn from it here."
+    },
+    {
+      "source_column": "APPLICATION_SUBMISSION_TYPE",
+      "rejected_because": "Real variance (Web vs Carga/branch) and a modest default-rate difference (25.8% vs 22.5%), but 38.9% missing and it's a channel/process artifact specific to this bank's origination workflow, not a durable applicant-risk signal that generalizes across banks. Secondary candidate at best, not recommended for platform-wide schema growth."
+    }
+  ],
+
+  "currency_conversion": "PERSONAL_MONTHLY_INCOME is BRL (confirmed by re-identifying the source as Brazilian, not assumed India/INR as in the original mapping). Converted to USD using country_macro.BRA.fx_rate_per_usd (5.20 BRL/USD, latest period 2024-Q2, disclosed estimate) - the platform's own existing FX reference field, populated for Brazil for exactly this purpose, not a new mechanism. Real Earth's canonical monetary unit is USD (not each bank's native currency, and not INR like Utopian Earth) per explicit instruction.",
+
+  "onboarding_scope_decision": "TRAINING-ONLY. PAK.csv has no loan amount/exposure field at all - it's applicant/outcome data, not a loan book. Confirmed with the business: this onboarding creates a `banks` row (world='real', country_code='BRA') and `bank_loan_metrics` rows (for PD model training) ONLY. No `customers`/`customer_kyc`/`loans`/`accounts`/`credit_risk_metrics` rows are created - no operational loan book, no regulatory reporting, no financial reporting, no performance reporting from this pass. It exists solely to train BANK010's own bank-specific/GENERIC model. All 50,000 rows are used (not a sample), since training-only means dataset size isn't constrained by operational/reporting volume concerns the way a full loan book would be.",
+  "world_assignment": "Real Earth ('real'), strictly quarantined from Utopian Earth's 9 banks - never pooled into combined training, never selectable in the Utopian Earth world view."
+}

@@ -149,7 +149,13 @@ def create_case(conn, M, rm_id="RM-DEMO"):
     try:
         from backend.model_registry import get_active_model_id
         from backend.prediction_store import record_prediction
-        model_id = get_active_model_id(conn, app_.get('exposure_class'))
+        # Only look up the bank-scoped registry entry if a bank-specific
+        # model actually scored this case (M['model_scope'], set by
+        # app.py's _resolve_segment_engine) - not just whatever the RM
+        # requested, so a fallback-to-shared case still gets the correct
+        # (shared) model_id instead of a bank-specific one that wasn't used.
+        lookup_bank_id = app_.get('bank_id') if (M.get('model_scope') or '').startswith('bank_specific') else None
+        model_id = get_active_model_id(conn, app_.get('exposure_class'), bank_id=lookup_bank_id)
         record_prediction(conn, M, case_id=case_id, model_id=model_id)
     except Exception as e:
         print(f"[rm_case_store] prediction_store write failed for {case_id} (non-fatal): {e}")

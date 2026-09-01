@@ -99,7 +99,7 @@ def sync(db_path=DB_PATH):
     # plain copies from customer_kyc/loans, not derived computations.
     for col in ('ecs_bounce_count INTEGER', 'other_lender_emi_ratio REAL',
                 'income_disruption_flag INTEGER', 'sector_stress_index REAL',
-                'ltv_trend_pct REAL'):
+                'ltv_trend_pct REAL', 'months_in_residence REAL'):
         try:
             cursor.execute(f"ALTER TABLE bank_loan_metrics ADD COLUMN {col}")
         except sqlite3.OperationalError as e:
@@ -138,6 +138,13 @@ def sync(db_path=DB_PATH):
             kyc.annual_income,
             kyc.foir_declared,
             kyc.num_dependents,
+            -- Residential stability ("Character") - see
+            -- operations/scripts/onboarding_maps/BANK010_bank_of_punjab.json
+            -- for the analysis this feature came from. years_at_address
+            -- already existed on customer_kyc with real historical data
+            -- (seed_real_bank.py/seed_completed_loans_bulk.py both
+            -- populate it) but was never piped into training until now.
+            ROUND(kyc.years_at_address * 12, 1) AS months_in_residence,
 
             -- KYC categoricals → risk-ordered integers via ref_lookup
             emp_ref.risk_order          AS employment_type_enc,
@@ -255,7 +262,7 @@ def sync(db_path=DB_PATH):
                  de_ratio, interest_coverage, profitability, liquidity_ratio,
                  default_flag, pd_observed, observation_date, loaded_at,
                  age, employment_type_enc, years_employed, annual_income,
-                 foir, num_dependents, city_tier_enc, education_enc,
+                 foir, num_dependents, months_in_residence, city_tier_enc, education_enc,
                  residence_type_enc,
                  loan_purpose_enc, cibil_score, previous_default_flag,
                  months_as_customer, num_late_payments_past_12m,
@@ -268,7 +275,7 @@ def sync(db_path=DB_PATH):
                  delta_unemployment_pct, macro_regime_score,
                  delta_de_ratio, delta_cibil, months_since_origination,
                  exposure_class)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, (
             loan['bank_id'],
             loan['bank_name'],
@@ -287,6 +294,7 @@ def sync(db_path=DB_PATH):
             loan['annual_income'],
             foir,
             loan['num_dependents'],
+            loan['months_in_residence'],
             loan['city_tier_enc'],
             loan['education_enc'],
             loan['residence_type_enc'],

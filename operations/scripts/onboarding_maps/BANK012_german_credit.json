@@ -1,0 +1,101 @@
+{
+  "bank_id": "BANK012",
+  "bank_name": "PLACEHOLDER - German Composite Bank (identity not confirmed)",
+  "bank_name_note": "Same situation as BANK011: this is the Statlog German Credit dataset (Prof. Hans Hofmann, Universitat Hamburg, 1994) - an academic benchmark, not tied to a named real institution. Generic placeholder identity, consistent with BANK011's resolution.",
+  "country_code": "DEU",
+  "source_file": "sample datasets/german_credit_record.csv",
+  "source_description": "1,000-row installment-loan applicant dataset (UCI/Statlog German Credit Data). Demographics, credit-bureau-style history, and loan terms (amount, duration, purpose), with a real binary outcome column (target). Human-readable categorical labels (already decoded from the original A11/A12-style codes).",
+  "profiled_on": "2026-07-12",
+  "profiling_method": "Direct read via pandas: 0 nulls across all 21 columns, value_counts() on every categorical, groupby(col)['target'].mean() for risk-ordering and polarity checks, cross-checked target's 700/300 split against the dataset's well-documented published good/bad split to confirm target=1 means default (not inverted).",
+
+  "mappings": [
+    {"source_column": "target", "target_field": "default_flag", "mapping_type": "direct",
+     "formula": "default_flag = target", "confidence": "high",
+     "notes": "0% missing, 700/300 split matches the dataset's well-known published good/bad counts - confirms target=1=default, not inverted."},
+
+    {"source_column": "age", "target_field": "age", "mapping_type": "direct",
+     "formula": "age = age", "confidence": "high", "notes": "0% missing, clean range 19-75."},
+
+    {"source_column": "purpose", "target_field": "loan_purpose_enc", "mapping_type": "risk_ordered_encoding",
+     "formula": "Rank purpose's 10 categories by observed target rate (out-of-fold, train-only), ascending risk, assign 1..10.",
+     "confidence": "medium", "notes": "Genuine existing-canonical-field match - this dataset has a real loan-purpose concept, unlike BANK010/BANK011."},
+
+    {"source_column": "housing", "target_field": "residence_type_enc", "mapping_type": "risk_ordered_encoding",
+     "formula": "Rank housing's 3 categories (own/rent/for free) by observed target rate, ascending risk, assign 1..3.",
+     "confidence": "high", "notes": "Genuine existing-canonical-field match."},
+
+    {"source_column": "job", "target_field": "employment_type_enc", "mapping_type": "risk_ordered_encoding",
+     "formula": "Rank job's 4 categories by observed target rate, ascending risk, assign 1..4.",
+     "confidence": "medium", "notes": "Genuine existing-canonical-field match (skill/employment-type concept)."},
+
+    {"source_column": "existing_credits", "target_field": "existing_loans_count", "mapping_type": "direct",
+     "formula": "existing_loans_count = existing_credits", "confidence": "high",
+     "notes": "Genuine existing-canonical-field match, already an integer count at this bank."},
+
+    {"source_column": "people_liable", "target_field": "num_dependents", "mapping_type": "direct_bucketed",
+     "formula": "num_dependents = people_liable (source values are 1='0 to 2 dependents', 2='3 or more' - a bucketed proxy, not a literal headcount)",
+     "confidence": "low", "notes": "FLAGGED: the source field itself is only 2 buckets (1 or 2), not a real count - do not treat num_dependents as a precise headcount for this bank, it is a coarse proxy."},
+
+    {"source_column": "residence_since", "target_field": "months_in_residence", "mapping_type": "derived",
+     "formula": "months_in_residence = residence_since * 12 (source is in years: 1-4)",
+     "confidence": "medium", "notes": "Genuine existing-canonical-field match, unit-converted from years to months."},
+
+    {"source_column": "employment_since", "target_field": "years_employed", "mapping_type": "derived_band_midpoint",
+     "formula": "years_employed = band midpoint: '< 1 year'->0.5, '1<=..<4 years'->2.5, '4<=..<7 years'->5.5, '>=7 years'->10.0, 'unemployed'->0.0",
+     "confidence": "low-medium", "notes": "Source is categorical bands, not a continuous value - midpoint approximation, standard practice but not a literal figure. '>=7 years' open-ended band arbitrarily anchored at 10.0."}
+  ],
+
+  "derived_fields": [
+    {"target_field": "previous_default_flag",
+     "formula": "1 if credit_history == 'delay in past', else 0",
+     "confidence": "medium",
+     "notes": "Maps onto an EXISTING canonical field. Only the single 'delay in past' category is treated as a genuine prior-default signal - 'critical account / other credits elsewhere' is NOT included here (it's a different concept, existing debt elsewhere, not necessarily delinquency)."}
+  ],
+
+  "new_generic_fields": [
+    {"source_column": "checking_status", "target_field": "checking_account_status_enc", "mapping_type": "risk_ordered_encoding",
+     "notes": "4 categories, out-of-fold risk-ordered. Real, non-obvious signal: 'no checking account' has the LOWEST observed default rate (11.7%) despite sounding negative, '< 0 DM' (overdrawn) has the highest (49.3%) - the encoding captures this correctly since it ranks by observed rate, not by intuition. This asymmetry is a documented characteristic of this dataset, not a data error."},
+    {"source_column": "credit_history", "target_field": "credit_history_enc", "mapping_type": "risk_ordered_encoding",
+     "notes": "5 categories, out-of-fold risk-ordered. CAVEAT: two categories that sound like good history ('no credits/all paid duly' n=40, 'all credits at this bank paid duly' n=49) show the HIGHEST default rates (62.5%, 57.1%) in this sample - almost certainly small-sample noise (tiny n) rather than a real reversed relationship. Flagging so this isn't mistaken for a data quality bug later."},
+    {"source_column": "credit_amount", "target_field": "requested_loan_amount", "mapping_type": "direct_with_currency_conversion",
+     "formula": "requested_loan_amount_usd = (credit_amount_dm / 1.95583) / fx_rate_eur_per_usd - DM->EUR via the official fixed ECB conversion rate (exact, not an estimate), then EUR->USD via country_macro.DEU.fx_rate_per_usd",
+     "notes": "Distinct concept from BANK011's credit_limit (a revolving facility size) - this is a specific installment loan amount requested, new generic field name reflects that."},
+    {"source_column": "savings_status", "target_field": "savings_status_enc", "mapping_type": "risk_ordered_encoding", "notes": "5 categories, out-of-fold risk-ordered."},
+    {"source_column": "installment_rate", "target_field": "installment_rate_band", "mapping_type": "direct",
+     "notes": "Source is already an ordinal 1-4 band ('installment as % of disposable income', banded not literal) - kept as the ordinal band, NOT force-mapped onto foir since the literal fraction isn't known, only which quartile-ish band."},
+    {"source_column": "other_debtors", "target_field": "other_debtors_enc", "mapping_type": "risk_ordered_encoding", "notes": "3 categories (none/guarantor/co-applicant), out-of-fold risk-ordered."},
+    {"source_column": "property", "target_field": "property_type_enc", "mapping_type": "risk_ordered_encoding", "notes": "4 categories, out-of-fold risk-ordered - Five C's 'Collateral' adjacent signal."},
+    {"source_column": "other_installment_plans", "target_field": "other_installment_plans_enc", "mapping_type": "risk_ordered_encoding", "notes": "3 categories (none/bank/stores), out-of-fold risk-ordered. Conceptually adjacent to other_lender_emi_ratio but not a literal ratio - kept as its own new field rather than force-mapped."},
+    {"source_column": "telephone", "target_field": "has_registered_phone", "mapping_type": "direct_binary",
+     "notes": "Weak, dated signal (1990s-era proxy) - brought in per 'don't lose information upfront', not expected to carry much weight."},
+    {"source_column": "months_duration", "target_field": "loan_duration_months", "mapping_type": "direct", "notes": "Genuinely new concept (loan tenor) - no existing canonical field for this."}
+  ],
+
+  "compliance_flagged_fields": [
+    {"source_column": "personal_status_sex", "target_fields": "gender_enc + marital_status_enc (BOTH REUSED from BANK011's schema addition, not new columns)",
+     "formula": "Parsed from the combined field: 'male: single'->gender=1,marital=single; 'male: married/widowed'->gender=1,marital=married_or_widowed; 'male: divorced/separated'->gender=1,marital=divorced_or_separated; 'female: divorced/separated/married'->gender=2,marital=UNKNOWN (source does not distinguish female marital sub-status - a genuine, documented limitation of this dataset, not an onboarding error)",
+     "confidence": "low for the female marital sub-status specifically",
+     "notes": "COMPLIANCE FLAG, same as BANK011: gender_enc must not be added to FEATURE_COLS without explicit review. This field is ALSO a well-known point of criticism of this exact dataset (conflating sex and marital status, and only distinguishing marital status for men) - worth being aware of if this dataset is ever cited in any external-facing analysis."},
+    {"source_column": "foreign_worker", "target_field": "foreign_worker_flag", "mapping_type": "direct_binary",
+     "confidence": "high",
+     "notes": "NEW COMPLIANCE FLAG (added to ml_models/trainer.py's COMPLIANCE_EXCLUDED_COLS by this onboarding): national-origin-adjacent protected characteristic. CONFIRMED CORRELATED WITH TARGET in this sample - default rate 30.7% for foreign workers vs 10.8% for non-foreign (n=37) - exactly the kind of correlation fair-lending law exists to keep out of underwriting models. Excluded from auto-discovery by default, same mechanism as gender_enc."}
+  ],
+
+  "unmapped_required_fields_no_source_at_all": [
+    "de_ratio", "interest_coverage", "profitability", "liquidity_ratio",
+    "annual_income", "foir", "cibil_score", "months_as_customer",
+    "num_late_payments_past_12m", "city_tier_enc", "education_enc", "is_rural",
+    "num_existing_products", "exposure_class",
+    "delta_de_ratio", "delta_cibil", "months_since_origination",
+    "ecs_bounce_count", "other_lender_emi_ratio", "income_disruption_flag",
+    "sector_stress_index", "ltv_trend_pct"
+  ],
+  "unmapped_required_fields_note": "No income, CIBIL/bureau-score, geography, or macro-trend fields exist in this dataset. Notably richer than BANK011 on loan-structure fields (purpose, duration, amount, existing credits) but has no revolving-credit behavioral history the way BANK011 does.",
+
+  "currency_conversion": "credit_amount is DM (Deutsche Mark, pre-Euro). Converted DM->EUR via the official fixed ECB conversion rate (1 EUR = 1.95583 DM, exact historical fact, not an estimate), then EUR->USD via country_macro.DEU.fx_rate_per_usd (disclosed estimate). Real Earth's canonical monetary unit is USD, same convention as BANK010/BANK011.",
+
+  "onboarding_scope_decision": "TRAINING-ONLY, same default applied without re-asking (consistent with BANK011's confirmed preference) - flagging this explicitly since credit_amount/months_duration together could plausibly support a broader scope (real installment-loan terms exist here), same as BANK011's LIMIT_BAL fork. Revisit if this default should change.",
+  "bank_identity_decision": "PLACEHOLDER - 'German Composite Bank', same treatment as BANK011.",
+  "feature_cols_decision": "Same as BANK011 - new columns are NOT auto-added to FEATURE_COLS, but ARE eligible for run_training()'s bank-scoped auto-discovery (except foreign_worker_flag/gender_enc/marital_status_enc, which require include_compliance_excluded=True).",
+  "world_assignment": "Real Earth ('real'), same quarantine rules as BANK010/BANK011."
+}

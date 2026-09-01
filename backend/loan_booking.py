@@ -76,6 +76,14 @@ def _ensure_loan_columns(conn):
         except Exception as e:
             if 'duplicate column' not in str(e).lower():
                 raise
+    # months_in_residence (Phase 4 schema growth - Bank of Punjab onboarding
+    # analysis) - defensive here too so book_loan() doesn't depend on
+    # sync_bank_loan_metrics.py having run first on a given bank.db.
+    try:
+        conn.execute("ALTER TABLE bank_loan_metrics ADD COLUMN months_in_residence REAL")
+    except Exception as e:
+        if 'duplicate column' not in str(e).lower():
+            raise
 
 
 # borrower-info.html's calcMode radio -> a single definitive approach a
@@ -182,7 +190,12 @@ def book_loan(conn, case_row):
              'N/A', 'N/A', float(app_.get('years_employed') or 0), float(app_.get('annual_income') or 0), 0,
              float(app_.get('foir') or 0),
              RES_LABELS[res_enc - 1] if 1 <= res_enc <= len(RES_LABELS) else 'RENTED',
-             0, int(app_.get('city_tier_enc') or 2), 1 if app_.get('pep_flag') else 0,
+             # years_at_address - was hardcoded 0 (never actually populated by
+             # the live booking path, unlike the historical seeders which do
+             # populate it with real varied values - see feature_meta.py's
+             # months_in_residence default for why 82 months/~6.8yr, not 0).
+             float(app_.get('months_in_residence') or 82.0) / 12.0,
+             int(app_.get('city_tier_enc') or 2), 1 if app_.get('pep_flag') else 0,
              'HIGH' if float(M['pd']['point']) > 0.1 else 'LOW', now, now,
              int(app_.get('months_as_customer') or 0), int(app_.get('num_existing_products') or 1),
              int(app_.get('existing_loans_count') or 0),
@@ -259,18 +272,19 @@ def book_loan(conn, case_row):
     cur.execute(
         "INSERT INTO bank_loan_metrics (bank_id,bank_name,loan_id,de_ratio,interest_coverage,profitability,"
         "liquidity_ratio,default_flag,pd_observed,observation_date,loaded_at,age,employment_type_enc,"
-        "years_employed,annual_income,foir,num_dependents,city_tier_enc,education_enc,residence_type_enc,"
+        "years_employed,annual_income,foir,num_dependents,months_in_residence,city_tier_enc,education_enc,residence_type_enc,"
         "loan_purpose_enc,cibil_score,previous_default_flag,months_as_customer,num_late_payments_past_12m,"
         "existing_loans_count,num_existing_products,is_rural,country_code,exposure_class,"
         "gdp_growth_pct,inflation_cpi_pct,policy_rate_pct,unemployment_pct,"
         "delta_de_ratio,delta_cibil,months_since_origination) "
-        "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+        "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
         (bank_id, bank_name, lid, de, ic, profit, liq, 0, round(pd_score, 4), sim_date,
          datetime.now().isoformat(timespec='seconds'),
          int(app_.get('age') or app_.get('applicant_age') or 35),
          int(app_.get('employment_type_enc') or 2), float(app_.get('years_employed') or 0),
          float(app_.get('annual_income') or 0), float(app_.get('foir') or 0),
-         int(app_.get('num_dependents') or 0), int(app_.get('city_tier_enc') or 2),
+         int(app_.get('num_dependents') or 0), float(app_.get('months_in_residence') or 82.0),
+         int(app_.get('city_tier_enc') or 2),
          int(app_.get('education_enc') or 4), int(app_.get('residence_type_enc') or 2),
          int(app_.get('loan_purpose_enc') or 4), cibil,
          int(app_.get('previous_default_flag') or 0), int(app_.get('months_as_customer') or 0),

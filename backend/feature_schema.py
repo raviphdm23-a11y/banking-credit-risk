@@ -29,9 +29,10 @@ required to be present/non-null in the source data).
 FEATURE_COLS = [
     # Financial ratios (4)
     'de_ratio', 'interest_coverage', 'profitability', 'liquidity_ratio',
-    # KYC — character & capacity (9)
+    # KYC — character & capacity (10)
     'age', 'employment_type_enc', 'years_employed', 'annual_income',
     'foir', 'num_dependents', 'city_tier_enc', 'education_enc', 'residence_type_enc',
+    'months_in_residence',
     # KYC — context (6)
     'loan_purpose_enc', 'cibil_score',
     'months_as_customer', 'num_late_payments_past_12m',

@@ -12,7 +12,12 @@ tables = {
     'banks': """CREATE TABLE banks (
         bank_id TEXT PRIMARY KEY, bank_name TEXT, bank_code TEXT, country TEXT,
         headquarters_city TEXT, headquarters_state TEXT, year_established INTEGER,
-        status TEXT, country_code TEXT)""",
+        status TEXT, country_code TEXT,
+        world TEXT NOT NULL DEFAULT 'utopian')""",
+        # world: 'utopian' (the original 9 banks - uniform schema, safe to pool
+        # into combined/cross-bank model training) or 'real' (onboarded from
+        # heterogeneous external data - e.g. Bank of Punjab from PAK.csv -
+        # never pooled, always its own bank-specific/GENERIC model).
     'branches': """CREATE TABLE branches (
         branch_id TEXT PRIMARY KEY, bank_id TEXT, branch_name TEXT, ifsc_code TEXT,
         city TEXT, state TEXT, pincode TEXT, address TEXT, contact_phone TEXT, status TEXT)""",

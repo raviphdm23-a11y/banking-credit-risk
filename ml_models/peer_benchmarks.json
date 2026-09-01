@@ -54,7 +54,7 @@
   },
   "CORPORATE": {
     "_meta": {
-      "generated_at": "2026-07-11T10:23:33",
+      "generated_at": "2026-07-18T16:22:28",
       "source": "bank_loan_metrics (default_flag=0, exposure_class=CORPORATE)",
       "n_approved": 3190,
       "n_total": 3678,
@@ -107,7 +107,7 @@
   },
   "SME": {
     "_meta": {
-      "generated_at": "2026-07-11T10:23:37",
+      "generated_at": "2026-07-11T18:17:34",
       "source": "bank_loan_metrics (default_flag=0, exposure_class=SME)",
       "n_approved": 3437,
       "n_total": 3925,
@@ -160,7 +160,7 @@
   },
   "RETAIL_MORTGAGES": {
     "_meta": {
-      "generated_at": "2026-07-11T10:23:40",
+      "generated_at": "2026-07-11T18:17:48",
       "source": "bank_loan_metrics (default_flag=0, exposure_class=RETAIL_MORTGAGES)",
       "n_approved": 3600,
       "n_total": 4088,
@@ -213,7 +213,7 @@
   },
   "RETAIL_OTHER": {
     "_meta": {
-      "generated_at": "2026-07-11T12:08:08",
+      "generated_at": "2026-07-11T18:18:02",
       "source": "bank_loan_metrics (default_flag=0, exposure_class=RETAIL_OTHER)",
       "n_approved": 3170,
       "n_total": 3658,
@@ -262,6 +262,15 @@
       "min": 0.15,
       "max": 3.6,
       "n": 3170
+    }
+  },
+  "GENERIC": {
+    "_meta": {
+      "generated_at": "2026-07-12T22:44:30",
+      "source": "bank_loan_metrics (default_flag=0, exposure_class=GENERIC)",
+      "n_approved": 36959,
+      "n_total": 50000,
+      "default_rate": 0.2608
     }
   }
 }

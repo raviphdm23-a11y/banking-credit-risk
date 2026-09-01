@@ -131,6 +131,23 @@
         .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
 
         .form-group { margin-bottom: 4px; }
+        /* Highlights a field the selected bank's own model actually uses -
+           purely informational, never disables the field. Fields NOT
+           highlighted stay fully editable too - a value entered there just
+           won't be used by this particular bank's model. */
+        .form-group.bank-relevant {
+            background: rgba(16,185,129,0.06);
+            border-left: 3px solid #10b981;
+            padding: 8px 10px 4px;
+            border-radius: 6px;
+            margin-left: -10px;
+        }
+        .form-group.bank-relevant label::after {
+            content: " ✓ used by this bank's model";
+            color: #059669;
+            font-size: 0.78em;
+            font-weight: 600;
+        }
 
         label {
             display: block;
@@ -581,6 +598,53 @@
 <body>
 <div class="container">
 
+    <!-- World toggle: Utopian Earth (the original 9 banks - uniform schema,
+         safely pooled into combined/cross-bank model training) vs Real Earth
+         (onboarded from heterogeneous external data - e.g. Bank of Punjab -
+         never pooled, always its own bank-specific model). Selecting a world
+         filters the Originating Bank dropdown further down to just that
+         world's banks, and adjusts the model-scope behavior accordingly. -->
+    <div id="worldToggleBar" style="max-width:1050px;margin:0 auto 14px;background:#fff;
+         border-radius:10px;padding:10px 20px;box-shadow:0 2px 8px rgba(0,0,0,0.10);
+         display:flex;align-items:center;gap:14px;flex-wrap:wrap;font-family:system-ui;">
+        <label for="worldSelect" style="font-size:0.85em;font-weight:700;color:#4b5563;
+               text-transform:uppercase;letter-spacing:.04em;">World</label>
+        <select id="worldSelect" style="padding:6px 12px;border-radius:6px;border:1px solid #d1d5db;
+                font-size:0.92em;font-weight:600;">
+            <option value="utopian">🌐 Utopian Earth — uniform, consolidated-trainable banks</option>
+            <option value="real">🌍 Real Earth — onboarded banks with their own data, own models</option>
+        </select>
+        <span id="worldDescription" style="font-size:0.82em;color:#6b7280;flex:1;min-width:220px;">
+            The original 9 banks. Uniform 37-feature schema, trained together as one shared model.
+        </span>
+    </div>
+
+    <!-- Bank + currency bar - the key driver of loan currency and model routing,
+         so it sits at the top, above every other input, instead of being buried
+         under Step 4a where it used to live. Currency is NOT a free user choice:
+         it's derived from World (Utopian Earth = group reporting currency INR,
+         Real Earth = canonical USD) - see resolveCurrency(). -->
+    <div id="bankCurrencyBar" style="max-width:1050px;margin:0 auto 14px;background:#fff;
+         border-radius:10px;padding:10px 20px;box-shadow:0 2px 8px rgba(0,0,0,0.10);
+         display:flex;align-items:center;gap:14px;flex-wrap:wrap;font-family:system-ui;">
+        <div class="form-group" style="margin:0;flex:1;min-width:260px;">
+            <label for="bankSelect" style="font-size:0.85em;font-weight:700;color:#4b5563;
+                   text-transform:uppercase;letter-spacing:.04em;">Originating Bank *
+                <span style="font-size:11px;color:#888;font-weight:400;text-transform:none;letter-spacing:normal;margin-left:6px;">Which bank's ledger this loan books to if approved</span>
+            </label>
+            <select id="bankSelect" required style="width:100%;">
+                <option value="">-- Select Bank --</option>
+            </select>
+            <div class="error" id="bankSelectError"></div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:2px;">
+            <span style="font-size:0.85em;font-weight:700;color:#4b5563;
+                   text-transform:uppercase;letter-spacing:.04em;">Currency</span>
+            <span id="currencyChip" style="font-size:1.15em;font-weight:700;color:#4338ca;">₹ INR</span>
+            <span id="currencyNote" style="font-size:0.78em;color:#6b7280;max-width:220px;">Group reporting currency — all amounts below are in this currency.</span>
+        </div>
+    </div>
+
     <!-- Header -->
     <header>
         <div class="header-title">
@@ -623,7 +687,7 @@
                     <div class="error" id="borrowerNameError"></div>
                 </div>
                 <div class="form-group">
-                    <label for="exposureAmount">Exposure Amount ($) *</label>
+                    <label for="exposureAmount">Exposure Amount (<span class="currency-sym">₹</span>) *</label>
                     <input type="number" id="exposureAmount" placeholder="e.g., 1000000" min="0" step="1000">
                     <div class="error" id="exposureAmountError"></div>
                 </div>
@@ -634,7 +698,9 @@
 
             <div class="grid-2" style="margin-bottom:15px;">
                 <div class="form-group">
-                    <label for="country">Country / Jurisdiction</label>
+                    <label for="country">Country / Jurisdiction
+                        <span style="font-size:11px;color:#888;font-weight:400;margin-left:6px;">Regulatory jurisdiction for KYC/AML — not the loan currency</span>
+                    </label>
                     <select id="country"><option value="">-- Select Country --</option></select>
                     <div id="jurisdictionChip" style="margin-top:6px;font-size:0.82em;color:#475569;"></div>
                 </div>
@@ -661,11 +727,11 @@
 
             <div class="grid-2" style="margin-bottom:15px;">
                 <div class="form-group">
-                    <label for="proposedEmi">Proposed EMI (₹)</label>
+                    <label for="proposedEmi">Proposed EMI (<span class="currency-sym">₹</span>)</label>
                     <input type="number" id="proposedEmi" placeholder="e.g., 32000" min="0" step="500">
                 </div>
                 <div class="form-group">
-                    <label for="existingObligations">Existing monthly obligations (₹)</label>
+                    <label for="existingObligations">Existing monthly obligations (<span class="currency-sym">₹</span>)</label>
                     <input type="number" id="existingObligations" placeholder="e.g., 20000" min="0" step="500">
                 </div>
             </div>
@@ -745,7 +811,7 @@
                     <div class="error" id="kycYearsEmployedError"></div>
                 </div>
                 <div class="form-group">
-                    <label for="kycAnnualIncome">Annual Income (₹) *</label>
+                    <label for="kycAnnualIncome">Annual Income (<span class="currency-sym">₹</span>) *</label>
                     <input type="number" id="kycAnnualIncome" placeholder="e.g., 600000" min="100000" step="10000">
                     <div class="error" id="kycAnnualIncomeError"></div>
                 </div>
@@ -792,6 +858,12 @@
                         <option value="4">Living with Parents</option>
                     </select>
                     <div class="error" id="kycResidenceTypeError"></div>
+                </div>
+                <div class="form-group">
+                    <label for="kycMonthsInResidence">Months at Current Residence
+                        <span style="font-size:11px;color:#888;font-weight:400;margin-left:6px;">Residential stability</span>
+                    </label>
+                    <input type="number" id="kycMonthsInResidence" placeholder="e.g. 24" min="0" max="900" step="1">
                 </div>
                 <div class="form-group">
                     <label for="kycLoanPurpose">Loan Purpose *</label>
@@ -890,6 +962,23 @@
             </div>
         </div>
 
+        <!-- Bank-specific fields - dynamically populated once a bank is
+             selected, from /api/bank-model-schema/<bank_id>. Real Earth
+             banks (BANK011/012) have real trained features with NO static
+             form input anywhere else on this page (e.g. Taiwan's monthly
+             repayment/billing history) - without this section those fields
+             would silently score as missing on every live assessment. -->
+        <div id="bankSpecificSection" class="form-section" style="display:none;">
+            <div class="step-header">
+                <div class="step-number">&#9733;</div>
+                <div>
+                    <h3 id="bankSpecificTitle">Bank-Specific Fields</h3>
+                    <p>These fields are part of <span id="bankSpecificBankName">this bank</span>'s own trained model and have no equivalent elsewhere on this form. Fill in whatever you know - unfilled fields are treated as genuinely unknown, not zero.</p>
+                </div>
+            </div>
+            <div class="grid-3" id="bankSpecificFieldsGrid"></div>
+        </div>
+
         <!-- Step 4a: AIRB — Collateral & Seniority -->
         <div id="airbSection" class="form-section">
             <div class="step-header">
@@ -897,19 +986,6 @@
                 <div>
                     <h3>Collateral &amp; Seniority (AIRB)</h3>
                     <p>Used to auto-calculate LGD and collateral haircut</p>
-                </div>
-            </div>
-
-            <!-- Originating Bank (required - determines whose balance sheet an approved loan books to) -->
-            <div class="grid-2" style="margin-bottom:12px;">
-                <div class="form-group">
-                    <label for="bankSelect">Originating Bank *
-                        <span style="font-size:11px;color:#888;font-weight:400;margin-left:6px;">Which bank's ledger this loan books to if approved</span>
-                    </label>
-                    <select id="bankSelect" required>
-                        <option value="">-- Select Bank --</option>
-                    </select>
-                    <div class="error" id="bankSelectError"></div>
                 </div>
             </div>
 
@@ -928,6 +1004,23 @@
                     <label for="ltvRatio">LTV Ratio (%) <span style="font-size:11px;color:#888;font-weight:400;">For real estate — affects residential mortgage RW</span></label>
                     <input type="number" id="ltvRatio" placeholder="e.g. 75 (leave blank if N/A)" min="0" max="200" step="1">
                     <div style="font-size:11px;color:#888;margin-top:4px;">Used for LTV-banded RW (Basel III.1 CRE20): &le;50%(20%) &le;60%(25%) &le;80%(30%) &le;90%(40%) &le;100%(50%) &gt;100%(70%)</div>
+                </div>
+            </div>
+
+            <!-- Model-routing switch: RM opt-in to a bank's own trained model
+                 instead of the shared cross-bank model. Disabled until the
+                 selected bank+exposure_class actually has one (checked via
+                 /api/model-availability whenever either field changes). -->
+            <div class="form-group" style="margin-bottom:12px;">
+                <label style="display:flex;align-items:center;gap:8px;font-weight:400;cursor:pointer;" id="modelScopeLabel">
+                    <input type="checkbox" id="modelScopeCheckbox" disabled style="width:auto;">
+                    <span id="modelScopeText">Use this bank's own trained model — select a bank and exposure class first</span>
+                </label>
+                <!-- Real Earth banks are never pooled into the shared model, so
+                     there's nothing to toggle - shown instead of the checkbox
+                     above when World = Real Earth (see applyWorldFilter()). -->
+                <div id="realEarthModelNote" style="display:none;align-items:center;gap:8px;font-size:0.88em;color:#6b7280;">
+                    🌍 Real Earth bank — always scored using its own trained model, never the shared cross-bank model.
                 </div>
             </div>
 
@@ -956,7 +1049,7 @@
                     </select>
                 </div>
                 <div class="form-group">
-                    <label for="collateralValue">Collateral Value ($)</label>
+                    <label for="collateralValue">Collateral Value (<span class="currency-sym">₹</span>)</label>
                     <input type="number" id="collateralValue" placeholder="0 if uncollateralised" min="0" step="1000">
                     <div class="error" id="collateralValueError"></div>
                 </div>
@@ -1069,6 +1162,26 @@
         <div style="font-size: 0.75em; color: #999; margin-top: 8px;">
             Dev: Click a scenario button to auto-fill test data for different borrower profiles
         </div>
+
+        <!-- Real Earth sample population - one-click, internally-consistent
+             sample generator per onboarded bank (loan amount -> realistic
+             EMI via amortization -> income back-calculated at a healthy
+             FOIR, not three independently-random numbers). -->
+        <div style="display:flex;align-items:center;gap:10px;margin-top:14px;padding-top:12px;border-top:1px dashed #ddd;flex-wrap:wrap;">
+            <label for="sampleBankSelect" style="margin:0;font-size:0.85em;font-weight:600;color:#555;">Real Earth Sample:</label>
+            <select id="sampleBankSelect" style="padding:6px 10px;border:1px solid #ccc;border-radius:6px;font-size:13px;">
+                <option value="">-- Select Bank --</option>
+                <option value="BANK010">Banco Bradesco S.A. (Brazil)</option>
+                <option value="BANK011">Taiwan Composite Bank</option>
+                <option value="BANK012">German Composite Bank</option>
+                <option value="BANK013">US HELOC Reference Bank</option>
+                <option value="BANK014">US Personal Loan Reference Bank</option>
+                <option value="BANK015">US Home Equity Reference Bank</option>
+                <option value="BANK016">UK Consumer Credit Reference Bank</option>
+            </select>
+            <button type="button" class="btn-autofill" onclick="generateBankSample()">🎲 Generate Sample Population</button>
+            <span id="sampleGenMsg" style="font-size:0.8em;color:#059669;"></span>
+        </div>
     </div>
 
     <!-- Results Section -->
@@ -1077,21 +1190,62 @@
             <h2>Calculated Risk Parameters</h2>
 
             <div class="result-grid">
-                <!-- PD Comparison Card - shows all methods -->
-                <div class="result-card result-card-full" id="pdComparisonCard" style="margin-bottom: 20px; border: 2px solid #2563eb; background: linear-gradient(135deg, rgba(37,99,235,0.05) 0%, rgba(37,99,235,0.02) 100%);">
-                    <h4 style="color: #1e40af; margin-bottom: 16px;">Probability of Default (PD) — All Methods</h4>
-                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
-                        <!-- ML Method -->
-                        <div style="padding: 14px; background: white; border-radius: 10px; border-left: 4px solid #10b981; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
-                            <div style="font-size: 0.85em; font-weight: 600; color: #059669; margin-bottom: 6px;">ML (Machine Learning)</div>
-                            <div style="font-size: 1.8em; font-weight: 700; color: #1e40af;" id="pdML">--</div>
-                            <div style="font-size: 0.75em; color: #888; margin-top: 4px;" id="pdMLBand">--</div>
+                <!-- ═══ BLOCK 1: MACHINE LEARNING MODEL ═══ everything in this
+                     block is the trained classifier's own output (a probability,
+                     plus what actually drove it, via SHAP). Nothing here is a
+                     business rule, a threshold, or a decision - just what the
+                     model itself produced. -->
+                <div class="result-card result-card-full" style="margin-bottom: 4px; border: 2px solid #10b981; background: linear-gradient(135deg, rgba(16,185,129,0.06) 0%, rgba(16,185,129,0.02) 100%);">
+                    <h3 style="color:#059669;margin:0 0 4px;">🤖 Machine Learning Model</h3>
+                    <p style="font-size:0.85em;color:#666;margin:0 0 16px;">
+                        Pure data-driven prediction from the trained classifier (learned from historical default outcomes). This is the model's entire output — a probability. Everything below this block is a separate, formula-based calculation, not something the model decided.
+                    </p>
+                    <div style="display:flex;align-items:baseline;gap:16px;flex-wrap:wrap;">
+                        <div class="result-value" id="pdValue">--</div>
+                        <span id="pdRiskBadge" class="risk-badge risk-low">Low</span>
+                    </div>
+                </div>
+
+                <!-- SHAP feature importance card - what actually drove the ML number above -->
+                <div class="result-card result-card-full" id="shapResultCard" style="display:none;">
+                    <h4>Important Features Driving This PD (SHAP Analysis)</h4>
+                    <div style="font-size:0.85em;color:#666;margin-bottom:12px;">
+                        Each feature's true additive contribution to the risk prediction, accounting for feature interactions.
+                    </div>
+                    <!-- Chart and table sit side-by-side and share one bounded height instead of
+                         stacking two full-height, largely-redundant views of the same 10 rows. -->
+                    <div style="display:flex;gap:20px;align-items:flex-start;flex-wrap:wrap;">
+                        <div id="shapTornadoChart" style="flex:0 0 340px;max-width:340px;"></div>
+                        <div style="flex:1 1 380px;min-width:300px;max-height:360px;overflow-y:auto;">
+                            <table class="component-table" style="margin:0;">
+                                <thead><tr><th>Feature</th><th>Value</th><th>Contribution</th><th>Effect</th></tr></thead>
+                                <tbody id="shapFeatureBody"></tbody>
+                            </table>
                         </div>
+                    </div>
+                    <div id="shapSummaryBox" style="margin-top:12px;font-size:0.9em;color:#444;"></div>
+                </div>
+
+                <!-- ═══ BLOCK 2: RULE-BASED / REGULATORY CALCULATIONS ═══
+                     AIRB / Standardized Approach PD, LGD, EAD, Maturity - all
+                     formula-driven per Basel III, used for regulatory capital
+                     math, NOT produced by the ML model above. -->
+                <div class="result-card result-card-full" style="margin: 12px 0 4px; border: 2px solid #6366f1; background: linear-gradient(135deg, rgba(99,102,241,0.06) 0%, rgba(99,102,241,0.02) 100%);">
+                    <h3 style="color:#4338ca;margin:0 0 4px;">📐 Rule-Based Regulatory Calculations</h3>
+                    <p style="font-size:0.85em;color:#666;margin:0;">
+                        Formula-driven (AIRB / Standardized Approach), per Basel III — not machine-learning output. Used for regulatory capital calculations.
+                    </p>
+                </div>
+
+                <!-- Regulatory PD estimates (AIRB / SA) - formula-based, distinct from the ML PD above -->
+                <div class="result-card result-card-full" style="margin-bottom: 20px;">
+                    <h4 style="margin-bottom: 16px;">Probability of Default (PD) — Regulatory Methods</h4>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
                         <!-- AIRB Method -->
                         <div style="padding: 14px; background: white; border-radius: 10px; border-left: 4px solid #f59e0b; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
                             <div style="font-size: 0.85em; font-weight: 600; color: #d97706; margin-bottom: 6px;">AIRB (Advanced)</div>
                             <div style="font-size: 1.8em; font-weight: 700; color: #1e40af;" id="pdAIRB">--</div>
-                            <div style="font-size: 0.75em; color: #888; margin-top: 4px;" id="pdAIRBBand">--</div>
+                            <div style="font-size: 0.75em; color: #888; margin-top: 4px;">Formula-based estimate</div>
                         </div>
                         <!-- Standardized Method -->
                         <div style="padding: 14px; background: white; border-radius: 10px; border-left: 4px solid #6366f1; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
@@ -1100,20 +1254,6 @@
                             <div style="font-size: 0.75em; color: #888; margin-top: 4px;" id="pdSABand">--</div>
                         </div>
                     </div>
-                </div>
-
-                <!-- PD card (always shown) -->
-                <div class="result-card" id="pdResultCard">
-                    <h4>
-                        Probability of Default (PD) — Detailed Breakdown
-                        <span id="pdRiskBadge" class="risk-badge risk-low">Low</span>
-                    </h4>
-                    <div style="font-size: 0.85em; color: #666; margin-bottom: 12px; font-style: italic;" id="pdMethodUsed">Using ML method</div>
-                    <div class="result-value" id="pdValue">--</div>
-                    <table class="component-table">
-                        <thead><tr><th>Component</th><th>Value (%)</th><th>Driver</th></tr></thead>
-                        <tbody id="pdComponentBody"></tbody>
-                    </table>
                 </div>
 
                 <!-- LGD card (AIRB) -->
@@ -1133,21 +1273,12 @@
                     <p style="color:#888; font-size:0.85em; margin-top:8px;">Years — assigned from loan type</p>
                 </div>
 
-                <!-- EAD card (Exposure at Default) -->
+                <!-- EAD card (Exposure at Default) - includes collateral haircut walk when collateral present -->
                 <div class="result-card" id="eadResultCard" style="display:none;">
                     <h4>Exposure at Default (EAD)</h4>
                     <div class="result-value" id="eadValue">--</div>
                     <table class="component-table">
                         <tbody id="eadBody"></tbody>
-                    </table>
-                </div>
-
-                <!-- Haircut card (when collateral present) -->
-                <div class="result-card" id="haircutResultCard" style="display:none;">
-                    <h4>Collateral Haircut</h4>
-                    <div class="result-value" id="haircutValue">--</div>
-                    <table class="component-table">
-                        <tbody id="haircutBody"></tbody>
                     </table>
                 </div>
 
@@ -1159,35 +1290,11 @@
                         <tbody id="saComponentBody"></tbody>
                     </table>
                 </div>
-
-                <!-- SHAP feature importance card -->
-                <div class="result-card result-card-full" id="shapResultCard" style="display:none;">
-                    <h4>Important Features Driving This PD (SHAP Analysis)</h4>
-                    <div style="font-size:0.85em;color:#666;margin-bottom:12px;">
-                        Each feature's true additive contribution to the risk prediction, accounting for feature interactions.
-                    </div>
-                    <!-- Chart and table sit side-by-side and share one bounded height instead of
-                         stacking two full-height, largely-redundant views of the same 10 rows. -->
-                    <div style="display:flex;gap:20px;align-items:flex-start;flex-wrap:wrap;">
-                        <div id="shapTornadoChart" style="flex:0 0 340px;max-width:340px;"></div>
-                        <div style="flex:1 1 380px;min-width:300px;max-height:360px;overflow-y:auto;">
-                            <table class="component-table" style="margin:0;">
-                                <thead><tr><th>Feature</th><th>Value</th><th>Contribution</th><th>Effect</th></tr></thead>
-                                <tbody id="shapFeatureBody"></tbody>
-                            </table>
-                        </div>
-                    </div>
-                    <div id="shapSummaryBox" style="margin-top:12px;font-size:0.9em;color:#444;"></div>
-                </div>
             </div>
 
             <!-- Executive Assessment Band — populated by generateReport() -->
             <div id="execBand" style="display:none; margin:24px 0 0;">
                 <div id="execBandInner"></div>
-            </div>
-
-            <div id="successBox" class="success-box">
-                <p id="successMessage"></p>
             </div>
         </div>
     </div>
@@ -1405,7 +1512,8 @@
         if (isNaN(kycAge) || kycAge < 18 || kycAge > 100)        { setError('kycAge',            'Must be 18–100');          ok = false; }
         if (!document.getElementById('kycEmploymentType').value)  { setError('kycEmploymentType', 'Required');                ok = false; }
         if (isNaN(kycYearsEmp) || kycYearsEmp < 0)               { setError('kycYearsEmployed',  'Enter years (≥ 0)');       ok = false; }
-        if (isNaN(kycIncome) || kycIncome < 100000)               { setError('kycAnnualIncome',   'Must be ≥ ₹1,00,000');    ok = false; }
+        const _curForIncome = resolveCurrency();
+        if (isNaN(kycIncome) || kycIncome < _curForIncome.minIncome) { setError('kycAnnualIncome', 'Must be ≥ ' + _curForIncome.minIncomeLabel); ok = false; }
         if (isNaN(kycFoir) || kycFoir < 0 || kycFoir > 0.9)      { setError('kycFoir',           'Must be 0.00–0.90');       ok = false; }
         if (isNaN(kycDep) || kycDep < 0)                          { setError('kycNumDependents',  'Enter a value (≥ 0)');     ok = false; }
         if (!document.getElementById('kycCityTier').value)        { setError('kycCityTier',       'Required');                ok = false; }
@@ -1565,9 +1673,6 @@
 
             // Scroll to top
             window.scrollTo({ top: 0, behavior: 'smooth' });
-
-            // Show confirmation with scenario info
-            alert('✅ ' + data.scenarioLabel + '\n\nTest data filled! Now click "Calculate Risk Parameters" to see SHAP analysis.');
         } catch (error) {
             console.error('Auto-fill error:', error);
             alert('❌ Error filling form: ' + error.message + '\n\nCheck browser console (F12) for details.');
@@ -1578,6 +1683,250 @@
     function autoFillTestData() {
         autoFillScenario('medium');
     }
+
+    // ── Real Earth sample population generator ──────────────────────────────
+    // Internally consistent by construction, not three independently-random
+    // numbers: loan amount is picked from the bank's own realistic historical
+    // range, EMI is a genuine amortization of that loan over a plausible
+    // tenor, and income is back-calculated from the EMI at a healthy FOIR -
+    // so a generated sample can never show a tiny salary against a huge loan
+    // ask, or an EMI that doesn't relate to either.
+    function _rand(min, max) { return min + Math.random() * (max - min); }
+    function _randInt(min, max) { return Math.floor(_rand(min, max + 1)); }
+    function _pick(arr) { return arr[_randInt(0, arr.length - 1)]; }
+    function _selectRandomOption(id) {
+        const el = document.getElementById(id);
+        if (!el) return;
+        const opts = Array.from(el.options).filter(o => o.value !== '');
+        if (opts.length) el.value = _pick(opts).value;
+    }
+
+    // Standard EMI amortization formula - a genuine monthly-payment
+    // calculation, not a flat guess.
+    function _amortizedEmi(principal, annualRatePct, tenorMonths) {
+        const r = (annualRatePct / 100) / 12;
+        if (r === 0) return principal / tenorMonths;
+        return principal * r * Math.pow(1 + r, tenorMonths) / (Math.pow(1 + r, tenorMonths) - 1);
+    }
+
+    const SAMPLE_NAMES = {
+        BANK010: ['Carlos Silva', 'Ana Oliveira', 'Joao Santos', 'Mariana Costa', 'Pedro Almeida'],
+        BANK011: ['Chen Wei', 'Lin Mei', 'Wang Jun', 'Huang Ting', 'Liu Yang'],
+        BANK012: ['Hans Mueller', 'Anna Schmidt', 'Klaus Weber', 'Petra Fischer', 'Stefan Wagner'],
+        BANK013: ['James Miller', 'Sarah Johnson', 'Michael Davis', 'Jennifer Wilson', 'Robert Brown'],
+        BANK014: ['David Anderson', 'Emily Taylor', 'Christopher Moore', 'Jessica Thomas', 'Daniel White'],
+        BANK015: ['William Harris', 'Elizabeth Clark', 'Joseph Lewis', 'Patricia Walker', 'Thomas Young'],
+        BANK016: ['Oliver Smith', 'Charlotte Jones', 'George Williams', 'Amelia Brown', 'Harry Taylor'],
+    };
+    const SAMPLE_BANK_LABEL = {
+        BANK010: 'Banco Bradesco S.A.', BANK011: 'Taiwan Composite Bank', BANK012: 'German Composite Bank',
+        BANK013: 'US HELOC Reference Bank', BANK014: 'US Personal Loan Reference Bank',
+        BANK015: 'US Home Equity Reference Bank', BANK016: 'UK Consumer Credit Reference Bank',
+    };
+
+    async function generateBankSample() {
+        const bankId = document.getElementById('sampleBankSelect').value;
+        const msgEl = document.getElementById('sampleGenMsg');
+        if (!bankId) { alert('Select a bank first.'); return; }
+        msgEl.textContent = 'Generating…';
+
+        try {
+            // 1. World + bank selection - must happen before schema fetch.
+            document.getElementById('worldSelect').value = 'real';
+            applyWorldFilter();
+            await new Promise(r => setTimeout(r, 150)); // bank list repopulation
+            document.getElementById('bankSelect').value = bankId;
+            document.getElementById('bankSelect').dispatchEvent(new Event('change'));
+
+            // 2. Exposure class - a real Basel category (GENERIC is a model-
+            // routing concept, not a Basel exposure class the SA calc uses).
+            const expClass = _pick(['CORPORATE', 'RETAIL_OTHER']);
+            document.getElementById('exposureClass').value = expClass;
+            document.getElementById('exposureClass').dispatchEvent(new Event('change'));
+
+            // 3. Bank-specific loan-size range (from each bank's own real
+            // training-data distribution - see onboarding scripts) and the
+            // core amortization chain: loan -> EMI -> income.
+            let loanAmountUsd, tenorMonths;
+            if (bankId === 'BANK011') {
+                loanAmountUsd = Math.round(_rand(1000, 15000));   // BANK011 credit_limit real range: $312-$31,250
+                tenorMonths = 12; // revolving credit - nominal 1yr for amortization-style sanity check only
+            } else if (bankId === 'BANK012') {
+                loanAmountUsd = Math.round(_rand(800, 8000));     // BANK012 requested_loan_amount real range: $139-$10,239
+                tenorMonths = _randInt(12, 48);
+            } else if (bankId === 'BANK014') {
+                loanAmountUsd = Math.round(_rand(2000, 25000));   // BANK014 requested_loan_amount real range: $500-$35,000
+                tenorMonths = _randInt(24, 60);
+            } else if (bankId === 'BANK015') {
+                loanAmountUsd = Math.round(_rand(5000, 45000));   // BANK015 requested_loan_amount real range: $1,100-$89,900
+                tenorMonths = _randInt(36, 120);
+            } else {
+                // BANK010/BANK013/BANK016 have no bank-specific loan field - modest personal-loan-style ask
+                loanAmountUsd = Math.round(_rand(500, 4000));
+                tenorMonths = _randInt(12, 36);
+            }
+            const rateApprox = _rand(10, 16); // plausible retail lending rate, illustrative only
+            const emiMonthly = _amortizedEmi(loanAmountUsd, rateApprox, tenorMonths);
+
+            const foirTarget = _rand(0.20, 0.35);
+            const existingObligation = emiMonthly * _rand(0.15, 0.4);
+            const totalObligation = emiMonthly + existingObligation;
+            let monthlyIncome = totalObligation / foirTarget;
+            let annualIncome = Math.round(monthlyIncome * 12);
+            // Form floor for Real Earth (USD): must be >= $1,200/yr - if the
+            // back-calculated income would fall below that, raise it and
+            // recompute the EFFECTIVE FOIR from the same obligation figures
+            // (still fully consistent, just a lower realized ratio).
+            if (annualIncome < 1500) {
+                annualIncome = 1500 + Math.round(_rand(0, 500));
+                monthlyIncome = annualIncome / 12;
+            }
+            const foirActual = Math.min(0.9, totalObligation / monthlyIncome);
+
+            // 4. Fill Basic Information
+            const suffix = Math.random().toString(36).slice(2, 7).toUpperCase();
+            document.getElementById('borrowerId').value = `SAMPLE-${bankId}-${suffix}`;
+            document.getElementById('borrowerName').value = _pick(SAMPLE_NAMES[bankId] || ['Sample Borrower']);
+            document.getElementById('exposureAmount').value = loanAmountUsd;
+            _selectRandomOption('sector');
+            document.getElementById('proposedEmi').value = Math.round(emiMonthly);
+            document.getElementById('existingObligations').value = Math.round(existingObligation);
+
+            // 5. Borrower Profile (KYC)
+            const age = _randInt(23, 60);
+            document.getElementById('kycAge').value = age;
+            _selectRandomOption('kycEmploymentType');
+            document.getElementById('kycYearsEmployed').value = Math.min(age - 18, _randInt(0, 20));
+            document.getElementById('kycAnnualIncome').value = annualIncome;
+            document.getElementById('kycFoir').value = foirActual.toFixed(2);
+            document.getElementById('kycNumDependents').value = _randInt(0, 3);
+            _selectRandomOption('kycCityTier');
+            _selectRandomOption('kycEducation');
+            _selectRandomOption('kycResidenceType');
+            document.getElementById('kycMonthsInResidence').value = _randInt(6, 120);
+            _selectRandomOption('kycLoanPurpose');
+            document.getElementById('kycCibilScore').value = _randInt(600, 820); // not used by these banks' models, but form-complete
+            document.getElementById('kycPreviousDefault').value = '0';
+            document.getElementById('kycMonthsAsCustomer').value = _randInt(0, 36);
+            document.getElementById('kycLatePayments').value = 0;
+            document.getElementById('kycExistingLoans').value = _randInt(0, 2);
+            document.getElementById('kycExistingProducts').value = _randInt(1, 3);
+            _selectRandomOption('kycIsRural');
+
+            // 6. Financial ratios (used by AIRB/SA math + Utopian models, not
+            // by these Real Earth banks' own models, but the form still needs
+            // plausible values for the rule-based side of the report).
+            document.getElementById('debtToEquity').value = _rand(0.3, 2.2).toFixed(2);
+            document.getElementById('interestCoverage').value = _rand(1.8, 6).toFixed(2);
+            document.getElementById('profitabilityMargin').value = _rand(5, 20).toFixed(1);
+            document.getElementById('liquidityRatio').value = _rand(1.0, 2.3).toFixed(2);
+
+            // 7. Collateral / seniority / loan characteristics
+            document.getElementById('seniority').value = 'Senior Unsecured';
+            document.getElementById('collateralType').value = 'None';
+            document.getElementById('collateralValue').value = 0;
+            _selectRandomOption('loanType');
+            document.getElementById('maturityOverride').value = (tenorMonths / 12).toFixed(2);
+
+            // 8. Bank-specific fields - wait for the schema fetch triggered by
+            // the bankSelect change event above to actually render inputs.
+            await new Promise(r => setTimeout(r, 900));
+
+            if (bankId === 'BANK011') {
+                document.getElementById('bankField_credit_limit').value = loanAmountUsd;
+                const utilBase = _rand(0.2, 0.7);
+                for (let i = 1; i <= 6; i++) {
+                    const util = Math.min(0.95, Math.max(0.05, utilBase + _rand(-0.15, 0.15)));
+                    const billAmt = Math.round(loanAmountUsd * util);
+                    const payFrac = _rand(0.5, 1.0); // mostly-healthy payer for a realistic sample
+                    const payAmt = Math.round(billAmt * payFrac);
+                    document.getElementById(`bankField_bill_amt_m${i}`).value = billAmt;
+                    document.getElementById(`bankField_payment_amt_m${i}`).value = payAmt;
+                    document.getElementById(`bankField_repay_status_m${i}`).value = Math.random() < 0.85 ? '-1' : '0';
+                }
+            } else if (bankId === 'BANK012') {
+                document.getElementById('bankField_requested_loan_amount').value = loanAmountUsd;
+                document.getElementById('bankField_loan_duration_months').value = tenorMonths;
+                _selectRandomOption('bankField_checking_account_status_enc');
+                _selectRandomOption('bankField_credit_history_enc');
+                _selectRandomOption('bankField_savings_status_enc');
+                _selectRandomOption('bankField_installment_rate_band');
+                _selectRandomOption('bankField_other_debtors_enc');
+                _selectRandomOption('bankField_property_type_enc');
+                _selectRandomOption('bankField_other_installment_plans_enc');
+                _selectRandomOption('bankField_has_registered_phone');
+            } else if (bankId === 'BANK013') {
+                // Pure bureau/trade-line profile - moderate-to-healthy, not
+                // tied to loanAmountUsd (this bank has no loan-size field).
+                const riskScore = _randInt(60, 88);
+                document.getElementById('bankField_external_risk_score').value = riskScore;
+                document.getElementById('bankField_months_since_oldest_trade').value = _randInt(60, 250);
+                document.getElementById('bankField_months_since_recent_trade').value = _randInt(1, 15);
+                document.getElementById('bankField_avg_months_in_file').value = _randInt(40, 110);
+                document.getElementById('bankField_num_satisfactory_trades').value = _randInt(10, 30);
+                document.getElementById('bankField_num_trades_60d_derog').value = _randInt(0, 1);
+                document.getElementById('bankField_num_trades_90d_derog').value = 0;
+                document.getElementById('bankField_pct_trades_never_delinquent').value = _randInt(80, 100);
+                document.getElementById('bankField_months_since_recent_delinquency').value = '';
+                document.getElementById('bankField_max_delinquency_12m').value = _randInt(5, 9);
+                document.getElementById('bankField_max_delinquency_ever').value = _randInt(4, 8);
+                document.getElementById('bankField_num_total_trades').value = _randInt(15, 35);
+                document.getElementById('bankField_num_trades_opened_12m').value = _randInt(0, 3);
+                document.getElementById('bankField_pct_installment_trades').value = _randInt(20, 45);
+                document.getElementById('bankField_months_since_recent_inquiry').value = _randInt(0, 12);
+                document.getElementById('bankField_num_inquiries_6m').value = _randInt(0, 3);
+                document.getElementById('bankField_num_inquiries_6m_excl7d').value = _randInt(0, 2);
+                document.getElementById('bankField_net_fraction_revolving_burden').value = _randInt(10, 55);
+                document.getElementById('bankField_net_fraction_installment_burden').value = _randInt(20, 60);
+                document.getElementById('bankField_num_revolving_trades_w_balance').value = _randInt(1, 6);
+                document.getElementById('bankField_num_installment_trades_w_balance').value = _randInt(0, 4);
+                document.getElementById('bankField_num_trades_high_utilization').value = _randInt(0, 2);
+                document.getElementById('bankField_pct_trades_w_balance').value = _randInt(40, 80);
+            } else if (bankId === 'BANK014') {
+                document.getElementById('bankField_requested_loan_amount').value = loanAmountUsd;
+                // Skew toward better grades (1-4 of 7) for a realistic, not
+                // worst-case, sample - and keep the interest rate loosely
+                // consistent with the grade (better grade -> lower rate).
+                const grade = _randInt(1, 5);
+                document.getElementById('bankField_loan_grade_enc').value = grade;
+                document.getElementById('bankField_loan_interest_rate_pct').value = (6 + grade * 2.5 + _rand(-1, 1)).toFixed(2);
+                document.getElementById('bankField_loan_to_income_ratio').value = (loanAmountUsd / annualIncome).toFixed(3);
+                document.getElementById('bankField_credit_history_length_years').value = _randInt(2, 15);
+            } else if (bankId === 'BANK015') {
+                document.getElementById('bankField_requested_loan_amount').value = loanAmountUsd;
+                const homeVal = Math.round(loanAmountUsd * _rand(2, 5));
+                document.getElementById('bankField_home_value').value = homeVal;
+                document.getElementById('bankField_mortgage_balance').value = Math.round(homeVal * _rand(0.3, 0.7));
+                document.getElementById('bankField_num_derogatory_reports').value = 0;
+                document.getElementById('bankField_num_delinquent_lines').value = _randInt(0, 1);
+                document.getElementById('bankField_oldest_credit_line_age_months').value = _randInt(80, 250);
+                document.getElementById('bankField_num_recent_inquiries').value = _randInt(0, 2);
+                document.getElementById('bankField_num_credit_lines').value = _randInt(10, 30);
+            } else if (bankId === 'BANK016') {
+                const homeVal = Math.round(annualIncome * _rand(2, 4));
+                document.getElementById('bankField_home_value').value = homeVal;
+                document.getElementById('bankField_mortgage_balance').value = Math.round(homeVal * _rand(0.2, 0.6));
+                document.getElementById('bankField_year_of_birth_2digit').value = _randInt(45, 80);
+                document.getElementById('bankField_num_additional_dependents').value = 0;
+                document.getElementById('bankField_spouse_income').value = Math.round(annualIncome * _rand(0, 0.6));
+                document.getElementById('bankField_outstanding_debt_mortgage_related').value = Math.round(_rand(100, 600));
+                document.getElementById('bankField_outstanding_debt_other_loan').value = Math.round(_rand(0, 200));
+                document.getElementById('bankField_outstanding_debt_hire_purchase').value = Math.round(_rand(0, 100));
+                document.getElementById('bankField_outstanding_debt_credit_card').value = Math.round(_rand(0, 150));
+                _selectRandomOption('bankField_has_registered_phone');
+            }
+            // BANK010 has no bank-specific fields to fill.
+
+            document.querySelectorAll('.error').forEach(el => el.textContent = '');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            msgEl.textContent = `✓ Sample generated for ${SAMPLE_BANK_LABEL[bankId]} - loan $${loanAmountUsd.toLocaleString()}, EMI $${Math.round(emiMonthly).toLocaleString()}/mo, income $${annualIncome.toLocaleString()}/yr (FOIR ${(foirActual*100).toFixed(0)}%)`;
+        } catch (err) {
+            console.error('Sample generation error:', err);
+            msgEl.textContent = '';
+            alert('Could not generate sample: ' + err.message);
+        }
+    }
+    window.generateBankSample = generateBankSample;
 
     // ── Main calculation (PD via ML model, LGD via Flask API, fallback to local) ─
     async function calculateAllParameters() {
@@ -1610,6 +1959,7 @@
             city_tier_enc:              parseInt(document.getElementById('kycCityTier').value),
             education_enc:              parseInt(document.getElementById('kycEducation').value),
             residence_type_enc:         parseInt(document.getElementById('kycResidenceType').value),
+            months_in_residence:        parseFloat(document.getElementById('kycMonthsInResidence').value) || null,
             loan_purpose_enc:           parseInt(document.getElementById('kycLoanPurpose').value),
             cibil_score:                parseInt(document.getElementById('kycCibilScore').value),
             previous_default_flag:      parseInt(document.getElementById('kycPreviousDefault').value),
@@ -1619,6 +1969,22 @@
             num_existing_products:      parseInt(document.getElementById('kycExistingProducts').value),
             is_rural:                   parseInt(document.getElementById('kycIsRural').value),
             exposure_class:             document.getElementById('exposureClass').value,
+            // Model-routing switch - WITHOUT these two, /api/predict-pd-ml
+            // silently falls back to the shared cross-bank model for every
+            // Real Earth bank (confirmed via browser testing: two different
+            // Real Earth banks with very different bank-specific data
+            // produced an IDENTICAL headline PD until this was added - the
+            // shared model was being used both times, since it never even
+            // saw bank_id/model_scope). reportInputs below already carried
+            // these for the exec-band/SHAP calls, but this earlier kyc-based
+            // call - which drives the actual headline PD number - did not.
+            bank_id:                    document.getElementById('bankSelect').value || null,
+            model_scope:                getEffectiveModelScope(),
+            // Bank-specific fields (e.g. BANK011's repay_status_m1..6) have no
+            // static input above - collected from the dynamically-rendered
+            // section instead, merged in here so they reach the same ML call
+            // as every canonical KYC field.
+            ...collectBankSpecificValues(),
         };
 
         // Show loading state
@@ -1646,37 +2012,20 @@
         const externalRating = document.getElementById('externalRating').value;
         const pdSA = getRatingToPDMapping(externalRating);
 
-        // Display all three methods in comparison card
-        document.getElementById('pdML').textContent = pdML.toFixed(2) + '%';
-        document.getElementById('pdMLBand').textContent = 'Rating: ' + getRiskLevel(pdML);
-
+        // Regulatory (rule-based) PD tiles - Block 2
         document.getElementById('pdAIRB').textContent = pdAIRB.toFixed(2) + '%';
-        document.getElementById('pdAIRBBand').textContent = 'Rating: ' + getRiskLevel(pdAIRB);
-
         document.getElementById('pdSA').textContent = pdSA.toFixed(2) + '%';
         document.getElementById('pdSABand').textContent = 'From: ' + externalRating;
 
         // Use ML as primary method
         const pd = pdML;
-        const pdResult = pdResultML;
 
-        // Update method indicator
-        document.getElementById('pdMethodUsed').textContent = 'Primary Method: ML (Machine Learning) | AIRB: ' + pdAIRB.toFixed(2) + '% | SA: ' + pdSA.toFixed(2) + '%';
-
-        // PD card
+        // ML PD card - Block 1 (the model's actual, sole output - no rule-based
+        // component breakdown here; SHAP below shows what genuinely drove it)
         document.getElementById('pdValue').textContent = pd.toFixed(2) + '%';
         const badge = document.getElementById('pdRiskBadge');
         badge.textContent = getRiskLevel(pd);
         badge.className   = 'risk-badge ' + getRiskClass(pd);
-
-        const pdBody = document.getElementById('pdComponentBody');
-        pdBody.innerHTML = `
-            <tr><td>Base Rate</td><td>${pdResult.components.baseRate.toFixed(2)}</td><td>Baseline</td></tr>
-            <tr><td>Leverage (D/E)</td><td>${pdResult.components.leverageImpact.toFixed(2)}</td><td>Financial risk</td></tr>
-            <tr><td>Profitability</td><td>${pdResult.components.profitImpact.toFixed(2)}</td><td>Earnings quality</td></tr>
-            <tr><td>Liquidity</td><td>${pdResult.components.liquidityImpact.toFixed(2)}</td><td>Short-term solvency</td></tr>
-            <tr><td>Interest Coverage</td><td>${pdResult.components.coverageImpact.toFixed(2)}</td><td>Debt service</td></tr>
-            <tr class="total"><td>Total PD</td><td>${pd.toFixed(2)}%</td><td></td></tr>`;
 
         let lgdResult = null, haircutResult = null, adjustedExposure = exposureAmount;
         let maturity = 3;
@@ -1717,17 +2066,6 @@
                 haircutResult = calculateHaircut(collateralType);
                 adjCollateral = collateralValue * (1 - haircutResult.haircutDecimal);
                 adjustedExposure = Math.max(exposureAmount - adjCollateral, 0);
-
-                document.getElementById('haircutResultCard').style.display = 'block';
-                document.getElementById('haircutValue').textContent = haircutResult.haircut + '%';
-                document.getElementById('haircutBody').innerHTML = `
-                    <tr><td>Collateral Type</td><td>${collateralType}</td></tr>
-                    <tr><td>Haircut Rate</td><td>${haircutResult.haircut}%</td></tr>
-                    <tr><td>Gross Collateral</td><td>${formatCurrency(collateralValue)}</td></tr>
-                    <tr><td>Adjusted Collateral</td><td>${formatCurrency(adjCollateral)}</td></tr>
-                    <tr class="total"><td>Net Exposure After Collateral</td><td>${formatCurrency(adjustedExposure)}</td></tr>`;
-            } else {
-                document.getElementById('haircutResultCard').style.display = 'none';
             }
 
             // EAD (Exposure at Default) - always show for AIRB
@@ -1739,9 +2077,10 @@
                 if (collateralValue > 0 && collateralType !== 'None') {
                     eadBody.innerHTML = `
                         <tr><td>Initial Exposure Amount</td><td>${formatCurrency(exposureAmount)}</td></tr>
-                        <tr><td>Less: Collateral Value</td><td>${formatCurrency(collateralValue)}</td></tr>
+                        <tr><td>Collateral Type</td><td>${collateralType}</td></tr>
+                        <tr><td>Gross Collateral Value</td><td>${formatCurrency(collateralValue)}</td></tr>
                         <tr><td>Haircut Applied</td><td>${haircutResult.haircut}%</td></tr>
-                        <tr><td>Less: Collateral Credit</td><td>${formatCurrency(adjCollateral)}</td></tr>
+                        <tr><td>Adjusted Collateral Credit</td><td>${formatCurrency(adjCollateral)}</td></tr>
                         <tr class="total"><td>Exposure at Default (EAD)</td><td>${formatCurrency(adjustedExposure)}</td></tr>`;
                 } else {
                     eadBody.innerHTML = `
@@ -1755,7 +2094,7 @@
         } else {
             document.getElementById('lgdResultCard').style.display  = 'none';
             document.getElementById('maturityResultCard').style.display = 'none';
-            document.getElementById('haircutResultCard').style.display  = 'none';
+            document.getElementById('eadResultCard').style.display  = 'none';
         }
 
         let saRiskWeight = null;
@@ -1780,11 +2119,6 @@
             document.getElementById('saResultCard').style.display = 'none';
         }
 
-        // Show success message
-        document.getElementById('successMessage').textContent =
-            'Risk parameters calculated for ' + borrowerName + '. Review the values above, then use “Refer to Relationship Manager” to send the case for the decision.';
-        document.getElementById('successBox').classList.add('active');
-
         // Show results
         document.getElementById('resultsSection').classList.add('active');
         document.getElementById('resultsSection').scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -1799,6 +2133,8 @@
             collateral_value: parseFloat(document.getElementById('collateralValue').value) || 0,
             maturity: (mode === 'airb' || mode === 'both') ? (parseFloat(document.getElementById('maturityOverride').value) || 3) : 3,
             borrower_id: borrowerId,
+            bank_id: document.getElementById('bankSelect').value || null,
+            model_scope: getEffectiveModelScope(),
             ...kyc,
         };
         generateAndShowExecBand(reportInputs);
@@ -1815,7 +2151,9 @@
 
     // ── Utilities ─────────────────────────────────────────────────────────────
     function formatCurrency(v) {
-        return '$' + parseFloat(v || 0).toLocaleString('en-US', { maximumFractionDigits: 0 });
+        const cur = resolveCurrency();
+        const locale = cur.code === 'INR' ? 'en-IN' : 'en-US';
+        return cur.symbol + parseFloat(v || 0).toLocaleString(locale, { maximumFractionDigits: 0 });
     }
 
 
@@ -1833,7 +2171,11 @@
             const findings = await resp.json();
             const shap = findings.shap;
             if (!resp.ok || !shap) {
-                card.style.display = 'none';
+                console.warn('SHAP analysis unavailable:', findings.error || 'no shap field in response');
+                card.style.display = 'block';
+                card.querySelector('h4').nextElementSibling.style.display = 'none';
+                body.innerHTML = '';
+                summaryBox.innerHTML = `<span style="color:#b91c1c;">SHAP analysis unavailable: ${findings.error || 'the server did not return SHAP data for this input.'}</span>`;
                 return;
             }
 
@@ -1861,11 +2203,14 @@
                 ReportCharts.drawTornado(document.getElementById('shapTornadoChart'), top10);
             }
 
+            card.querySelector('h4').nextElementSibling.style.display = '';
             summaryBox.innerHTML = shap.summary ? `<strong>Summary:</strong> ${shap.summary}` : '';
             card.style.display = 'block';
         } catch (err) {
             console.warn('SHAP analysis unavailable:', err.message);
-            card.style.display = 'none';
+            card.style.display = 'block';
+            body.innerHTML = '';
+            summaryBox.innerHTML = `<span style="color:#b91c1c;">SHAP analysis unavailable: ${err.message}</span>`;
         }
     }
 
@@ -1891,66 +2236,27 @@
             const data = await resp.json();
 
             const g = data.grade || '--';
-            const pd_pct = typeof data.pd_pct === 'number' ? data.pd_pct.toFixed(1) + '%' : '--';
-            const pd_low = typeof data.pd_low_pct === 'number' ? data.pd_low_pct.toFixed(1) : '?';
-            const pd_high = typeof data.pd_high_pct === 'number' ? data.pd_high_pct.toFixed(1) : '?';
-            const el = typeof data.el_amount_inr === 'number'
-                ? '₹' + (data.el_amount_inr / 1e5).toFixed(1) + 'L'
-                : '--';
-            const rate = typeof data.rate_pct === 'number' ? data.rate_pct.toFixed(2) + '%' : '--';
-            const decision = data.decision || '--';
             const reportId = data.report_id;
 
-            // Grade → colour
+            // Grade → colour (border accent only - the summary grid/disclaimer
+            // this used to gate is gone; buttons only, per design).
             const approveGrades = ['AAA','AA','A','BBB'];
             const referGrades   = ['BB','B'];
-            const decColor = decision === 'APPROVE' ? '#16a34a'
-                           : decision === 'REFER'   ? '#d97706' : '#dc2626';
             const gradeColor = approveGrades.includes(g) ? '#16a34a'
                              : referGrades.includes(g)   ? '#d97706' : '#dc2626';
 
             inner.innerHTML = `
                 <div style="background:#fff;border:2px solid ${gradeColor}33;border-radius:12px;
-                            padding:20px 24px;font-family:system-ui;">
-                    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
-                        <div style="display:flex;align-items:center;gap:10px;">
-                            <span style="font-size:0.8em;font-weight:700;color:#64748b;text-transform:uppercase;
-                                         letter-spacing:.06em;">Risk Assessment Summary</span>
-                        </div>
-                        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-                        ${reportId ? `<a href="/report-underwriter.html?id=${reportId}" target="_blank"
-                                style="background:#1a2e4a;color:#fff;padding:8px 18px;border-radius:8px;
-                                       text-decoration:none;font-size:0.88em;font-weight:600;
-                                       white-space:nowrap;">Full Assessment Report &#8594;</a>` : ''}
-                        <button id="sendToRmBtn" onclick="sendToRM(this)"
-                                style="background:#0ea5a4;color:#fff;padding:8px 18px;border-radius:8px;border:none;
-                                       cursor:pointer;font-size:0.88em;font-weight:600;white-space:nowrap;font-family:system-ui;">
-                            Refer to Relationship Manager &#8594;</button>
-                        </div>
-                    </div>
-                    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));
-                                gap:16px;margin-top:16px;">
-                        <div style="text-align:center;">
-                            <div style="font-size:2em;font-weight:800;color:${gradeColor};">${g}</div>
-                            <div style="font-size:0.75em;color:#64748b;margin-top:2px;">Internal Grade</div>
-                        </div>
-                        <div style="text-align:center;">
-                            <div style="font-size:1.5em;font-weight:700;color:#1a2e4a;">${pd_pct}</div>
-                            <div style="font-size:0.75em;color:#64748b;margin-top:2px;">PD (${pd_low}–${pd_high}% band)</div>
-                        </div>
-                        <div style="text-align:center;">
-                            <div style="font-size:1.5em;font-weight:700;color:#1a2e4a;">${el}</div>
-                            <div style="font-size:0.75em;color:#64748b;margin-top:2px;">Expected Loss</div>
-                        </div>
-                        <div style="text-align:center;">
-                            <div style="font-size:1.5em;font-weight:700;color:#1a2e4a;">${rate}</div>
-                            <div style="font-size:0.75em;color:#64748b;margin-top:2px;">Indicative Rate</div>
-                        </div>
-                    </div>
-                    <div style="margin-top:14px;font-size:0.78em;color:#64748b;font-family:system-ui;
-                                border-top:1px solid #eef2f7;padding-top:10px;">
-                        These are risk measurements only. The lend / no-lend decision is made by the Relationship Manager — use “Refer to Relationship Manager”.
-                    </div>
+                            padding:16px 24px;font-family:system-ui;
+                            display:flex;align-items:center;justify-content:flex-end;gap:10px;flex-wrap:wrap;">
+                    ${reportId ? `<a href="/report-underwriter.html?id=${reportId}" target="_blank"
+                            style="background:#1a2e4a;color:#fff;padding:8px 18px;border-radius:8px;
+                                   text-decoration:none;font-size:0.88em;font-weight:600;
+                                   white-space:nowrap;">Full Assessment Report &#8594;</a>` : ''}
+                    <button id="sendToRmBtn" onclick="sendToRM(this)"
+                            style="background:#0ea5a4;color:#fff;padding:8px 18px;border-radius:8px;border:none;
+                                   cursor:pointer;font-size:0.88em;font-weight:600;white-space:nowrap;font-family:system-ui;">
+                        Refer to Relationship Manager &#8594;</button>
                 </div>`;
         } catch (e) {
             inner.innerHTML = `
@@ -1992,6 +2298,7 @@
             bank_id:        txt('bankSelect') || null,
             ltv_ratio:      num('ltvRatio') ? num('ltvRatio') / 100 : null,
             calculation_methodology: getMode(),
+            model_scope:    getEffectiveModelScope(),
             external_rating: null,  // placeholder for future rated-exposure entry
             requested_amount: num('exposureAmount'),
             exposure:         num('exposureAmount'),
@@ -2022,6 +2329,7 @@
             city_tier_enc:              intv('kycCityTier'),
             education_enc:              intv('kycEducation'),
             residence_type_enc:         intv('kycResidenceType'),
+            months_in_residence:        num('kycMonthsInResidence'),
             loan_purpose_enc:           intv('kycLoanPurpose'),
             cibil_score:                intv('kycCibilScore'),
             previous_default_flag:      intv('kycPreviousDefault'),
@@ -2072,10 +2380,180 @@
             });
         } catch (e) { /* reference layer offline — country stays optional */ }
     }
+    // Real Earth banks are always bank_specific (no combined option exists
+    // for them - see applyWorldFilter()); Utopian Earth banks follow the
+    // Phase 2 checkbox as before.
+    function getEffectiveModelScope() {
+        const worldSel = document.getElementById('worldSelect');
+        if (worldSel && worldSel.value === 'real') return 'bank_specific';
+        return document.getElementById('modelScopeCheckbox').checked ? 'bank_specific' : 'combined';
+    }
+
     function updateJurisdictionChip() {
         const m = COUNTRY_INDEX[document.getElementById('country').value];
+        // Regulatory jurisdiction only - NOT the loan currency (that's set by
+        // World + Originating Bank in the bar at the top of the page).
         document.getElementById('jurisdictionChip').textContent =
-            m ? (m.region + ' · ' + m.currency + ' · ' + m.regulator) : '';
+            m ? (m.region + ' · ' + m.regulator + ' regulator') : '';
+    }
+
+    // ── Model-routing switch: bank-specific vs shared cross-bank model ──────
+    // Default is unchecked (shared model) even when a bank-specific one is
+    // available - the RM has to actively opt in.
+    let MODEL_AVAILABILITY = { available: false, scope: null };
+    async function checkModelAvailability() {
+        const cb = document.getElementById('modelScopeCheckbox');
+        const label = document.getElementById('modelScopeText');
+        const bankSel = document.getElementById('bankSelect');
+        const bankId = bankSel.value;
+        const bankName = bankId ? (bankSel.options[bankSel.selectedIndex].textContent || bankId) : '';
+        const expClass = document.getElementById('exposureClass').value;
+
+        MODEL_AVAILABILITY = { available: false, scope: null };
+        cb.checked = false;
+
+        if (!bankId || !expClass) {
+            cb.disabled = true;
+            label.textContent = "Use this bank's own trained model — select a bank and exposure class first";
+            return;
+        }
+        label.textContent = 'Checking model availability…';
+        cb.disabled = true;
+        try {
+            const resp = await fetch(`/api/model-availability?bank_id=${encodeURIComponent(bankId)}&exposure_class=${encodeURIComponent(expClass)}`);
+            const data = await resp.json();
+            MODEL_AVAILABILITY = data;
+            if (data.available) {
+                cb.disabled = false;
+                const scopeNote = data.scope === 'generic' ? ' (bank-wide, unsegmented)' : '';
+                label.textContent = `Use ${bankName}'s own trained model${scopeNote} instead of the shared cross-bank model`;
+            } else {
+                cb.disabled = true;
+                label.textContent = `${bankName} has no trained model of its own yet — using the shared cross-bank model`;
+            }
+        } catch (err) {
+            cb.disabled = true;
+            label.textContent = "Use this bank's own trained model — unavailable (couldn't reach server)";
+        }
+    }
+
+    // ── Bank-specific model schema (highlighting + dynamic fields) ─────────────
+    // Maps canonical feature names to the DOM id of the existing static form
+    // input for that field - purely a presentation-layer lookup, the backend
+    // schema endpoint only returns feature NAMES, not DOM ids.
+    const CANONICAL_FIELD_DOM_ID = {
+        de_ratio: 'debtToEquity', interest_coverage: 'interestCoverage',
+        profitability: 'profitabilityMargin', liquidity_ratio: 'liquidityRatio',
+        age: 'kycAge', employment_type_enc: 'kycEmploymentType',
+        years_employed: 'kycYearsEmployed', annual_income: 'kycAnnualIncome',
+        foir: 'kycFoir', num_dependents: 'kycNumDependents',
+        city_tier_enc: 'kycCityTier', education_enc: 'kycEducation',
+        residence_type_enc: 'kycResidenceType', months_in_residence: 'kycMonthsInResidence',
+        loan_purpose_enc: 'kycLoanPurpose', cibil_score: 'kycCibilScore',
+        months_as_customer: 'kycMonthsAsCustomer', num_late_payments_past_12m: 'kycLatePayments',
+        existing_loans_count: 'kycExistingLoans', num_existing_products: 'kycExistingProducts',
+        is_rural: 'kycIsRural',
+    };
+
+    let BANK_SCHEMA = null; // last-fetched /api/bank-model-schema response
+
+    function clearBankRelevantHighlights() {
+        document.querySelectorAll('.form-group.bank-relevant').forEach(el => el.classList.remove('bank-relevant'));
+    }
+
+    function renderBankSpecificFields(schema) {
+        const section = document.getElementById('bankSpecificSection');
+        const grid = document.getElementById('bankSpecificFieldsGrid');
+        const fields = schema.bank_specific_fields || {};
+        const names = Object.keys(fields);
+        if (names.length === 0) {
+            section.style.display = 'none';
+            grid.innerHTML = '';
+            return;
+        }
+        grid.innerHTML = names.map(name => {
+            const f = fields[name];
+            const inputId = 'bankField_' + name;
+            let inputHtml;
+            if (f.kind === 'select') {
+                inputHtml = `<select id="${inputId}" data-bank-field="${name}">` +
+                    `<option value="">-- Unknown / not provided --</option>` +
+                    f.options.map(o => `<option value="${o.value}">${o.label}</option>`).join('') +
+                    `</select>`;
+            } else {
+                const unitPlaceholder = f.unit === 'usd' ? 'e.g. 5000' : f.unit === 'months' ? 'e.g. 24' : 'e.g. 0';
+                inputHtml = `<input type="number" id="${inputId}" data-bank-field="${name}" placeholder="${unitPlaceholder}" step="any">`;
+            }
+            return `<div class="form-group">
+                <label for="${inputId}">${f.label}${f.unit === 'usd' ? ' ($)' : ''}
+                    ${f.help ? `<span style="font-size:11px;color:#888;font-weight:400;">${f.help}</span>` : ''}
+                </label>
+                ${inputHtml}
+            </div>`;
+        }).join('');
+        section.style.display = 'block';
+    }
+
+    async function loadBankModelSchema() {
+        clearBankRelevantHighlights();
+        BANK_SCHEMA = null;
+        const bankSel = document.getElementById('bankSelect');
+        const bankId = bankSel.value;
+        if (!bankId) {
+            document.getElementById('bankSpecificSection').style.display = 'none';
+            return;
+        }
+        const expClass = document.getElementById('exposureClass').value;
+        try {
+            const qs = expClass ? `?exposure_class=${encodeURIComponent(expClass)}` : '';
+            const resp = await fetch(`/api/bank-model-schema/${encodeURIComponent(bankId)}${qs}`);
+            const data = await resp.json();
+            if (!data.available) {
+                document.getElementById('bankSpecificSection').style.display = 'none';
+                return;
+            }
+            BANK_SCHEMA = data;
+
+            (data.canonical_features || []).forEach(f => {
+                const domId = CANONICAL_FIELD_DOM_ID[f.name];
+                if (!domId) return; // e.g. macro fields - no manual input to highlight
+                const el = document.getElementById(domId);
+                if (el && el.closest('.form-group')) el.closest('.form-group').classList.add('bank-relevant');
+            });
+
+            const bankName = bankSel.options[bankSel.selectedIndex]?.textContent || bankId;
+            document.getElementById('bankSpecificBankName').textContent = bankName;
+            renderBankSpecificFields(data);
+        } catch (err) {
+            console.warn('Could not load bank model schema:', err.message);
+            document.getElementById('bankSpecificSection').style.display = 'none';
+        }
+    }
+
+    // Reads all rendered bank-specific inputs + computes derived fields
+    // (credit_utilization_ratio etc.) from them, per each field's `formula`
+    // in the schema response - same formulas used at onboarding time.
+    function collectBankSpecificValues() {
+        const values = {};
+        if (!BANK_SCHEMA) return values;
+        Object.keys(BANK_SCHEMA.bank_specific_fields || {}).forEach(name => {
+            const el = document.getElementById('bankField_' + name);
+            if (el && el.value !== '') values[name] = parseFloat(el.value);
+        });
+        Object.keys(BANK_SCHEMA.derived_fields || {}).forEach(name => {
+            if (name === 'credit_utilization_ratio' && values.bill_amt_m1 != null && values.credit_limit) {
+                values.credit_utilization_ratio = values.bill_amt_m1 / values.credit_limit;
+            }
+            if (name === 'payment_coverage_ratio') {
+                const ratios = [];
+                for (let i = 1; i <= 6; i++) {
+                    const pay = values['payment_amt_m' + i], bill = values['bill_amt_m' + i];
+                    if (pay != null && bill != null && bill > 0) ratios.push(pay / bill);
+                }
+                if (ratios.length) values.payment_coverage_ratio = ratios.reduce((a, b) => a + b, 0) / ratios.length;
+            }
+        });
+        return values;
     }
 
     // ── Existing-customer lookup (auto-enrich, applied on confirm click) ────────
@@ -2140,6 +2618,7 @@
                 bankSel.value = LOOKUP_DATA.bank_id;
                 bankSel.disabled = true;
                 bankSel.title = 'Locked to this customer\'s existing bank';
+                loadBankModelSchema();
             }
         }
     }
@@ -2154,6 +2633,10 @@
     document.getElementById('modeSA').addEventListener('change', updateSectionVisibility);
     document.getElementById('modeBoth').addEventListener('change', updateSectionVisibility);
     document.getElementById('loanType').addEventListener('change', updateMaturitySuggestion);
+    document.getElementById('bankSelect').addEventListener('change', checkModelAvailability);
+    document.getElementById('exposureClass').addEventListener('change', checkModelAvailability);
+    document.getElementById('bankSelect').addEventListener('change', loadBankModelSchema);
+    document.getElementById('exposureClass').addEventListener('change', loadBankModelSchema);
 
     // Click on mode-option div toggles the radio
     document.querySelectorAll('.mode-option').forEach(opt => {
@@ -2163,22 +2646,81 @@
         });
     });
 
+    // ── World toggle (Utopian Earth / Real Earth) ────────────────────────────
+    let ALL_BANKS = [];
+    const WORLD_DESCRIPTIONS = {
+        utopian: "The original 9 banks. Uniform 37-feature schema, trained together as one shared model.",
+        real: "Banks onboarded from their own external data (e.g. Bank of Punjab). Schemas differ bank to bank - each is scored only by its own model, never pooled with anything else.",
+    };
+
+    // Currency is NOT a free-standing user choice - it's derived from World.
+    // Utopian Earth banks post to one shared ledger in the group reporting
+    // currency (INR); Real Earth banks are onboarded on the platform's
+    // canonical Real Earth unit (USD) per the currency-conversion design
+    // (see operations/scripts/onboarding_maps/*.json). minIncome mirrors the
+    // backend KYC floor (~Rs.1,00,000/yr), converted at a fixed ~83 INR/USD
+    // reference rate for the USD-denominated form.
+    const CURRENCY_BY_WORLD = {
+        utopian: { symbol: '₹', code: 'INR', minIncome: 100000, minIncomeLabel: '₹1,00,000' },
+        real:    { symbol: '$', code: 'USD', minIncome: 1200,   minIncomeLabel: '$1,200' },
+    };
+    function resolveCurrency() {
+        const world = document.getElementById('worldSelect').value || 'utopian';
+        return CURRENCY_BY_WORLD[world] || CURRENCY_BY_WORLD.utopian;
+    }
+    function updateCurrencyDisplay() {
+        const cur = resolveCurrency();
+        document.querySelectorAll('.currency-sym').forEach(el => { el.textContent = cur.symbol; });
+        document.getElementById('currencyChip').textContent = `${cur.symbol} ${cur.code}`;
+        document.getElementById('currencyNote').textContent = cur.code === 'INR'
+            ? 'Group reporting currency — all amounts below are in this currency.'
+            : 'Real Earth canonical unit — all amounts below are in this currency.';
+        const incomeInput = document.getElementById('kycAnnualIncome');
+        if (incomeInput) incomeInput.min = cur.minIncome;
+    }
+
+    function applyWorldFilter() {
+        const world = document.getElementById('worldSelect').value;
+        document.getElementById('worldDescription').textContent = WORLD_DESCRIPTIONS[world] || '';
+        updateCurrencyDisplay();
+        const sel = document.getElementById('bankSelect');
+        const prevValue = sel.value;
+        sel.innerHTML = '<option value="">-- Select Bank --</option>';
+        ALL_BANKS.filter(b => (b.world || 'utopian') === world).forEach(b => {
+            const opt = document.createElement('option');
+            opt.value = b.bank_id;
+            opt.textContent = `${b.bank_name} (${b.bank_id})`;
+            sel.appendChild(opt);
+        });
+        // Keep the previous selection only if it still belongs to this world.
+        if ([...sel.options].some(o => o.value === prevValue)) sel.value = prevValue;
+        else sel.dispatchEvent(new Event('change'));
+
+        // Real Earth banks are never pooled - there is no "combined model"
+        // option to offer, so the Phase 2 checkbox is replaced with a static
+        // note instead of a togglable choice.
+        const modelScopeRow = document.getElementById('modelScopeLabel');
+        const realEarthNote = document.getElementById('realEarthModelNote');
+        if (world === 'real') {
+            modelScopeRow.style.display = 'none';
+            realEarthNote.style.display = 'flex';
+        } else {
+            modelScopeRow.style.display = 'flex';
+            realEarthNote.style.display = 'none';
+        }
+    }
+
     window.addEventListener('DOMContentLoaded', () => {
         updateSectionVisibility();
+        document.getElementById('worldSelect').addEventListener('change', applyWorldFilter);
         // Populate the originating-bank dropdown - determines whose ledger an
-        // approved loan books to.
+        // approved loan books to. Fetched once, filtered client-side by world
+        // so switching worlds doesn't need another round-trip.
         fetch('/operations/api/banks')
             .then(r => r.json())
             .then(data => {
-                const sel = document.getElementById('bankSelect');
-                if (!sel) return;
-                const banks = data.banks || data || [];
-                banks.forEach(b => {
-                    const opt = document.createElement('option');
-                    opt.value = b.bank_id;
-                    opt.textContent = `${b.bank_name} (${b.bank_id})`;
-                    sel.appendChild(opt);
-                });
+                ALL_BANKS = data.banks || data || [];
+                applyWorldFilter();
             })
             .catch(() => {});
         // Populate Basel III.1 exposure class dropdown from the reference API.

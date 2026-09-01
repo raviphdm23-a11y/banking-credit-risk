@@ -74,6 +74,35 @@ BENCHMARKS_PATH  = os.path.join(ML_DIR, 'peer_benchmarks.json')
 # bank_loan_metrics for other analysis, just not part of FEATURE_COLS.
 TARGET_COL    = 'default_flag'
 
+# ── Bank-scoped auto-discovery (Phase: Taiwan onboarding) ────────────────────
+# A bank-scoped training run (bank_ids set, not the shared 'ALL' pool) may
+# have real columns in bank_loan_metrics beyond the fixed 37-feature
+# canonical FEATURE_COLS list - e.g. BANK011's repay_status_m1..m6,
+# bill_amt_m1..m6, credit_limit, etc. These are auto-discovered and added to
+# that run's feature set (see run_training()) instead of sitting populated
+# but permanently unused. Identity/metadata columns are never features;
+# COMPLIANCE_EXCLUDED_COLS are populated in bank_loan_metrics (per "don't
+# lose information upfront") but require an explicit, separate compliance
+# decision before ever being used as a model input - auto-discovery must
+# never silently pull these in just because a bank happens to have the data.
+NON_FEATURE_COLS = {
+    'id', 'bank_id', 'bank_name', 'loan_id', TARGET_COL, 'pd_observed',
+    'observation_date', 'loaded_at', 'country_code', 'exposure_class', 'group_id',
+} | (REQUIRED_COLUMNS - set(FEATURE_COLS))
+# The REQUIRED_COLUMNS - FEATURE_COLS difference includes previous_default_flag
+# (deliberately excluded from FEATURE_COLS as a documented leakage risk - see
+# backend/feature_schema.py's docstring) and is_rural. Auto-discovery must
+# respect the SAME exclusion the canonical schema already made, not just the
+# 37-column list itself - a bank-scoped run finding previous_default_flag
+# populated is not license to reintroduce a known leakage risk.
+COMPLIANCE_EXCLUDED_COLS = {
+    'gender_enc',           # protected characteristic under fair-lending law in most jurisdictions
+    'marital_status_enc',   # same category of concern, softer - excluded pending explicit review
+    'foreign_worker_flag',  # national-origin-adjacent; confirmed correlated with target in BANK012's
+                             # source sample (30.7% vs 10.8% default rate) - exactly the kind of
+                             # correlation fair-lending law exists to keep out of underwriting models
+}
+
 # Sovereign rating → ordinal (1 = AAA best; higher number = worse credit)
 # Lock to prevent concurrent training runs
 _training_lock = threading.Lock()
@@ -123,27 +152,18 @@ def load_from_db(bank_ids=None, exposure_class=None):
         return None
     try:
         conn = sqlite3.connect(BANK_DB_PATH)
-        query = (
-            "SELECT bank_id, loan_id, de_ratio, interest_coverage, "
-            "       profitability, liquidity_ratio, default_flag, "
-            "       pd_observed, observation_date, "
-            "       age, employment_type_enc, years_employed, annual_income, "
-            "       foir, num_dependents, city_tier_enc, education_enc, "
-            "       residence_type_enc, loan_purpose_enc, cibil_score, "
-            "       previous_default_flag, months_as_customer, "
-            "       num_late_payments_past_12m, existing_loans_count, "
-            "       num_existing_products, is_rural, country_code, exposure_class, "
-            "       gdp_growth_pct, inflation_cpi_pct, policy_rate_pct, unemployment_pct, "
-            "       delta_de_ratio, delta_cibil, months_since_origination, "
-            "       delta_gdp_pct, delta_cpi_pct, delta_policy_rate_pct, "
-            "       delta_unemployment_pct, macro_regime_score, "
-            "       emi_miss_ratio, income_miss_ratio, income_cv, "
-            "       income_to_declared_ratio, balance_cv, max_gap_days, "
-            "       n_transactions, avg_balance, "
-            "       ecs_bounce_count, other_lender_emi_ratio, income_disruption_flag, "
-            "       sector_stress_index, ltv_trend_pct "
-            "FROM bank_loan_metrics"
-        )
+        # SELECT * (not an explicit column list) - deliberately, after this
+        # exact list was found stale THREE separate times (missed Taiwan's
+        # columns, then German's, then heloc's/credit_risk's) each time a new
+        # Real Earth bank's onboarding script added generic columns that
+        # never got added here, silently making that bank's model auto
+        # discovery blind to its own real features (heloc's CV AUC came back
+        # 0.5 - a coin flip - because every one of its 23 real bureau columns
+        # was invisible to this query). SELECT * means a future bank's new
+        # columns are visible automatically; nothing downstream assumes a
+        # fixed column set - NON_FEATURE_COLS/FEATURE_COLS/auto-discovery all
+        # already handle "whatever columns are present" dynamically.
+        query = "SELECT * FROM bank_loan_metrics"
         clauses, params = [], []
         if bank_ids:
             placeholders = ','.join('?' * len(bank_ids))
@@ -191,17 +211,43 @@ def load_from_db(bank_ids=None, exposure_class=None):
         return None
 
 
-def _validate_dataframe(df, name='data'):
+def _validate_dataframe(df, name='data', bank_scoped=False):
     """
     Run the same validation checks as validate_file() on an already-loaded DataFrame.
     Returns (ok: bool, error_message: str | None).
+
+    bank_scoped=True (training on a specific single/multiple bank(s), not
+    the shared cross-bank 'ALL' pool): XGBoost natively handles missing
+    values in its own tree-split logic - at every node it learns whichever
+    default direction (left/right) reduces loss more, and routes NaN rows
+    that way at both train and predict time. No imputation, no row-drop
+    needed for a feature just being unknown. So for bank_scoped runs, only
+    identity/target columns are required non-null; feature-column NaNs
+    survive into training instead of silently discarding real rows (this
+    was costing Banco Bradesco 65% of its rows - 50,000 down to 17,427 -
+    for columns XGBoost could have handled directly).
+
+    Non-bank-scoped (Utopian Earth's combined pool) keeps the original
+    strict behavior: a column that's ENTIRELY null is excluded from the
+    row-filter (nothing to offer as a per-row signal), but a column with
+    only SOME nulls still causes those specific rows to be dropped - the
+    combined pool's data is expected to be complete, so a partial null
+    there is more likely a genuine data-quality issue than a structural
+    onboarding gap.
     """
     missing = REQUIRED_COLUMNS - set(df.columns)
     if missing:
         return False, 'Missing columns: {}'.format(sorted(missing))
-    # Drop rows with nulls in feature/target columns rather than rejecting the dataset.
-    feature_cols_present = [c for c in list(REQUIRED_COLUMNS) if c in df.columns]
-    df.dropna(subset=feature_cols_present, inplace=True)
+
+    if bank_scoped:
+        strict_required = [c for c in ('bank_id', 'loan_id', 'default_flag', 'observation_date')
+                            if c in df.columns]
+        df.dropna(subset=strict_required, inplace=True)
+    else:
+        feature_cols_present = [c for c in list(REQUIRED_COLUMNS)
+                                 if c in df.columns and not df[c].isna().all()]
+        df.dropna(subset=feature_cols_present, inplace=True)
+
     if not df['default_flag'].isin([0, 1]).all():
         return False, 'default_flag must be 0 or 1 only'
     for col, lo, hi in [
@@ -210,15 +256,30 @@ def _validate_dataframe(df, name='data'):
         ('profitability',             -50.0,      100.0),
         ('liquidity_ratio',             0.1,        5.0),
         ('age',                        18.0,      100.0),
-        ('employment_type_enc',         1.0,        7.0),
+        # employment_type_enc/city_tier_enc/education_enc/residence_type_enc/
+        # loan_purpose_enc bounds below were sized to Utopian Earth's fixed
+        # taxonomies (7 employment types, 3 city tiers, etc.). Real Earth
+        # banks get risk-ordered encodings derived from THEIR OWN category
+        # cardinality (see onboard_banco_bradesco.py's _risk_ordered_encoding)
+        # which is unpredictable in advance - e.g. Banco Bradesco's
+        # RESIDENCE_TYPE has 6 real categories, not Utopian Earth's 4.
+        # Widened to a generous, currency/taxonomy-agnostic ceiling.
+        ('employment_type_enc',         1.0,       20.0),
         ('years_employed',              0.0,       60.0),
-        ('annual_income',          100000.0, 99999999.0),
+        # Was 100,000-99,999,999 - an INR-only assumption (Utopian Earth's 9
+        # banks). Real Earth banks are USD-denominated (see
+        # onboard_banco_bradesco.py's currency conversion) - a legitimate,
+        # much lower-income population's annual income can genuinely be a
+        # few hundred to a few thousand USD. Widened to a currency-agnostic
+        # sanity floor (just above zero) rather than an INR-specific band.
+        ('annual_income',               1.0, 99999999.0),
         ('foir',                        0.0,        0.9),
         ('num_dependents',              0.0,       20.0),
-        ('city_tier_enc',               1.0,        3.0),
-        ('education_enc',               1.0,        6.0),
-        ('residence_type_enc',          1.0,        4.0),
-        ('loan_purpose_enc',            1.0,       10.0),
+        ('months_in_residence',         0.0,      900.0),
+        ('city_tier_enc',               1.0,       20.0),
+        ('education_enc',               1.0,       20.0),
+        ('residence_type_enc',          1.0,       20.0),
+        ('loan_purpose_enc',            1.0,       20.0),
         ('cibil_score',               300.0,      900.0),
         ('previous_default_flag',       0.0,        1.0),
         ('months_as_customer',          0.0,      600.0),
@@ -234,7 +295,22 @@ def _validate_dataframe(df, name='data'):
     ]:
         if col not in df.columns:
             return False, 'Missing column: {}'.format(col)
-        if not ((df[col] >= lo) & (df[col] <= hi)).all():
+        # A column that's entirely NULL was already excluded from the dropna
+        # subset above (bank-scoped onboarding gap, not corrupt data) - a
+        # range check against all-NaN values would always evaluate False
+        # (NaN comparisons are never True) and reject the whole dataset for
+        # a column run_training() is about to legitimately drop anyway.
+        if df[col].isna().all():
+            continue
+        # Range-check only the non-null values. Not bank_scoped: dropna
+        # above already removed every row with a null in a partially-
+        # populated column, so this is a no-op there (nothing to skip).
+        # bank_scoped: NaNs are deliberately still present (XGBoost handles
+        # them natively) - a NaN entry isn't a range violation, it's an
+        # honest "unknown", and comparing NaN >= lo is always False, which
+        # would otherwise fail the whole column for one unknown value.
+        non_null = df[col].dropna()
+        if not ((non_null >= lo) & (non_null <= hi)).all():
             return False, '{} has values outside valid range [{}, {}]'.format(col, lo, hi)
     if len(df) < 50:
         return False, 'Too few rows ({}); minimum 50 required'.format(len(df))
@@ -338,15 +414,30 @@ def validate_file(filepath):
         ('profitability',             -50.0,      100.0),
         ('liquidity_ratio',             0.1,        5.0),
         ('age',                        18.0,      100.0),
-        ('employment_type_enc',         1.0,        7.0),
+        # employment_type_enc/city_tier_enc/education_enc/residence_type_enc/
+        # loan_purpose_enc bounds below were sized to Utopian Earth's fixed
+        # taxonomies (7 employment types, 3 city tiers, etc.). Real Earth
+        # banks get risk-ordered encodings derived from THEIR OWN category
+        # cardinality (see onboard_banco_bradesco.py's _risk_ordered_encoding)
+        # which is unpredictable in advance - e.g. Banco Bradesco's
+        # RESIDENCE_TYPE has 6 real categories, not Utopian Earth's 4.
+        # Widened to a generous, currency/taxonomy-agnostic ceiling.
+        ('employment_type_enc',         1.0,       20.0),
         ('years_employed',              0.0,       60.0),
-        ('annual_income',          100000.0, 99999999.0),
+        # Was 100,000-99,999,999 - an INR-only assumption (Utopian Earth's 9
+        # banks). Real Earth banks are USD-denominated (see
+        # onboard_banco_bradesco.py's currency conversion) - a legitimate,
+        # much lower-income population's annual income can genuinely be a
+        # few hundred to a few thousand USD. Widened to a currency-agnostic
+        # sanity floor (just above zero) rather than an INR-specific band.
+        ('annual_income',               1.0, 99999999.0),
         ('foir',                        0.0,        0.9),
         ('num_dependents',              0.0,       20.0),
-        ('city_tier_enc',               1.0,        3.0),
-        ('education_enc',               1.0,        6.0),
-        ('residence_type_enc',          1.0,        4.0),
-        ('loan_purpose_enc',            1.0,       10.0),
+        ('months_in_residence',         0.0,      900.0),
+        ('city_tier_enc',               1.0,       20.0),
+        ('education_enc',               1.0,       20.0),
+        ('residence_type_enc',          1.0,       20.0),
+        ('loan_purpose_enc',            1.0,       20.0),
         ('cibil_score',               300.0,      900.0),
         ('previous_default_flag',       0.0,        1.0),
         ('months_as_customer',          0.0,      600.0),
@@ -373,14 +464,17 @@ def validate_file(filepath):
 
 # ── Step 3: Load & merge ──────────────────────────────────────────────────────
 
-def load_from_enriched_transactions(bank_ids=None, exposure_class=None):
+def load_from_enriched_transactions(bank_ids=None, exposure_class=None, include_active=False):
     """
     Load transaction-level enriched data from transactions table, optionally
     restricted to bank_ids and/or a single exposure_class.
     Only rows belonging to loans with a completed lifecycle (status =
-    'Closed' or 'Written-Off') are included - an 'Active' loan's outcome
-    hasn't resolved yet, so training against it would train against a
-    status that can still change rather than the loan's real outcome.
+    'Closed' or 'Written-Off') are included by default - an 'Active' loan's
+    outcome hasn't resolved yet, so promoting a model trained against it
+    would train against a status that can still change rather than the
+    loan's real outcome. include_active=True lifts that restriction - for
+    read-only research sampling (e.g. Model Lab's SHAP tooling) where
+    nothing gets promoted, not for anything that calls train_model().
     Returns DataFrame with all enriched ML features.
     """
     conn = sqlite3.connect(BANK_DB_PATH)
@@ -425,8 +519,9 @@ def load_from_enriched_transactions(bank_ids=None, exposure_class=None):
             AND t.loan_de_ratio IS NOT NULL
             AND t.loan_interest_coverage IS NOT NULL
             AND t.loan_classification IS NOT NULL
-            AND lo.status IN ('Closed', 'Written-Off')
     """
+    if not include_active:
+        query += " AND lo.status IN ('Closed', 'Written-Off')"
 
     params = []
     if bank_ids:
@@ -492,7 +587,12 @@ def load_and_merge(use_transaction_level=False, bank_ids=None, exposure_class=No
         print(f"[TRAIN] Using CUSTOMER-LEVEL data source (bank_loan_metrics){bank_label}{seg_label}")
         db_df = load_from_db(bank_ids=bank_ids, exposure_class=exposure_class)
         if db_df is not None:
-            ok, err = _validate_dataframe(db_df, 'bank_loan_metrics')
+            # bank_scoped=True (single/multiple specific banks, not the
+            # shared cross-bank pool): XGBoost natively handles missing
+            # values via its own tree-split logic, so don't drop rows just
+            # because a feature column is unknown for them - see
+            # _validate_dataframe's docstring.
+            ok, err = _validate_dataframe(db_df, 'bank_loan_metrics', bank_scoped=bool(bank_ids))
             if ok:
                 frames.append(db_df)
                 files_used.append({'filename': f'bank_loan_metrics (bank.db - CUSTOMER LEVEL){bank_label}{seg_label}', 'rows': len(db_df)})
@@ -570,13 +670,21 @@ def _build_xgboost(X_train, y_train, hp):
 
 
 def _build_logistic_regression(X_train, y_train, hp):
-    """Build Logistic Regression classifier (with scaling)."""
+    """Build Logistic Regression classifier (with scaling).
+
+    Adds a median-imputer step ahead of scaling - LogisticRegression can't
+    accept NaN natively (confirmed via a real training failure on a
+    bank-scoped Real Earth bank, not anticipated in advance: this was
+    already broken for every Real Earth bank before this fix, same
+    technical requirement as the tree-ensemble builders below)."""
     from sklearn.linear_model import LogisticRegression
     from sklearn.preprocessing import StandardScaler
+    from sklearn.impute import SimpleImputer
     from sklearn.pipeline import Pipeline
 
     lr_hp = hp.get('models', {}).get('logistic_regression', {})
     pipe = Pipeline([
+        ('imputer', SimpleImputer(strategy='median')),
         ('scaler', StandardScaler()),
         ('clf', LogisticRegression(
             C=float(lr_hp.get('C', 1.0)),
@@ -591,9 +699,116 @@ def _build_logistic_regression(X_train, y_train, hp):
     return pipe
 
 
+# ── Tree-ensemble comparison models (bagging + a second boosting
+# implementation, genuinely different architectures from XGBoost) ───────────
+#
+# IMPORTANT: unlike XGBoost, none of sklearn's RandomForestClassifier,
+# ExtraTreesClassifier, or GradientBoostingClassifier can handle NaN inputs
+# natively - they raise on fit/predict if given one. This platform's
+# bank-scoped Real Earth training relies on XGBoost's native missing-value
+# routing specifically so genuinely-unfilled fields never need a fabricated
+# default (see allow_missing_features_ / model_feature_frame()). These three
+# model types wrap a SimpleImputer(strategy='median') as the first Pipeline
+# step - a technical requirement of the algorithm, not a policy reversal:
+# the imputer learns its median from the TRAINING data only (fit once,
+# reused identically at predict/live-inference time via the same saved
+# Pipeline object), so it's an honest, consistent, non-fabricated fallback -
+# just a different mechanism than XGBoost's tree-routing one. XGBoost
+# remains the only model type that sees genuine NaN as NaN.
+def _build_random_forest(X_train, y_train, hp):
+    """Bagging ensemble - each tree trained independently on a bootstrap
+    resample and averaged, not sequentially error-correcting like boosting.
+    Genuinely different bias/variance behavior from XGBoost, useful as a
+    real architectural comparison point."""
+    from sklearn.ensemble import RandomForestClassifier
+    from sklearn.impute import SimpleImputer
+    from sklearn.pipeline import Pipeline
+
+    rf_hp = hp.get('models', {}).get('random_forest', {})
+    pipe = Pipeline([
+        ('imputer', SimpleImputer(strategy='median')),
+        ('clf', RandomForestClassifier(
+            n_estimators=int(rf_hp.get('n_estimators', 300)),
+            max_depth=rf_hp.get('max_depth', 8),
+            min_samples_leaf=int(rf_hp.get('min_samples_leaf', 5)),
+            max_features=rf_hp.get('max_features', 'sqrt'),
+            class_weight=rf_hp.get('class_weight', 'balanced'),
+            random_state=int(rf_hp.get('random_state', 42)),
+            n_jobs=-1,
+        )),
+    ])
+    pipe.fit(X_train, y_train)
+    return pipe
+
+
+def _build_extra_trees(X_train, y_train, hp):
+    """Extremely Randomized Trees - another bagging ensemble like Random
+    Forest, but split thresholds are chosen randomly rather than optimally
+    at each node. Faster to train and often more robust to overfitting on
+    noisy tabular data than Random Forest."""
+    from sklearn.ensemble import ExtraTreesClassifier
+    from sklearn.impute import SimpleImputer
+    from sklearn.pipeline import Pipeline
+
+    et_hp = hp.get('models', {}).get('extra_trees', {})
+    pipe = Pipeline([
+        ('imputer', SimpleImputer(strategy='median')),
+        ('clf', ExtraTreesClassifier(
+            n_estimators=int(et_hp.get('n_estimators', 300)),
+            max_depth=et_hp.get('max_depth', 8),
+            min_samples_leaf=int(et_hp.get('min_samples_leaf', 5)),
+            max_features=et_hp.get('max_features', 'sqrt'),
+            class_weight=et_hp.get('class_weight', 'balanced'),
+            random_state=int(et_hp.get('random_state', 42)),
+            n_jobs=-1,
+        )),
+    ])
+    pipe.fit(X_train, y_train)
+    return pipe
+
+
+def _build_gradient_boosting(X_train, y_train, hp):
+    """sklearn's own boosting implementation - a genuinely different
+    algorithm from XGBoost's (no native missing-value routing, no XGBoost-
+    style regularization terms), useful as a boosting-vs-boosting comparison
+    point specifically, not just boosting-vs-bagging.
+
+    GradientBoostingClassifier has no class_weight parameter (unlike
+    RandomForest/ExtraTrees/LogisticRegression) - approximated via
+    per-sample weights instead, computed the same 'balanced' way."""
+    from sklearn.ensemble import GradientBoostingClassifier
+    from sklearn.impute import SimpleImputer
+    from sklearn.pipeline import Pipeline
+    from sklearn.utils.class_weight import compute_sample_weight
+
+    gb_hp = hp.get('models', {}).get('gradient_boosting', {})
+    pipe = Pipeline([
+        ('imputer', SimpleImputer(strategy='median')),
+        ('clf', GradientBoostingClassifier(
+            n_estimators=int(gb_hp.get('n_estimators', 200)),
+            max_depth=int(gb_hp.get('max_depth', 3)),
+            learning_rate=float(gb_hp.get('learning_rate', 0.05)),
+            subsample=float(gb_hp.get('subsample', 0.8)),
+            min_samples_leaf=int(gb_hp.get('min_samples_leaf', 5)),
+            random_state=int(gb_hp.get('random_state', 42)),
+        )),
+    ])
+    # GradientBoostingClassifier has no class_weight param - pass balanced
+    # sample_weight through to the 'clf' step via Pipeline's standard
+    # stepname__paramname fit-param routing, so Pipeline.fit() still runs
+    # normally end-to-end (feature_names_in_ etc. set correctly, same as
+    # every other pipeline here) rather than hand-assembling pre-fit steps.
+    sample_weight = compute_sample_weight(class_weight='balanced', y=y_train)
+    pipe.fit(X_train, y_train, clf__sample_weight=sample_weight)
+    return pipe
+
+
 MODEL_BUILDERS = {
     'xgboost': _build_xgboost,
     'logistic_regression': _build_logistic_regression,
+    'random_forest': _build_random_forest,
+    'extra_trees': _build_extra_trees,
+    'gradient_boosting': _build_gradient_boosting,
 }
 
 
@@ -828,22 +1043,33 @@ def bootstrap_auc_lift(y_test, proba_full, proba_baseline, n_bootstrap=1000, ran
 
 # ── Step 6: Charts ────────────────────────────────────────────────────────────
 
-def _get_feature_importance(model):
+def _get_feature_importance(model, n_features=None):
     """Extract feature importance from model (tree-based or linear)."""
     try:
         # Tree-based models (XGBoost, RandomForest, etc.)
         return model.feature_importances_
     except AttributeError:
         try:
-            # Pipeline with Linear model inside
-            return np.abs(model.named_steps['clf'].coef_[0])
+            # Pipeline with a tree-ensemble model inside (RandomForest,
+            # ExtraTrees, GradientBoosting - all wrapped with an imputer
+            # step, see _build_random_forest/_build_extra_trees/
+            # _build_gradient_boosting)
+            return model.named_steps['clf'].feature_importances_
         except (AttributeError, KeyError):
             try:
-                # Direct linear model (LogisticRegression, etc.)
-                return np.abs(model.coef_[0])
-            except (AttributeError, IndexError):
-                # Fallback: equal importance for all features
-                return np.ones(len(FEATURE_COLS))
+                # Pipeline with Linear model inside
+                return np.abs(model.named_steps['clf'].coef_[0])
+            except (AttributeError, KeyError):
+                try:
+                    # Direct linear model (LogisticRegression, etc.)
+                    return np.abs(model.coef_[0])
+                except (AttributeError, IndexError):
+                    # Fallback: equal importance for all features. n_features
+                    # must match whatever was actually trained on (a bank-scoped
+                    # run may use fewer than the full FEATURE_COLS) - not a
+                    # hardcoded canonical-schema length, or the chart's bar
+                    # count would mismatch its label count.
+                    return np.ones(n_features if n_features is not None else len(FEATURE_COLS))
 
 
 def generate_charts(model, X_test, y_test, y_pred, df_test, threshold):
@@ -859,9 +1085,16 @@ def generate_charts(model, X_test, y_test, y_pred, df_test, threshold):
 
     # 1. Feature Importance
     fig, ax = plt.subplots(figsize=(7, 4))
-    importances = _get_feature_importance(model)
+    importances = _get_feature_importance(model, n_features=len(X_test.columns))
+    # X_test.columns, not the module-global FEATURE_COLS - a bank-scoped run
+    # may have trained on a REDUCED feature set (see run_training()'s
+    # active_feature_cols), and importances is positionally aligned to
+    # whatever was actually in X_test, not the full canonical schema.
+    # Using FEATURE_COLS here would silently mislabel every bar past the
+    # first dropped column.
+    feature_names_for_chart = list(X_test.columns)
     idx = np.argsort(importances)
-    ax.barh([FEATURE_COLS[i] for i in idx], importances[idx], color='#2196F3')
+    ax.barh([feature_names_for_chart[i] for i in idx], importances[idx], color='#2196F3')
     ax.set_title('Feature Importance', fontsize=13, fontweight='bold')
     ax.set_xlabel('Importance Score')
     ax.tick_params(axis='y', labelsize=10)
@@ -1034,7 +1267,41 @@ def _refresh_peer_benchmarks(df, exposure_class=None):
 
 # ── Main training orchestrator ────────────────────────────────────────────────
 
-def run_training(triggered_by='manual', use_transaction_level=True, model_type='xgboost', bank_ids=None, exposure_class=None):
+def _gov_record(event_type, actor_id='system', object_type=None, object_id=None,
+                payload=None, alert=None):
+    """Write a governance audit event (and optionally an alert) to bank.db.
+    Always non-fatal: training must never fail because of audit plumbing."""
+    try:
+        from backend import governance_store as _gov
+        _conn = sqlite3.connect(BANK_DB_PATH)
+        _gov.init_schema(_conn)
+        _gov.append_audit_event(_conn, event_type, actor_id=actor_id,
+                                actor_role='trainer', object_type=object_type,
+                                object_id=object_id, payload=payload)
+        if alert:
+            _gov.create_alert(_conn, **alert)
+            _conn.commit()
+        _conn.close()
+    except Exception as e:
+        print(f'[GOV] audit write failed (non-fatal): {e}')
+
+
+def _snapshot_baseline(run_id, slot_key, X_train, model):
+    """Persist training-time score/feature distributions for later PSI
+    monitoring (backend/drift_monitor.py). Non-fatal on any failure."""
+    try:
+        from backend import drift_monitor as _drift
+        proba_train = model.predict_proba(X_train)[:, 1]
+        _conn = sqlite3.connect(BANK_DB_PATH)
+        n = _drift.snapshot_training_baseline(_conn, run_id, slot_key, X_train, proba_train)
+        _conn.close()
+        print(f'[GOV] PSI baselines snapshotted for {slot_key}: score + {n} features')
+    except Exception as e:
+        print(f'[GOV] baseline snapshot failed (non-fatal): {e}')
+
+
+def run_training(triggered_by='manual', use_transaction_level=True, model_type='xgboost', bank_ids=None,
+                  exposure_class=None, include_compliance_excluded=False):
     """
     Full training pipeline.
 
@@ -1050,6 +1317,22 @@ def run_training(triggered_by='manual', use_transaction_level=True, model_type='
                                       single Basel segment (CORPORATE, SME,
                                       RETAIL_MORTGAGES, RETAIL_OTHER). None
                                       means the unsegmented/legacy 'ALL' slot.
+        include_compliance_excluded (bool): Default False - bank-scoped
+                                      auto-discovery skips COMPLIANCE_EXCLUDED_COLS
+                                      (gender_enc, marital_status_enc) by design.
+                                      Set True to deliberately include them anyway
+                                      - e.g. to reproduce a published research
+                                      benchmark that used all raw dataset columns.
+                                      This is a per-run, explicit opt-in only; it
+                                      does not change the default for any other
+                                      call, and the resulting run record flags
+                                      that this was used (see
+                                      compliance_excluded_cols_included) so it's
+                                      never silently invisible later. This model
+                                      should not be treated as fit for a real
+                                      lending decision without a separate,
+                                      deliberate compliance sign-off - it exists
+                                      for research/benchmark comparison.
 
     Returns a run record dict (same structure as stored in run_history.json).
     Raises RuntimeError if another run is already in progress.
@@ -1066,6 +1349,23 @@ def run_training(triggered_by='manual', use_transaction_level=True, model_type='
     bank_ids  = list(bank_ids) if bank_ids else None
     seg_key   = exposure_class or 'ALL'
 
+    # Model-routing switch: exposure_class='GENERIC' trains a bank-wide,
+    # unsegmented model - for a bank whose source data has no Basel
+    # exposure_class concept at all. Only meaningful for exactly one bank
+    # (a "generic model" is inherently bank-scoped; a cross-bank unsegmented
+    # model is the old retired 'ALL' path and stays retired).
+    if exposure_class == 'GENERIC' and (not bank_ids or len(bank_ids) != 1):
+        _training_running = False
+        _training_lock.release()
+        raise ValueError(
+            "exposure_class='GENERIC' (a bank-wide, unsegmented model) requires "
+            "training on exactly one bank_id."
+        )
+    # 'GENERIC' isn't a real exposure_class value in bank_loan_metrics - it
+    # means "don't filter by segment", same as exposure_class=None, for the
+    # SQL query. seg_key/combo_key/registry still use the literal 'GENERIC'.
+    sql_exposure_class = None if exposure_class == 'GENERIC' else exposure_class
+
     data_source = "enriched_transactions (TRANSACTION-LEVEL)" if use_transaction_level else "bank_loan_metrics (CUSTOMER-LEVEL)"
 
     record = {
@@ -1077,6 +1377,7 @@ def run_training(triggered_by='manual', use_transaction_level=True, model_type='
         'model_type':    model_type,
         'bank_ids':      bank_ids,
         'exposure_class': exposure_class,
+        'compliance_excluded_cols_included': include_compliance_excluded,
         'status':        'failed',
         'files_used':    [],
         'files_skipped': [],
@@ -1098,7 +1399,7 @@ def run_training(triggered_by='manual', use_transaction_level=True, model_type='
 
         # Load data (now with transaction-level, bank, and exposure-class filters)
         merged, files_used, files_skip, dupes = load_and_merge(
-            use_transaction_level=use_transaction_level, bank_ids=bank_ids, exposure_class=exposure_class
+            use_transaction_level=use_transaction_level, bank_ids=bank_ids, exposure_class=sql_exposure_class
         )
         record['files_used']    = files_used
         record['files_skipped'] = files_skip
@@ -1111,7 +1412,62 @@ def run_training(triggered_by='manual', use_transaction_level=True, model_type='
             available_cols = list(merged.columns)
             raise ValueError(f'[TRAIN] Missing columns: {missing_cols}. Available: {available_cols[:10]}...')
 
-        X = merged[FEATURE_COLS].copy()
+        # Bank-scoped training (single or multiple specific banks): a column
+        # that's ENTIRELY blank for the selected bank(s) - e.g. a newly
+        # onboarded bank whose source data structurally never collected it -
+        # is excluded from THIS run's feature set instead of being trained on
+        # with zero variance (which _validate_dataframe's dropna would
+        # otherwise turn into "zero rows left" for the whole dataset, not
+        # just a useless column - see the fix there). The shared cross-bank
+        # ('ALL') path keeps the full strict schema requirement unchanged - a
+        # blank column there is a genuine anomaly worth failing loudly on,
+        # not a routine per-bank onboarding gap.
+        dropped_blank_cols = []
+        auto_discovered_cols = []
+        if bank_ids:
+            dropped_blank_cols = [c for c in FEATURE_COLS if merged[c].isna().all()]
+
+            # Auto-discovery: a bank-scoped run also picks up any real column
+            # in bank_loan_metrics beyond the fixed 37-feature canonical list
+            # that this bank actually populated - e.g. BANK011's
+            # repay_status_m1..m6, bill_amt_m1..m6, credit_limit, the two
+            # derived ratios. Identity/metadata columns are never eligible.
+            # COMPLIANCE_EXCLUDED_COLS are excluded by default (see
+            # run_training's docstring) unless this specific call explicitly
+            # opts in via include_compliance_excluded=True - a deliberate,
+            # per-run choice, not a change to the default for anyone else.
+            excluded_cols = set(NON_FEATURE_COLS)
+            if not include_compliance_excluded:
+                excluded_cols |= COMPLIANCE_EXCLUDED_COLS
+            elif COMPLIANCE_EXCLUDED_COLS & set(merged.columns):
+                print(f"[TRAIN] include_compliance_excluded=True for this run - "
+                      f"{sorted(COMPLIANCE_EXCLUDED_COLS)} are eligible for auto-discovery. "
+                      f"This model is for research/benchmark comparison only, not a real "
+                      f"lending decision, without a separate compliance sign-off.")
+            candidate_extra_cols = [
+                c for c in merged.columns
+                if c not in FEATURE_COLS
+                and c not in excluded_cols
+            ]
+            for c in candidate_extra_cols:
+                if not pd.api.types.is_numeric_dtype(merged[c]):
+                    continue
+                if merged[c].isna().all():
+                    continue
+                auto_discovered_cols.append(c)
+            if auto_discovered_cols:
+                print(f"[TRAIN] Bank-scoped run for {bank_ids}: auto-discovered "
+                      f"{len(auto_discovered_cols)} extra feature column(s) beyond the "
+                      f"canonical 37: {auto_discovered_cols}")
+
+        active_feature_cols = [c for c in FEATURE_COLS if c not in dropped_blank_cols] + auto_discovered_cols
+        if dropped_blank_cols:
+            print(f"[TRAIN] Bank-scoped run for {bank_ids}: excluding "
+                  f"{len(dropped_blank_cols)} entirely-blank feature column(s): {dropped_blank_cols}")
+        record['dropped_blank_features'] = dropped_blank_cols
+        record['auto_discovered_features'] = auto_discovered_cols
+
+        X = merged[active_feature_cols].copy()
         y = merged[TARGET_COL].copy()
 
         if y.nunique() < 2:
@@ -1190,7 +1546,7 @@ def run_training(triggered_by='manual', use_transaction_level=True, model_type='
         # data to support the feature count at all, and the CIBIL-only
         # baseline flags whether the other 38 features are adding real
         # signal or just capacity to overfit.
-        record['epv'] = compute_epv(n_pos_train, len(FEATURE_COLS))
+        record['epv'] = compute_epv(n_pos_train, len(active_feature_cols))
         baseline_proba = baseline_cibil_predictions(X_train, y_train, X_test)
         baseline_auc = (float(roc_auc_score(y_test, baseline_proba))
                          if baseline_proba is not None and len(np.unique(y_test)) > 1 else None)
@@ -1227,15 +1583,23 @@ def run_training(triggered_by='manual', use_transaction_level=True, model_type='
         joblib.dump(model, type_model_path)
 
         # Build metadata for this model type
-        model_type_label = 'XGBoost' if model_type == 'xgboost' else 'Logistic Regression'
+        MODEL_TYPE_LABELS = {
+            'xgboost':             'XGBoost',
+            'logistic_regression': 'Logistic Regression',
+            'random_forest':       'Random Forest',
+            'extra_trees':         'Extra Trees',
+            'gradient_boosting':   'Gradient Boosting',
+        }
+        model_type_label = MODEL_TYPE_LABELS.get(model_type, model_type)
         new_meta = {
             'model_type':   model_type_label,
             'algorithm':    model_type,
             'version':      run_id,
             'date_trained': timestamp,
             'triggered_by': triggered_by,
-            'features':     FEATURE_COLS,
-            'n_features':   len(FEATURE_COLS),
+            'features':     active_feature_cols,
+            'n_features':   len(active_feature_cols),
+            'dropped_blank_features': dropped_blank_cols,
             'target':       TARGET_COL,
             'metrics':      metrics,
             'hyperparameters': hp.get('models', {}).get(model_type, hp.get('model', {})),
@@ -1245,6 +1609,7 @@ def run_training(triggered_by='manual', use_transaction_level=True, model_type='
             'test_rows':          len(X_test),
             'bank_ids':           bank_ids,
             'exposure_class':     exposure_class,
+            'compliance_excluded_cols_included': include_compliance_excluded,
             'n_defaults_train':   n_pos_train,
             'scale_pos_weight':   auto_spw,
             'threshold':          threshold,
@@ -1258,7 +1623,10 @@ def run_training(triggered_by='manual', use_transaction_level=True, model_type='
         with open(type_meta_path, 'w') as f:
             json.dump(new_meta, f, indent=2)
 
-        # Promotion: always auto-activate if no active model exists yet, or if same type being retrained
+        # Promotion: auto-activate if no active model exists yet, or if same
+        # type being retrained — AND the governance challenger-vs-champion
+        # gate passes (a retrain whose AUC regresses beyond tolerance vs the
+        # currently promoted champion is saved but NOT activated).
         n_trained = len(X_train)
         rows_ok = n_trained >= min_rows_floor
         record['promotion_check'] = {
@@ -1273,24 +1641,66 @@ def run_training(triggered_by='manual', use_transaction_level=True, model_type='
             # currently active FOR THIS SEGMENT SPECIFICALLY - each segment
             # has its own independent active slot (see activate_model), so
             # training/promoting CORPORATE never disturbs SME/RETAIL_*/ALL.
+            # Bank-scoped runs (combo_key != 'ALL') gate on their OWN
+            # composite registry key (see activate_model), so a bank-specific
+            # promotion is independent of - and never blocked by - whatever
+            # is active in the shared cross-bank slot for this segment.
+            reg_key = seg_key if combo_key == 'ALL' else f'{seg_key}::{combo_key}'
             registry = _load_active_model_registry()
-            seg_active = registry.get(seg_key) or {}
+            seg_active = registry.get(reg_key) or {}
             active_type = seg_active.get('model_type')
             active_combo = seg_active.get('bank_key')
 
-            if active_type is None or (active_type == model_type and active_combo == combo_key):
+            # Governance challenger-vs-champion gate: compare this run's
+            # test AUC against the promoted champion for the same slot. Fails
+            # open (gate_ok=True) when no champion is registered or the
+            # registry is unreadable — the gate exists to stop silent
+            # regressions, not to block first-time promotions.
+            gov_cfg = hp.get('governance', {})
+            gate_enabled = bool(gov_cfg.get('promotion_gate_enabled', True))
+            gate_tol = float(gov_cfg.get('auc_regression_tolerance', 0.01))
+            challenger_auc = metrics.get('auc_roc')
+            champion_auc, champion_model_id = None, None
+            try:
+                _conn = sqlite3.connect(BANK_DB_PATH)
+                _row = _conn.execute(
+                    "SELECT model_id, auc_roc FROM model_registry "
+                    "WHERE exposure_class=? AND bank_scope=? "
+                    "ORDER BY promoted_at DESC LIMIT 1",
+                    (seg_key, combo_key if combo_key != 'ALL' else 'ALL')).fetchone()
+                _conn.close()
+                if _row:
+                    champion_model_id, champion_auc = _row[0], _row[1]
+            except Exception as e:
+                print(f'[GOV] champion lookup failed (gate passes open): {e}')
+
+            gate_ok = (not gate_enabled or champion_auc is None
+                       or challenger_auc is None
+                       or challenger_auc >= champion_auc - gate_tol)
+            record['promotion_check'].update({
+                'gate_enabled': gate_enabled,
+                'champion_model_id': champion_model_id,
+                'champion_auc': champion_auc,
+                'challenger_auc': challenger_auc,
+                'tolerance': gate_tol,
+                'gate_ok': gate_ok,
+            })
+
+            if (active_type is None or (active_type == model_type and active_combo == combo_key)) and gate_ok:
                 activate_model(model_type, combo_key, exposure_class)
                 record['model_promoted'] = True
+                record['status_detail'] = 'promoted'
                 _refresh_peer_benchmarks(merged, exposure_class)
 
                 # Phase 4 — model_registry (backend/model_registry.py): a real,
                 # queryable record of which model version this promotion was,
                 # so prediction_store rows can point at an actual model_id
                 # instead of just a free-text model_version string.
+                promoted_model_id = None
                 try:
                     from backend.model_registry import register_promotion
                     _conn = sqlite3.connect(BANK_DB_PATH)
-                    register_promotion(
+                    promoted_model_id = register_promotion(
                         _conn, exposure_class, model_type, run_id=run_id,
                         trained_at=timestamp,
                         promoted_at=datetime.now().isoformat(timespec='seconds'),
@@ -1299,6 +1709,39 @@ def run_training(triggered_by='manual', use_transaction_level=True, model_type='
                     _conn.close()
                 except Exception as e:
                     print(f'[WARN] model_registry write failed (non-fatal): {e}')
+
+                _gov_record('MODEL_PROMOTED', actor_id=triggered_by,
+                            object_type='model',
+                            object_id=promoted_model_id or f'{model_type}::{reg_key}',
+                            payload={'run_id': run_id, 'slot': reg_key,
+                                     'auc': challenger_auc,
+                                     'champion_auc': champion_auc,
+                                     'triggered_by': triggered_by})
+                _snapshot_baseline(run_id, reg_key, X_train, model)
+            elif not gate_ok:
+                # Challenger regressed beyond tolerance: keep the saved pkl +
+                # metadata (already written above), but do NOT activate. A
+                # force-promote (with audited rationale) is the only path in.
+                record['model_promoted'] = False
+                record['status_detail'] = 'trained_not_promoted'
+                msg = (f'Promotion blocked for {reg_key}: challenger AUC '
+                       f'{challenger_auc} < champion {champion_auc} - tolerance {gate_tol}')
+                print(f'[GOV] {msg}')
+                _gov_record('PROMOTION_BLOCKED', actor_id=triggered_by,
+                            object_type='model', object_id=f'{model_type}::{reg_key}',
+                            payload={'run_id': run_id, 'slot': reg_key,
+                                     'challenger_auc': challenger_auc,
+                                     'champion_auc': champion_auc,
+                                     'champion_model_id': champion_model_id,
+                                     'tolerance': gate_tol},
+                            alert={'slot_key': reg_key,
+                                   'alert_type': 'PROMOTION_BLOCKED',
+                                   'kpi': 'auc_regression',
+                                   'value': challenger_auc,
+                                   'threshold': (champion_auc - gate_tol)
+                                                if champion_auc is not None else None,
+                                   'severity': 'BREACH', 'message': msg,
+                                   'model_id': champion_model_id})
 
         # Archive used files
         archive_training_files(files_used, run_id)
@@ -1319,6 +1762,19 @@ def run_training(triggered_by='manual', use_transaction_level=True, model_type='
         _training_running = False
         _training_lock.release()
 
+        _gov_record('TRAINING_RUN', actor_id=triggered_by,
+                    object_type='run', object_id=record.get('run_id'),
+                    payload={'status': record.get('status'),
+                             'status_detail': record.get('status_detail'),
+                             'model_type': record.get('model_type'),
+                             'exposure_class': record.get('exposure_class'),
+                             'bank_ids': record.get('bank_ids'),
+                             'total_rows': record.get('total_rows'),
+                             'metrics': record.get('metrics'),
+                             'model_promoted': record.get('model_promoted'),
+                             'promotion_check': record.get('promotion_check'),
+                             'error': (record.get('error') or '')[-300:] or None})
+
     return record
 
 
@@ -1334,12 +1790,27 @@ def run_training(triggered_by='manual', use_transaction_level=True, model_type='
 ACTIVE_MODEL_REGISTRY_PATH = os.path.join(ML_DIR, 'active_model.json')
 
 
-def _segment_paths(exposure_class):
+def _segment_paths(exposure_class, bank_combo='ALL'):
     """(active_model, active_meta, backup_model, backup_meta) paths for a
     segment's active slot. 'ALL'/None reuses the original flat top-level
     filenames for backward compatibility with pre-segmentation deployments;
-    the 4 Basel segments each get their own parallel slot."""
+    the 4 Basel segments each get their own parallel slot.
+
+    bank_combo (model-routing switch): when not 'ALL', resolves to a
+    SEPARATE, bank-scoped active slot (pd_model_<seg>_<bank_combo>.pkl)
+    instead of the shared cross-bank slot above - promoting a bank-specific
+    model never touches the file every other bank's inference reads.
+    exposure_class may also be 'GENERIC' (a bank-wide, unsegmented model,
+    only meaningful together with a non-'ALL' bank_combo)."""
     seg = exposure_class or 'ALL'
+    if bank_combo and bank_combo != 'ALL':
+        suffix = f'{seg}_{bank_combo}'
+        return (
+            os.path.join(ML_DIR, f'pd_model_{suffix}.pkl'),
+            os.path.join(ML_DIR, f'pd_model_metadata_{suffix}.json'),
+            os.path.join(ML_DIR, f'pd_model_backup_{suffix}.pkl'),
+            os.path.join(ML_DIR, f'pd_model_backup_metadata_{suffix}.json'),
+        )
     if seg == 'ALL':
         return MODEL_PATH, META_PATH, BACKUP_PATH, os.path.join(ML_DIR, 'pd_model_backup_metadata.json')
     return (
@@ -1407,7 +1878,7 @@ def activate_model(model_type, bank_combo='ALL', exposure_class=None):
             f"No model found for type '{model_type}' / banks '{bank_combo}' / segment '{seg}' at {type_model_path}"
         )
 
-    active_model_path, active_meta_path, backup_model_path, backup_meta_path = _segment_paths(seg)
+    active_model_path, active_meta_path, backup_model_path, backup_meta_path = _segment_paths(seg, bank_combo)
 
     # Backup this segment's current active model
     if os.path.exists(active_model_path):
@@ -1419,9 +1890,12 @@ def activate_model(model_type, bank_combo='ALL', exposure_class=None):
     shutil.copy2(type_model_path, active_model_path)
     shutil.copy2(type_meta_path, active_meta_path)
 
-    # Update this segment's entry in the active-model registry
+    # Update this segment's entry in the active-model registry. Bank-scoped
+    # promotions get their own composite key (seg::bank_combo) so they don't
+    # collide with - or gate on - the shared cross-bank segment's entry.
+    reg_key = seg if bank_combo == 'ALL' else f'{seg}::{bank_combo}'
     registry = _load_active_model_registry()
-    registry[seg] = {
+    registry[reg_key] = {
         'model_type': model_type,
         'bank_key': bank_combo,
         'exposure_class': seg,
@@ -1450,6 +1924,58 @@ def rollback_model(exposure_class=None):
 
     return {'status': 'rolled back', 'exposure_class': seg,
             'message': f"Previous {seg} model restored as active."}
+
+
+# ── Force-promote (governance override of the challenger-vs-champion gate) ───
+
+def force_promote(model_type, bank_combo='ALL', exposure_class=None,
+                  actor_id=None, rationale=None):
+    """Activate a saved-but-not-promoted model over the gate's objection.
+    The override itself is a governed action: it requires an actor and a
+    rationale (>= 20 chars) and lands on the hash-chained audit trail as
+    FORCE_PROMOTE, so 'who promoted a regressing model, and why' is always
+    answerable."""
+    if not actor_id or not (rationale or '').strip() or len(rationale.strip()) < 20:
+        raise ValueError('force_promote requires actor_id and a rationale of at least 20 characters')
+
+    seg = exposure_class or 'ALL'
+    result = activate_model(model_type, bank_combo, exposure_class)
+    reg_key = seg if bank_combo == 'ALL' else f'{seg}::{bank_combo}'
+
+    # Register the promotion from the saved type-dir metadata so model_registry
+    # and prediction_store lineage stay correct even for a forced activation.
+    meta_path = os.path.join(ML_DIR, 'models', model_type, bank_combo, seg,
+                             'pd_model_metadata.json')
+    model_id = None
+    try:
+        with open(meta_path) as f:
+            meta = json.load(f)
+        from backend.model_registry import register_promotion
+        _conn = sqlite3.connect(BANK_DB_PATH)
+        model_id = register_promotion(
+            _conn, exposure_class, model_type,
+            run_id=meta.get('version'),
+            trained_at=meta.get('date_trained'),
+            promoted_at=datetime.now().isoformat(timespec='seconds'),
+            metrics=meta.get('metrics') or {},
+            n_train=meta.get('n_train'),
+            bank_ids=meta.get('bank_ids'),
+        )
+        _conn.close()
+    except Exception as e:
+        print(f'[WARN] model_registry write failed on force-promote (non-fatal): {e}')
+
+    _gov_record('FORCE_PROMOTE', actor_id=actor_id, object_type='model',
+                object_id=model_id or f'{model_type}::{reg_key}',
+                payload={'slot': reg_key, 'model_type': model_type,
+                         'bank_combo': bank_combo, 'exposure_class': seg,
+                         'rationale': rationale.strip()})
+
+    # Re-snapshot PSI baselines from the promoted model's training data isn't
+    # possible here (training frame is gone) — the next retrain refreshes them.
+    result['forced'] = True
+    result['model_id'] = model_id
+    return result
 
 
 if __name__ == '__main__':

@@ -63,7 +63,7 @@
     border-bottom: 3px solid transparent; transition: all .15s;
   }
   nav button.active, nav button:hover { color: var(--blue); border-bottom-color: var(--blue); }
-  .container { max-width: 1200px; margin: 0 auto; padding: 28px 24px; }
+  .container { max-width: 1600px; width: 100%; margin: 0 auto; padding: 28px 32px; box-sizing: border-box; }
   .panel { display: none; }
   .panel.active { display: block; }
 
@@ -134,6 +134,22 @@
   input:checked + .slider { background: var(--green); }
   input:checked + .slider:before { transform: translateX(20px); }
   .toggle-row { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+
+  /* ── Checkbox-dropdown multiselect ──────────────────────────────────────── */
+  .ml-ms { position: relative; display: inline-block; }
+  .ml-ms-btn { padding: 6px 10px; border: 1px solid var(--border); border-radius: 6px; font-size: 13px;
+               background: #fff; cursor: pointer; min-width: 170px; text-align: left; }
+  .ml-ms-btn:hover { border-color: var(--blue); }
+  .ml-ms.open .ml-ms-btn { border-color: var(--blue); }
+  .ml-ms-panel { display: none; position: absolute; top: calc(100% + 4px); left: 0; z-index: 50;
+                 background: #fff; border: 1px solid var(--border); border-radius: 8px;
+                 box-shadow: 0 4px 16px rgba(0,0,0,0.12); padding: 8px 12px; min-width: 220px;
+                 max-height: 240px; overflow-y: auto; }
+  .ml-ms.open .ml-ms-panel { display: block; }
+  .ml-ms-panel label { display: flex; align-items: center; gap: 8px; font-size: 13px;
+                        padding: 5px 2px; cursor: pointer; white-space: nowrap; }
+  .ml-ms-panel label:hover { background: #F5F7FA; }
+  .ml-ms-panel input[type="checkbox"] { width: auto; margin: 0; }
 </style>
 </head>
 <body>
@@ -163,7 +179,7 @@
   <button onclick="showPanel('hyperparams')">Hyperparameters</button>
   <button onclick="showPanel('schedule')">Schedule</button>
   <button onclick="showPanel('history')">Run History</button>
-  <button onclick="showPanel('charts')">Charts</button>
+  <button onclick="showPanel('modellab')">Model Lab</button>
   <button onclick="showPanel('smoketests')">Smoke Tests</button>
   <button onclick="showPanel('creditops')">Credit Ops</button>
 </nav>
@@ -195,9 +211,13 @@
       <tr><td><b>Currency</b></td><td>&#8377; INR</td></tr>
     </table>
     <div class="form-actions" style="margin-top:20px;display:flex;gap:12px;align-items:center;flex-wrap:wrap">
-      <select id="trainModelType" style="padding:8px 12px;border:1px solid var(--border);border-radius:6px;font-size:13px">
+      <select id="trainModelType" title="XGBoost is the only model type that handles genuinely-missing bank-scoped fields natively (no imputation). Random Forest/Extra Trees/Gradient Boosting median-impute internally since sklearn's tree models can't take NaN directly - a technical requirement of those algorithms, not a policy difference."
+              style="padding:8px 12px;border:1px solid var(--border);border-radius:6px;font-size:13px">
         <option value="xgboost">XGBoost</option>
         <option value="logistic_regression">Logistic Regression</option>
+        <option value="random_forest">Random Forest</option>
+        <option value="extra_trees">Extra Trees</option>
+        <option value="gradient_boosting">Gradient Boosting</option>
       </select>
       <select id="trainBankSelect" multiple size="4" title="Ctrl/Cmd-click to select multiple banks, or use the buttons below."
               style="padding:6px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;min-width:220px">
@@ -207,13 +227,19 @@
         <button type="button" class="btn btn-sm" style="padding:4px 10px;font-size:12px" onclick="selectAllBanks()">All Banks</button>
         <button type="button" class="btn btn-sm" style="padding:4px 10px;font-size:12px" onclick="clearBankSelection()">Clear</button>
       </div>
-      <select id="trainExposureClass" required title="Segment to train - the unsegmented 'ALL' model is retired and can no longer be trained."
+      <select id="trainExposureClass" required title="Segment to train - the unsegmented 'ALL' model is retired and can no longer be trained. GENERIC trains one bank-wide model when that bank's source data has no Basel exposure-class field to segment by (single bank only)."
               style="padding:8px 12px;border:1px solid var(--border);border-radius:6px;font-size:13px">
         <option value="CORPORATE">CORPORATE</option>
         <option value="SME">SME</option>
         <option value="RETAIL_MORTGAGES">RETAIL_MORTGAGES</option>
         <option value="RETAIL_OTHER">RETAIL_OTHER</option>
+        <option value="GENERIC">GENERIC (unsegmented, single bank)</option>
       </select>
+      <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--sub);white-space:nowrap;"
+             title="Bank-scoped auto-discovery excludes gender_enc/marital_status_enc by default (protected characteristics under fair-lending law in most jurisdictions). Check this to include them anyway - only for research/benchmark comparison against a published result that used all raw dataset columns, never for a model intended to make a real lending decision. Only takes effect on bank-scoped runs (one or more banks selected above) - no effect on the shared cross-bank pool.">
+        <input type="checkbox" id="trainIncludeComplianceExcluded" style="width:auto;margin:0;">
+        Include compliance-flagged fields (research only)
+      </label>
       <button class="btn btn-success" id="trainBtn" onclick="triggerTrain()">&#9654; Train Now</button>
       <button class="btn btn-danger" onclick="rollback()">&#8617; Rollback to Previous</button>
       <span id="trainMsg" class="msg"></span>
@@ -222,6 +248,7 @@
       Bank filter: select one or more banks to train only on their data, or leave none selected to use all banks. Ctrl/Cmd-click to multi-select, or use the "All Banks"/"Clear" buttons.
       Exposure class: trains a dedicated model for that Basel segment (each has its own independent active model, activated/rolled back separately) - every customer is scored by their own segment's model.
       The unsegmented "ALL" model has been retired (it was never used for live scoring once segment routing shipped) and can no longer be trained or scheduled - any existing ALL entries below are historical only.
+      "Include compliance-flagged fields": OFF by default - bank-scoped training never uses gender/marital-status fields unless you explicitly opt in here, and every model trained this way records that choice permanently in its own metadata.
     </p>
     <div id="trainingIndicator" style="display:none;margin-top:12px" class="alert alert-warning">
       &#9203; Training in progress... Refreshing status every 5 seconds.
@@ -446,13 +473,132 @@
   </div>
 </div>
 
-<!-- ── Panel 6: Charts ──────────────────────────────────────────────────────── -->
-<div id="panel-charts" class="panel">
+<!-- ── Panel 6: Model Lab (research) ───────────────────────────────────────── -->
+<div id="panel-modellab" class="panel">
+
+  <div class="card">
+    <h3>&#128272; Configured Models</h3>
+    <p style="color:var(--sub);font-size:13px;margin-bottom:12px">
+      Same models as the Model Status tab. Activate a model here, or load it straight into the Global SHAP panel below.
+      Training a new model and deleting models still happen on <a href="#" onclick="showPanel('status');document.querySelectorAll('nav button')[0].classList.add('active');event.preventDefault()">Model Status</a>.
+    </p>
+    <p style="font-size:11px;color:var(--sub);margin:-4px 0 8px">Click a filter to open its checklist. Leave a filter empty to include everything.</p>
+    <div style="display:flex;gap:10px;align-items:flex-start;margin-bottom:14px;flex-wrap:wrap">
+      <div class="ml-ms" id="msModelsType">
+        <button type="button" class="ml-ms-btn" onclick="toggleMultiselect('msModelsType')">All model types &#9662;</button>
+        <div class="ml-ms-panel">
+          <label><input type="checkbox" value="xgboost" onchange="onMultiselectChange('msModelsType')"> XGBoost</label>
+          <label><input type="checkbox" value="logistic_regression" onchange="onMultiselectChange('msModelsType')"> Logistic Regression</label>
+          <label><input type="checkbox" value="random_forest" onchange="onMultiselectChange('msModelsType')"> Random Forest</label>
+          <label><input type="checkbox" value="extra_trees" onchange="onMultiselectChange('msModelsType')"> Extra Trees</label>
+          <label><input type="checkbox" value="gradient_boosting" onchange="onMultiselectChange('msModelsType')"> Gradient Boosting</label>
+        </div>
+      </div>
+      <div class="ml-ms" id="msModelsSegment">
+        <button type="button" class="ml-ms-btn" onclick="toggleMultiselect('msModelsSegment')">All segments &#9662;</button>
+        <div class="ml-ms-panel">
+          <label><input type="checkbox" value="CORPORATE" onchange="onMultiselectChange('msModelsSegment')"> CORPORATE</label>
+          <label><input type="checkbox" value="SME" onchange="onMultiselectChange('msModelsSegment')"> SME</label>
+          <label><input type="checkbox" value="RETAIL_MORTGAGES" onchange="onMultiselectChange('msModelsSegment')"> RETAIL_MORTGAGES</label>
+          <label><input type="checkbox" value="RETAIL_OTHER" onchange="onMultiselectChange('msModelsSegment')"> RETAIL_OTHER</label>
+          <label><input type="checkbox" value="GENERIC" onchange="onMultiselectChange('msModelsSegment')"> GENERIC</label>
+        </div>
+      </div>
+      <div class="ml-ms" id="msModelsBank">
+        <button type="button" class="ml-ms-btn" onclick="toggleMultiselect('msModelsBank')">All banks &#9662;</button>
+        <div class="ml-ms-panel"></div>
+      </div>
+      <div class="ml-ms" id="msModelsWorld">
+        <button type="button" class="ml-ms-btn" onclick="toggleMultiselect('msModelsWorld')">All worlds &#9662;</button>
+        <div class="ml-ms-panel">
+          <label><input type="checkbox" value="real" onchange="onMultiselectChange('msModelsWorld')"> &#127760; Real Earth</label>
+          <label><input type="checkbox" value="utopian" onchange="onMultiselectChange('msModelsWorld')"> &#127758; Utopian Earth</label>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <button type="button" class="btn btn-sm" style="padding:4px 10px;font-size:12px" onclick="clearModelLabFilters()">Clear filters</button>
+        <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--sub);white-space:nowrap">
+          <input type="checkbox" id="mlModelsFilterActiveOnly" style="width:auto;margin:0" onchange="renderModelLabModelsTable()"> Active only
+        </label>
+      </div>
+    </div>
+    <div id="modelLabModelsTable"><p style="color:var(--sub)">Loading configured models...</p></div>
+  </div>
+
+  <div class="card">
+    <h3>&#128269; Run Comparison — filter &amp; compare classification metrics</h3>
+    <p style="color:var(--sub);font-size:13px;margin-bottom:12px">
+      Every training run's full holdout metrics (confusion matrix, AUC-ROC, PR-AUC, accuracy, precision, recall, F1, Brier score) - filter to compare across model types and segments.
+    </p>
+    <div style="display:flex;gap:10px;align-items:center;margin-bottom:16px;flex-wrap:wrap">
+      <select id="mlFilterModelType" onchange="onModelLabFilterChange()" style="padding:6px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px">
+        <option value="">All model types</option>
+        <option value="xgboost">XGBoost</option>
+        <option value="logistic_regression">Logistic Regression</option>
+        <option value="random_forest">Random Forest</option>
+        <option value="extra_trees">Extra Trees</option>
+        <option value="gradient_boosting">Gradient Boosting</option>
+      </select>
+      <select id="mlFilterExposureClass" onchange="onModelLabFilterChange()" style="padding:6px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px">
+        <option value="">All segments</option>
+        <option value="CORPORATE">CORPORATE</option>
+        <option value="SME">SME</option>
+        <option value="RETAIL_MORTGAGES">RETAIL_MORTGAGES</option>
+        <option value="RETAIL_OTHER">RETAIL_OTHER</option>
+        <option value="GENERIC">GENERIC</option>
+      </select>
+      <select id="mlFilterBankId" onchange="onModelLabFilterChange()" style="padding:6px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px">
+        <option value="">All banks</option>
+      </select>
+      <select id="mlFilterStatus" onchange="loadModelLabRuns()" style="padding:6px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px">
+        <option value="">Any status</option>
+        <option value="success">Success</option>
+        <option value="failed">Failed</option>
+      </select>
+    </div>
+    <div id="modelLabRunsTable"><p style="color:var(--sub)">Loading runs...</p></div>
+  </div>
+
+  <div class="card">
+    <h3>&#129504; Global SHAP — signal vs. noise</h3>
+    <p style="color:var(--sub);font-size:13px;margin-bottom:12px">
+      SHAP is model-agnostic, but the algorithm it runs under differs by architecture - this always states which model type and scope it ran against.
+      A synthetic random <code>__noise__</code> feature is trained in alongside the real ones (same architecture + hyperparameters as the selected model, refit on a fresh sample): any real feature whose <b>ratio</b> to that noise column is near 1.0x is statistically indistinguishable from a coin flip for this model.
+    </p>
+    <div style="display:flex;gap:10px;align-items:center;margin-bottom:16px;flex-wrap:wrap">
+      <select id="shapModelType" style="padding:8px 12px;border:1px solid var(--border);border-radius:6px;font-size:13px">
+        <option value="xgboost">XGBoost</option>
+        <option value="logistic_regression">Logistic Regression</option>
+        <option value="random_forest">Random Forest</option>
+        <option value="extra_trees">Extra Trees</option>
+        <option value="gradient_boosting">Gradient Boosting</option>
+      </select>
+      <select id="shapBankKey" style="padding:8px 12px;border:1px solid var(--border);border-radius:6px;font-size:13px">
+        <option value="ALL">All banks (shared)</option>
+      </select>
+      <select id="shapExposureClass" style="padding:8px 12px;border:1px solid var(--border);border-radius:6px;font-size:13px">
+        <option value="ALL">ALL</option>
+        <option value="CORPORATE">CORPORATE</option>
+        <option value="SME">SME</option>
+        <option value="RETAIL_MORTGAGES">RETAIL_MORTGAGES</option>
+        <option value="RETAIL_OTHER">RETAIL_OTHER</option>
+        <option value="GENERIC">GENERIC</option>
+      </select>
+      <input id="shapSampleSize" type="number" value="200" min="30" max="500" step="10" title="Sample size" style="width:80px;padding:8px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px">
+      <button class="btn btn-success" id="shapRunBtn" onclick="runGlobalShap()">&#9654; Run SHAP</button>
+      <span id="shapMsg" class="msg"></span>
+    </div>
+    <div id="shapResult"></div>
+  </div>
+
   <div class="card">
     <h3>&#128200; Model Evaluation Charts</h3>
+    <p style="color:var(--sub);font-size:13px;margin-bottom:12px">
+      Uses the same model type / segment / bank filters as Run Comparison above - set those first to narrow this list down to the run you mean.
+    </p>
     <div style="display:flex;gap:12px;align-items:center;margin-bottom:20px">
       <label style="font-weight:600;font-size:13px">Select Run:</label>
-      <select id="chartRunSelector" onchange="loadCharts()" style="padding:8px 12px;border:1px solid var(--border);border-radius:6px;font-size:13px">
+      <select id="chartRunSelector" onchange="loadCharts()" style="padding:8px 12px;border:1px solid var(--border);border-radius:6px;font-size:13px;min-width:420px">
         <option value="">— select a run —</option>
       </select>
     </div>
@@ -635,7 +781,7 @@ function showPanel(name) {
   if (name === 'hyperparams') loadHyperparameters();
   if (name === 'schedule')    loadSchedule();
   if (name === 'history')     loadHistory();
-  if (name === 'charts')      populateRunSelector();
+  if (name === 'modellab')   { populateRunSelector(); loadModelLabModelsSummary(); populateModelLabFilters(); populateShapBankOptions(); loadModelLabRuns(); }
   if (name === 'creditops')  { loadCasesQueue(); loadAuditLog(); }
 }
 
@@ -650,6 +796,7 @@ function initDashboard() {
 }
 
 let _bankNameById = {};
+let _bankWorldById = {};
 
 async function loadBankOptions() {
   const sel = document.getElementById('trainBankSelect');
@@ -662,10 +809,22 @@ async function loadBankOptions() {
       return;
     }
     _bankNameById = {};
-    banks.forEach(b => { _bankNameById[b.bank_id] = b.bank_name || b.name || b.bank_id; });
-    sel.innerHTML = banks.map(b =>
+    _bankWorldById = {};
+    banks.forEach(b => {
+      _bankNameById[b.bank_id] = b.bank_name || b.name || b.bank_id;
+      _bankWorldById[b.bank_id] = b.world || 'utopian';
+    });
+    // Grouped by world so the same bank name can never be picked from the
+    // wrong world by accident - Real Earth banks must stay out of any
+    // combined/Utopian training selection.
+    const utopian = banks.filter(b => (b.world || 'utopian') === 'utopian');
+    const real = banks.filter(b => (b.world || 'utopian') === 'real');
+    const optHtml = list => list.map(b =>
       `<option value="${b.bank_id}">${b.bank_id} — ${b.bank_name || b.name || ''}</option>`
     ).join('');
+    sel.innerHTML =
+      (utopian.length ? `<optgroup label="🌐 Utopian Earth">${optHtml(utopian)}</optgroup>` : '') +
+      (real.length ? `<optgroup label="🌍 Real Earth">${optHtml(real)}</optgroup>` : '');
     loadConfiguredModels(); // re-render now that bank names are available
   } catch (e) {
     sel.innerHTML = '<option value="">Error loading banks</option>';
@@ -679,6 +838,15 @@ function bankIdsLabel(bankIds) {
     knownBankIds.every(id => bankIds.includes(id)) && bankIds.length === knownBankIds.length;
   if (isEveryKnownBank) return `All banks (${knownBankIds.length})`;
   return bankIds.map(id => _bankNameById[id] ? `${id} (${_bankNameById[id]})` : id).join(', ');
+}
+
+function worldLabel(bankIds) {
+  if (!bankIds || !bankIds.length) return '<span title="Shared cross-bank model, Utopian Earth banks only">🌐 Utopian</span>';
+  const worlds = new Set(bankIds.map(id => _bankWorldById[id] || 'utopian'));
+  if (worlds.size > 1) return '<span title="Mixed - should not normally happen" style="color:var(--red)">⚠ Mixed</span>';
+  return worlds.has('real')
+    ? '<span title="Real Earth bank-specific model">🌍 Real</span>'
+    : '<span title="Utopian Earth bank-specific model">🌐 Utopian</span>';
 }
 
 function getSelectedBankIds() {
@@ -750,9 +918,11 @@ async function triggerTrain() {
   const modelType = document.getElementById('trainModelType').value;
   const bankIds = getSelectedBankIds();
   const exposureClass = document.getElementById('trainExposureClass').value;
+  const includeComplianceExcluded = document.getElementById('trainIncludeComplianceExcluded').checked;
   document.getElementById('trainMsg').textContent = '';
   const body = { exposure_class: exposureClass };
   if (bankIds.length) body.bank_ids = bankIds;
+  if (includeComplianceExcluded) body.include_compliance_excluded = true;
   const res = await api(`/admin/api/train?model_type=${encodeURIComponent(modelType)}`, 'POST', body);
   if (res.status === 'started') {
     document.getElementById('trainMsg').textContent = '✅ Training started — auto-refreshing...';
@@ -782,7 +952,7 @@ async function loadConfiguredModels() {
       return;
     }
 
-    let html = '<div class="models-table-wrap"><table class="models-table"><tr><th style="width:30px"></th><th>Model</th><th>Segment</th><th>Banks</th>' +
+    let html = '<div class="models-table-wrap"><table class="models-table"><tr><th style="width:30px"></th><th>Model</th><th>Segment</th><th>World</th><th>Banks</th>' +
       '<th style="color:var(--blue)" title="Mean +/- std over 5 folds - the trustworthy estimate, use this to compare models. Parenthetical is the single last-split AUC - diagnostic only, noisy with this few defaults, do not use it to compare models.">&#9733; CV AUC — use this</th>' +
       '<th title="Precision-Recall AUC - far more sensitive than ROC-AUC to whether the model is really separating classes vs. getting lucky with only a handful of positives">PR-AUC</th>' +
       '<th>F1</th><th title="Precision / Recall">P / R</th>' +
@@ -829,10 +999,15 @@ async function loadConfiguredModels() {
         ? `<input type="checkbox" disabled title="Cannot delete the active model">`
         : `<input type="checkbox" class="model-select-cb" data-model-type="${m.model_type}" data-bank-key="${bankKey}" data-exposure-class="${exposureClass}" onchange="updateDeleteBtnState()">`;
 
+      const complianceBadge = meta.compliance_excluded_cols_included
+        ? '<span class="badge" style="background:var(--red-lt,#fee2e2);color:var(--red,#dc2626);" title="Trained with include_compliance_excluded=True - gender_enc/marital_status_enc were used as model inputs. Research/benchmark comparison only, not cleared for a real lending decision.">⚠ incl. gender/marital</span>'
+        : '';
+
       html += `<tr>
         <td>${checkbox}</td>
-        <td><b>${m.model_type}</b> ${status}</td>
+        <td><b>${m.model_type}</b> ${status} ${complianceBadge}</td>
         <td>${exposureClass === 'ALL' ? '<span style="color:var(--sub)">ALL</span>' : `<b>${exposureClass}</b>`}</td>
+        <td>${worldLabel(meta.bank_ids)}</td>
         <td>${bankIdsLabel(meta.bank_ids)}</td>
         <td><b>${cvText}</b> <span style="color:var(--sub)">(${fmt(metrics.auc_roc)})</span></td>
         <td>${fmt(metrics.pr_auc)}</td>
@@ -901,6 +1076,7 @@ async function activateModel(modelType, bankKey, exposureClass) {
       { bank_key: bankKey || 'ALL', exposure_class: (exposureClass && exposureClass !== 'ALL') ? exposureClass : null });
     trainMsg.textContent = `✅ Model activated: ${label}`;
     loadStatus();
+    if (document.getElementById('modelLabModelsTable')) loadModelLabModelsSummary();
   } catch (e) {
     trainMsg.textContent = `❌ Failed to activate: ${e}`;
   }
@@ -1093,25 +1269,47 @@ async function showRunDetail(runId) {
   document.getElementById('runDetailCard').scrollIntoView({behavior:'smooth'});
 }
 
-// ── Panel 6: Charts ─────────────────────────────────────────────────────────
+// ── Model Lab: per-run chart viewer ────────────────────────────────────────
+// Matches the 6 charts trainer.py's generate_charts() actually produces.
 const CHART_LABELS = {
   feature_importance:   'Feature Importance',
   roc_curve:            'ROC Curve',
   confusion_matrix:     'Confusion Matrix',
   pd_distribution:      'PD Distribution',
-  actual_vs_predicted:  'Actual vs Predicted',
-  residual_distribution:'Residual Distribution',
+  precision_recall:     'Precision-Recall Curve',
+  calibration:           'Calibration Curve',
 };
 
 async function populateRunSelector() {
-  const data = await api('/admin/api/runs');
-  const runs = (data.runs || []).filter(r => r.status === 'success');
+  // Reuses the same model type / segment / bank filters as the Run
+  // Comparison table above (mlFilter*) and the same latest-run-only
+  // dedup, so this list only shows runs the user has already narrowed
+  // down to - and each option is labeled with model/segment/bank/date so
+  // it's identifiable without guessing from a bare run_id.
+  const params = new URLSearchParams();
+  const modelType = document.getElementById('mlFilterModelType')?.value;
+  const exposureClass = document.getElementById('mlFilterExposureClass')?.value;
+  const bankId = document.getElementById('mlFilterBankId')?.value;
+  if (modelType) params.set('model_type', modelType);
+  if (exposureClass) params.set('exposure_class', exposureClass);
+  if (bankId) params.set('bank_id', bankId);
+  params.set('status', 'success');
+
+  const data = await api(`/admin/api/model-lab/runs?${params.toString()}`);
+  const runs = data.runs || [];
   const sel  = document.getElementById('chartRunSelector');
   sel.innerHTML = '<option value="">— select a run —</option>' +
-    runs.map(r => `<option value="${r.run_id}">${r.run_id.replace('run_','').replace('_',' ')} (${r.triggered_by})</option>`).join('');
+    runs.map(r => {
+      const date = r.timestamp ? r.timestamp.substring(0, 10) : '—';
+      const label = `${r.model_type || '?'} · ${r.exposure_class || 'ALL'} · ${bankIdsLabel(r.bank_ids)} · ${date}`;
+      return `<option value="${r.run_id}">${label}</option>`;
+    }).join('');
   if (runs.length) {
     sel.value = runs[0].run_id;
     loadCharts();
+  } else {
+    document.getElementById('chartsGrid').innerHTML =
+      '<div class="chart-placeholder">No successful runs match the filters above.</div>';
   }
 }
 
@@ -1135,6 +1333,312 @@ async function loadCharts() {
     card.innerHTML = `<h4>${CHART_LABELS[name] || name}</h4>
       <img src="data:image/png;base64,${chart}" alt="${name}">`;
     grid.appendChild(card);
+  }
+}
+
+// ── Model Lab: Configured Models summary (read-only + Activate/Explain) ────
+let _modelLabModelsRaw = [];
+let _modelLabModelsSort = { key: 'cv_auc', dir: 'desc' };
+
+async function loadModelLabModelsSummary() {
+  const el = document.getElementById('modelLabModelsTable');
+  try {
+    const data = await api('/admin/api/models');
+    _modelLabModelsRaw = data.models || [];
+
+    // Populate the bank filter checklist from whatever banks actually appear
+    // across configured models (only once - re-fetches shouldn't reset the
+    // user's filter selection).
+    const bankPanel = document.querySelector('#msModelsBank .ml-ms-panel');
+    if (!bankPanel.children.length) {
+      const banks = [...new Set(_modelLabModelsRaw.map(m => m.bank_key || 'ALL'))].sort();
+      bankPanel.innerHTML = banks.map(b => {
+        const label = b === 'ALL' ? 'All banks (shared)' : (b + (_bankNameById[b] ? ` — ${_bankNameById[b]}` : ''));
+        return `<label><input type="checkbox" value="${b}" onchange="onMultiselectChange('msModelsBank')"> ${label}</label>`;
+      }).join('');
+    }
+
+    renderModelLabModelsTable();
+  } catch (e) {
+    el.innerHTML = `<p style="color:var(--red)">Error loading models: ${e}</p>`;
+  }
+}
+
+// ── Generic checkbox-dropdown multiselect (used by the Configured Models
+// filters) - a native <select multiple> shows an always-open listbox; this
+// is a compact button that opens a checkbox panel on click instead. ───────
+function toggleMultiselect(id) {
+  const el = document.getElementById(id);
+  const isOpen = el.classList.contains('open');
+  document.querySelectorAll('.ml-ms.open').forEach(o => o.classList.remove('open'));
+  if (!isOpen) el.classList.add('open');
+}
+
+document.addEventListener('click', e => {
+  document.querySelectorAll('.ml-ms.open').forEach(el => {
+    if (!el.contains(e.target)) el.classList.remove('open');
+  });
+});
+
+function multiselectValues(id) {
+  return Array.from(document.querySelectorAll(`#${id} .ml-ms-panel input:checked`)).map(cb => cb.value);
+}
+
+function multiselectLabel(id, allLabel) {
+  const checked = document.querySelectorAll(`#${id} .ml-ms-panel input:checked`);
+  if (!checked.length) return `${allLabel} &#9662;`;
+  if (checked.length === 1) return `${checked[0].parentElement.textContent.trim()} &#9662;`;
+  return `${checked.length} selected &#9662;`;
+}
+
+function onMultiselectChange(id) {
+  const labels = { msModelsType: 'All model types', msModelsSegment: 'All segments', msModelsBank: 'All banks', msModelsWorld: 'All worlds' };
+  document.querySelector(`#${id} .ml-ms-btn`).innerHTML = multiselectLabel(id, labels[id] || 'All');
+  renderModelLabModelsTable();
+}
+
+function clearModelLabFilters() {
+  ['msModelsType', 'msModelsSegment', 'msModelsBank', 'msModelsWorld'].forEach(id => {
+    document.querySelectorAll(`#${id} .ml-ms-panel input:checked`).forEach(cb => { cb.checked = false; });
+    onMultiselectChange(id);
+  });
+  document.getElementById('mlModelsFilterActiveOnly').checked = false;
+  renderModelLabModelsTable();
+}
+
+// A model's world: shared/cross-bank models (bank_key 'ALL') are trained on
+// Utopian Earth banks only (see loadBankOptions comment); bank-scoped models
+// take the world of their bank.
+function modelWorld(m) {
+  const bankKey = m.bank_key || 'ALL';
+  if (bankKey === 'ALL') return 'utopian';
+  return _bankWorldById[bankKey] || 'utopian';
+}
+
+function sortModelLabModels(key) {
+  if (_modelLabModelsSort.key === key) {
+    _modelLabModelsSort.dir = _modelLabModelsSort.dir === 'asc' ? 'desc' : 'asc';
+  } else {
+    _modelLabModelsSort = { key, dir: key === 'model_type' || key === 'exposure_class' ? 'asc' : 'desc' };
+  }
+  renderModelLabModelsTable();
+}
+
+function renderModelLabModelsTable() {
+  const el = document.getElementById('modelLabModelsTable');
+  if (!_modelLabModelsRaw.length) {
+    el.innerHTML = '<p style="color:var(--sub)">No models trained yet.</p>';
+    return;
+  }
+
+  const filterTypes = multiselectValues('msModelsType');
+  const filterSegments = multiselectValues('msModelsSegment');
+  const filterBanks = multiselectValues('msModelsBank');
+  const filterWorlds = multiselectValues('msModelsWorld');
+  const activeOnly = document.getElementById('mlModelsFilterActiveOnly').checked;
+
+  let models = _modelLabModelsRaw.filter(m => {
+    if (filterTypes.length && !filterTypes.includes(m.model_type)) return false;
+    if (filterSegments.length && !filterSegments.includes(m.exposure_class || 'ALL')) return false;
+    if (filterBanks.length && !filterBanks.includes(m.bank_key || 'ALL')) return false;
+    if (filterWorlds.length && !filterWorlds.includes(modelWorld(m))) return false;
+    if (activeOnly && !m.is_active) return false;
+    return true;
+  });
+
+  if (!models.length) {
+    el.innerHTML = '<p style="color:var(--sub)">No models match this filter.</p>';
+    return;
+  }
+
+  const sortVal = (m, key) => {
+    const meta = m.metadata || {};
+    const metrics = meta.metrics || {};
+    if (key === 'model_type') return m.model_type || '';
+    if (key === 'exposure_class') return m.exposure_class || 'ALL';
+    if (key === 'bank_key') return bankIdsLabel(meta.bank_ids) || '';
+    if (key === 'cv_auc') return metrics.cv_auc_mean ?? -Infinity;
+    if (key === 'f1') return metrics.f1 ?? -Infinity;
+    return '';
+  };
+  const { key, dir } = _modelLabModelsSort;
+  models = [...models].sort((a, b) => {
+    const va = sortVal(a, key), vb = sortVal(b, key);
+    const cmp = typeof va === 'string' ? va.localeCompare(vb) : va - vb;
+    return dir === 'asc' ? cmp : -cmp;
+  });
+
+  const arrow = k => _modelLabModelsSort.key === k ? (_modelLabModelsSort.dir === 'asc' ? ' &#9650;' : ' &#9660;') : '';
+  const th = (key, label) => `<th style="cursor:pointer;user-select:none" onclick="sortModelLabModels('${key}')">${label}${arrow(key)}</th>`;
+
+  const fmt = v => v !== undefined && v !== null ? v.toFixed(4) : '—';
+  let html = '<div class="models-table-wrap"><table class="models-table"><tr>' +
+    th('model_type', 'Model') + th('exposure_class', 'Segment') + th('bank_key', 'Banks') +
+    th('cv_auc', 'CV AUC') + th('f1', 'F1') + '<th>Action</th></tr>';
+  models.forEach(m => {
+    const meta = m.metadata || {};
+    const metrics = meta.metrics || {};
+    const exposureClass = m.exposure_class || 'ALL';
+    const bankKey = m.bank_key || 'ALL';
+    const status = m.is_active ? '<span class="badge badge-success">Active</span>' : '';
+    const activateBtn = m.is_active
+      ? `<button class="btn btn-sm btn-primary" disabled>&#10003; Active</button>`
+      : `<button class="btn btn-sm btn-orange" onclick="activateModel('${m.model_type}', '${bankKey}', '${exposureClass}')">Activate</button>`;
+    html += `<tr>
+      <td><b>${m.model_type}</b> ${status}</td>
+      <td>${exposureClass}</td>
+      <td>${bankIdsLabel(meta.bank_ids)}</td>
+      <td>${fmt(metrics.cv_auc_mean)}</td>
+      <td>${fmt(metrics.f1)}</td>
+      <td>${activateBtn} <button class="btn btn-sm" onclick="explainModelWithShap('${m.model_type}', '${bankKey}', '${exposureClass}')">&#129504; Explain with SHAP</button></td>
+    </tr>`;
+  });
+  html += '</table></div>';
+  el.innerHTML = html;
+}
+
+function populateShapBankOptions() {
+  const sel = document.getElementById('shapBankKey');
+  if (sel.options.length > 1) return; // already populated
+  Object.keys(_bankNameById).forEach(bankId => {
+    sel.insertAdjacentHTML('beforeend', `<option value="${bankId}">${bankId} — ${_bankNameById[bankId]}</option>`);
+  });
+}
+
+function onModelLabFilterChange() {
+  loadModelLabRuns();
+  populateRunSelector();
+}
+
+// ── Model Lab: filterable run comparison ───────────────────────────────────
+async function populateModelLabFilters() {
+  const sel = document.getElementById('mlFilterBankId');
+  if (sel.options.length > 1) return; // already populated
+  try {
+    const res = await fetch('/operations/api/banks');
+    const data = await res.json();
+    const banks = data.banks || data || [];
+    sel.innerHTML = '<option value="">All banks</option>' +
+      banks.map(b => `<option value="${b.bank_id}">${b.bank_id} — ${b.bank_name || b.name || ''}</option>`).join('');
+  } catch (e) { /* leave default option only */ }
+}
+
+async function loadModelLabRuns() {
+  const el = document.getElementById('modelLabRunsTable');
+  el.innerHTML = '<p style="color:var(--sub)">Loading...</p>';
+  const params = new URLSearchParams();
+  const modelType = document.getElementById('mlFilterModelType').value;
+  const exposureClass = document.getElementById('mlFilterExposureClass').value;
+  const bankId = document.getElementById('mlFilterBankId').value;
+  const status = document.getElementById('mlFilterStatus').value;
+  if (modelType) params.set('model_type', modelType);
+  if (exposureClass) params.set('exposure_class', exposureClass);
+  if (bankId) params.set('bank_id', bankId);
+  if (status) params.set('status', status);
+
+  try {
+    const data = await api(`/admin/api/model-lab/runs?${params.toString()}`);
+    const runs = data.runs || [];
+    if (!runs.length) {
+      el.innerHTML = '<p style="color:var(--sub)">No runs match this filter.</p>';
+      return;
+    }
+    const fmt = v => v !== undefined && v !== null ? v.toFixed(4) : '—';
+    let html = '<div class="models-table-wrap"><table class="models-table"><tr>' +
+      '<th>Run</th><th>Model</th><th>Segment</th><th>Banks</th><th>Status</th>' +
+      '<th>AUC-ROC</th><th>PR-AUC</th>' +
+      '<th title="Computed at the pd_classification_threshold configured in Hyperparameters (default 0.25) - any predicted PD at or above that cutoff counts as a &quot;predicted default&quot;. Credit-risk models deliberately use a LOW threshold to catch as many real defaults as possible (missing one is far costlier than a false alarm), so at a low base default rate this trades away accuracy for recall - a low number here does not mean the model is bad. Use AUC-ROC (5-fold CV) to actually compare models; accuracy is threshold-dependent and secondary.">Accuracy</th>' +
+      '<th>Precision</th><th>Recall</th><th>F1</th><th>Brier</th>' +
+      '<th title="Confusion matrix: [[TN,FP],[FN,TP]]">Confusion Matrix</th><th>Promoted</th></tr>';
+    runs.forEach(r => {
+      const m = r.metrics || {};
+      const cm = r.confusion_matrix;
+      const cmText = cm ? `TN=${cm[0][0]} FP=${cm[0][1]} FN=${cm[1][0]} TP=${cm[1][1]}` : '—';
+      html += `<tr>
+        <td>${(r.run_id || '').replace('run_','').replace('_',' ')}</td>
+        <td>${r.model_type || '—'}</td>
+        <td>${r.exposure_class || 'ALL'}</td>
+        <td>${bankIdsLabel(r.bank_ids)}</td>
+        <td>${r.status || '—'}</td>
+        <td>${fmt(m.auc_roc)}</td>
+        <td>${fmt(m.pr_auc)}</td>
+        <td>${fmt(m.accuracy)}</td>
+        <td>${fmt(m.precision)}</td>
+        <td>${fmt(m.recall)}</td>
+        <td>${fmt(m.f1)}</td>
+        <td>${fmt(m.brier_score)}</td>
+        <td style="font-size:11px">${cmText}</td>
+        <td>${r.model_promoted ? '&#10003;' : '—'}</td>
+      </tr>`;
+    });
+    html += '</table></div>';
+    el.innerHTML = html;
+  } catch (e) {
+    el.innerHTML = `<p style="color:var(--red)">Error loading runs: ${e}</p>`;
+  }
+}
+
+// ── Model Lab: global SHAP ──────────────────────────────────────────────────
+function explainModelWithShap(modelType, bankKey, exposureClass) {
+  document.getElementById('shapModelType').value = modelType;
+  const bankSel = document.getElementById('shapBankKey');
+  if (![...bankSel.options].some(o => o.value === bankKey)) {
+    bankSel.insertAdjacentHTML('beforeend', `<option value="${bankKey}">${bankKey}</option>`);
+  }
+  bankSel.value = bankKey;
+  document.getElementById('shapExposureClass').value = exposureClass || 'ALL';
+  document.getElementById('shapResult').scrollIntoView({ behavior: 'smooth', block: 'center' });
+  runGlobalShap();
+}
+
+async function runGlobalShap() {
+  const modelType = document.getElementById('shapModelType').value;
+  const bankKey = document.getElementById('shapBankKey').value;
+  const exposureClass = document.getElementById('shapExposureClass').value;
+  const sampleSize = parseInt(document.getElementById('shapSampleSize').value, 10) || 200;
+  const btn = document.getElementById('shapRunBtn');
+  const msg = document.getElementById('shapMsg');
+  const resultEl = document.getElementById('shapResult');
+  btn.disabled = true;
+  msg.textContent = '⏳ Running SHAP...';
+  resultEl.innerHTML = '';
+  try {
+    const res = await api('/admin/api/model-lab/shap', 'POST', {
+      model_type: modelType, bank_key: bankKey, exposure_class: exposureClass, sample_size: sampleSize,
+    });
+    if (res.error) {
+      msg.textContent = '❌ ' + res.error;
+      return;
+    }
+    msg.textContent = '✅ Done';
+    setTimeout(() => { msg.textContent = ''; }, 4000);
+
+    const fmt = v => v !== undefined && v !== null ? v.toFixed(4) : '—';
+    let rowsHtml = res.features.map(f => {
+      const ratio = f.shap_ratio;
+      const flagged = ratio !== null && ratio !== undefined && ratio < 1.2;
+      const ratioText = ratio !== null && ratio !== undefined ? `${ratio.toFixed(2)}x` : '—';
+      return `<tr ${flagged ? 'style="background:#FFF8E1"' : ''}>
+        <td>${f.feature}</td>
+        <td>${fmt(f.mean_abs_shap)}</td>
+        <td>${flagged ? '<b style="color:#d97706">' + ratioText + '</b>' : ratioText}</td>
+      </tr>`;
+    }).join('');
+    resultEl.innerHTML = `
+      <p style="font-size:13px;color:var(--sub);margin-bottom:12px">
+        Ran against a <b>${res.model_type}</b> shadow model (${res.explainer_mode === 'tree' ? 'TreeExplainer' : 'permutation explainer'}) for
+        <b>${res.bank_key} / ${res.exposure_class}</b>, refit on ${res.n_samples} sampled rows. Noise baseline mean|SHAP| = ${fmt(res.noise_baseline)}.
+        Rows highlighted below have ratio &lt; 1.2x - indistinguishable from noise at this sample size.
+      </p>
+      <img src="data:image/png;base64,${res.chart_png_b64}" alt="Global SHAP importance" style="max-width:100%;margin-bottom:16px">
+      <div class="models-table-wrap"><table class="models-table">
+        <tr><th>Feature</th><th>Mean |SHAP|</th><th title="mean|SHAP| / noise column's mean|SHAP|">Ratio vs. noise</th></tr>
+        ${rowsHtml}
+      </table></div>`;
+  } catch (e) {
+    msg.textContent = '❌ ' + e;
+  } finally {
+    btn.disabled = false;
   }
 }
 

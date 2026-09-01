@@ -1,0 +1,161 @@
+{
+  "bank_id": "BANK011",
+  "bank_name": "PLACEHOLDER - Taiwan Composite Bank (identity not confirmed)",
+  "bank_name_note": "Unlike BANK010 (Bradesco), this source dataset does not name a specific institution - the original academic paper (Yeh & Lien, 2009, 'Default of Credit Card Clients') anonymizes the source bank. Do not treat 'PLACEHOLDER - Taiwan Composite Bank' as a real bank name in any user-facing report - this needs an explicit decision (generic placeholder name vs. a different resolution) before actual onboarding runs.",
+  "country_code": "TWN",
+  "source_file": "sample datasets/Taiwan_UCI_Credit_Card.csv",
+  "source_description": "30,000-row revolving-credit-card-account dataset (UCI 'Default of Credit Card Clients', Yeh & Lien 2009). One row per account: credit limit, 4 demographic fields, 6 months of monthly repayment-status/bill/payment history, and a real binary outcome column (target). No loan-amount field in the installment-loan sense (this is revolving credit, not a term loan), no income field, no bureau score, no occupation/geography fields.",
+  "profiled_on": "2026-07-12",
+  "profiling_method": "Direct read of sample datasets/Taiwan_UCI_Credit_Card.csv (30,000 rows) via pandas: dtypes, null counts, value_counts() on categoricals, target balance - confirmed 0 nulls across all 24 columns before any mapping decision below.",
+
+  "mappings": [
+    {
+      "source_column": "target",
+      "target_table": "bank_loan_metrics",
+      "target_field": "default_flag",
+      "mapping_type": "direct",
+      "formula": "default_flag = target",
+      "confidence": "high",
+      "notes": "Real labeled outcome, 0% missing, base rate 22.1%."
+    },
+    {
+      "source_column": "AGE",
+      "target_table": "bank_loan_metrics",
+      "target_field": "age",
+      "mapping_type": "direct",
+      "formula": "age = AGE",
+      "confidence": "high",
+      "notes": "0% missing, clean integer range."
+    },
+    {
+      "source_column": "EDUCATION",
+      "target_table": "bank_loan_metrics",
+      "target_field": "education_enc",
+      "mapping_type": "risk_ordered_encoding",
+      "formula": "Rank EDUCATION's categories (1=grad school, 2=university, 3=high school, 4=other, plus undocumented codes 0/5/6 present in the raw data) by their OWN observed target rate within this file, ascending risk, assign 1..N - same convention used for BANK010.",
+      "confidence": "medium",
+      "notes": "Compute the risk order on the TRAINING SPLIT ONLY, not the full 30,000-row file before splitting - BANK010's onboarding script computed this on the full file pre-split, which mildly leaks test-set outcome information into the encoding. Do not repeat that mistake here."
+    },
+    {
+      "source_column": "LIMIT_BAL",
+      "target_table": "bank_loan_metrics",
+      "target_field": "credit_limit",
+      "mapping_type": "direct_with_currency_conversion",
+      "formula": "credit_limit_usd = LIMIT_BAL / fx_rate_twd_per_usd, where fx_rate_twd_per_usd comes from country_macro.TWN.fx_rate_per_usd (to be seeded)",
+      "confidence": "high",
+      "notes": "New generic canonical field, not Taiwan-specific naming (see add_taiwan_columns.py docstring) - genuine borrower attribute (credit line size), distinct from `exposure` (a live assessment-time input, not a stored training feature)."
+    },
+    {
+      "source_column": "PAY_0",
+      "target_table": "bank_loan_metrics",
+      "target_field": "repay_status_m1",
+      "mapping_type": "direct_with_renumbering",
+      "formula": "repay_status_m1 = PAY_0 (most recent month; PAY_0 is the source CSV's own naming quirk - there is no PAY_1 in the original file)",
+      "confidence": "high",
+      "notes": "Values -1=pay duly, 1-9=months delinquent. Codes 0 and -2 also appear in the raw data and are UNDOCUMENTED in the original UCI dataset description - a known data-quality issue with this specific file, not an artifact of this mapping. Kept as-is (not remapped/guessed), flagged here for whoever trains on this field."
+    },
+    {
+      "source_column": "PAY_2 .. PAY_6",
+      "target_table": "bank_loan_metrics",
+      "target_field": "repay_status_m2 .. repay_status_m6",
+      "mapping_type": "direct_with_renumbering",
+      "formula": "repay_status_m2 = PAY_2, repay_status_m3 = PAY_3, ..., repay_status_m6 = PAY_6 (re-numbered into a clean m1..m6 sequence, most-recent-first)",
+      "confidence": "high",
+      "notes": "Same 0/-2 undocumented-code caveat as PAY_0/repay_status_m1."
+    },
+    {
+      "source_column": "BILL_AMT1 .. BILL_AMT6",
+      "target_table": "bank_loan_metrics",
+      "target_field": "bill_amt_m1 .. bill_amt_m6",
+      "mapping_type": "direct_with_currency_conversion",
+      "formula": "bill_amt_mN_usd = BILL_AMTN / fx_rate_twd_per_usd",
+      "confidence": "high",
+      "notes": "0% missing, clean. Some negative values present in the raw data (overpayment/credit balance) - genuine, not an error, left as-is."
+    },
+    {
+      "source_column": "PAY_AMT1 .. PAY_AMT6",
+      "target_table": "bank_loan_metrics",
+      "target_field": "payment_amt_m1 .. payment_amt_m6",
+      "mapping_type": "direct_with_currency_conversion",
+      "formula": "payment_amt_mN_usd = PAY_AMTN / fx_rate_twd_per_usd",
+      "confidence": "high",
+      "notes": "0% missing, clean."
+    },
+    {
+      "source_column": "MARRIAGE",
+      "target_table": "bank_loan_metrics",
+      "target_field": "marital_status_enc",
+      "mapping_type": "risk_ordered_encoding",
+      "formula": "Rank MARRIAGE's categories (1=married, 2=single, 3=other, plus undocumented code 0) by observed target rate, ascending risk, assign 1..N.",
+      "confidence": "medium",
+      "notes": "COMPLIANCE FLAG: column is populated per 'don't lose information upfront', but must NOT be added to ml_models/trainer.py's FEATURE_COLS without an explicit review of whether marital status is an acceptable model input in this jurisdiction. Not wired into training by this mapping file."
+    },
+    {
+      "source_column": "SEX",
+      "target_table": "bank_loan_metrics",
+      "target_field": "gender_enc",
+      "mapping_type": "direct",
+      "formula": "gender_enc = SEX (1=male, 2=female)",
+      "confidence": "high",
+      "notes": "COMPLIANCE FLAG - STRONGER THAN MARRIAGE: gender is a protected characteristic under fair-lending law in most jurisdictions (e.g. ECOA in the US). Column populated for completeness only. This field must NEVER be added to FEATURE_COLS without an explicit, documented compliance/legal review - treat as excluded-by-default, not merely unreviewed."
+    }
+  ],
+
+  "derived_fields": [
+    {
+      "target_field": "previous_default_flag",
+      "formula": "1 if any of repay_status_m1..m6 > 0 (any delay in the 6-month window), else 0",
+      "confidence": "high",
+      "notes": "Maps onto an EXISTING canonical field, computed from real observed repayment history - not fabricated."
+    },
+    {
+      "target_field": "num_late_payments_past_12m",
+      "formula": "count of months among repay_status_m1..m6 where value > 0",
+      "confidence": "medium",
+      "notes": "Maps onto an EXISTING canonical field, but the field name says '12m' and this window is genuinely only 6 months - document this honestly wherever the field is used for this bank, do not silently relabel a 6-month count as a 12-month one."
+    },
+    {
+      "target_field": "credit_utilization_ratio",
+      "formula": "bill_amt_m1 / credit_limit (guard divide-by-zero: NULL if credit_limit is 0)",
+      "confidence": "high",
+      "notes": "New derived field on the new generic schema. Standard, well-established credit-risk signal - real ratio from real data, not fabricated."
+    },
+    {
+      "target_field": "payment_coverage_ratio",
+      "formula": "average(payment_amt_mN / bill_amt_mN for N in 1..6, skipping months where bill_amt_mN <= 0)",
+      "confidence": "medium",
+      "notes": "New derived field. PAY_AMT* columns showed real feature importance in dry-run testing of this dataset - worth carrying through as a summary ratio."
+    }
+  ],
+
+  "not_mapped_no_target_field": [],
+  "not_mapped_no_target_field_note": "Every one of the 23 source columns + target was mapped, derived, or explicitly compliance-flagged above - this dataset has no columns that were simply skipped without a documented reason, unlike BANK010's PAK.csv which had ~24 fields with genuinely no platform-side target.",
+
+  "unmapped_required_fields_no_source_at_all": [
+    "de_ratio", "interest_coverage", "profitability", "liquidity_ratio",
+    "annual_income", "years_employed", "num_dependents", "employment_type_enc",
+    "residence_type_enc", "city_tier_enc", "loan_purpose_enc", "cibil_score",
+    "months_as_customer", "existing_loans_count", "is_rural", "num_existing_products",
+    "months_in_residence", "foir",
+    "gdp_growth_pct", "inflation_cpi_pct", "policy_rate_pct", "unemployment_pct",
+    "delta_de_ratio", "delta_cibil", "months_since_origination",
+    "delta_gdp_pct", "delta_cpi_pct", "delta_policy_rate_pct", "delta_unemployment_pct", "macro_regime_score",
+    "ecs_bounce_count", "other_lender_emi_ratio", "income_disruption_flag", "sector_stress_index", "ltv_trend_pct"
+  ],
+  "unmapped_required_fields_note": "No income, occupation, geography, housing-tenure, or bureau-score fields exist in this dataset at all - it's revolving-credit billing/repayment behavior data, structurally thinner on borrower demographics than either the Utopian banks or BANK010's PAK.csv, but richer on payment-behavior history than either. Macro fields come from country_macro via country_code=TWN, once seeded (not from this file).",
+
+  "proposed_new_fields": [
+    {
+      "proposed_fields": "credit_limit, repay_status_m1..m6, bill_amt_m1..m6, payment_amt_m1..m6, marital_status_enc, gender_enc, credit_utilization_ratio, payment_coverage_ratio",
+      "rationale": "Per explicit decision: bring in all raw columns under generic, reusable names rather than collapsing to a handful of summary stats upfront, so a future per-bank multi-model comparison workflow has full raw granularity available, not just a pre-curated subset.",
+      "status": "Schema added via operations/scripts/add_taiwan_columns.py (23 new columns, all NULL on existing rows, verified). Data population NOT yet run - this file documents the mapping only."
+    }
+  ],
+
+  "currency_conversion": "LIMIT_BAL/BILL_AMT*/PAY_AMT* are NT$ (New Taiwan Dollar). Requires country_macro.TWN.fx_rate_per_usd to be seeded (Taiwan is not yet in the countries/country_macro tables - this needs the same seeding step BRA got before Bradesco onboarding). Real Earth's canonical monetary unit is USD, same convention as BANK010.",
+
+  "onboarding_scope_decision": "NOT YET DECIDED - open question, not resolved by this mapping file. Unlike PAK.csv (no loan-amount field at all, forcing training-only), this dataset's LIMIT_BAL is a genuine facility-size field, so a broader-than-training-only scope is plausible here. Needs an explicit decision before any onboarding script is written or run.",
+  "bank_identity_decision": "NOT YET DECIDED - see bank_name_note above. Needs resolution before onboarding.",
+  "feature_cols_decision": "NOT YET DONE - ml_models/trainer.py's FEATURE_COLS is still the fixed 37-field canonical list. For a single-bank training run to actually use these new columns, trainer.py needs the auto-discovery enhancement discussed separately (bank-scoped runs should use canonical FEATURE_COLS + that bank's own populated non-canonical columns, not just the fixed list). Not implemented by this mapping file or the schema migration - schema and training logic are two separate pieces of work.",
+  "world_assignment": "Real Earth ('real'), same quarantine rules as BANK010 - never pooled into combined Utopian Earth training, never selectable in the Utopian Earth world view. Whether it can ever be pooled WITH BANK010 specifically is a separate, later decision requiring genuine categorical alignment work between the two Real Earth banks."
+}

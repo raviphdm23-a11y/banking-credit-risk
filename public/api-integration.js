@@ -135,17 +135,12 @@ async function calculatePDFromAPI(debtToEquity, interestCoverage, profitabilityM
         return null;
     }
 
-    // Convert to percentage for display
+    // Convert to percentage for display. No component breakdown here - the ML
+    // endpoint returns a single classifier output, not a formula decomposition
+    // (see SHAP attribution for what actually drove this number).
     return {
         pd: result.pd_percentage,  // Already in percentage
         method: result.method || pdMethod,
-        components: {
-            baseRate: result.breakdown?.base_rate || 0,
-            leverageImpact: result.breakdown?.de_ratio_adjustment || 0,
-            profitImpact: result.breakdown?.profitability_adjustment || 0,
-            liquidityImpact: result.breakdown?.liquidity_adjustment || 0,
-            coverageImpact: result.breakdown?.interest_coverage_adjustment || 0
-        }
     };
 }
 
