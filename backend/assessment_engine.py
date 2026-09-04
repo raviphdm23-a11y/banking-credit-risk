@@ -25,7 +25,7 @@ import pandas as pd
 from backend.calculations import AIRBCalculations, StandardizedApproachCalculations
 from backend.rating_masterscale import pd_to_grade, grade_description
 from backend.pricing import full_pricing
-from backend.feature_meta import FEATURE_ORDER, FEATURE_META, model_feature_frame, lookup_country_macro
+from backend.feature_meta import FEATURE_ORDER, FEATURE_META, model_feature_frame, lookup_country_macro, missing_data_report
 from backend.explainability import PeerComparison, CounterfactualEngine
 from backend.shap_explainer import create_shap_explainer
 
@@ -114,6 +114,12 @@ class AssessmentEngine:
             return None if v != v else v  # v != v is the standard NaN test
         model_inputs_resolved = {k: _json_safe(v) for k, v in self._feature_vector(inputs).iloc[0].items()}
 
+        # 1c. Data-adequacy disclosure: which of those resolved values were
+        # genuinely supplied by the applicant vs. filled in, and how. This is
+        # reported unconditionally, alongside every other finding below -
+        # data adequacy conditions the trustworthiness of everything else.
+        data_quality = missing_data_report(inputs, self._model)
+
         # 2. Rating grade
         rating = pd_to_grade(pd_point)
         rating["description"] = grade_description(rating["grade"])
@@ -197,6 +203,7 @@ class AssessmentEngine:
             "model_version": self._version,
             "inputs":        inputs,
             "model_inputs_resolved": model_inputs_resolved,
+            "data_quality":  data_quality,
             "pd":            pd_result,
             "rating":        rating,
             "attribution":   attribution,

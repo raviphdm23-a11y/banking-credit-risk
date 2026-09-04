@@ -306,3 +306,52 @@ def model_feature_frame(inputs: dict, model=None):
         return float(EXTRA_FEATURE_DEFAULTS.get(name, 0.0))
 
     return pd.DataFrame([{n: _val(n) for n in names}])[names]
+
+
+def missing_data_report(inputs: dict, model=None) -> dict:
+    """Which of the model's expected features were actually supplied by the
+    caller, vs. filled in - and how. Mirrors model_feature_frame's own
+    fill logic exactly, so this always describes what the model really saw,
+    not an approximation of it.
+
+    Every model-serving code path (assess-borrower, SHAP, counterfactuals,
+    peer comparison) goes through model_feature_frame, so this single report
+    is accurate regardless of which of those the caller is asking about.
+    """
+    names_attr = getattr(model, "feature_names_in_", None)
+    names = list(names_attr) if names_attr is not None and len(names_attr) > 0 else list(FEATURE_ORDER)
+    allow_missing = bool(getattr(model, "allow_missing_features_", False))
+
+    fields = []
+    for name in names:
+        supplied = name in inputs and inputs[name] is not None
+        if supplied:
+            try:
+                float(inputs[name])
+            except (TypeError, ValueError):
+                supplied = False
+        entry = {
+            "feature": name,
+            "display_name": FEATURE_DISPLAY_NAMES.get(name, name),
+            "supplied": supplied,
+        }
+        if not supplied:
+            if allow_missing:
+                entry["fill_strategy"] = "native_missing"
+                entry["fill_value"] = None
+            else:
+                entry["fill_strategy"] = "neutral_default"
+                entry["fill_value"] = (
+                    FEATURE_META[name]["baseline"] if name in FEATURE_META
+                    else EXTRA_FEATURE_DEFAULTS.get(name, 0.0)
+                )
+        fields.append(entry)
+
+    missing = [f for f in fields if not f["supplied"]]
+    return {
+        "total_fields": len(fields),
+        "supplied_count": len(fields) - len(missing),
+        "missing_count": len(missing),
+        "completeness_pct": round(100.0 * (len(fields) - len(missing)) / len(fields), 1) if fields else 100.0,
+        "missing_fields": missing,
+    }
