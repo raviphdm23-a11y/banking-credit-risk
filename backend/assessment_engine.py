@@ -192,6 +192,19 @@ class AssessmentEngine:
         }
 
         # 10. Assemble & hash
+        #
+        # NOTE ON REGULATORY SCOPE: macro_regime below is NOT a Basel III
+        # requirement and is not used anywhere in this platform's Basel III
+        # capital calculation (PD/LGD/EAD -> RWA, Sections above). Basel's
+        # AIRB framework explicitly requires the PD used for capital to be a
+        # long-run-average / through-the-cycle estimate, deliberately
+        # insensitive to short-term macro conditions (to avoid procyclical
+        # capital swings) - macro-conditioning the CAPITAL PD would itself be
+        # non-compliant, not merely unnecessary. This score is informational
+        # context only, conceptually closer to IFRS 9 / Ind AS 109 point-in-
+        # time ECL provisioning or ICAAP forward-looking stress testing -
+        # both real, separate regulatory regimes, but out of this platform's
+        # current Basel III scope. Retained as-is; not extended further.
         mrs = float(inputs.get('macro_regime_score', 0.0))
         if   mrs <= 25:  mrs_label = 'Normal'
         elif mrs <= 55:  mrs_label = 'Moderate Stress'
@@ -232,6 +245,11 @@ class AssessmentEngine:
                     else "Moderate macro stress — cyclical headwinds elevating default probability." if mrs <= 55
                     else "Severe macro distress — COVID/crisis-era conditions; PD materially elevated."
                 ),
+                "regulatory_scope": "Not a Basel III requirement; informational only. Does not "
+                                     "affect the Basel III capital PD/RWA above, which Basel "
+                                     "requires to remain through-the-cycle. Conceptually adjacent "
+                                     "to IFRS 9 / Ind AS 109 ECL and ICAAP stress testing, both "
+                                     "out of current scope.",
             },
         }
         findings["content_hash"] = self._hash(findings)
