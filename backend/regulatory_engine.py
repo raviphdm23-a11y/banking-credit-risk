@@ -299,7 +299,8 @@ def client_exposure(loan, metrics=None, customer_name=None):
         lgd = lgd_result.get('lgd', DEFAULT_LGD)
 
         maturity_years = max(1.0, min(5.0, (float(loan.get('tenure') or 36)) / 12.0))
-        rw_result = AIRBCalculations.calculate_risk_weight(pd, lgd * 100, ead, maturity_years)
+        rw_result = AIRBCalculations.calculate_risk_weight(
+            pd, lgd * 100, ead, maturity_years, loan.get('exposure_class'))
         if 'error' in rw_result:
             # Fall back to SA if the AIRB chain can't resolve (e.g. pathological
             # inputs) rather than silently mis-stating capital as zero.

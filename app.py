@@ -504,13 +504,16 @@ def calculate_correlation():
 
     Expected request body:
     {
-        "pd": float (decimal, e.g., 0.035 for 3.5%)
+        "pd": float (decimal, e.g., 0.035 for 3.5%),
+        "exposure_class": str (optional - RETAIL_MORTGAGES | RETAIL_REVOLVING |
+            RETAIL_OTHER get their own Basel retail correlation formula;
+            anything else, including omitted, uses the wholesale formula)
     }
     """
     try:
         data = request.get_json()
         pd = data.get('pd')
-        result = AIRBCalculations.calculate_correlation(pd)
+        result = AIRBCalculations.calculate_correlation(pd, data.get('exposure_class'))
         return jsonify(result), 200 if 'error' not in result else 400
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -523,7 +526,9 @@ def calculate_maturity_adjustment():
     {
         "maturity": float (years, 1-5),
         "lgd": float (decimal, 0-1),
-        "pd": float (decimal, 0.0001-1.0)
+        "pd": float (decimal, 0.0001-1.0),
+        "exposure_class": str (optional - retail exposure classes are excluded
+            from the maturity adjustment under Basel III and return MA=1.0)
     }
     """
     try:
@@ -531,7 +536,7 @@ def calculate_maturity_adjustment():
         maturity = data.get('maturity')
         lgd = data.get('lgd')
         pd = data.get('pd')
-        result = AIRBCalculations.calculate_maturity_adjustment(maturity, lgd, pd)
+        result = AIRBCalculations.calculate_maturity_adjustment(maturity, lgd, pd, data.get('exposure_class'))
         return jsonify(result), 200 if 'error' not in result else 400
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -572,7 +577,11 @@ def calculate_risk_weight_airb():
         "lgd": float (percentage, 0-100),
         "ead": float,
         "maturity": float (1-5),
-        "borrower_type": str (optional)
+        "exposure_class": str (optional - RETAIL_MORTGAGES | RETAIL_REVOLVING |
+            RETAIL_OTHER get Basel's retail correlation formula and are excluded
+            from the maturity adjustment; anything else uses the wholesale
+            corporate/sovereign/bank treatment),
+        "borrower_type": str (optional, legacy alias for exposure_class)
     }
     """
     try:
@@ -581,9 +590,9 @@ def calculate_risk_weight_airb():
         lgd = data.get('lgd')
         ead = data.get('ead')
         maturity = data.get('maturity')
-        borrower_type = data.get('borrower_type', 'Corporate')
+        exposure_class = data.get('exposure_class') or data.get('borrower_type')
 
-        result = AIRBCalculations.calculate_risk_weight(pd, lgd, ead, maturity, borrower_type)
+        result = AIRBCalculations.calculate_risk_weight(pd, lgd, ead, maturity, exposure_class)
         return jsonify(result), 200 if 'error' not in result else 400
     except Exception as e:
         return jsonify({'error': str(e)}), 500

@@ -443,24 +443,37 @@ class AssessmentEngine:
         exposure = float(inputs.get("exposure", 0))
         maturity = float(inputs.get("maturity", 2.5))
         lgd_pct  = lgd * 100
+        # NOTE: self._exposure_class is which ML *model slot* scored this
+        # borrower (e.g. 'GENERIC' for a bank-scoped reference portfolio with
+        # no clean Basel segmentation - see feature_meta) - it is a routing
+        # concept, not necessarily the borrower's true Basel exposure class.
+        # The caller-supplied inputs['exposure_class'] is the actual
+        # regulatory classification and must take priority here, or every
+        # GENERIC-slot borrower would silently get wholesale AIRB treatment
+        # regardless of what Basel class they were actually submitted as.
+        exposure_class = inputs.get("exposure_class") or self._exposure_class
 
-        rw_result = AIRBCalculations.calculate_risk_weight(pd, lgd_pct, exposure, maturity)
+        rw_result = AIRBCalculations.calculate_risk_weight(pd, lgd_pct, exposure, maturity, exposure_class)
         if "error" in rw_result:
             return {"error": rw_result["error"], "rwa": 0, "capital_required": 0}
 
         risk_weight = rw_result["risk_weight"]
         rwa_result  = AIRBCalculations.calculate_rwa_and_capital(exposure, risk_weight)
 
-        corr_result = AIRBCalculations.calculate_correlation(pd)
-        ma_result   = AIRBCalculations.calculate_maturity_adjustment(maturity, lgd, pd)
+        # Reuse the correlation/maturity components calculate_risk_weight already
+        # derived above (both exposure-class-aware) rather than recomputing them
+        # separately - a prior version of this code recomputed them without the
+        # exposure class, which for a retail borrower silently disagreed with the
+        # risk weight actually used.
+        components = rw_result.get("components", {})
 
         return {
             "rwa":               rwa_result.get("rwa", 0),
             "capital_required":  rwa_result.get("capital_required", 0),
             "risk_weight_pct":   round(risk_weight, 2),
-            "correlation_r":     corr_result.get("r", 0),
-            "maturity_adj":      ma_result.get("maturity_adjustment", 1.0),
-            "b_coefficient":     ma_result.get("b_coefficient", 0),
+            "correlation_r":     components.get("correlation", 0),
+            "maturity_adj":      components.get("maturity_adjustment", 1.0),
+            "b_coefficient":     components.get("b_coefficient", 0),
             "exposure":          round(exposure, 2),
         }
 

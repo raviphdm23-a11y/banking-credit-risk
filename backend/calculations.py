@@ -72,15 +72,43 @@ class AIRBCalculations:
             return {'error': f'Invalid input: {str(e)}', 'pd': None}
 
     @staticmethod
-    def calculate_correlation(pd):
-        """Calculate correlation coefficient R based on PD
+    def calculate_correlation(pd, exposure_class=None):
+        """Calculate correlation coefficient R based on PD and Basel exposure class.
 
-        Formula: R = 0.12 × (1 - EXP(-50×PD)) / (1 - EXP(-50)) + 0.24 × (1 - (1 - EXP(-50×PD)) / (1 - EXP(-50)))
+        Basel III AIRB specifies THREE different correlation treatments, not
+        one - using the wholesale (corporate/sovereign/bank) formula for a
+        retail exposure understates risk for low-PD retail mortgages and
+        overstates it for revolving retail, and is not Basel-compliant:
+
+        Wholesale (corporate/sovereign/bank/SME/etc. - the default):
+            R = 0.12*(1-EXP(-50*PD))/(1-EXP(-50)) + 0.24*(1-(1-EXP(-50*PD))/(1-EXP(-50)))
+        Retail residential mortgage: R = 0.15 (fixed, no PD dependence)
+        Retail qualifying revolving (credit cards/overdrafts): R = 0.04 (fixed)
+        Retail other (auto/personal/education loans):
+            R = 0.03*(1-EXP(-35*PD))/(1-EXP(-35)) + 0.16*(1-(1-EXP(-35*PD))/(1-EXP(-35)))
+
+        exposure_class is matched case-insensitively against the platform's
+        EXPOSURE_CLASSES codes; anything not one of the three retail codes
+        (including None/unrecognised) gets the wholesale formula, matching
+        prior behaviour for every non-retail caller.
         """
         try:
             pd = float(pd)
             if pd <= 0 or pd > 1:
                 return {'error': 'PD must be between 0.0001 and 1.0'}
+
+            ec = (exposure_class or '').strip().upper()
+
+            if ec == 'RETAIL_MORTGAGES':
+                return {'r': 0.15, 'formula_used': 'Basel III AIRB retail residential mortgage (fixed R)'}
+            if ec == 'RETAIL_REVOLVING':
+                return {'r': 0.04, 'formula_used': 'Basel III AIRB qualifying revolving retail (fixed R)'}
+            if ec == 'RETAIL_OTHER':
+                exp_35 = math.exp(-35)
+                exp_35_pd = math.exp(-35 * pd)
+                part1 = 0.03 * (1 - exp_35_pd) / (1 - exp_35)
+                part2 = 0.16 * (1 - (1 - exp_35_pd) / (1 - exp_35))
+                return {'r': round(part1 + part2, 6), 'formula_used': 'Basel III AIRB other retail'}
 
             exp_50 = math.exp(-50)
             exp_50_pd = math.exp(-50 * pd)
@@ -91,19 +119,34 @@ class AIRBCalculations:
             r = part1 + part2
             return {
                 'r': round(r, 6),
-                'formula_used': 'Basel III AIRB correlation'
+                'formula_used': 'Basel III AIRB wholesale (corporate/sovereign/bank) correlation'
             }
         except (ValueError, TypeError) as e:
             return {'error': f'Invalid PD: {str(e)}'}
 
     @staticmethod
-    def calculate_maturity_adjustment(maturity, lgd, pd):
-        """Calculate maturity adjustment factor
+    def calculate_maturity_adjustment(maturity, lgd, pd, exposure_class=None):
+        """Calculate maturity adjustment factor.
 
-        Formula:
+        Formula (wholesale exposures only):
         b = (0.11852 - 0.05478 × LN(PD))²
         MA = (1 + (M - 2.5) × 1.5 × b) / (1 - 1.5 × b)
+
+        Basel III explicitly EXCLUDES retail exposures from the maturity
+        adjustment (effective maturity is fixed at 1 year for retail AIRB) -
+        applying the wholesale b-factor formula to a retail exposure
+        overstates capital for maturities above 2.5 years and understates it
+        below. Retail exposure classes therefore return a neutral MA=1.0
+        rather than running the wholesale formula.
         """
+        ec = (exposure_class or '').strip().upper()
+        if ec in ('RETAIL_MORTGAGES', 'RETAIL_REVOLVING', 'RETAIL_OTHER'):
+            try:
+                m = float(maturity)
+            except (ValueError, TypeError):
+                m = 1.0
+            return {'maturity_adjustment': 1.0, 'b_coefficient': 0.0, 'maturity_years': m,
+                    'note': 'Retail exposures are excluded from the AIRB maturity adjustment under Basel III'}
         try:
             m = float(maturity)
             lgd_val = float(lgd)
@@ -136,24 +179,32 @@ class AIRBCalculations:
             return {'error': f'Invalid input: {str(e)}'}
 
     @staticmethod
-    def calculate_risk_weight(pd, lgd, ead, maturity, borrower_type='Corporate'):
-        """Calculate risk weight using AIRB formula
+    def calculate_risk_weight(pd, lgd, ead, maturity, exposure_class=None, borrower_type=None):
+        """Calculate risk weight using AIRB formula, correctly segmented by
+        Basel exposure class (see calculate_correlation / calculate_maturity_adjustment
+        docstrings for the wholesale-vs-retail distinction this now makes).
 
-        This is a simplified version - full AIRB is more complex
+        `borrower_type` is accepted for backward compatibility with older
+        callers but exposure_class is authoritative; if only borrower_type is
+        given, it's used in its place (a caller previously passing a Basel
+        exposure-class code as `borrower_type` keeps working unchanged).
+
+        This is a simplified version - full AIRB is more complex.
         """
         try:
             pd_val = float(pd)
             lgd_val = float(lgd) / 100  # Convert percentage to decimal
+            ec = exposure_class or borrower_type
 
             # Get correlation
-            corr_result = AIRBCalculations.calculate_correlation(pd_val)
+            corr_result = AIRBCalculations.calculate_correlation(pd_val, ec)
             if 'error' in corr_result:
                 return corr_result
 
             r = corr_result['r']
 
             # Get maturity adjustment
-            ma_result = AIRBCalculations.calculate_maturity_adjustment(maturity, lgd_val, pd_val)
+            ma_result = AIRBCalculations.calculate_maturity_adjustment(maturity, lgd_val, pd_val, ec)
             if 'error' in ma_result:
                 return ma_result
 
@@ -192,6 +243,7 @@ class AIRBCalculations:
                 'components': {
                     'correlation': round(r, 6),
                     'maturity_adjustment': round(ma, 6),
+                    'b_coefficient': round(ma_result.get('b_coefficient', 0.0), 6),
                     'lgd': round(lgd_val * 100, 2)
                 }
             }
