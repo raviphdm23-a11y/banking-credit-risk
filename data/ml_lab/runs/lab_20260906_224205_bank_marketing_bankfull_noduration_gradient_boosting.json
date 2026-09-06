@@ -1,0 +1,160 @@
+{
+  "run_id": "lab_20260906_224205_bank_marketing_bankfull_noduration_gradient_boosting",
+  "timestamp": "2026-09-06T22:42:05",
+  "dataset": {
+    "name": "bank_marketing_bankfull_noduration",
+    "csv_path": "data/ml_lab/datasets/paper_bank_marketing_bankfull.csv",
+    "n_rows": 45211,
+    "target": "target",
+    "target_note": "positive class = '1'",
+    "positive_rate_overall": 0.117,
+    "n_raw_features": 15,
+    "n_encoded_features": 46,
+    "numeric_columns": [
+      "age",
+      "balance",
+      "day_of_week",
+      "campaign",
+      "pdays",
+      "previous"
+    ],
+    "categorical_columns": [
+      "job",
+      "marital",
+      "education",
+      "default",
+      "housing",
+      "loan",
+      "contact",
+      "month",
+      "poutcome"
+    ],
+    "dropped_columns": [
+      "duration"
+    ],
+    "rows_with_any_missing": 0
+  },
+  "model_type": "gradient_boosting",
+  "hyperparameters": {
+    "n_estimators": 200,
+    "max_depth": 3,
+    "learning_rate": 0.05,
+    "subsample": 0.8,
+    "min_samples_leaf": 5,
+    "random_state": 42
+  },
+  "split": {
+    "test_size": 0.2,
+    "n_train": 36168,
+    "n_test": 9043,
+    "threshold": 0.5,
+    "stratified": true,
+    "random_state": 42
+  },
+  "metrics": {
+    "auc_roc": 0.8032,
+    "pr_auc": 0.4523,
+    "accuracy": 0.8034,
+    "precision": 0.3286,
+    "recall": 0.6522,
+    "f1": 0.437,
+    "brier_score": 0.167383,
+    "n_test": 9043,
+    "n_positive": 1058,
+    "positive_rate": 0.117
+  },
+  "confusion_matrix": [
+    [
+      6575,
+      1410
+    ],
+    [
+      368,
+      690
+    ]
+  ],
+  "cross_validation": {
+    "n_splits": 5,
+    "fold_aucs": [
+      0.7883,
+      0.8024,
+      0.7849,
+      0.793,
+      0.8126
+    ],
+    "mean_auc": 0.7962,
+    "std_auc": 0.0101,
+    "note": null
+  },
+  "epv": {
+    "epv": 91.98,
+    "n_events": 4231,
+    "n_features": 46,
+    "overfitting_risk": "low",
+    "note": "Rule of thumb: EPV >= 10 acceptable, >= 20 comfortable (Peduzzi et al.)."
+  },
+  "top_features": [
+    {
+      "feature": "poutcome_success",
+      "importance": 0.2533
+    },
+    {
+      "feature": "contact_cellular",
+      "importance": 0.107447
+    },
+    {
+      "feature": "age",
+      "importance": 0.084918
+    },
+    {
+      "feature": "balance",
+      "importance": 0.061033
+    },
+    {
+      "feature": "day_of_week",
+      "importance": 0.053377
+    },
+    {
+      "feature": "pdays",
+      "importance": 0.047394
+    },
+    {
+      "feature": "housing_no",
+      "importance": 0.041724
+    },
+    {
+      "feature": "housing_yes",
+      "importance": 0.035846
+    },
+    {
+      "feature": "month_oct",
+      "importance": 0.035239
+    },
+    {
+      "feature": "campaign",
+      "importance": 0.033659
+    },
+    {
+      "feature": "month_mar",
+      "importance": 0.031632
+    },
+    {
+      "feature": "month_apr",
+      "importance": 0.028602
+    },
+    {
+      "feature": "month_jun",
+      "importance": 0.026321
+    },
+    {
+      "feature": "contact_telephone",
+      "importance": 0.022137
+    },
+    {
+      "feature": "marital_married",
+      "importance": 0.021813
+    }
+  ],
+  "train_seconds": 46.7,
+  "notes": "Step A (variant): corrected Phase 2 baseline WITHOUT duration (UCI guidance: known only after the call) - split before any resampling, no SMOTE, all other raw features, raw base-rate test set, rs=42"
+}

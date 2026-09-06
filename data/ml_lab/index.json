@@ -472,5 +472,115 @@
     "cv_auc_mean": 0.7848,
     "cv_auc_std": 0.025,
     "notes": "Step A: corrected Phase 2 baseline - split before any resampling, no SMOTE, all raw features (no IV/Boruta yet), raw base-rate test set, rs=42"
+  },
+  {
+    "run_id": "lab_20260906_224200_bank_marketing_bankfull_noduration_extra_trees",
+    "timestamp": "2026-09-06T22:42:00",
+    "dataset": "bank_marketing_bankfull_noduration",
+    "target": "target",
+    "n_rows": 45211,
+    "n_features": 46,
+    "dropped_columns": [
+      "duration"
+    ],
+    "positive_rate": 0.117,
+    "model_type": "extra_trees",
+    "auc_roc": 0.7769,
+    "pr_auc": 0.4174,
+    "f1": 0.3798,
+    "precision": 0.2722,
+    "recall": 0.6276,
+    "brier_score": 0.189426,
+    "cv_auc_mean": 0.7696,
+    "cv_auc_std": 0.0104,
+    "notes": "Step A (variant): corrected Phase 2 baseline WITHOUT duration (UCI guidance: known only after the call) - split before any resampling, no SMOTE, all other raw features, raw base-rate test set, rs=42"
+  },
+  {
+    "run_id": "lab_20260906_224205_bank_marketing_bankfull_noduration_gradient_boosting",
+    "timestamp": "2026-09-06T22:42:05",
+    "dataset": "bank_marketing_bankfull_noduration",
+    "target": "target",
+    "n_rows": 45211,
+    "n_features": 46,
+    "dropped_columns": [
+      "duration"
+    ],
+    "positive_rate": 0.117,
+    "model_type": "gradient_boosting",
+    "auc_roc": 0.8032,
+    "pr_auc": 0.4523,
+    "f1": 0.437,
+    "precision": 0.3286,
+    "recall": 0.6522,
+    "brier_score": 0.167383,
+    "cv_auc_mean": 0.7962,
+    "cv_auc_std": 0.0101,
+    "notes": "Step A (variant): corrected Phase 2 baseline WITHOUT duration (UCI guidance: known only after the call) - split before any resampling, no SMOTE, all other raw features, raw base-rate test set, rs=42"
+  },
+  {
+    "run_id": "lab_20260906_224252_bank_marketing_bankfull_noduration_logistic_regression",
+    "timestamp": "2026-09-06T22:42:52",
+    "dataset": "bank_marketing_bankfull_noduration",
+    "target": "target",
+    "n_rows": 45211,
+    "n_features": 46,
+    "dropped_columns": [
+      "duration"
+    ],
+    "positive_rate": 0.117,
+    "model_type": "logistic_regression",
+    "auc_roc": 0.7722,
+    "pr_auc": 0.4091,
+    "f1": 0.3739,
+    "precision": 0.267,
+    "recall": 0.6238,
+    "brier_score": 0.183068,
+    "cv_auc_mean": 0.7664,
+    "cv_auc_std": 0.0081,
+    "notes": "Step A (variant): corrected Phase 2 baseline WITHOUT duration (UCI guidance: known only after the call) - split before any resampling, no SMOTE, all other raw features, raw base-rate test set, rs=42"
+  },
+  {
+    "run_id": "lab_20260906_224254_bank_marketing_bankfull_noduration_random_forest",
+    "timestamp": "2026-09-06T22:42:54",
+    "dataset": "bank_marketing_bankfull_noduration",
+    "target": "target",
+    "n_rows": 45211,
+    "n_features": 46,
+    "dropped_columns": [
+      "duration"
+    ],
+    "positive_rate": 0.117,
+    "model_type": "random_forest",
+    "auc_roc": 0.7926,
+    "pr_auc": 0.4274,
+    "f1": 0.4253,
+    "precision": 0.3274,
+    "recall": 0.6068,
+    "brier_score": 0.176434,
+    "cv_auc_mean": 0.7831,
+    "cv_auc_std": 0.0098,
+    "notes": "Step A (variant): corrected Phase 2 baseline WITHOUT duration (UCI guidance: known only after the call) - split before any resampling, no SMOTE, all other raw features, raw base-rate test set, rs=42"
+  },
+  {
+    "run_id": "lab_20260906_224300_bank_marketing_bankfull_noduration_xgboost",
+    "timestamp": "2026-09-06T22:43:00",
+    "dataset": "bank_marketing_bankfull_noduration",
+    "target": "target",
+    "n_rows": 45211,
+    "n_features": 46,
+    "dropped_columns": [
+      "duration"
+    ],
+    "positive_rate": 0.117,
+    "model_type": "xgboost",
+    "auc_roc": 0.8045,
+    "pr_auc": 0.4668,
+    "f1": 0.4439,
+    "precision": 0.3395,
+    "recall": 0.6408,
+    "brier_score": 0.159788,
+    "cv_auc_mean": 0.7998,
+    "cv_auc_std": 0.0097,
+    "notes": "Step A (variant): corrected Phase 2 baseline WITHOUT duration (UCI guidance: known only after the call) - split before any resampling, no SMOTE, all other raw features, raw base-rate test set, rs=42"
   }
 ]
