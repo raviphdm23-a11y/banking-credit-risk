@@ -54,7 +54,7 @@ def _sniff_sep(path):
 def load_dataset(csv_path, target, positive_label=None, sep=None):
     """Read a CSV and return (df, y, target_note) with y as a 0/1 int Series."""
     sep = sep or _sniff_sep(csv_path)
-    df = pd.read_csv(csv_path, sep=sep)
+    df = pd.read_csv(csv_path, sep=sep, encoding='utf-8-sig')  # -sig strips a BOM from the first header
     if target not in df.columns:
         raise ValueError(f"target column '{target}' not in CSV columns: {list(df.columns)}")
 
@@ -235,6 +235,13 @@ def _print_summary(rec):
 
 
 def main(argv=None):
+    # Windows consoles default to cp1252; feature names from real datasets can
+    # carry characters outside it (e.g. German Credit's "≥ 7 years"), which
+    # would otherwise abort the whole --all-models batch mid-way with a
+    # UnicodeEncodeError from a mere print.
+    for stream in (sys.stdout, sys.stderr):
+        if hasattr(stream, 'reconfigure'):
+            stream.reconfigure(encoding='utf-8', errors='replace')
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument('--csv')
     p.add_argument('--target')

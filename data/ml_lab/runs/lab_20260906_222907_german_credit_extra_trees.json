@@ -1,0 +1,163 @@
+{
+  "run_id": "lab_20260906_222907_german_credit_extra_trees",
+  "timestamp": "2026-09-06T22:29:07",
+  "dataset": {
+    "name": "german_credit",
+    "csv_path": "data/ml_lab/datasets/paper_german_credit.csv",
+    "n_rows": 1000,
+    "target": "target",
+    "target_note": "positive class = '1'",
+    "positive_rate_overall": 0.3,
+    "n_raw_features": 20,
+    "n_encoded_features": 61,
+    "numeric_columns": [
+      "months_duration",
+      "credit_amount",
+      "installment_rate",
+      "residence_since",
+      "age",
+      "existing_credits",
+      "people_liable"
+    ],
+    "categorical_columns": [
+      "checking_status",
+      "credit_history",
+      "purpose",
+      "savings_status",
+      "employment_since",
+      "personal_status_sex",
+      "other_debtors",
+      "property",
+      "other_installment_plans",
+      "housing",
+      "job",
+      "telephone",
+      "foreign_worker"
+    ],
+    "dropped_columns": [],
+    "rows_with_any_missing": 0
+  },
+  "model_type": "extra_trees",
+  "hyperparameters": {
+    "n_estimators": 300,
+    "max_depth": 8,
+    "min_samples_leaf": 5,
+    "max_features": "sqrt",
+    "class_weight": "balanced",
+    "random_state": 42
+  },
+  "split": {
+    "test_size": 0.2,
+    "n_train": 800,
+    "n_test": 200,
+    "threshold": 0.5,
+    "stratified": true,
+    "random_state": 42
+  },
+  "metrics": {
+    "auc_roc": 0.7848,
+    "pr_auc": 0.6157,
+    "accuracy": 0.7,
+    "precision": 0.5,
+    "recall": 0.65,
+    "f1": 0.5652,
+    "brier_score": 0.186136,
+    "n_test": 200,
+    "n_positive": 60,
+    "positive_rate": 0.3
+  },
+  "confusion_matrix": [
+    [
+      101,
+      39
+    ],
+    [
+      21,
+      39
+    ]
+  ],
+  "cross_validation": {
+    "n_splits": 5,
+    "fold_aucs": [
+      0.7977,
+      0.7364,
+      0.7826,
+      0.7998,
+      0.7804
+    ],
+    "mean_auc": 0.7794,
+    "std_auc": 0.0228,
+    "note": null
+  },
+  "epv": {
+    "epv": 3.93,
+    "n_events": 240,
+    "n_features": 61,
+    "overfitting_risk": "high",
+    "note": "Rule of thumb: EPV >= 10 acceptable, >= 20 comfortable (Peduzzi et al.)."
+  },
+  "top_features": [
+    {
+      "feature": "checking_status_no checking account",
+      "importance": 0.188575
+    },
+    {
+      "feature": "checking_status__ 0 DM",
+      "importance": 0.080306
+    },
+    {
+      "feature": "credit_history_critical account / other credits elsewhere",
+      "importance": 0.054665
+    },
+    {
+      "feature": "savings_status__ 100 DM",
+      "importance": 0.047001
+    },
+    {
+      "feature": "months_duration",
+      "importance": 0.036327
+    },
+    {
+      "feature": "checking_status_0 \u2264 ... _ 200 DM",
+      "importance": 0.034117
+    },
+    {
+      "feature": "other_installment_plans_none",
+      "importance": 0.028716
+    },
+    {
+      "feature": "other_installment_plans_bank",
+      "importance": 0.026244
+    },
+    {
+      "feature": "property_real estate",
+      "importance": 0.02561
+    },
+    {
+      "feature": "savings_status_unknown / none",
+      "importance": 0.025114
+    },
+    {
+      "feature": "employment_since__ 1 year",
+      "importance": 0.024488
+    },
+    {
+      "feature": "property_unknown / none",
+      "importance": 0.024082
+    },
+    {
+      "feature": "personal_status_sex_male: single",
+      "importance": 0.020919
+    },
+    {
+      "feature": "housing_own",
+      "importance": 0.020897
+    },
+    {
+      "feature": "purpose_radio/television",
+      "importance": 0.018224
+    }
+  ],
+  "train_seconds": 2.2,
+  "notes": "Step A: corrected Phase 2 baseline - split before any resampling, no SMOTE, all raw features (no IV/Boruta yet), raw base-rate test set, rs=42"
+}

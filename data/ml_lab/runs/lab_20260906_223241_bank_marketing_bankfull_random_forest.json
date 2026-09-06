@@ -1,0 +1,159 @@
+{
+  "run_id": "lab_20260906_223241_bank_marketing_bankfull_random_forest",
+  "timestamp": "2026-09-06T22:32:41",
+  "dataset": {
+    "name": "bank_marketing_bankfull",
+    "csv_path": "data/ml_lab/datasets/paper_bank_marketing_bankfull.csv",
+    "n_rows": 45211,
+    "target": "target",
+    "target_note": "positive class = '1'",
+    "positive_rate_overall": 0.117,
+    "n_raw_features": 16,
+    "n_encoded_features": 47,
+    "numeric_columns": [
+      "age",
+      "balance",
+      "day_of_week",
+      "duration",
+      "campaign",
+      "pdays",
+      "previous"
+    ],
+    "categorical_columns": [
+      "job",
+      "marital",
+      "education",
+      "default",
+      "housing",
+      "loan",
+      "contact",
+      "month",
+      "poutcome"
+    ],
+    "dropped_columns": [],
+    "rows_with_any_missing": 0
+  },
+  "model_type": "random_forest",
+  "hyperparameters": {
+    "n_estimators": 300,
+    "max_depth": 8,
+    "min_samples_leaf": 5,
+    "max_features": "sqrt",
+    "class_weight": "balanced",
+    "random_state": 42
+  },
+  "split": {
+    "test_size": 0.2,
+    "n_train": 36168,
+    "n_test": 9043,
+    "threshold": 0.5,
+    "stratified": true,
+    "random_state": 42
+  },
+  "metrics": {
+    "auc_roc": 0.9159,
+    "pr_auc": 0.5773,
+    "accuracy": 0.8308,
+    "precision": 0.3977,
+    "recall": 0.8667,
+    "f1": 0.5452,
+    "brier_score": 0.128903,
+    "n_test": 9043,
+    "n_positive": 1058,
+    "positive_rate": 0.117
+  },
+  "confusion_matrix": [
+    [
+      6596,
+      1389
+    ],
+    [
+      141,
+      917
+    ]
+  ],
+  "cross_validation": {
+    "n_splits": 5,
+    "fold_aucs": [
+      0.9168,
+      0.9182,
+      0.9135,
+      0.9163,
+      0.9121
+    ],
+    "mean_auc": 0.9154,
+    "std_auc": 0.0022,
+    "note": null
+  },
+  "epv": {
+    "epv": 90.02,
+    "n_events": 4231,
+    "n_features": 47,
+    "overfitting_risk": "low",
+    "note": "Rule of thumb: EPV >= 10 acceptable, >= 20 comfortable (Peduzzi et al.)."
+  },
+  "top_features": [
+    {
+      "feature": "duration",
+      "importance": 0.466773
+    },
+    {
+      "feature": "poutcome_success",
+      "importance": 0.083486
+    },
+    {
+      "feature": "pdays",
+      "importance": 0.048965
+    },
+    {
+      "feature": "contact_cellular",
+      "importance": 0.044116
+    },
+    {
+      "feature": "housing_no",
+      "importance": 0.043117
+    },
+    {
+      "feature": "age",
+      "importance": 0.037209
+    },
+    {
+      "feature": "housing_yes",
+      "importance": 0.037122
+    },
+    {
+      "feature": "previous",
+      "importance": 0.036493
+    },
+    {
+      "feature": "balance",
+      "importance": 0.024458
+    },
+    {
+      "feature": "month_may",
+      "importance": 0.017384
+    },
+    {
+      "feature": "month_oct",
+      "importance": 0.015944
+    },
+    {
+      "feature": "month_mar",
+      "importance": 0.014923
+    },
+    {
+      "feature": "day_of_week",
+      "importance": 0.013797
+    },
+    {
+      "feature": "campaign",
+      "importance": 0.013317
+    },
+    {
+      "feature": "month_apr",
+      "importance": 0.011638
+    }
+  ],
+  "train_seconds": 6.3,
+  "notes": "Step A: corrected Phase 2 baseline - split before any resampling, no SMOTE, all raw features (no IV/Boruta yet), raw base-rate test set, rs=42"
+}

@@ -1,0 +1,165 @@
+{
+  "run_id": "lab_20260906_222915_taiwan_credit_gradient_boosting",
+  "timestamp": "2026-09-06T22:29:15",
+  "dataset": {
+    "name": "taiwan_credit",
+    "csv_path": "data/ml_lab/datasets/paper_taiwan_credit_card.csv",
+    "n_rows": 30000,
+    "target": "target",
+    "target_note": "positive class = '1'",
+    "positive_rate_overall": 0.2212,
+    "n_raw_features": 23,
+    "n_encoded_features": 23,
+    "numeric_columns": [
+      "LIMIT_BAL",
+      "SEX",
+      "EDUCATION",
+      "MARRIAGE",
+      "AGE",
+      "PAY_0",
+      "PAY_2",
+      "PAY_3",
+      "PAY_4",
+      "PAY_5",
+      "PAY_6",
+      "BILL_AMT1",
+      "BILL_AMT2",
+      "BILL_AMT3",
+      "BILL_AMT4",
+      "BILL_AMT5",
+      "BILL_AMT6",
+      "PAY_AMT1",
+      "PAY_AMT2",
+      "PAY_AMT3",
+      "PAY_AMT4",
+      "PAY_AMT5",
+      "PAY_AMT6"
+    ],
+    "categorical_columns": [],
+    "dropped_columns": [],
+    "rows_with_any_missing": 0
+  },
+  "model_type": "gradient_boosting",
+  "hyperparameters": {
+    "n_estimators": 200,
+    "max_depth": 3,
+    "learning_rate": 0.05,
+    "subsample": 0.8,
+    "min_samples_leaf": 5,
+    "random_state": 42
+  },
+  "split": {
+    "test_size": 0.2,
+    "n_train": 24000,
+    "n_test": 6000,
+    "threshold": 0.5,
+    "stratified": true,
+    "random_state": 42
+  },
+  "metrics": {
+    "auc_roc": 0.7776,
+    "pr_auc": 0.5534,
+    "accuracy": 0.7632,
+    "precision": 0.4728,
+    "recall": 0.6164,
+    "f1": 0.5352,
+    "brier_score": 0.181413,
+    "n_test": 6000,
+    "n_positive": 1327,
+    "positive_rate": 0.2212
+  },
+  "confusion_matrix": [
+    [
+      3761,
+      912
+    ],
+    [
+      509,
+      818
+    ]
+  ],
+  "cross_validation": {
+    "n_splits": 5,
+    "fold_aucs": [
+      0.7938,
+      0.7765,
+      0.7821,
+      0.7803,
+      0.7792
+    ],
+    "mean_auc": 0.7824,
+    "std_auc": 0.006,
+    "note": null
+  },
+  "epv": {
+    "epv": 230.83,
+    "n_events": 5309,
+    "n_features": 23,
+    "overfitting_risk": "low",
+    "note": "Rule of thumb: EPV >= 10 acceptable, >= 20 comfortable (Peduzzi et al.)."
+  },
+  "top_features": [
+    {
+      "feature": "PAY_0",
+      "importance": 0.57421
+    },
+    {
+      "feature": "LIMIT_BAL",
+      "importance": 0.048093
+    },
+    {
+      "feature": "BILL_AMT1",
+      "importance": 0.043901
+    },
+    {
+      "feature": "PAY_AMT2",
+      "importance": 0.039415
+    },
+    {
+      "feature": "PAY_3",
+      "importance": 0.035719
+    },
+    {
+      "feature": "PAY_2",
+      "importance": 0.034311
+    },
+    {
+      "feature": "PAY_AMT3",
+      "importance": 0.029837
+    },
+    {
+      "feature": "PAY_4",
+      "importance": 0.026413
+    },
+    {
+      "feature": "PAY_AMT1",
+      "importance": 0.026249
+    },
+    {
+      "feature": "BILL_AMT2",
+      "importance": 0.017744
+    },
+    {
+      "feature": "PAY_6",
+      "importance": 0.015199
+    },
+    {
+      "feature": "PAY_5",
+      "importance": 0.015079
+    },
+    {
+      "feature": "PAY_AMT4",
+      "importance": 0.014451
+    },
+    {
+      "feature": "PAY_AMT6",
+      "importance": 0.012152
+    },
+    {
+      "feature": "PAY_AMT5",
+      "importance": 0.0113
+    }
+  ],
+  "train_seconds": 84.5,
+  "notes": "Step A: corrected Phase 2 baseline - split before any resampling, no SMOTE, all raw features (no IV/Boruta yet), raw base-rate test set, rs=42"
+}
