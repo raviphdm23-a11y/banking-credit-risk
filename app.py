@@ -1996,6 +1996,175 @@ def admin_smoke_tests_status():
     }), 200
 
 # ============================================================================
+# ADMIN — DATASET LAB (ML Lab tab)
+# Benchmark any binary-classification CSV with the platform's model builders,
+# without onboarding it as a bank. See ml_models/dataset_lab.py. Results live
+# under data/ml_lab/ only - never bank.db / active_model.json / governance.
+# ============================================================================
+
+from werkzeug.utils import secure_filename as _secure_filename
+from datetime import datetime as _lab_dt
+from ml_models import dataset_lab as _lab
+
+_lab_state = {'running': False, 'job': None}
+_lab_lock = threading.Lock()
+
+
+def _lab_dataset_path(name):
+    safe = _secure_filename(name or '')
+    if not safe or not safe.lower().endswith('.csv'):
+        return None
+    path = os.path.join(_lab.LAB_DIR, 'datasets', safe)
+    if not os.path.isfile(path):
+        return None
+    return path
+
+
+@app.route('/admin/api/dataset-lab/datasets', methods=['GET'])
+def admin_lab_datasets():
+    if not _check_admin_auth(): return _admin_auth_error()
+    ddir = os.path.join(_lab.LAB_DIR, 'datasets')
+    os.makedirs(ddir, exist_ok=True)
+    out = []
+    for fn in sorted(os.listdir(ddir)):
+        if fn.lower().endswith('.csv'):
+            st = os.stat(os.path.join(ddir, fn))
+            out.append({'name': fn, 'size_bytes': st.st_size,
+                        'modified': _lab_dt.fromtimestamp(st.st_mtime).isoformat(timespec='seconds')})
+    return jsonify({'datasets': out})
+
+
+@app.route('/admin/api/dataset-lab/datasets/<name>/columns', methods=['GET'])
+def admin_lab_dataset_columns(name):
+    if not _check_admin_auth(): return _admin_auth_error()
+    path = _lab_dataset_path(name)
+    if not path:
+        return jsonify({'error': 'dataset not found'}), 404
+    try:
+        import pandas as _pd
+        sep = _lab._sniff_sep(path)
+        sample = _pd.read_csv(path, sep=sep, nrows=5000)
+        cols = []
+        for c in sample.columns:
+            s = sample[c]
+            is_num = _pd.api.types.is_numeric_dtype(s)
+            uniq = s.dropna().unique()
+            cols.append({
+                'name': str(c),
+                'kind': 'numeric' if is_num else 'text',
+                'n_unique_sample': int(len(uniq)),
+                'sample_values': [str(v) for v in uniq[:6]],
+            })
+        return jsonify({'name': os.path.basename(path), 'separator': sep,
+                        'sample_rows': int(len(sample)), 'columns': cols})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/admin/api/dataset-lab/upload', methods=['POST'])
+def admin_lab_upload():
+    if not _check_admin_auth(): return _admin_auth_error()
+    f = request.files.get('file')
+    if not f or not f.filename:
+        return jsonify({'error': 'no file uploaded (multipart field "file")'}), 400
+    safe = _secure_filename(f.filename)
+    if not safe.lower().endswith('.csv'):
+        return jsonify({'error': 'only .csv files are accepted'}), 400
+    ddir = os.path.join(_lab.LAB_DIR, 'datasets')
+    os.makedirs(ddir, exist_ok=True)
+    f.save(os.path.join(ddir, safe))
+    return jsonify({'status': 'saved', 'name': safe}), 201
+
+
+@app.route('/admin/api/dataset-lab/run', methods=['POST'])
+def admin_lab_run():
+    if not _check_admin_auth(): return _admin_auth_error()
+    body = request.get_json(force=True) or {}
+    path = _lab_dataset_path(body.get('dataset'))
+    if not path:
+        return jsonify({'error': 'dataset not found'}), 404
+    target = (body.get('target') or '').strip()
+    if not target:
+        return jsonify({'error': 'target column is required'}), 400
+    model_types = body.get('model_types') or ['xgboost']
+    bad = [m for m in model_types if m not in _lab.MODEL_BUILDERS]
+    if bad:
+        return jsonify({'error': f'unknown model types: {bad}'}), 400
+    positive = body.get('positive') or None
+    drop_columns = [c for c in (body.get('drop_columns') or []) if c and c != target]
+    try:
+        test_size = float(body.get('test_size') or 0.2)
+        threshold = float(body.get('threshold') or 0.5)
+        folds = int(body.get('folds') or 5)
+    except (TypeError, ValueError):
+        return jsonify({'error': 'test_size/threshold/folds must be numeric'}), 400
+    if not (0.05 <= test_size <= 0.5) or not (0.0 < threshold < 1.0) or not (2 <= folds <= 10):
+        return jsonify({'error': 'test_size in [0.05,0.5], threshold in (0,1), folds in [2,10]'}), 400
+    name = (body.get('name') or '').strip() or None
+    notes = (body.get('notes') or '').strip() or None
+
+    with _lab_lock:
+        if _lab_state['running']:
+            return jsonify({'error': 'a Dataset Lab job is already running'}), 409
+        job = {
+            'status': 'running', 'dataset': os.path.basename(path), 'target': target,
+            'model_types': model_types, 'current_model': None, 'completed': [],
+            'errors': [], 'started': _lab_dt.now().isoformat(timespec='seconds'), 'finished': None,
+        }
+        _lab_state['running'] = True
+        _lab_state['job'] = job
+
+    def _run():
+        try:
+            for mt in model_types:
+                job['current_model'] = mt
+                try:
+                    rec = _lab.run_experiment(
+                        path, target, positive, model_type=mt, dataset_name=name,
+                        drop_columns=drop_columns, test_size=test_size, threshold=threshold,
+                        n_splits=folds, notes=notes)
+                    job['completed'].append({'model_type': mt, 'run_id': rec['run_id'],
+                                             'auc_roc': rec['metrics']['auc_roc']})
+                except Exception as e:
+                    job['errors'].append({'model_type': mt, 'error': str(e)})
+                    # a data/target problem will fail every model identically - stop early
+                    if not job['completed']:
+                        break
+        finally:
+            job['current_model'] = None
+            job['status'] = 'failed' if (job['errors'] and not job['completed']) else 'done'
+            job['finished'] = _lab_dt.now().isoformat(timespec='seconds')
+            _lab_state['running'] = False
+
+    threading.Thread(target=_run, daemon=True, name='DatasetLab-Thread').start()
+    return jsonify({'status': 'started', 'job': job}), 202
+
+
+@app.route('/admin/api/dataset-lab/status', methods=['GET'])
+def admin_lab_status():
+    if not _check_admin_auth(): return _admin_auth_error()
+    return jsonify({'running': _lab_state['running'], 'job': _lab_state['job']})
+
+
+@app.route('/admin/api/dataset-lab/runs', methods=['GET'])
+def admin_lab_runs():
+    if not _check_admin_auth(): return _admin_auth_error()
+    runs = _lab.list_runs()
+    runs.sort(key=lambda r: r.get('timestamp') or '', reverse=True)
+    return jsonify({'runs': runs})
+
+
+@app.route('/admin/api/dataset-lab/runs/<run_id>', methods=['GET'])
+def admin_lab_run_detail(run_id):
+    if not _check_admin_auth(): return _admin_auth_error()
+    safe = _secure_filename(run_id)
+    p = os.path.join(_lab.RUNS_DIR, safe + '.json')
+    if not safe or not os.path.isfile(p):
+        return jsonify({'error': 'run not found'}), 404
+    with open(p, 'r', encoding='utf-8') as fh:
+        return jsonify(json.load(fh))
+
+# ============================================================================
 # ADMIN — CREDIT OPS
 # ============================================================================
 

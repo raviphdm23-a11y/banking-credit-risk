@@ -126,6 +126,8 @@
   .alert { padding: 12px 16px; border-radius: 8px; font-size: 13px; margin-bottom: 16px; }
   .alert-info    { background: #E3F2FD; color: var(--blue); }
   .alert-warning { background: #FFF8E1; color: #F57F17; }
+  .alert-success { background: #E8F5E9; color: #2E7D32; }
+  .alert-danger  { background: #FFEBEE; color: #C62828; }
   .toggle { position: relative; display: inline-block; width: 44px; height: 24px; }
   .toggle input { opacity: 0; width: 0; height: 0; }
   .slider { position: absolute; inset: 0; background: #ccc; border-radius: 24px; cursor: pointer; transition: .3s; }
@@ -180,6 +182,7 @@
   <button onclick="showPanel('schedule')">Schedule</button>
   <button onclick="showPanel('history')">Run History</button>
   <button onclick="showPanel('modellab')">Model Lab</button>
+  <button onclick="showPanel('mllab')">ML Lab</button>
   <button onclick="showPanel('smoketests')">Smoke Tests</button>
   <button onclick="showPanel('creditops')">Credit Ops</button>
 </nav>
@@ -609,6 +612,88 @@
 </div>
 
 <!-- ── Panel 7: Smoke Tests ──────────────────────────────────────────────── -->
+<div id="panel-mllab" class="panel">
+
+  <div class="card">
+    <h3>&#129514; ML Lab &mdash; benchmark any binary-classification dataset</h3>
+    <p style="color:var(--sub);font-size:13px;margin-bottom:12px">
+      Runs the platform's own model builders, holdout evaluation and k-fold cross-validation
+      (the same code as <b>Train Now</b>) against <b>any</b> CSV with a two-class target &mdash; banking or not &mdash;
+      <b>without</b> onboarding it as a bank. Nothing here touches <code>bank.db</code>, the active model registry
+      or Model Governance; results are recorded separately under <code>data/ml_lab/</code>.
+      Not to be confused with <b>Model Lab</b>, which compares the bank PD models.
+    </p>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start">
+      <div>
+        <label style="font-size:12px;font-weight:600;color:var(--sub)">Dataset (CSV in <code>data/ml_lab/datasets/</code>)</label>
+        <div style="display:flex;gap:8px;margin:4px 0 10px">
+          <select id="labDataset" onchange="labLoadColumns()" style="flex:1;padding:6px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px"></select>
+          <button class="btn btn-sm" type="button" onclick="labLoadDatasets()" title="Refresh list">&#8635;</button>
+        </div>
+        <label style="font-size:12px;font-weight:600;color:var(--sub)">Upload a new CSV</label>
+        <div style="display:flex;gap:8px;margin:4px 0 10px;align-items:center">
+          <input type="file" id="labUploadFile" accept=".csv" style="font-size:12px;flex:1">
+          <button class="btn btn-sm" type="button" onclick="labUpload()">Upload</button>
+        </div>
+        <div id="labDatasetInfo" style="font-size:12px;color:var(--sub);margin-bottom:10px"></div>
+
+        <label style="font-size:12px;font-weight:600;color:var(--sub)">Target column</label>
+        <select id="labTarget" onchange="labOnTargetChange()" style="width:100%;padding:6px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;margin:4px 0 10px"></select>
+
+        <label style="font-size:12px;font-weight:600;color:var(--sub)">Positive class value <span style="font-weight:400">(the outcome you're predicting, e.g. <code>yes</code>)</span></label>
+        <select id="labPositive" style="width:100%;padding:6px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;margin:4px 0 10px"></select>
+
+        <label style="font-size:12px;font-weight:600;color:var(--sub)">Run label <span style="font-weight:400">(optional; defaults to file name)</span></label>
+        <input id="labName" placeholder="e.g. bank_marketing" style="width:100%;padding:6px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;margin:4px 0 10px">
+        <label style="font-size:12px;font-weight:600;color:var(--sub)">Notes</label>
+        <input id="labNotes" placeholder="e.g. duration dropped (post-call leakage)" style="width:100%;padding:6px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;margin:4px 0 10px">
+      </div>
+
+      <div>
+        <label style="font-size:12px;font-weight:600;color:var(--sub)">Model types</label>
+        <div id="labModels" style="display:flex;flex-wrap:wrap;gap:10px;margin:4px 0 12px;font-size:13px">
+          <label><input type="checkbox" value="xgboost" checked style="width:auto;margin:0 4px 0 0"> XGBoost</label>
+          <label><input type="checkbox" value="random_forest" checked style="width:auto;margin:0 4px 0 0"> Random Forest</label>
+          <label><input type="checkbox" value="extra_trees" checked style="width:auto;margin:0 4px 0 0"> Extra Trees</label>
+          <label><input type="checkbox" value="gradient_boosting" checked style="width:auto;margin:0 4px 0 0"> Gradient Boosting</label>
+          <label><input type="checkbox" value="logistic_regression" checked style="width:auto;margin:0 4px 0 0"> Logistic Regression</label>
+        </div>
+
+        <label style="font-size:12px;font-weight:600;color:var(--sub)">Exclude columns <span style="font-weight:400">(leakage / IDs &mdash; e.g. a value only known after the outcome)</span></label>
+        <div id="labDropCols" style="max-height:170px;overflow:auto;border:1px solid var(--border);border-radius:6px;padding:6px 10px;margin:4px 0 12px;font-size:12px;display:grid;grid-template-columns:1fr 1fr;gap:2px 10px"></div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:12px">
+          <div><label style="font-size:12px;font-weight:600;color:var(--sub)">Test size</label>
+            <input id="labTestSize" type="number" step="0.05" min="0.05" max="0.5" value="0.2" style="width:100%;padding:6px 8px;border:1px solid var(--border);border-radius:6px;font-size:13px"></div>
+          <div><label style="font-size:12px;font-weight:600;color:var(--sub)">Threshold</label>
+            <input id="labThreshold" type="number" step="0.05" min="0.05" max="0.95" value="0.5" style="width:100%;padding:6px 8px;border:1px solid var(--border);border-radius:6px;font-size:13px"></div>
+          <div><label style="font-size:12px;font-weight:600;color:var(--sub)">CV folds</label>
+            <input id="labFolds" type="number" step="1" min="2" max="10" value="5" style="width:100%;padding:6px 8px;border:1px solid var(--border);border-radius:6px;font-size:13px"></div>
+        </div>
+
+        <button class="btn btn-success" id="labRunBtn" type="button" onclick="labRun()">&#9654; Run Benchmark</button>
+        <span id="labMsg" class="msg" style="margin-left:10px"></span>
+        <div id="labStatus" style="display:none;margin-top:12px" class="alert alert-warning"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>&#128203; Recorded Runs</h3>
+    <p style="color:var(--sub);font-size:13px;margin-bottom:12px">
+      Every benchmark ever run, newest first (<code>data/ml_lab/index.json</code>). Click a row for full metrics, confusion matrix, CV folds and top features.
+    </p>
+    <div id="labRunsTable"><p style="color:var(--sub)">Loading...</p></div>
+  </div>
+
+  <div class="card" id="labDetailCard" style="display:none">
+    <h3 id="labDetailTitle">Run detail</h3>
+    <div id="labDetail"></div>
+  </div>
+
+</div>
+
 <div id="panel-smoketests" class="panel">
   <div class="card">
     <h3>&#129514; Consumer UI Smoke Tests</h3>
@@ -782,6 +867,7 @@ function showPanel(name) {
   if (name === 'schedule')    loadSchedule();
   if (name === 'history')     loadHistory();
   if (name === 'modellab')   { populateRunSelector(); loadModelLabModelsSummary(); populateModelLabFilters(); populateShapBankOptions(); loadModelLabRuns(); }
+  if (name === 'mllab')      { labLoadDatasets(); labLoadRuns(); labPollStatus(); }
   if (name === 'creditops')  { loadCasesQueue(); loadAuditLog(); }
 }
 
@@ -1873,6 +1959,194 @@ async function loadAuditLog() {
   } catch (e) {
     tbody.innerHTML = `<tr><td colspan="6" style="color:#ef4444;padding:12px">Error: ${e.message}</td></tr>`;
   }
+}
+
+// ── ML Lab (Dataset Lab) ─────────────────────────────────────────────────────
+let _labColumns = [];
+let _labPoller = null;
+const labEsc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const labNum = (v, d = 4) => (v == null || isNaN(v)) ? '—' : Number(v).toFixed(d);
+
+async function labLoadDatasets() {
+  const sel = document.getElementById('labDataset');
+  const keep = sel.value;
+  const res = await api('/admin/api/dataset-lab/datasets');
+  const list = res.datasets || [];
+  sel.innerHTML = list.length
+    ? list.map(d => `<option value="${labEsc(d.name)}">${labEsc(d.name)} (${(d.size_bytes/1048576).toFixed(1)} MB)</option>`).join('')
+    : '<option value="">— no CSVs yet: upload one —</option>';
+  if (keep && list.some(d => d.name === keep)) sel.value = keep;
+  if (sel.value) labLoadColumns(); else { document.getElementById('labTarget').innerHTML = ''; document.getElementById('labDropCols').innerHTML = ''; }
+}
+
+async function labUpload() {
+  const inp = document.getElementById('labUploadFile');
+  const msg = document.getElementById('labMsg');
+  if (!inp.files.length) { msg.textContent = 'Choose a .csv file first.'; return; }
+  const fd = new FormData();
+  fd.append('file', inp.files[0]);
+  msg.textContent = 'Uploading...';
+  const res = await fetch('/admin/api/dataset-lab/upload', { method: 'POST', headers: { 'X-Admin-Password': ADMIN_PW }, body: fd });
+  const data = await res.json();
+  if (!res.ok) { msg.textContent = 'Upload failed: ' + (data.error || res.status); return; }
+  msg.textContent = 'Uploaded ' + data.name;
+  inp.value = '';
+  await labLoadDatasets();
+  document.getElementById('labDataset').value = data.name;
+  labLoadColumns();
+}
+
+async function labLoadColumns() {
+  const name = document.getElementById('labDataset').value;
+  const info = document.getElementById('labDatasetInfo');
+  if (!name) return;
+  info.textContent = 'Reading columns...';
+  const res = await api(`/admin/api/dataset-lab/datasets/${encodeURIComponent(name)}/columns`);
+  if (res.error) { info.textContent = 'Error: ' + res.error; return; }
+  _labColumns = res.columns || [];
+  info.innerHTML = `${_labColumns.length} columns &middot; separator <code>${labEsc(res.separator === '\t' ? '\\t' : res.separator)}</code> &middot; sampled ${res.sample_rows.toLocaleString()} rows for the pickers`;
+  const tsel = document.getElementById('labTarget');
+  // Likely targets first: two-valued columns, then everything else
+  const two = _labColumns.filter(c => c.n_unique_sample === 2), rest = _labColumns.filter(c => c.n_unique_sample !== 2);
+  tsel.innerHTML = [...two, ...rest].map(c =>
+    `<option value="${labEsc(c.name)}">${labEsc(c.name)} ${c.n_unique_sample === 2 ? '(2 values)' : `(${c.kind}, ${c.n_unique_sample} values)`}</option>`).join('');
+  const last = _labColumns[_labColumns.length - 1];
+  if (two.length) tsel.value = (two.find(c => c.name === last.name) || two[0]).name;
+  labOnTargetChange();
+}
+
+function labOnTargetChange() {
+  const target = document.getElementById('labTarget').value;
+  const col = _labColumns.find(c => c.name === target);
+  const psel = document.getElementById('labPositive');
+  const vals = col ? col.sample_values : [];
+  psel.innerHTML = vals.map(v => `<option value="${labEsc(v)}">${labEsc(v)}</option>`).join('');
+  const truthy = vals.find(v => ['yes','y','true','t','1'].includes(String(v).toLowerCase()));
+  if (truthy) psel.value = truthy;
+  const box = document.getElementById('labDropCols');
+  box.innerHTML = _labColumns.filter(c => c.name !== target).map(c =>
+    `<label style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis"><input type="checkbox" value="${labEsc(c.name)}" style="width:auto;margin:0 4px 0 0">${labEsc(c.name)} <span style="color:var(--sub)">(${c.kind})</span></label>`).join('');
+}
+
+async function labRun() {
+  const msg = document.getElementById('labMsg');
+  const dataset = document.getElementById('labDataset').value;
+  const target = document.getElementById('labTarget').value;
+  if (!dataset || !target) { msg.textContent = 'Pick a dataset and a target column.'; return; }
+  const model_types = [...document.querySelectorAll('#labModels input:checked')].map(i => i.value);
+  if (!model_types.length) { msg.textContent = 'Select at least one model type.'; return; }
+  const body = {
+    dataset, target,
+    positive: document.getElementById('labPositive').value || null,
+    model_types,
+    drop_columns: [...document.querySelectorAll('#labDropCols input:checked')].map(i => i.value),
+    test_size: parseFloat(document.getElementById('labTestSize').value),
+    threshold: parseFloat(document.getElementById('labThreshold').value),
+    folds: parseInt(document.getElementById('labFolds').value, 10),
+    name: document.getElementById('labName').value,
+    notes: document.getElementById('labNotes').value,
+  };
+  msg.textContent = '';
+  const res = await api('/admin/api/dataset-lab/run', 'POST', body);
+  if (res.error) { msg.textContent = res.error; return; }
+  labPollStatus();
+}
+
+async function labPollStatus() {
+  const box = document.getElementById('labStatus');
+  const btn = document.getElementById('labRunBtn');
+  const render = async () => {
+    const res = await api('/admin/api/dataset-lab/status');
+    const job = res.job;
+    if (!job) { box.style.display = 'none'; btn.disabled = false; return false; }
+    const done = job.completed.map(c => `${c.model_type} (AUC ${c.auc_roc})`).join(', ');
+    const errs = job.errors.map(e => `${e.model_type}: ${e.error}`).join('; ');
+    if (res.running) {
+      box.className = 'alert alert-warning'; box.style.display = 'block'; btn.disabled = true;
+      box.innerHTML = `&#9203; Running <b>${labEsc(job.current_model || '')}</b> on <b>${labEsc(job.dataset)}</b> (target <code>${labEsc(job.target)}</code>) &mdash; ${job.completed.length}/${job.model_types.length} done${done ? ': ' + labEsc(done) : ''}${errs ? ' &middot; errors: ' + labEsc(errs) : ''}`;
+      return true;
+    }
+    btn.disabled = false;
+    box.style.display = 'block';
+    box.className = job.status === 'failed' ? 'alert alert-danger' : 'alert alert-success';
+    box.innerHTML = job.status === 'failed'
+      ? `&#10060; Job failed &mdash; ${labEsc(errs)}`
+      : `&#9989; Done (${job.started} &rarr; ${job.finished}): ${labEsc(done)}${errs ? ' &middot; errors: ' + labEsc(errs) : ''}`;
+    return false;
+  };
+  if (_labPoller) { clearInterval(_labPoller); _labPoller = null; }
+  if (await render()) {
+    _labPoller = setInterval(async () => {
+      if (!(await render())) { clearInterval(_labPoller); _labPoller = null; labLoadRuns(); }
+    }, 3000);
+  } else {
+    labLoadRuns();
+  }
+}
+
+async function labLoadRuns() {
+  const res = await api('/admin/api/dataset-lab/runs');
+  const runs = res.runs || [];
+  const el = document.getElementById('labRunsTable');
+  if (!runs.length) { el.innerHTML = '<p style="color:var(--sub)">No benchmark runs recorded yet.</p>'; return; }
+  el.innerHTML = `<table><thead><tr>
+      <th>When</th><th>Dataset</th><th>Target</th><th>Model</th><th>Rows</th><th>Feat.</th><th>Pos. rate</th>
+      <th>AUC-ROC</th><th>PR-AUC</th><th>F1</th><th>CV AUC</th><th>Excluded</th></tr></thead><tbody>` +
+    runs.map(r => `<tr style="cursor:pointer" onclick="labShowRun('${labEsc(r.run_id)}')" title="${labEsc(r.notes || '')}">
+      <td style="white-space:nowrap">${labEsc((r.timestamp || '').replace('T', ' ').slice(0, 16))}</td>
+      <td>${labEsc(r.dataset)}</td><td><code>${labEsc(r.target)}</code></td><td>${labEsc(r.model_type)}</td>
+      <td>${Number(r.n_rows).toLocaleString()}</td><td>${r.n_features}</td><td>${(r.positive_rate * 100).toFixed(1)}%</td>
+      <td><b>${labNum(r.auc_roc)}</b></td><td>${labNum(r.pr_auc)}</td><td>${labNum(r.f1)}</td>
+      <td>${r.cv_auc_mean == null ? '—' : `${labNum(r.cv_auc_mean)} &plusmn; ${labNum(r.cv_auc_std)}`}</td>
+      <td style="font-size:11px;color:var(--sub)">${labEsc((r.dropped_columns || []).join(', ') || '—')}</td></tr>`).join('') +
+    '</tbody></table>';
+}
+
+async function labShowRun(runId) {
+  const r = await api(`/admin/api/dataset-lab/runs/${encodeURIComponent(runId)}`);
+  const card = document.getElementById('labDetailCard');
+  if (r.error) { card.style.display = 'none'; return; }
+  const m = r.metrics, cm = r.confusion_matrix, cv = r.cross_validation, d = r.dataset;
+  const maxImp = Math.max(...r.top_features.map(t => t.importance), 1e-9);
+  document.getElementById('labDetailTitle').textContent = r.run_id;
+  document.getElementById('labDetail').innerHTML = `
+    <p style="font-size:13px;color:var(--sub);margin-bottom:12px">
+      <b>${labEsc(d.name)}</b> &middot; ${Number(d.n_rows).toLocaleString()} rows &middot; ${d.n_raw_features} raw &rarr; ${d.n_encoded_features} encoded features
+      (${d.categorical_columns.length} categorical one-hot encoded) &middot; target <code>${labEsc(d.target)}</code>, ${labEsc(d.target_note)}
+      &middot; overall positive rate ${(d.positive_rate_overall * 100).toFixed(1)}%
+      ${d.dropped_columns.length ? `&middot; excluded: <code>${labEsc(d.dropped_columns.join(', '))}</code>` : ''}
+      ${r.notes ? `<br><i>${labEsc(r.notes)}</i>` : ''}
+    </p>
+    <div class="kpi-grid" style="display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin-bottom:16px">
+      <div class="kpi"><div class="label">AUC-ROC</div><div class="value">${labNum(m.auc_roc)}</div></div>
+      <div class="kpi"><div class="label">PR-AUC</div><div class="value">${labNum(m.pr_auc)}</div></div>
+      <div class="kpi"><div class="label">F1</div><div class="value">${labNum(m.f1)}</div></div>
+      <div class="kpi"><div class="label">Precision</div><div class="value">${labNum(m.precision)}</div></div>
+      <div class="kpi"><div class="label">Recall</div><div class="value">${labNum(m.recall)}</div></div>
+      <div class="kpi"><div class="label">Brier</div><div class="value">${labNum(m.brier_score)}</div></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+      <div>
+        <h4 style="font-size:13px;margin-bottom:6px">Holdout (${m.n_test.toLocaleString()} rows, threshold ${r.split.threshold})</h4>
+        <table style="width:auto"><tr><th></th><th>Pred 0</th><th>Pred 1</th></tr>
+          <tr><th>Actual 0</th><td>${cm[0][0].toLocaleString()}</td><td>${cm[0][1].toLocaleString()}</td></tr>
+          <tr><th>Actual 1</th><td>${cm[1][0].toLocaleString()}</td><td>${cm[1][1].toLocaleString()}</td></tr></table>
+        <h4 style="font-size:13px;margin:14px 0 6px">${cv.n_splits}-fold cross-validation</h4>
+        <p style="font-size:13px">AUC <b>${labNum(cv.mean_auc)}</b> &plusmn; ${labNum(cv.std_auc)} &middot; folds: ${(cv.fold_aucs || []).join(', ') || '—'}${cv.note ? ' &middot; ' + labEsc(cv.note) : ''}</p>
+        <p style="font-size:12px;color:var(--sub);margin-top:8px">EPV ${r.epv.epv} (${r.epv.n_events.toLocaleString()} positives / ${r.epv.n_features} features) &rarr; overfitting risk <b>${labEsc(r.epv.overfitting_risk)}</b> &middot; model ${labEsc(r.model_type)} trained in ${r.train_seconds}s</p>
+      </div>
+      <div>
+        <h4 style="font-size:13px;margin-bottom:6px">Top features (${labEsc(r.model_type)} importance)</h4>
+        ${r.top_features.map(t => `
+          <div style="display:flex;align-items:center;gap:8px;font-size:12px;margin-bottom:3px">
+            <span style="width:190px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${labEsc(t.feature)}">${labEsc(t.feature)}</span>
+            <div style="flex:1;background:var(--grey);border-radius:3px;height:10px"><div style="width:${(t.importance / maxImp * 100).toFixed(1)}%;background:var(--blue);height:10px;border-radius:3px"></div></div>
+            <span style="width:56px;text-align:right;color:var(--sub)">${labNum(t.importance)}</span>
+          </div>`).join('')}
+      </div>
+    </div>`;
+  card.style.display = 'block';
+  card.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 // ── Auto-init if already logged in ─────────────────────────────────────────

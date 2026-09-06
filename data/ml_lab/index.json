@@ -150,5 +150,27 @@
     "cv_auc_mean": 0.9498,
     "cv_auc_std": 0.0019,
     "notes": "LEAKAGE DEMO: duration kept (only known after the call) - not a usable predictive model"
+  },
+  {
+    "run_id": "lab_20260906_220631_bank_marketing_logistic_regression",
+    "timestamp": "2026-09-06T22:06:31",
+    "dataset": "bank_marketing",
+    "target": "y",
+    "n_rows": 41188,
+    "n_features": 62,
+    "dropped_columns": [
+      "duration"
+    ],
+    "positive_rate": 0.1127,
+    "model_type": "logistic_regression",
+    "auc_roc": 0.8009,
+    "pr_auc": 0.46,
+    "f1": 0.4687,
+    "precision": 0.3679,
+    "recall": 0.6455,
+    "brier_score": 0.161576,
+    "cv_auc_mean": 0.7924,
+    "cv_auc_std": 0.0065,
+    "notes": "UI/API smoke run"
   }
 ]
