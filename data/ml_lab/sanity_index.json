@@ -1,0 +1,117 @@
+[
+  {
+    "run_id": "lab_20260906_222907_german_credit_extra_trees",
+    "dataset": "german_credit",
+    "model_type": "extra_trees",
+    "dropped_columns": [],
+    "k_permutations": 20,
+    "explainer": "shap.TreeExplainer (tree_path_dependent, no background)",
+    "auc_real_test": 0.7848,
+    "auc_perm_test_mean": 0.5116,
+    "S_real_mean_abs": 0.0071601,
+    "rho_median": 2.2777,
+    "rho_ci95": [
+      2.0009,
+      2.9228
+    ],
+    "p_value_one_sided": 0.0476,
+    "passes_fixed_2_0": true,
+    "timestamp": "2026-09-06T22:48:10",
+    "S_rand_median": 0.0031438,
+    "passes_p95": true,
+    "passes_p99": true,
+    "file": "lab_20260906_222907_german_credit_extra_trees__K20.json"
+  },
+  {
+    "run_id": "lab_20260906_223304_german_credit_gradient_boosting",
+    "dataset": "german_credit",
+    "model_type": "gradient_boosting",
+    "dropped_columns": [],
+    "k_permutations": 20,
+    "explainer": "shap.TreeExplainer (tree_path_dependent, no background)",
+    "auc_real_test": 0.7935,
+    "auc_perm_test_mean": 0.5155,
+    "S_real_mean_abs": 0.06728223,
+    "rho_median": 1.9131,
+    "rho_ci95": [
+      1.7328,
+      2.2569
+    ],
+    "p_value_one_sided": 0.0476,
+    "passes_fixed_2_0": false,
+    "timestamp": "2026-09-06T22:48:28",
+    "S_rand_median": 0.03517289,
+    "passes_p95": true,
+    "passes_p99": true,
+    "file": "lab_20260906_223304_german_credit_gradient_boosting__K20.json"
+  },
+  {
+    "run_id": "lab_20260906_223355_german_credit_logistic_regression",
+    "dataset": "german_credit",
+    "model_type": "logistic_regression",
+    "dropped_columns": [],
+    "k_permutations": 20,
+    "explainer": "shap.LinearExplainer (background = training rows, scaled space)",
+    "auc_real_test": 0.8014,
+    "auc_perm_test_mean": 0.5174,
+    "S_real_mean_abs": 0.09655891,
+    "rho_median": 2.2794,
+    "rho_ci95": [
+      1.9191,
+      3.1987
+    ],
+    "p_value_one_sided": 0.0476,
+    "passes_fixed_2_0": true,
+    "timestamp": "2026-09-06T22:48:36",
+    "S_rand_median": 0.04238291,
+    "passes_p95": true,
+    "passes_p99": true,
+    "file": "lab_20260906_223355_german_credit_logistic_regression__K20.json"
+  },
+  {
+    "run_id": "lab_20260906_223357_german_credit_random_forest",
+    "dataset": "german_credit",
+    "model_type": "random_forest",
+    "dropped_columns": [],
+    "k_permutations": 20,
+    "explainer": "shap.TreeExplainer (tree_path_dependent, no background)",
+    "auc_real_test": 0.7989,
+    "auc_perm_test_mean": 0.5062,
+    "S_real_mean_abs": 0.00717997,
+    "rho_median": 2.2299,
+    "rho_ci95": [
+      1.9472,
+      2.7262
+    ],
+    "p_value_one_sided": 0.0476,
+    "passes_fixed_2_0": true,
+    "timestamp": "2026-09-06T22:48:36",
+    "S_rand_median": 0.00321989,
+    "passes_p95": true,
+    "passes_p99": true,
+    "file": "lab_20260906_223357_german_credit_random_forest__K20.json"
+  },
+  {
+    "run_id": "lab_20260906_223402_german_credit_xgboost",
+    "dataset": "german_credit",
+    "model_type": "xgboost",
+    "dropped_columns": [],
+    "k_permutations": 20,
+    "explainer": "xgboost pred_contribs (native TreeSHAP, tree_path_dependent)",
+    "auc_real_test": 0.7627,
+    "auc_perm_test_mean": 0.524,
+    "S_real_mean_abs": 0.06860936,
+    "rho_median": 1.7919,
+    "rho_ci95": [
+      1.6175,
+      2.1074
+    ],
+    "p_value_one_sided": 0.0476,
+    "passes_fixed_2_0": false,
+    "timestamp": "2026-09-06T22:48:53",
+    "S_rand_median": 0.03828831,
+    "passes_p95": true,
+    "passes_p99": true,
+    "file": "lab_20260906_223402_german_credit_xgboost__K20.json"
+  }
+]
