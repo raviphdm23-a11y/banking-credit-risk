@@ -1,0 +1,278 @@
+{
+  "run_id": "lab_20260906_223247_bank_marketing_bankfull_xgboost",
+  "dataset": "bank_marketing_bankfull",
+  "model_type": "xgboost",
+  "target": "target",
+  "dropped_columns": [],
+  "k_permutations": 20,
+  "seed": 42,
+  "explainer": "xgboost pred_contribs (native TreeSHAP, tree_path_dependent)",
+  "shap_eval_rows": 2000,
+  "test_rows": 9043,
+  "n_features": 47,
+  "auc_real_test": 0.9314,
+  "auc_perm_test_mean": 0.4581,
+  "S_real_mean_abs": 0.10064887,
+  "S_rand_mean_abs": {
+    "median": 0.01250726,
+    "p95": 0.01417246,
+    "p99": 0.01445444,
+    "min": 0.01114392,
+    "max": 0.01452493
+  },
+  "rho_single_definition": "S_real / S_rand_k for each permutation k",
+  "rho_median": 8.0472,
+  "rho_mean": 7.9795,
+  "rho_ci95": [
+    7.0157,
+    8.9458
+  ],
+  "rho_min_over_k": 6.9294,
+  "rho_max_over_k": 9.0317,
+  "p_value_one_sided": 0.0476,
+  "passes_fixed_2_0": true,
+  "passes_fixed_2_0_all_k": true,
+  "null_derived": {
+    "S_real_over_p95": 7.1017,
+    "S_real_over_p99": 6.9632,
+    "threshold_ratio_p95_over_median": 1.1331,
+    "threshold_ratio_p99_over_median": 1.1557,
+    "passes_p95": true,
+    "passes_p99": true
+  },
+  "alt_aggregation_median_abs": {
+    "rho_median": 8.1283
+  },
+  "real_aggregates": {
+    "mean_abs": 0.10064887,
+    "median_abs": 0.02610463,
+    "per_sample_mean_abs_mean": 0.10064885,
+    "top5_mass_share": 0.56144798
+  },
+  "top_features_real_mean_abs_shap": [
+    {
+      "feature": "duration",
+      "mean_abs_shap": 1.50843596
+    },
+    {
+      "feature": "contact_cellular",
+      "mean_abs_shap": 0.46072978
+    },
+    {
+      "feature": "housing_no",
+      "mean_abs_shap": 0.26220188
+    },
+    {
+      "feature": "month_may",
+      "mean_abs_shap": 0.23433839
+    },
+    {
+      "feature": "poutcome_success",
+      "mean_abs_shap": 0.19022149
+    },
+    {
+      "feature": "campaign",
+      "mean_abs_shap": 0.17356671
+    },
+    {
+      "feature": "balance",
+      "mean_abs_shap": 0.17087907
+    },
+    {
+      "feature": "age",
+      "mean_abs_shap": 0.16189472
+    },
+    {
+      "feature": "day_of_week",
+      "mean_abs_shap": 0.15434508
+    },
+    {
+      "feature": "month_jul",
+      "mean_abs_shap": 0.12869209
+    },
+    {
+      "feature": "pdays",
+      "mean_abs_shap": 0.11480939
+    },
+    {
+      "feature": "previous",
+      "mean_abs_shap": 0.08777329
+    },
+    {
+      "feature": "marital_married",
+      "mean_abs_shap": 0.08200543
+    },
+    {
+      "feature": "month_jun",
+      "mean_abs_shap": 0.08192446
+    },
+    {
+      "feature": "month_aug",
+      "mean_abs_shap": 0.08016415
+    }
+  ],
+  "null_runs": [
+    {
+      "perm": 0,
+      "auc_test": 0.4356,
+      "mean_abs": 0.01452493,
+      "median_abs": 0.00378696,
+      "per_sample_mean_abs_mean": 0.01452493,
+      "top5_mass_share": 0.41973412
+    },
+    {
+      "perm": 1,
+      "auc_test": 0.5083,
+      "mean_abs": 0.01321786,
+      "median_abs": 0.00340803,
+      "per_sample_mean_abs_mean": 0.01321786,
+      "top5_mass_share": 0.49802962
+    },
+    {
+      "perm": 2,
+      "auc_test": 0.4279,
+      "mean_abs": 0.01297907,
+      "median_abs": 0.00309672,
+      "per_sample_mean_abs_mean": 0.01297907,
+      "top5_mass_share": 0.49873772
+    },
+    {
+      "perm": 3,
+      "auc_test": 0.4501,
+      "mean_abs": 0.01229431,
+      "median_abs": 0.00296074,
+      "per_sample_mean_abs_mean": 0.01229431,
+      "top5_mass_share": 0.4838255
+    },
+    {
+      "perm": 4,
+      "auc_test": 0.4901,
+      "mean_abs": 0.01237796,
+      "median_abs": 0.00289635,
+      "per_sample_mean_abs_mean": 0.01237796,
+      "top5_mass_share": 0.4710511
+    },
+    {
+      "perm": 5,
+      "auc_test": 0.4755,
+      "mean_abs": 0.01328742,
+      "median_abs": 0.00320235,
+      "per_sample_mean_abs_mean": 0.01328742,
+      "top5_mass_share": 0.4872295
+    },
+    {
+      "perm": 6,
+      "auc_test": 0.4671,
+      "mean_abs": 0.01249915,
+      "median_abs": 0.00302452,
+      "per_sample_mean_abs_mean": 0.01249915,
+      "top5_mass_share": 0.45525876
+    },
+    {
+      "perm": 7,
+      "auc_test": 0.4922,
+      "mean_abs": 0.01114392,
+      "median_abs": 0.00311697,
+      "per_sample_mean_abs_mean": 0.01114392,
+      "top5_mass_share": 0.46503454
+    },
+    {
+      "perm": 8,
+      "auc_test": 0.4339,
+      "mean_abs": 0.01137168,
+      "median_abs": 0.00279118,
+      "per_sample_mean_abs_mean": 0.01137168,
+      "top5_mass_share": 0.49121532
+    },
+    {
+      "perm": 9,
+      "auc_test": 0.4835,
+      "mean_abs": 0.01322196,
+      "median_abs": 0.00367366,
+      "per_sample_mean_abs_mean": 0.01322196,
+      "top5_mass_share": 0.44699103
+    },
+    {
+      "perm": 10,
+      "auc_test": 0.5004,
+      "mean_abs": 0.01349846,
+      "median_abs": 0.00328495,
+      "per_sample_mean_abs_mean": 0.01349846,
+      "top5_mass_share": 0.45556122
+    },
+    {
+      "perm": 11,
+      "auc_test": 0.4024,
+      "mean_abs": 0.01199684,
+      "median_abs": 0.002767,
+      "per_sample_mean_abs_mean": 0.01199684,
+      "top5_mass_share": 0.4833377
+    },
+    {
+      "perm": 12,
+      "auc_test": 0.4692,
+      "mean_abs": 0.01241422,
+      "median_abs": 0.00368535,
+      "per_sample_mean_abs_mean": 0.01241422,
+      "top5_mass_share": 0.43414155
+    },
+    {
+      "perm": 13,
+      "auc_test": 0.4226,
+      "mean_abs": 0.01233645,
+      "median_abs": 0.0033601,
+      "per_sample_mean_abs_mean": 0.01233645,
+      "top5_mass_share": 0.44754234
+    },
+    {
+      "perm": 14,
+      "auc_test": 0.4462,
+      "mean_abs": 0.01199062,
+      "median_abs": 0.00337629,
+      "per_sample_mean_abs_mean": 0.01199062,
+      "top5_mass_share": 0.43843889
+    },
+    {
+      "perm": 15,
+      "auc_test": 0.4198,
+      "mean_abs": 0.01230172,
+      "median_abs": 0.00292687,
+      "per_sample_mean_abs_mean": 0.01230172,
+      "top5_mass_share": 0.47548226
+    },
+    {
+      "perm": 16,
+      "auc_test": 0.4721,
+      "mean_abs": 0.01258128,
+      "median_abs": 0.0032553,
+      "per_sample_mean_abs_mean": 0.01258128,
+      "top5_mass_share": 0.44835275
+    },
+    {
+      "perm": 17,
+      "auc_test": 0.4254,
+      "mean_abs": 0.01256577,
+      "median_abs": 0.00307435,
+      "per_sample_mean_abs_mean": 0.01256577,
+      "top5_mass_share": 0.43209788
+    },
+    {
+      "perm": 18,
+      "auc_test": 0.4604,
+      "mean_abs": 0.01251537,
+      "median_abs": 0.00322086,
+      "per_sample_mean_abs_mean": 0.01251537,
+      "top5_mass_share": 0.46932065
+    },
+    {
+      "perm": 19,
+      "auc_test": 0.4801,
+      "mean_abs": 0.01415391,
+      "median_abs": 0.00372756,
+      "per_sample_mean_abs_mean": 0.01415391,
+      "top5_mass_share": 0.45297453
+    }
+  ],
+  "elapsed_seconds": 10.3,
+  "timestamp": "2026-09-06T23:12:29"
+}
