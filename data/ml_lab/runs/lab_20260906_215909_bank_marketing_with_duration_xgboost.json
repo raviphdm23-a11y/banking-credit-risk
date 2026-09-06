@@ -1,0 +1,168 @@
+{
+  "run_id": "lab_20260906_215909_bank_marketing_with_duration_xgboost",
+  "timestamp": "2026-09-06T21:59:09",
+  "dataset": {
+    "name": "bank_marketing_with_duration",
+    "csv_path": "data/ml_lab/datasets/bank_marketing_additional_full.csv",
+    "n_rows": 41188,
+    "target": "y",
+    "target_note": "positive class = 'yes'",
+    "positive_rate_overall": 0.1127,
+    "n_raw_features": 20,
+    "n_encoded_features": 63,
+    "numeric_columns": [
+      "age",
+      "duration",
+      "campaign",
+      "pdays",
+      "previous",
+      "emp.var.rate",
+      "cons.price.idx",
+      "cons.conf.idx",
+      "euribor3m",
+      "nr.employed"
+    ],
+    "categorical_columns": [
+      "job",
+      "marital",
+      "education",
+      "default",
+      "housing",
+      "loan",
+      "contact",
+      "month",
+      "day_of_week",
+      "poutcome"
+    ],
+    "dropped_columns": [],
+    "rows_with_any_missing": 0
+  },
+  "model_type": "xgboost",
+  "hyperparameters": {
+    "n_estimators": 100,
+    "max_depth": 5,
+    "learning_rate": 0.1,
+    "subsample": 0.7,
+    "colsample_bytree": 0.7,
+    "min_child_weight": 10,
+    "gamma": 1.0,
+    "reg_alpha": 1.0,
+    "reg_lambda": 2.0,
+    "scale_pos_weight": 45,
+    "random_state": 42
+  },
+  "split": {
+    "test_size": 0.2,
+    "n_train": 32950,
+    "n_test": 8238,
+    "threshold": 0.5,
+    "stratified": true,
+    "random_state": 42
+  },
+  "metrics": {
+    "auc_roc": 0.955,
+    "pr_auc": 0.6973,
+    "accuracy": 0.8653,
+    "precision": 0.4526,
+    "recall": 0.9364,
+    "f1": 0.6103,
+    "brier_score": 0.091492,
+    "n_test": 8238,
+    "n_positive": 928,
+    "positive_rate": 0.1126
+  },
+  "confusion_matrix": [
+    [
+      6259,
+      1051
+    ],
+    [
+      59,
+      869
+    ]
+  ],
+  "cross_validation": {
+    "n_splits": 5,
+    "fold_aucs": [
+      0.9482,
+      0.947,
+      0.9519,
+      0.9517,
+      0.9501
+    ],
+    "mean_auc": 0.9498,
+    "std_auc": 0.0019,
+    "note": null
+  },
+  "epv": {
+    "epv": 58.92,
+    "n_events": 3712,
+    "n_features": 63,
+    "overfitting_risk": "low",
+    "note": "Rule of thumb: EPV >= 10 acceptable, >= 20 comfortable (Peduzzi et al.)."
+  },
+  "top_features": [
+    {
+      "feature": "nr.employed",
+      "importance": 0.238898
+    },
+    {
+      "feature": "duration",
+      "importance": 0.102987
+    },
+    {
+      "feature": "emp.var.rate",
+      "importance": 0.081075
+    },
+    {
+      "feature": "month_oct",
+      "importance": 0.054113
+    },
+    {
+      "feature": "cons.conf.idx",
+      "importance": 0.049991
+    },
+    {
+      "feature": "euribor3m",
+      "importance": 0.035678
+    },
+    {
+      "feature": "month_may",
+      "importance": 0.034543
+    },
+    {
+      "feature": "pdays",
+      "importance": 0.022146
+    },
+    {
+      "feature": "month_apr",
+      "importance": 0.018613
+    },
+    {
+      "feature": "job_retired",
+      "importance": 0.017
+    },
+    {
+      "feature": "default_no",
+      "importance": 0.016444
+    },
+    {
+      "feature": "poutcome_failure",
+      "importance": 0.01636
+    },
+    {
+      "feature": "contact_telephone",
+      "importance": 0.015399
+    },
+    {
+      "feature": "month_jun",
+      "importance": 0.015059
+    },
+    {
+      "feature": "month_mar",
+      "importance": 0.01443
+    }
+  ],
+  "train_seconds": 1.7,
+  "notes": "LEAKAGE DEMO: duration kept (only known after the call) - not a usable predictive model"
+}

@@ -98,3 +98,6 @@ backups/
 
 # Model Trust Ledger snapshots (regenerated automatically on every promotion)
 data/governance_reports/
+
+# Dataset Lab: raw benchmark CSVs are downloaded, not committed (results under data/ml_lab/runs/ are kept)
+data/ml_lab/datasets/

@@ -1,0 +1,164 @@
+{
+  "run_id": "lab_20260906_215755_bank_marketing_extra_trees",
+  "timestamp": "2026-09-06T21:57:55",
+  "dataset": {
+    "name": "bank_marketing",
+    "csv_path": "data/ml_lab/datasets/bank_marketing_additional_full.csv",
+    "n_rows": 41188,
+    "target": "y",
+    "target_note": "positive class = 'yes'",
+    "positive_rate_overall": 0.1127,
+    "n_raw_features": 19,
+    "n_encoded_features": 62,
+    "numeric_columns": [
+      "age",
+      "campaign",
+      "pdays",
+      "previous",
+      "emp.var.rate",
+      "cons.price.idx",
+      "cons.conf.idx",
+      "euribor3m",
+      "nr.employed"
+    ],
+    "categorical_columns": [
+      "job",
+      "marital",
+      "education",
+      "default",
+      "housing",
+      "loan",
+      "contact",
+      "month",
+      "day_of_week",
+      "poutcome"
+    ],
+    "dropped_columns": [
+      "duration"
+    ],
+    "rows_with_any_missing": 0
+  },
+  "model_type": "extra_trees",
+  "hyperparameters": {
+    "n_estimators": 300,
+    "max_depth": 8,
+    "min_samples_leaf": 5,
+    "max_features": "sqrt",
+    "class_weight": "balanced",
+    "random_state": 42
+  },
+  "split": {
+    "test_size": 0.2,
+    "n_train": 32950,
+    "n_test": 8238,
+    "threshold": 0.5,
+    "stratified": true,
+    "random_state": 42
+  },
+  "metrics": {
+    "auc_roc": 0.8065,
+    "pr_auc": 0.473,
+    "accuracy": 0.8126,
+    "precision": 0.3358,
+    "recall": 0.6789,
+    "f1": 0.4494,
+    "brier_score": 0.162505,
+    "n_test": 8238,
+    "n_positive": 928,
+    "positive_rate": 0.1126
+  },
+  "confusion_matrix": [
+    [
+      6064,
+      1246
+    ],
+    [
+      298,
+      630
+    ]
+  ],
+  "cross_validation": {
+    "n_splits": 5,
+    "fold_aucs": [
+      0.7899,
+      0.7957,
+      0.8077,
+      0.7926,
+      0.7961
+    ],
+    "mean_auc": 0.7964,
+    "std_auc": 0.0061,
+    "note": null
+  },
+  "epv": {
+    "epv": 59.87,
+    "n_events": 3712,
+    "n_features": 62,
+    "overfitting_risk": "low",
+    "note": "Rule of thumb: EPV >= 10 acceptable, >= 20 comfortable (Peduzzi et al.)."
+  },
+  "top_features": [
+    {
+      "feature": "nr.employed",
+      "importance": 0.158586
+    },
+    {
+      "feature": "euribor3m",
+      "importance": 0.152198
+    },
+    {
+      "feature": "emp.var.rate",
+      "importance": 0.132625
+    },
+    {
+      "feature": "pdays",
+      "importance": 0.083585
+    },
+    {
+      "feature": "poutcome_success",
+      "importance": 0.062875
+    },
+    {
+      "feature": "month_may",
+      "importance": 0.045751
+    },
+    {
+      "feature": "contact_cellular",
+      "importance": 0.044763
+    },
+    {
+      "feature": "poutcome_nonexistent",
+      "importance": 0.037664
+    },
+    {
+      "feature": "cons.price.idx",
+      "importance": 0.035871
+    },
+    {
+      "feature": "cons.conf.idx",
+      "importance": 0.035677
+    },
+    {
+      "feature": "contact_telephone",
+      "importance": 0.034443
+    },
+    {
+      "feature": "default_unknown",
+      "importance": 0.016372
+    },
+    {
+      "feature": "month_oct",
+      "importance": 0.016338
+    },
+    {
+      "feature": "default_no",
+      "importance": 0.016146
+    },
+    {
+      "feature": "month_mar",
+      "importance": 0.013565
+    }
+  ],
+  "train_seconds": 5.8,
+  "notes": "UCI Bank Marketing; duration dropped (post-call leakage); model comparison"
+}

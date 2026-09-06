@@ -39,6 +39,12 @@ All banks grounded in a real ledger: `advances_net == SUM(loans.outstanding)`, d
 # Retrain a model (per exposure-class or per-bank; see ML Model section)
 .\venv310\Scripts\python.exe ml_models\trainer.py
 
+# Dataset Lab — benchmark ANY binary-classification CSV (banking or not) with the same model
+# builders/evaluation as trainer.py, WITHOUT onboarding it as a bank. Results go to data/ml_lab/
+# (runs/<run_id>.json + index.json), never to bank.db or active_model.json.
+.\venv310\Scripts\python.exe ml_models\dataset_lab.py --csv data\ml_lab\datasets\x.csv --target y --positive yes --drop leaky_col --all-models
+.\venv310\Scripts\python.exe ml_models\dataset_lab.py --list
+
 # Seed / reconcile bank.db (run manually, in this rough order for a fresh bank)
 .\venv310\Scripts\python.exe operations\scripts\seed_global.py
 .\venv310\Scripts\python.exe operations\scripts\seed_real_bank.py
