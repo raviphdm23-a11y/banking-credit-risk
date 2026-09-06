@@ -201,29 +201,50 @@ def compute_sanity(run_id, k=20, shap_sample=2000, seed=42):
     return rec
 
 
+def _index_row(rec, fn):
+    return {k_: rec[k_] for k_ in ('run_id', 'dataset', 'model_type', 'dropped_columns', 'k_permutations',
+                                    'explainer', 'auc_real_test', 'auc_perm_test_mean', 'S_real_mean_abs',
+                                    'rho_median', 'rho_ci95', 'p_value_one_sided', 'passes_fixed_2_0',
+                                    'timestamp')} | {'S_rand_median': rec['S_rand_mean_abs']['median'],
+                                                      'passes_p95': rec['null_derived']['passes_p95'],
+                                                      'passes_p99': rec['null_derived']['passes_p99'],
+                                                      'file': fn}
+
+
+def rebuild_index():
+    """The index is derived purely from the per-run files, so concurrent jobs
+    (each writing its own uniquely named file) can never lose each other's
+    rows through a read-modify-write race on the index."""
+    os.makedirs(SANITY_DIR, exist_ok=True)
+    rows = []
+    for fn in sorted(os.listdir(SANITY_DIR)):
+        if not fn.endswith('.json'):
+            continue
+        try:
+            with open(os.path.join(SANITY_DIR, fn), 'r', encoding='utf-8') as f:
+                rows.append(_index_row(json.load(f), fn))
+        except (OSError, ValueError, KeyError):
+            continue      # a file mid-write by another job; picked up on the next rebuild
+    rows.sort(key=lambda r: r['timestamp'])
+    tmp = SANITY_INDEX + '.tmp'
+    with open(tmp, 'w', encoding='utf-8') as f:
+        json.dump(rows, f, indent=2, default=str)
+    os.replace(tmp, SANITY_INDEX)
+    return rows
+
+
 def _record(rec):
     os.makedirs(SANITY_DIR, exist_ok=True)
     fn = f"{rec['run_id']}__K{rec['k_permutations']}.json"
-    with open(os.path.join(SANITY_DIR, fn), 'w', encoding='utf-8') as f:
+    tmp = os.path.join(SANITY_DIR, fn + '.tmp')
+    with open(tmp, 'w', encoding='utf-8') as f:
         json.dump(rec, f, indent=2, default=str)
-    index = list_sanity()
-    index = [r for r in index if not (r['run_id'] == rec['run_id'] and r['k_permutations'] == rec['k_permutations'])]
-    index.append({k_: rec[k_] for k_ in ('run_id', 'dataset', 'model_type', 'dropped_columns', 'k_permutations',
-                                          'explainer', 'auc_real_test', 'auc_perm_test_mean', 'S_real_mean_abs',
-                                          'rho_median', 'rho_ci95', 'p_value_one_sided', 'passes_fixed_2_0',
-                                          'timestamp')} | {'S_rand_median': rec['S_rand_mean_abs']['median'],
-                                                            'passes_p95': rec['null_derived']['passes_p95'],
-                                                            'passes_p99': rec['null_derived']['passes_p99'],
-                                                            'file': fn})
-    with open(SANITY_INDEX, 'w', encoding='utf-8') as f:
-        json.dump(index, f, indent=2, default=str)
+    os.replace(tmp, os.path.join(SANITY_DIR, fn))
+    rebuild_index()
 
 
 def list_sanity():
-    if not os.path.exists(SANITY_INDEX):
-        return []
-    with open(SANITY_INDEX, 'r', encoding='utf-8') as f:
-        return json.load(f)
+    return rebuild_index()
 
 
 def _select_runs(dataset_name, notes_contains, models):
