@@ -1,0 +1,185 @@
+{
+  "run_id": "lab_20260912_101008_german_credit_tuned_gradient_boosting_tuned",
+  "timestamp": "2026-09-12T10:10:08",
+  "dataset": {
+    "name": "german_credit_tuned",
+    "csv_path": "data/ml_lab/datasets/paper_german_credit.csv",
+    "n_rows": 1000,
+    "target": "target",
+    "target_note": "positive class = '1'",
+    "positive_rate_overall": 0.3,
+    "n_raw_features": 20,
+    "n_encoded_features": 61,
+    "numeric_columns": [
+      "months_duration",
+      "credit_amount",
+      "installment_rate",
+      "residence_since",
+      "age",
+      "existing_credits",
+      "people_liable"
+    ],
+    "categorical_columns": [
+      "checking_status",
+      "credit_history",
+      "purpose",
+      "savings_status",
+      "employment_since",
+      "personal_status_sex",
+      "other_debtors",
+      "property",
+      "other_installment_plans",
+      "housing",
+      "job",
+      "telephone",
+      "foreign_worker"
+    ],
+    "dropped_columns": [],
+    "rows_with_any_missing": 0
+  },
+  "model_type": "gradient_boosting",
+  "hyperparameters": {
+    "clf__subsample": 0.7,
+    "clf__n_estimators": 150,
+    "clf__min_samples_leaf": 5,
+    "clf__max_depth": 4,
+    "clf__learning_rate": 0.03
+  },
+  "pipeline_options": {
+    "iv_boruta": false,
+    "resample": "none",
+    "tuned": true
+  },
+  "screening": null,
+  "resampling": null,
+  "tuning": {
+    "n_iter_requested": 20,
+    "n_iter_effective": 20,
+    "n_candidates_full_grid": 1600,
+    "cv_folds": 5,
+    "scoring": "roc_auc",
+    "resample_inside_cv": "none",
+    "best_params": {
+      "clf__subsample": 0.7,
+      "clf__n_estimators": 150,
+      "clf__min_samples_leaf": 5,
+      "clf__max_depth": 4,
+      "clf__learning_rate": 0.03
+    },
+    "best_cv_auc": 0.7957
+  },
+  "split": {
+    "test_size": 0.2,
+    "n_train": 800,
+    "n_test": 200,
+    "threshold": 0.5,
+    "stratified": true,
+    "random_state": 42
+  },
+  "metrics": {
+    "auc_roc": 0.7954,
+    "pr_auc": 0.6278,
+    "accuracy": 0.78,
+    "precision": 0.6818,
+    "recall": 0.5,
+    "f1": 0.5769,
+    "brier_score": 0.159973,
+    "n_test": 200,
+    "n_positive": 60,
+    "positive_rate": 0.3
+  },
+  "confusion_matrix": [
+    [
+      126,
+      14
+    ],
+    [
+      30,
+      30
+    ]
+  ],
+  "cross_validation": {
+    "n_splits": 5,
+    "fold_aucs": [
+      0.7605,
+      0.7485,
+      0.8018,
+      0.8219,
+      0.801
+    ],
+    "mean_auc": 0.7867,
+    "std_auc": 0.0276,
+    "note": null
+  },
+  "epv": {
+    "epv": 3.93,
+    "n_events": 240,
+    "n_features": 61,
+    "overfitting_risk": "high",
+    "note": "Rule of thumb: EPV >= 10 acceptable, >= 20 comfortable (Peduzzi et al.)."
+  },
+  "top_features": [
+    {
+      "feature": "credit_amount",
+      "importance": 0.165955
+    },
+    {
+      "feature": "checking_status_no checking account",
+      "importance": 0.124008
+    },
+    {
+      "feature": "months_duration",
+      "importance": 0.118616
+    },
+    {
+      "feature": "age",
+      "importance": 0.069022
+    },
+    {
+      "feature": "installment_rate",
+      "importance": 0.031257
+    },
+    {
+      "feature": "savings_status__ 100 DM",
+      "importance": 0.030927
+    },
+    {
+      "feature": "other_installment_plans_bank",
+      "importance": 0.026174
+    },
+    {
+      "feature": "credit_history_critical account / other credits elsewhere",
+      "importance": 0.025438
+    },
+    {
+      "feature": "checking_status__ 0 DM",
+      "importance": 0.024207
+    },
+    {
+      "feature": "property_real estate",
+      "importance": 0.019995
+    },
+    {
+      "feature": "savings_status_unknown / none",
+      "importance": 0.019439
+    },
+    {
+      "feature": "property_unknown / none",
+      "importance": 0.018637
+    },
+    {
+      "feature": "employment_since__ 1 year",
+      "importance": 0.018154
+    },
+    {
+      "feature": "purpose_education",
+      "importance": 0.016618
+    },
+    {
+      "feature": "credit_history_no credits / all paid duly",
+      "importance": 0.015914
+    }
+  ],
+  "train_seconds": 36.0,
+  "notes": "Step A extended: RandomizedSearchCV tuning only, isolate effect"
+}

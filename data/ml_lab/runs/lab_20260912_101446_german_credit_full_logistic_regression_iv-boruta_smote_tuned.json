@@ -1,0 +1,526 @@
+{
+  "run_id": "lab_20260912_101446_german_credit_full_logistic_regression_iv-boruta_smote_tuned",
+  "timestamp": "2026-09-12T10:14:46",
+  "dataset": {
+    "name": "german_credit_full",
+    "csv_path": "data/ml_lab/datasets/paper_german_credit.csv",
+    "n_rows": 1000,
+    "target": "target",
+    "target_note": "positive class = '1'",
+    "positive_rate_overall": 0.3,
+    "n_raw_features": 12,
+    "n_encoded_features": 43,
+    "numeric_columns": [
+      "months_duration",
+      "credit_amount",
+      "installment_rate",
+      "age"
+    ],
+    "categorical_columns": [
+      "checking_status",
+      "credit_history",
+      "purpose",
+      "savings_status",
+      "employment_since",
+      "property",
+      "other_installment_plans",
+      "housing"
+    ],
+    "dropped_columns": [
+      "residence_since",
+      "telephone",
+      "other_debtors",
+      "people_liable",
+      "personal_status_sex",
+      "existing_credits",
+      "foreign_worker",
+      "job"
+    ],
+    "rows_with_any_missing": 0
+  },
+  "model_type": "logistic_regression",
+  "hyperparameters": {
+    "clf__solver": "lbfgs",
+    "clf__penalty": "l2",
+    "clf__C": 0.01
+  },
+  "pipeline_options": {
+    "iv_boruta": true,
+    "resample": "smote",
+    "tuned": true
+  },
+  "screening": {
+    "iv_min": 0.02,
+    "iv_dropped": [
+      "existing_credits",
+      "job",
+      "people_liable",
+      "residence_since",
+      "telephone"
+    ],
+    "iv_values": {
+      "checking_status": 0.666,
+      "credit_history": 0.2932,
+      "months_duration": 0.2465,
+      "savings_status": 0.196,
+      "purpose": 0.1692,
+      "credit_amount": 0.1136,
+      "property": 0.1126,
+      "age": 0.1006,
+      "employment_since": 0.0864,
+      "housing": 0.0833,
+      "other_installment_plans": 0.0576,
+      "personal_status_sex": 0.0447,
+      "foreign_worker": 0.0439,
+      "other_debtors": 0.032,
+      "installment_rate": 0.0256,
+      "job": 0.0088,
+      "telephone": 0.0064,
+      "existing_credits": 0.0036,
+      "residence_since": 0.0006,
+      "people_liable": 0.0
+    },
+    "iv_survivor_count": 15,
+    "boruta": {
+      "confirmed": [
+        "checking_status",
+        "months_duration",
+        "credit_history",
+        "purpose",
+        "credit_amount",
+        "savings_status",
+        "employment_since",
+        "installment_rate",
+        "property",
+        "age",
+        "other_installment_plans",
+        "housing"
+      ],
+      "tentative": [],
+      "rejected": [
+        "personal_status_sex",
+        "other_debtors",
+        "foreign_worker"
+      ],
+      "dummy_detail": [
+        {
+          "encoded_column": "months_duration",
+          "raw_column": "months_duration",
+          "status": "confirmed"
+        },
+        {
+          "encoded_column": "credit_amount",
+          "raw_column": "credit_amount",
+          "status": "confirmed"
+        },
+        {
+          "encoded_column": "installment_rate",
+          "raw_column": "installment_rate",
+          "status": "confirmed"
+        },
+        {
+          "encoded_column": "age",
+          "raw_column": "age",
+          "status": "confirmed"
+        },
+        {
+          "encoded_column": "checking_status_0 \u2264 ... < 200 DM",
+          "raw_column": "checking_status",
+          "status": "confirmed"
+        },
+        {
+          "encoded_column": "checking_status_< 0 DM",
+          "raw_column": "checking_status",
+          "status": "confirmed"
+        },
+        {
+          "encoded_column": "checking_status_no checking account",
+          "raw_column": "checking_status",
+          "status": "confirmed"
+        },
+        {
+          "encoded_column": "checking_status_\u2265 200 DM / salary assignment \u2265 1y",
+          "raw_column": "checking_status",
+          "status": "rejected"
+        },
+        {
+          "encoded_column": "credit_history_all credits at this bank paid duly",
+          "raw_column": "credit_history",
+          "status": "confirmed"
+        },
+        {
+          "encoded_column": "credit_history_critical account / other credits elsewhere",
+          "raw_column": "credit_history",
+          "status": "confirmed"
+        },
+        {
+          "encoded_column": "credit_history_delay in past",
+          "raw_column": "credit_history",
+          "status": "rejected"
+        },
+        {
+          "encoded_column": "credit_history_existing credits paid duly till now",
+          "raw_column": "credit_history",
+          "status": "rejected"
+        },
+        {
+          "encoded_column": "credit_history_no credits / all paid duly",
+          "raw_column": "credit_history",
+          "status": "confirmed"
+        },
+        {
+          "encoded_column": "purpose_business",
+          "raw_column": "purpose",
+          "status": "rejected"
+        },
+        {
+          "encoded_column": "purpose_car (new)",
+          "raw_column": "purpose",
+          "status": "confirmed"
+        },
+        {
+          "encoded_column": "purpose_car (used)",
+          "raw_column": "purpose",
+          "status": "confirmed"
+        },
+        {
+          "encoded_column": "purpose_domestic appliances",
+          "raw_column": "purpose",
+          "status": "rejected"
+        },
+        {
+          "encoded_column": "purpose_education",
+          "raw_column": "purpose",
+          "status": "rejected"
+        },
+        {
+          "encoded_column": "purpose_furniture/equipment",
+          "raw_column": "purpose",
+          "status": "rejected"
+        },
+        {
+          "encoded_column": "purpose_others",
+          "raw_column": "purpose",
+          "status": "rejected"
+        },
+        {
+          "encoded_column": "purpose_radio/television",
+          "raw_column": "purpose",
+          "status": "confirmed"
+        },
+        {
+          "encoded_column": "purpose_repairs",
+          "raw_column": "purpose",
+          "status": "rejected"
+        },
+        {
+          "encoded_column": "purpose_retraining",
+          "raw_column": "purpose",
+          "status": "rejected"
+        },
+        {
+          "encoded_column": "savings_status_100 \u2264 ... < 500 DM",
+          "raw_column": "savings_status",
+          "status": "rejected"
+        },
+        {
+          "encoded_column": "savings_status_500 \u2264 ... < 1000 DM",
+          "raw_column": "savings_status",
+          "status": "rejected"
+        },
+        {
+          "encoded_column": "savings_status_< 100 DM",
+          "raw_column": "savings_status",
+          "status": "confirmed"
+        },
+        {
+          "encoded_column": "savings_status_unknown / none",
+          "raw_column": "savings_status",
+          "status": "confirmed"
+        },
+        {
+          "encoded_column": "savings_status_\u2265 1000 DM",
+          "raw_column": "savings_status",
+          "status": "rejected"
+        },
+        {
+          "encoded_column": "employment_since_1 \u2264 ... < 4 years",
+          "raw_column": "employment_since",
+          "status": "rejected"
+        },
+        {
+          "encoded_column": "employment_since_4 \u2264 ... < 7 years",
+          "raw_column": "employment_since",
+          "status": "rejected"
+        },
+        {
+          "encoded_column": "employment_since_< 1 year",
+          "raw_column": "employment_since",
+          "status": "confirmed"
+        },
+        {
+          "encoded_column": "employment_since_unemployed",
+          "raw_column": "employment_since",
+          "status": "rejected"
+        },
+        {
+          "encoded_column": "employment_since_\u2265 7 years",
+          "raw_column": "employment_since",
+          "status": "rejected"
+        },
+        {
+          "encoded_column": "personal_status_sex_female: divorced/separated/married",
+          "raw_column": "personal_status_sex",
+          "status": "rejected"
+        },
+        {
+          "encoded_column": "personal_status_sex_male: divorced/separated",
+          "raw_column": "personal_status_sex",
+          "status": "rejected"
+        },
+        {
+          "encoded_column": "personal_status_sex_male: married/widowed",
+          "raw_column": "personal_status_sex",
+          "status": "rejected"
+        },
+        {
+          "encoded_column": "personal_status_sex_male: single",
+          "raw_column": "personal_status_sex",
+          "status": "rejected"
+        },
+        {
+          "encoded_column": "other_debtors_co-applicant",
+          "raw_column": "other_debtors",
+          "status": "rejected"
+        },
+        {
+          "encoded_column": "other_debtors_guarantor",
+          "raw_column": "other_debtors",
+          "status": "rejected"
+        },
+        {
+          "encoded_column": "other_debtors_none",
+          "raw_column": "other_debtors",
+          "status": "rejected"
+        },
+        {
+          "encoded_column": "property_building-soc savings / life insurance",
+          "raw_column": "property",
+          "status": "rejected"
+        },
+        {
+          "encoded_column": "property_car or other (not in savings)",
+          "raw_column": "property",
+          "status": "rejected"
+        },
+        {
+          "encoded_column": "property_real estate",
+          "raw_column": "property",
+          "status": "confirmed"
+        },
+        {
+          "encoded_column": "property_unknown / none",
+          "raw_column": "property",
+          "status": "rejected"
+        },
+        {
+          "encoded_column": "other_installment_plans_bank",
+          "raw_column": "other_installment_plans",
+          "status": "confirmed"
+        },
+        {
+          "encoded_column": "other_installment_plans_none",
+          "raw_column": "other_installment_plans",
+          "status": "confirmed"
+        },
+        {
+          "encoded_column": "other_installment_plans_stores",
+          "raw_column": "other_installment_plans",
+          "status": "rejected"
+        },
+        {
+          "encoded_column": "housing_for free",
+          "raw_column": "housing",
+          "status": "rejected"
+        },
+        {
+          "encoded_column": "housing_own",
+          "raw_column": "housing",
+          "status": "confirmed"
+        },
+        {
+          "encoded_column": "housing_rent",
+          "raw_column": "housing",
+          "status": "rejected"
+        },
+        {
+          "encoded_column": "foreign_worker_no",
+          "raw_column": "foreign_worker",
+          "status": "rejected"
+        },
+        {
+          "encoded_column": "foreign_worker_yes",
+          "raw_column": "foreign_worker",
+          "status": "rejected"
+        }
+      ],
+      "perc": 90,
+      "n_candidate_raw": 15,
+      "n_encoded": 52
+    },
+    "include_tentative": true,
+    "retained_columns": [
+      "checking_status",
+      "months_duration",
+      "credit_history",
+      "purpose",
+      "credit_amount",
+      "savings_status",
+      "employment_since",
+      "installment_rate",
+      "property",
+      "age",
+      "other_installment_plans",
+      "housing"
+    ],
+    "n_raw_total": 20,
+    "n_retained": 12
+  },
+  "resampling": {
+    "method": "smote",
+    "applied_to": "inside_every_tuning_cv_fold_and_final_refit",
+    "class_counts_before_final_refit": {
+      "0": 560,
+      "1": 240
+    },
+    "note": "resampling happens once per inner CV fold during search, and once more on the full training fold for the final refit - no single before/after count applies; see tuning.resample_inside_cv"
+  },
+  "tuning": {
+    "n_iter_requested": 20,
+    "n_iter_effective": 7,
+    "n_candidates_full_grid": 7,
+    "cv_folds": 5,
+    "scoring": "roc_auc",
+    "resample_inside_cv": "smote",
+    "best_params": {
+      "clf__solver": "lbfgs",
+      "clf__penalty": "l2",
+      "clf__C": 0.01
+    },
+    "best_cv_auc": 0.7706
+  },
+  "split": {
+    "test_size": 0.2,
+    "n_train": 800,
+    "n_test": 200,
+    "threshold": 0.5,
+    "stratified": true,
+    "random_state": 42
+  },
+  "metrics": {
+    "auc_roc": 0.7929,
+    "pr_auc": 0.6122,
+    "accuracy": 0.745,
+    "precision": 0.5542,
+    "recall": 0.7667,
+    "f1": 0.6434,
+    "brier_score": 0.183634,
+    "n_test": 200,
+    "n_positive": 60,
+    "positive_rate": 0.3
+  },
+  "confusion_matrix": [
+    [
+      103,
+      37
+    ],
+    [
+      14,
+      46
+    ]
+  ],
+  "cross_validation": {
+    "n_splits": 5,
+    "fold_aucs": [
+      0.7839,
+      0.7501,
+      0.7526,
+      0.7902,
+      0.7969
+    ],
+    "mean_auc": 0.7748,
+    "std_auc": 0.0196,
+    "note": null
+  },
+  "epv": {
+    "epv": 5.58,
+    "n_events": 240,
+    "n_features": 43,
+    "overfitting_risk": "high",
+    "note": "Rule of thumb: EPV >= 10 acceptable, >= 20 comfortable (Peduzzi et al.)."
+  },
+  "top_features": [
+    {
+      "feature": "checking_status_no checking account",
+      "importance": 0.356447
+    },
+    {
+      "feature": "months_duration",
+      "importance": 0.271926
+    },
+    {
+      "feature": "checking_status__ 0 DM",
+      "importance": 0.260015
+    },
+    {
+      "feature": "credit_history_critical account / other credits elsewhere",
+      "importance": 0.173195
+    },
+    {
+      "feature": "purpose_car (used)",
+      "importance": 0.167348
+    },
+    {
+      "feature": "savings_status__ 100 DM",
+      "importance": 0.158327
+    },
+    {
+      "feature": "employment_since_4 \u2264 ... _ 7 years",
+      "importance": 0.153071
+    },
+    {
+      "feature": "credit_amount",
+      "importance": 0.14778
+    },
+    {
+      "feature": "other_installment_plans_bank",
+      "importance": 0.146517
+    },
+    {
+      "feature": "other_installment_plans_none",
+      "importance": 0.145127
+    },
+    {
+      "feature": "purpose_education",
+      "importance": 0.143473
+    },
+    {
+      "feature": "savings_status_\u2265 1000 DM",
+      "importance": 0.140551
+    },
+    {
+      "feature": "property_unknown / none",
+      "importance": 0.139496
+    },
+    {
+      "feature": "savings_status_unknown / none",
+      "importance": 0.139031
+    },
+    {
+      "feature": "credit_history_no credits / all paid duly",
+      "importance": 0.134969
+    }
+  ],
+  "train_seconds": 1.5,
+  "notes": "Step A extended: full pipeline - IV+Boruta + SMOTE(train fold) + tuning combined"
+}

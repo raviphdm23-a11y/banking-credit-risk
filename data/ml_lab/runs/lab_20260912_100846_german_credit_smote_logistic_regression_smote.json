@@ -1,0 +1,183 @@
+{
+  "run_id": "lab_20260912_100846_german_credit_smote_logistic_regression_smote",
+  "timestamp": "2026-09-12T10:08:46",
+  "dataset": {
+    "name": "german_credit_smote",
+    "csv_path": "data/ml_lab/datasets/paper_german_credit.csv",
+    "n_rows": 1000,
+    "target": "target",
+    "target_note": "positive class = '1'",
+    "positive_rate_overall": 0.3,
+    "n_raw_features": 20,
+    "n_encoded_features": 61,
+    "numeric_columns": [
+      "months_duration",
+      "credit_amount",
+      "installment_rate",
+      "residence_since",
+      "age",
+      "existing_credits",
+      "people_liable"
+    ],
+    "categorical_columns": [
+      "checking_status",
+      "credit_history",
+      "purpose",
+      "savings_status",
+      "employment_since",
+      "personal_status_sex",
+      "other_debtors",
+      "property",
+      "other_installment_plans",
+      "housing",
+      "job",
+      "telephone",
+      "foreign_worker"
+    ],
+    "dropped_columns": [],
+    "rows_with_any_missing": 0
+  },
+  "model_type": "logistic_regression",
+  "hyperparameters": {
+    "C": 1.0,
+    "penalty": "l2",
+    "solver": "lbfgs",
+    "max_iter": 1000,
+    "class_weight": "balanced",
+    "random_state": 42
+  },
+  "pipeline_options": {
+    "iv_boruta": false,
+    "resample": "smote",
+    "tuned": false
+  },
+  "screening": null,
+  "resampling": {
+    "method": "smote",
+    "applied_to": "training_fold_only_after_split",
+    "k_neighbors": 5,
+    "class_counts_before": {
+      "0": 560,
+      "1": 240
+    },
+    "class_counts_after": {
+      "1": 560,
+      "0": 560
+    }
+  },
+  "tuning": null,
+  "split": {
+    "test_size": 0.2,
+    "n_train": 1120,
+    "n_test": 200,
+    "threshold": 0.5,
+    "stratified": true,
+    "random_state": 42
+  },
+  "metrics": {
+    "auc_roc": 0.7817,
+    "pr_auc": 0.5809,
+    "accuracy": 0.73,
+    "precision": 0.5375,
+    "recall": 0.7167,
+    "f1": 0.6143,
+    "brier_score": 0.188196,
+    "n_test": 200,
+    "n_positive": 60,
+    "positive_rate": 0.3
+  },
+  "confusion_matrix": [
+    [
+      103,
+      37
+    ],
+    [
+      17,
+      43
+    ]
+  ],
+  "cross_validation": {
+    "n_splits": 5,
+    "fold_aucs": [
+      0.7637,
+      0.7537,
+      0.7792,
+      0.8021,
+      0.8032
+    ],
+    "mean_auc": 0.7804,
+    "std_auc": 0.0199,
+    "note": null
+  },
+  "epv": {
+    "epv": 9.18,
+    "n_events": 560,
+    "n_features": 61,
+    "overfitting_risk": "high",
+    "note": "Rule of thumb: EPV >= 10 acceptable, >= 20 comfortable (Peduzzi et al.)."
+  },
+  "top_features": [
+    {
+      "feature": "checking_status_no checking account",
+      "importance": 0.488439
+    },
+    {
+      "feature": "credit_amount",
+      "importance": 0.455198
+    },
+    {
+      "feature": "checking_status__ 0 DM",
+      "importance": 0.399489
+    },
+    {
+      "feature": "property_unknown / none",
+      "importance": 0.386283
+    },
+    {
+      "feature": "months_duration",
+      "importance": 0.369198
+    },
+    {
+      "feature": "housing_for free",
+      "importance": 0.300946
+    },
+    {
+      "feature": "purpose_car (used)",
+      "importance": 0.277782
+    },
+    {
+      "feature": "housing_rent",
+      "importance": 0.272903
+    },
+    {
+      "feature": "credit_history_no credits / all paid duly",
+      "importance": 0.271153
+    },
+    {
+      "feature": "savings_status_\u2265 1000 DM",
+      "importance": 0.269892
+    },
+    {
+      "feature": "existing_credits",
+      "importance": 0.263869
+    },
+    {
+      "feature": "purpose_education",
+      "importance": 0.260008
+    },
+    {
+      "feature": "other_installment_plans_bank",
+      "importance": 0.244694
+    },
+    {
+      "feature": "purpose_car (new)",
+      "importance": 0.240817
+    },
+    {
+      "feature": "savings_status__ 100 DM",
+      "importance": 0.236671
+    }
+  ],
+  "train_seconds": 0.5,
+  "notes": "Step A extended: SMOTE train-fold only, isolate effect"
+}
