@@ -7,6 +7,8 @@ xgboost>=2.0.0
 shap>=0.45.0
 numpy>=2.0.0
 APScheduler>=3.10.0
+Boruta==0.4.3
+imbalanced-learn==0.14.2
 matplotlib>=3.7.0
 pandas>=2.0.0
 requests>=2.32.0

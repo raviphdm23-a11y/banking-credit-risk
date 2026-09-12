@@ -36,6 +36,8 @@ from ml_models.trainer import (  # noqa: E402
     MODEL_BUILDERS, _get_feature_importance, _load_hyperparameters,
     compute_epv, cross_validate_model, evaluate_model, train_model,
 )
+from ml_models import feature_screening as _screen  # noqa: E402
+from ml_models import tuning as _tuning  # noqa: E402
 
 LAB_DIR = os.path.join(_ROOT, 'data', 'ml_lab')
 RUNS_DIR = os.path.join(LAB_DIR, 'runs')
@@ -126,21 +128,84 @@ def _slug(s):
 
 def run_experiment(csv_path, target, positive_label=None, model_type='xgboost',
                    dataset_name=None, drop_columns=None, test_size=0.2,
-                   threshold=0.5, n_splits=5, notes=None, sep=None, record=True):
+                   threshold=0.5, n_splits=5, notes=None, sep=None, record=True,
+                   iv_boruta=False, iv_min=_screen.IV_MIN_DEFAULT, boruta_perc=_screen.BORUTA_PERC_DEFAULT,
+                   include_tentative=True, resample=None, tune=False, tune_iter=20, tune_folds=5,
+                   random_state=42):
+    """
+    iv_boruta   - run the Phase-1 IV + Boruta dual gate (feature_screening.py) on the RAW
+                  columns (after `drop_columns` is removed but before one-hot encoding /
+                  the train-test split), keeping only Confirmed (+ Tentative if
+                  include_tentative) columns for modelling.
+    resample    - None (default) or 'smote': SMOTE applied to the TRAINING FOLD ONLY, after
+                  the split, on the already-encoded numeric matrix - never to the test fold
+                  and never before splitting (this is the ordering the TAI paper's reviewers
+                  flagged as missing; see paper analysis/draft one/RESULTS_LOG.md Step "SMOTE").
+    tune        - RandomizedSearchCV (tuning.py) in place of the fixed-default estimator,
+                  scored by AUC over `tune_folds` StratifiedKFold, `tune_iter` candidates.
+    """
     if model_type not in MODEL_BUILDERS:
         raise ValueError(f"unknown model_type '{model_type}'; choose from {list(MODEL_BUILDERS)}")
 
     dataset_name = dataset_name or os.path.splitext(os.path.basename(csv_path))[0]
     df, y, target_note = load_dataset(csv_path, target, positive_label, sep=sep)
+
+    drop_columns = list(drop_columns or [])
+    screening_report = None
+    if iv_boruta:
+        df_for_screen = df.drop(columns=[c for c in drop_columns if c in df.columns])
+        screening_report = _screen.screen(df_for_screen, target, iv_min=iv_min, boruta_perc=boruta_perc,
+                                          random_state=random_state, include_tentative=include_tentative)
+        retained = set(screening_report['retained_columns'])
+        drop_columns = list(set(drop_columns) | {c for c in df.columns if c != target and c not in retained})
+
     X, enc = prepare_features(df, target, drop_columns)
 
     X_tr, X_te, y_tr, y_te = train_test_split(
-        X, y, test_size=test_size, stratify=y, random_state=42)
+        X, y, test_size=test_size, stratify=y, random_state=random_state)
+
+    resample_report = None
+    if resample not in (None, 'none', 'smote'):
+        raise ValueError(f"unknown resample '{resample}'; choose from None, 'smote'")
 
     hp = _load_hyperparameters()
     started = datetime.now()
-    model = train_model(X_tr, y_tr, hp, model_type=model_type)
+    tune_report = None
+    if tune:
+        # SMOTE + tuning together: X_tr/y_tr are passed RAW (not pre-resampled) to
+        # tune_and_fit, which re-fits SMOTE inside every inner CV fold via an
+        # imblearn Pipeline. Pre-resampling here and then handing the search a
+        # single already-balanced training set would leak a synthetic point's
+        # real "parent" row across the search's own train/validation folds -
+        # the exact mechanism the TAI paper's reviewers flagged, just relocated
+        # into the tuning step. See ml_models/tuning.py's module docstring.
+        n_before = {int(k): int(v) for k, v in y_tr.value_counts().items()} if resample == 'smote' else None
+        model, tune_report = _tuning.tune_and_fit(model_type, X_tr, y_tr, n_iter=tune_iter,
+                                                  cv_folds=tune_folds, random_state=random_state,
+                                                  resample=resample)
+        if resample == 'smote':
+            resample_report = {'method': 'smote', 'applied_to': 'inside_every_tuning_cv_fold_and_final_refit',
+                               'class_counts_before_final_refit': n_before,
+                               'note': 'resampling happens once per inner CV fold during search, and once '
+                                       'more on the full training fold for the final refit - no single '
+                                       'before/after count applies; see tuning.resample_inside_cv'}
+    elif resample == 'smote':
+        from imblearn.over_sampling import SMOTE
+        n_min = int(y_tr.value_counts().min())
+        k_neighbors = min(5, max(1, n_min - 1))
+        n_before = {int(k): int(v) for k, v in y_tr.value_counts().items()}
+        X_tr, y_tr = SMOTE(random_state=random_state, k_neighbors=k_neighbors).fit_resample(X_tr, y_tr)
+        n_after = {int(k): int(v) for k, v in y_tr.value_counts().items()}
+        resample_report = {'method': 'smote', 'applied_to': 'training_fold_only_after_split',
+                           'k_neighbors': k_neighbors, 'class_counts_before': n_before,
+                           'class_counts_after': n_after}
+        model = train_model(X_tr, y_tr, hp, model_type=model_type)
+    else:
+        model = train_model(X_tr, y_tr, hp, model_type=model_type)
     metrics, cm, _ = evaluate_model(model, X_te, y_te, X_te, threshold)
+    # Cross-validation is run on the ORIGINAL (X, y) - i.e. without resampling and without the
+    # tuned hyperparameters - so it remains a fixed, comparable generalisation check across every
+    # run regardless of `resample`/`tune`, not a re-tuned or re-resampled number itself.
     cv = cross_validate_model(X, y, hp, model_type, n_splits=n_splits)
     elapsed = (datetime.now() - started).total_seconds()
 
@@ -155,8 +220,9 @@ def run_experiment(csv_path, target, positive_label=None, model_type='xgboost',
     top_features = [{'feature': str(X.columns[i]), 'importance': round(float(imp[i]), 6)}
                     for i in order]
 
-    n_pos_train = int(y_tr.sum())
-    run_id = f"lab_{started.strftime('%Y%m%d_%H%M%S')}_{_slug(dataset_name)}_{model_type}"
+    n_pos_train = int(y_tr.sum() if hasattr(y_tr, 'sum') else np.sum(y_tr))
+    tag = ('_iv-boruta' if iv_boruta else '') + (f'_{resample}' if resample and resample != 'none' else '') + ('_tuned' if tune else '')
+    run_id = f"lab_{started.strftime('%Y%m%d_%H%M%S')}_{_slug(dataset_name)}_{model_type}{tag}"
     record_obj = {
         'run_id': run_id,
         'timestamp': started.isoformat(timespec='seconds'),
@@ -170,9 +236,15 @@ def run_experiment(csv_path, target, positive_label=None, model_type='xgboost',
             **enc,
         },
         'model_type': model_type,
-        'hyperparameters': hp.get('models', {}).get(model_type, {}),
+        'hyperparameters': tune_report['best_params'] if tune_report else hp.get('models', {}).get(model_type, {}),
+        'pipeline_options': {
+            'iv_boruta': iv_boruta, 'resample': resample or 'none', 'tuned': tune,
+        },
+        'screening': screening_report,
+        'resampling': resample_report,
+        'tuning': tune_report,
         'split': {'test_size': test_size, 'n_train': int(len(y_tr)), 'n_test': int(len(y_te)),
-                  'threshold': threshold, 'stratified': True, 'random_state': 42},
+                  'threshold': threshold, 'stratified': True, 'random_state': random_state},
         'metrics': metrics,
         'confusion_matrix': cm,
         'cross_validation': cv,
@@ -199,6 +271,7 @@ def _record(rec):
         'dropped_columns': rec['dataset']['dropped_columns'],
         'positive_rate': rec['dataset']['positive_rate_overall'],
         'model_type': rec['model_type'],
+        'pipeline_options': rec.get('pipeline_options', {'iv_boruta': False, 'resample': 'none', 'tuned': False}),
         'auc_roc': m['auc_roc'], 'pr_auc': m['pr_auc'], 'f1': m['f1'],
         'precision': m['precision'], 'recall': m['recall'], 'brier_score': m['brier_score'],
         'cv_auc_mean': cv.get('mean_auc'), 'cv_auc_std': cv.get('std_auc'),
@@ -224,7 +297,28 @@ def _print_summary(rec):
     print(f"  target   : {d['target']}  ({d['target_note']})")
     if d['dropped_columns']:
         print(f"  dropped  : {d['dropped_columns']}")
-    print(f"  model    : {rec['model_type']}  ({rec['train_seconds']}s)")
+    opts = rec.get('pipeline_options', {})
+    opt_str = ', '.join(k for k in ('iv_boruta', 'tuned') if opts.get(k)) or 'none'
+    if opts.get('resample', 'none') != 'none':
+        opt_str += f", resample={opts['resample']}"
+    print(f"  model    : {rec['model_type']}  ({rec['train_seconds']}s)  options: {opt_str}")
+    if rec.get('screening'):
+        s = rec['screening']; b = s['boruta']
+        print(f"  Phase 1  : IV>= {s['iv_min']} dropped {len(s['iv_dropped'])}/{s['n_raw_total']} raw cols; "
+              f"Boruta(perc={b['perc']}) confirmed {len(b['confirmed'])}, "
+              f"tentative {len(b['tentative'])} ({'included' if s['include_tentative'] else 'excluded'}), "
+              f"rejected {len(b['rejected'])} -> retained {s['n_retained']}/{s['n_raw_total']}")
+    if rec.get('resampling'):
+        r = rec['resampling']
+        if 'class_counts_after' in r:
+            print(f"  SMOTE    : train class counts {r['class_counts_before']} -> {r['class_counts_after']} "
+                  f"(k_neighbors={r['k_neighbors']}, {r['applied_to']})")
+        else:
+            print(f"  SMOTE    : {r['applied_to']} (pre-refit train class counts {r['class_counts_before_final_refit']})")
+    if rec.get('tuning'):
+        t = rec['tuning']
+        print(f"  Tuning   : {t['n_iter_effective']}/{t['n_candidates_full_grid']} candidates, "
+              f"{t['cv_folds']}-fold CV AUC={t['best_cv_auc']}, best_params={t['best_params']}")
     print(f"  holdout  : AUC-ROC {m['auc_roc']}  PR-AUC {m['pr_auc']}  F1 {m['f1']}  "
           f"precision {m['precision']}  recall {m['recall']}  Brier {m['brier_score']}")
     print(f"  {cv['n_splits']}-fold CV: AUC {cv['mean_auc']} ± {cv['std_auc']}")
@@ -255,6 +349,19 @@ def main(argv=None):
     p.add_argument('--threshold', type=float, default=0.5)
     p.add_argument('--folds', type=int, default=5)
     p.add_argument('--notes')
+    p.add_argument('--iv-boruta', action='store_true',
+                   help='Phase-1 IV + Boruta dual-gate feature screening (feature_screening.py) before modelling')
+    p.add_argument('--iv-min', type=float, default=_screen.IV_MIN_DEFAULT)
+    p.add_argument('--boruta-perc', type=int, default=_screen.BORUTA_PERC_DEFAULT)
+    p.add_argument('--exclude-tentative', action='store_true',
+                   help='keep only Boruta-Confirmed columns (default keeps Confirmed + Tentative)')
+    p.add_argument('--resample', choices=['none', 'smote'], default='none',
+                   help="'smote': SMOTE on the TRAINING FOLD ONLY, after the split (never on the test fold)")
+    p.add_argument('--tune', action='store_true',
+                   help='RandomizedSearchCV (tuning.py) instead of fixed-default hyperparameters')
+    p.add_argument('--tune-iter', type=int, default=20)
+    p.add_argument('--tune-folds', type=int, default=5)
+    p.add_argument('--random-state', type=int, default=42)
     p.add_argument('--list', action='store_true', help='print recorded runs and exit')
     a = p.parse_args(argv)
 
@@ -263,10 +370,14 @@ def main(argv=None):
         if not runs:
             print('no recorded runs yet')
             return 0
-        print(f"{'run_id':<58} {'model':<20} {'AUC':>6} {'PR-AUC':>7} {'F1':>6} {'CV AUC':>14}")
+        print(f"{'run_id':<58} {'model':<20} {'options':<28} {'AUC':>6} {'PR-AUC':>7} {'F1':>6} {'CV AUC':>14}")
         for r in runs:
             cvs = f"{r['cv_auc_mean']} ± {r['cv_auc_std']}" if r['cv_auc_mean'] is not None else '—'
-            print(f"{r['run_id']:<58} {r['model_type']:<20} {r['auc_roc']:>6} {str(r['pr_auc']):>7} "
+            po = r.get('pipeline_options', {})
+            opt = ','.join(k for k in ('iv_boruta', 'tuned') if po.get(k))
+            if po.get('resample', 'none') != 'none':
+                opt = (opt + ',' if opt else '') + po['resample']
+            print(f"{r['run_id']:<58} {r['model_type']:<20} {(opt or '-'):<28} {r['auc_roc']:>6} {str(r['pr_auc']):>7} "
                   f"{r['f1']:>6} {cvs:>14}")
         return 0
 
@@ -277,7 +388,11 @@ def main(argv=None):
     for mt in models:
         rec = run_experiment(a.csv, a.target, a.positive, model_type=mt, dataset_name=a.name,
                              drop_columns=a.drop, test_size=a.test_size, threshold=a.threshold,
-                             n_splits=a.folds, notes=a.notes, sep=a.sep)
+                             n_splits=a.folds, notes=a.notes, sep=a.sep,
+                             iv_boruta=a.iv_boruta, iv_min=a.iv_min, boruta_perc=a.boruta_perc,
+                             include_tentative=not a.exclude_tentative,
+                             resample=a.resample, tune=a.tune, tune_iter=a.tune_iter,
+                             tune_folds=a.tune_folds, random_state=a.random_state)
         _print_summary(rec)
     return 0
 
