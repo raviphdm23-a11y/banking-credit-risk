@@ -2103,6 +2103,28 @@ def admin_lab_run():
     name = (body.get('name') or '').strip() or None
     notes = (body.get('notes') or '').strip() or None
 
+    iv_boruta = bool(body.get('iv_boruta'))
+    try:
+        iv_min = float(body.get('iv_min')) if body.get('iv_min') not in (None, '') else _lab._screen.IV_MIN_DEFAULT
+        boruta_perc = int(body.get('boruta_perc')) if body.get('boruta_perc') not in (None, '') else _lab._screen.BORUTA_PERC_DEFAULT
+    except (TypeError, ValueError):
+        return jsonify({'error': 'iv_min/boruta_perc must be numeric'}), 400
+    include_tentative = body.get('include_tentative', True)
+    include_tentative = bool(include_tentative) if not isinstance(include_tentative, str) else include_tentative.lower() != 'false'
+
+    resample = body.get('resample') or None
+    if resample not in (None, 'none', 'smote'):
+        return jsonify({'error': "resample must be 'none' or 'smote'"}), 400
+
+    tune = bool(body.get('tune'))
+    try:
+        tune_iter = int(body.get('tune_iter')) if body.get('tune_iter') not in (None, '') else 20
+        tune_folds = int(body.get('tune_folds')) if body.get('tune_folds') not in (None, '') else 5
+    except (TypeError, ValueError):
+        return jsonify({'error': 'tune_iter/tune_folds must be numeric'}), 400
+    if tune and not (2 <= tune_folds <= 10):
+        return jsonify({'error': 'tune_folds must be in [2,10]'}), 400
+
     with _lab_lock:
         if _lab_state['running']:
             return jsonify({'error': 'a Dataset Lab job is already running'}), 409
@@ -2122,7 +2144,10 @@ def admin_lab_run():
                     rec = _lab.run_experiment(
                         path, target, positive, model_type=mt, dataset_name=name,
                         drop_columns=drop_columns, test_size=test_size, threshold=threshold,
-                        n_splits=folds, notes=notes)
+                        n_splits=folds, notes=notes,
+                        iv_boruta=iv_boruta, iv_min=iv_min, boruta_perc=boruta_perc,
+                        include_tentative=include_tentative,
+                        resample=resample, tune=tune, tune_iter=tune_iter, tune_folds=tune_folds)
                     job['completed'].append({'model_type': mt, 'run_id': rec['run_id'],
                                              'auc_roc': rec['metrics']['auc_roc']})
                 except Exception as e:

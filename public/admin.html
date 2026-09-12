@@ -677,6 +677,41 @@
         <div id="labStatus" style="display:none;margin-top:12px" class="alert alert-warning"></div>
       </div>
     </div>
+
+    <div style="border-top:1px solid var(--border);margin-top:16px;padding-top:14px">
+      <label style="font-size:12px;font-weight:600;color:var(--sub)">Pipeline options <span style="font-weight:400">(all applied honestly &mdash; screening before the split, resampling on the train fold only, resampling re-fit inside every tuning CV fold)</span></label>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-top:8px">
+
+        <div style="border:1px solid var(--border);border-radius:6px;padding:10px">
+          <label style="font-size:13px"><input type="checkbox" id="labIvBoruta" onchange="labToggleIvBoruta()" style="width:auto;margin:0 4px 0 0">IV + Boruta screening</label>
+          <div id="labIvBorutaOpts" style="display:none;margin-top:8px">
+            <label style="font-size:11px;color:var(--sub)">IV min</label>
+            <input id="labIvMin" type="number" step="0.01" min="0" value="0.02" style="width:100%;padding:4px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px;margin:2px 0 8px">
+            <label style="font-size:11px;color:var(--sub)">Boruta perc</label>
+            <input id="labBorutaPerc" type="number" step="1" min="50" max="100" value="90" style="width:100%;padding:4px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px;margin:2px 0 8px">
+            <label style="font-size:11px"><input type="checkbox" id="labIncludeTentative" checked style="width:auto;margin:0 4px 0 0">Include Boruta "tentative" columns</label>
+          </div>
+        </div>
+
+        <div style="border:1px solid var(--border);border-radius:6px;padding:10px">
+          <label style="font-size:13px"><input type="checkbox" id="labResample" style="width:auto;margin:0 4px 0 0">Apply SMOTE (train fold only)</label>
+          <p style="font-size:11px;color:var(--sub);margin:6px 0 0">Never applied before the train/test split. If tuning is also enabled, SMOTE is re-fit inside every CV fold, not applied once up front.</p>
+        </div>
+
+        <div style="border:1px solid var(--border);border-radius:6px;padding:10px">
+          <label style="font-size:13px"><input type="checkbox" id="labTune" onchange="labToggleTune()" style="width:auto;margin:0 4px 0 0">Hyperparameter tuning (RandomizedSearchCV)</label>
+          <div id="labTuneOpts" style="display:none;margin-top:8px">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+              <div><label style="font-size:11px;color:var(--sub)">Search iterations</label>
+                <input id="labTuneIter" type="number" step="1" min="1" value="20" style="width:100%;padding:4px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px"></div>
+              <div><label style="font-size:11px;color:var(--sub)">Tuning CV folds</label>
+                <input id="labTuneFolds" type="number" step="1" min="2" max="10" value="5" style="width:100%;padding:4px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px"></div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
   </div>
 
   <div class="card">
@@ -2028,6 +2063,13 @@ function labOnTargetChange() {
     `<label style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis"><input type="checkbox" value="${labEsc(c.name)}" style="width:auto;margin:0 4px 0 0">${labEsc(c.name)} <span style="color:var(--sub)">(${c.kind})</span></label>`).join('');
 }
 
+function labToggleIvBoruta() {
+  document.getElementById('labIvBorutaOpts').style.display = document.getElementById('labIvBoruta').checked ? 'block' : 'none';
+}
+function labToggleTune() {
+  document.getElementById('labTuneOpts').style.display = document.getElementById('labTune').checked ? 'block' : 'none';
+}
+
 async function labRun() {
   const msg = document.getElementById('labMsg');
   const dataset = document.getElementById('labDataset').value;
@@ -2045,6 +2087,14 @@ async function labRun() {
     folds: parseInt(document.getElementById('labFolds').value, 10),
     name: document.getElementById('labName').value,
     notes: document.getElementById('labNotes').value,
+    iv_boruta: document.getElementById('labIvBoruta').checked,
+    iv_min: parseFloat(document.getElementById('labIvMin').value),
+    boruta_perc: parseInt(document.getElementById('labBorutaPerc').value, 10),
+    include_tentative: document.getElementById('labIncludeTentative').checked,
+    resample: document.getElementById('labResample').checked ? 'smote' : 'none',
+    tune: document.getElementById('labTune').checked,
+    tune_iter: parseInt(document.getElementById('labTuneIter').value, 10),
+    tune_folds: parseInt(document.getElementById('labTuneFolds').value, 10),
   };
   msg.textContent = '';
   const res = await api('/admin/api/dataset-lab/run', 'POST', body);
