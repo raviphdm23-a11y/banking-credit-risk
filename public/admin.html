@@ -182,7 +182,7 @@
   <button onclick="showPanel('schedule')">Schedule</button>
   <button onclick="showPanel('history')">Run History</button>
   <button onclick="showPanel('modellab')">Model Lab</button>
-  <button onclick="showPanel('mllab')">ML Lab</button>
+  <button onclick="showPanel('mllab')">Sandbox</button>
   <button onclick="showPanel('smoketests')">Smoke Tests</button>
   <button onclick="showPanel('creditops')">Credit Ops</button>
 </nav>
@@ -615,7 +615,7 @@
 <div id="panel-mllab" class="panel">
 
   <div class="card">
-    <h3>&#129514; ML Lab &mdash; benchmark any binary-classification dataset</h3>
+    <h3>&#129514; Sandbox &mdash; benchmark any binary-classification dataset</h3>
     <p style="color:var(--sub);font-size:13px;margin-bottom:12px">
       Runs the platform's own model builders, holdout evaluation and k-fold cross-validation
       (the same code as <b>Train Now</b>) against <b>any</b> CSV with a two-class target &mdash; banking or not &mdash;
@@ -1999,7 +1999,7 @@ async function loadAuditLog() {
   }
 }
 
-// ── ML Lab (Dataset Lab) ─────────────────────────────────────────────────────
+// ── Sandbox (Dataset Lab) ────────────────────────────────────────────────────
 let _labColumns = [];
 let _labPoller = null;
 const labEsc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
