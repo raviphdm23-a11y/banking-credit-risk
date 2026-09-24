@@ -723,7 +723,10 @@
   </div>
 
   <div class="card" id="labDetailCard" style="display:none">
-    <h3 id="labDetailTitle">Run detail</h3>
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <h3 id="labDetailTitle">Run detail</h3>
+      <button class="btn btn-sm btn-danger" type="button" onclick="labDeleteRun(document.getElementById('labDetailTitle').textContent)">&#128465; Delete this run</button>
+    </div>
     <div id="labDetail"></div>
   </div>
 
@@ -2141,15 +2144,27 @@ async function labLoadRuns() {
   if (!runs.length) { el.innerHTML = '<p style="color:var(--sub)">No benchmark runs recorded yet.</p>'; return; }
   el.innerHTML = `<table><thead><tr>
       <th>When</th><th>Dataset</th><th>Target</th><th>Model</th><th>Rows</th><th>Feat.</th><th>Pos. rate</th>
-      <th>AUC-ROC</th><th>PR-AUC</th><th>F1</th><th>CV AUC</th><th>Excluded</th></tr></thead><tbody>` +
+      <th>AUC-ROC</th><th>PR-AUC</th><th>F1</th><th>CV AUC</th><th>Excluded</th><th></th></tr></thead><tbody>` +
     runs.map(r => `<tr style="cursor:pointer" onclick="labShowRun('${labEsc(r.run_id)}')" title="${labEsc(r.notes || '')}">
       <td style="white-space:nowrap">${labEsc((r.timestamp || '').replace('T', ' ').slice(0, 16))}</td>
       <td>${labEsc(r.dataset)}</td><td><code>${labEsc(r.target)}</code></td><td>${labEsc(r.model_type)}</td>
       <td>${Number(r.n_rows).toLocaleString()}</td><td>${r.n_features}</td><td>${(r.positive_rate * 100).toFixed(1)}%</td>
       <td><b>${labNum(r.auc_roc)}</b></td><td>${labNum(r.pr_auc)}</td><td>${labNum(r.f1)}</td>
       <td>${r.cv_auc_mean == null ? '—' : `${labNum(r.cv_auc_mean)} &plusmn; ${labNum(r.cv_auc_std)}`}</td>
-      <td style="font-size:11px;color:var(--sub)">${labEsc((r.dropped_columns || []).join(', ') || '—')}</td></tr>`).join('') +
+      <td style="font-size:11px;color:var(--sub)">${labEsc((r.dropped_columns || []).join(', ') || '—')}</td>
+      <td><button class="btn btn-sm btn-danger" type="button" title="Delete this run" onclick="event.stopPropagation();labDeleteRun('${labEsc(r.run_id)}')">&#128465;</button></td></tr>`).join('') +
     '</tbody></table>';
+}
+
+async function labDeleteRun(runId) {
+  if (!confirm(`Permanently delete run\n${runId}\n\nThis removes its record file and cannot be undone.`)) return;
+  const res = await api(`/admin/api/dataset-lab/runs/${encodeURIComponent(runId)}`, 'DELETE');
+  if (res.error) { alert(`Delete failed: ${res.error}`); return; }
+  const card = document.getElementById('labDetailCard');
+  if (card.style.display !== 'none' && document.getElementById('labDetailTitle').textContent === runId) {
+    card.style.display = 'none';
+  }
+  labLoadRuns();
 }
 
 async function labShowRun(runId) {

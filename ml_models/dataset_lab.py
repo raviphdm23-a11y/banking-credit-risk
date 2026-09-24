@@ -288,6 +288,26 @@ def list_runs():
         return json.load(f)
 
 
+def delete_run(run_id):
+    """Delete one recorded run: its JSON file under RUNS_DIR and its entry in
+    index.json. `run_id` must be an exact run_id as returned by list_runs() -
+    the caller (app.py) is responsible for filename-safety validation before
+    calling this. Returns True if a run was found and removed, False if
+    run_id wasn't present in either place (not an error - caller decides how
+    to report)."""
+    run_path = os.path.join(RUNS_DIR, run_id + '.json')
+    found = os.path.isfile(run_path)
+    if found:
+        os.remove(run_path)
+    index = list_runs()
+    new_index = [r for r in index if r.get('run_id') != run_id]
+    if len(new_index) != len(index):
+        found = True
+        with open(INDEX_PATH, 'w', encoding='utf-8') as f:
+            json.dump(new_index, f, indent=2, default=str)
+    return found
+
+
 def _print_summary(rec):
     m, cv = rec['metrics'], rec['cross_validation']
     d = rec['dataset']

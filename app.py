@@ -2189,6 +2189,18 @@ def admin_lab_run_detail(run_id):
     with open(p, 'r', encoding='utf-8') as fh:
         return jsonify(json.load(fh))
 
+
+@app.route('/admin/api/dataset-lab/runs/<run_id>', methods=['DELETE'])
+def admin_lab_run_delete(run_id):
+    if not _check_admin_auth(): return _admin_auth_error()
+    safe = _secure_filename(run_id)
+    if not safe:
+        return jsonify({'error': 'invalid run_id'}), 400
+    found = _lab.delete_run(safe)
+    if not found:
+        return jsonify({'error': 'run not found'}), 404
+    return jsonify({'status': 'deleted', 'run_id': safe})
+
 # ============================================================================
 # ADMIN — CREDIT OPS
 # ============================================================================
