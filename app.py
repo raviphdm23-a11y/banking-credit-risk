@@ -2043,10 +2043,17 @@ def admin_lab_dataset_columns(name):
     try:
         import pandas as _pd
         sep = _lab._sniff_sep(path)
-        sample = _pd.read_csv(path, sep=sep, nrows=5000)
+        # Read the WHOLE file, not just a row-limited sample: a target column
+        # can be sorted or grouped (e.g. all-negative rows first, positives
+        # only appearing after row 100k+, as found in gmsc.csv) - a head-only
+        # sample can then silently miss a real class value entirely, which
+        # breaks the "Positive class value" dropdown built from sample_values
+        # rather than just failing loudly. See RESULTS_LOG for the GMSC
+        # incident this fixes (target=1 was never offered as an option).
+        full = _pd.read_csv(path, sep=sep)
         cols = []
-        for c in sample.columns:
-            s = sample[c]
+        for c in full.columns:
+            s = full[c]
             is_num = _pd.api.types.is_numeric_dtype(s)
             uniq = s.dropna().unique()
             cols.append({
@@ -2056,7 +2063,7 @@ def admin_lab_dataset_columns(name):
                 'sample_values': [str(v) for v in uniq[:6]],
             })
         return jsonify({'name': os.path.basename(path), 'separator': sep,
-                        'sample_rows': int(len(sample)), 'columns': cols})
+                        'sample_rows': int(len(full)), 'columns': cols})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 

@@ -2042,7 +2042,7 @@ async function labLoadColumns() {
   const res = await api(`/admin/api/dataset-lab/datasets/${encodeURIComponent(name)}/columns`);
   if (res.error) { info.textContent = 'Error: ' + res.error; return; }
   _labColumns = res.columns || [];
-  info.innerHTML = `${_labColumns.length} columns &middot; separator <code>${labEsc(res.separator === '\t' ? '\\t' : res.separator)}</code> &middot; sampled ${res.sample_rows.toLocaleString()} rows for the pickers`;
+  info.innerHTML = `${_labColumns.length} columns &middot; separator <code>${labEsc(res.separator === '\t' ? '\\t' : res.separator)}</code> &middot; ${res.sample_rows.toLocaleString()} rows scanned for column values`;
   const tsel = document.getElementById('labTarget');
   // Likely targets first: two-valued columns, then everything else
   const two = _labColumns.filter(c => c.n_unique_sample === 2), rest = _labColumns.filter(c => c.n_unique_sample !== 2);

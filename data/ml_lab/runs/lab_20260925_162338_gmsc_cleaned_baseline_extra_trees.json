@@ -1,0 +1,140 @@
+{
+  "run_id": "lab_20260925_162338_gmsc_cleaned_baseline_extra_trees",
+  "timestamp": "2026-09-25T16:23:38",
+  "dataset": {
+    "name": "gmsc_cleaned_baseline",
+    "csv_path": "data/ml_lab/datasets/gmsc_cleaned.csv",
+    "n_rows": 149391,
+    "target": "target",
+    "target_note": "positive class = '1'",
+    "positive_rate_overall": 0.067,
+    "n_raw_features": 10,
+    "n_encoded_features": 10,
+    "numeric_columns": [
+      "RevolvingUtilizationOfUnsecuredLines",
+      "age",
+      "NumberOfTime30-59DaysPastDueNotWorse",
+      "DebtRatio",
+      "MonthlyIncome",
+      "NumberOfOpenCreditLinesAndLoans",
+      "NumberOfTimes90DaysLate",
+      "NumberRealEstateLoansOrLines",
+      "NumberOfTime60-89DaysPastDueNotWorse",
+      "NumberOfDependents"
+    ],
+    "categorical_columns": [],
+    "dropped_columns": [],
+    "rows_with_any_missing": 29366
+  },
+  "model_type": "extra_trees",
+  "hyperparameters": {
+    "n_estimators": 300,
+    "max_depth": 8,
+    "min_samples_leaf": 5,
+    "max_features": "sqrt",
+    "class_weight": "balanced",
+    "random_state": 42
+  },
+  "pipeline_options": {
+    "iv_boruta": false,
+    "resample": "none",
+    "tuned": false
+  },
+  "screening": null,
+  "resampling": null,
+  "tuning": null,
+  "split": {
+    "test_size": 0.2,
+    "n_train": 119512,
+    "n_test": 29879,
+    "threshold": 0.5,
+    "stratified": true,
+    "random_state": 42
+  },
+  "metrics": {
+    "auc_roc": 0.85,
+    "pr_auc": 0.3761,
+    "accuracy": 0.7751,
+    "precision": 0.1964,
+    "recall": 0.7622,
+    "f1": 0.3123,
+    "brier_score": 0.166689,
+    "n_test": 29879,
+    "n_positive": 2002,
+    "positive_rate": 0.067
+  },
+  "confusion_matrix": [
+    [
+      21632,
+      6245
+    ],
+    [
+      476,
+      1526
+    ]
+  ],
+  "cross_validation": {
+    "n_splits": 5,
+    "fold_aucs": [
+      0.8493,
+      0.855,
+      0.8504,
+      0.8469,
+      0.8517
+    ],
+    "mean_auc": 0.8507,
+    "std_auc": 0.0027,
+    "note": null
+  },
+  "epv": {
+    "epv": 800.7,
+    "n_events": 8007,
+    "n_features": 10,
+    "overfitting_risk": "low",
+    "note": "Rule of thumb: EPV >= 10 acceptable, >= 20 comfortable (Peduzzi et al.)."
+  },
+  "top_features": [
+    {
+      "feature": "RevolvingUtilizationOfUnsecuredLines",
+      "importance": 0.490226
+    },
+    {
+      "feature": "NumberOfTimes90DaysLate",
+      "importance": 0.148629
+    },
+    {
+      "feature": "NumberOfTime30-59DaysPastDueNotWorse",
+      "importance": 0.132695
+    },
+    {
+      "feature": "NumberOfTime60-89DaysPastDueNotWorse",
+      "importance": 0.128849
+    },
+    {
+      "feature": "age",
+      "importance": 0.070637
+    },
+    {
+      "feature": "NumberOfOpenCreditLinesAndLoans",
+      "importance": 0.013371
+    },
+    {
+      "feature": "NumberOfDependents",
+      "importance": 0.009079
+    },
+    {
+      "feature": "NumberRealEstateLoansOrLines",
+      "importance": 0.005272
+    },
+    {
+      "feature": "MonthlyIncome",
+      "importance": 0.000749
+    },
+    {
+      "feature": "DebtRatio",
+      "importance": 0.000493
+    }
+  ],
+  "train_seconds": 30.4,
+  "notes": "GMSC baseline, cleaned (sentinel codes to NaN, utilization capped at 2.0), raw features, no screening/SMOTE/tuning - benchmark against Kaggle leaderboard ceiling AUC 0.86955"
+}

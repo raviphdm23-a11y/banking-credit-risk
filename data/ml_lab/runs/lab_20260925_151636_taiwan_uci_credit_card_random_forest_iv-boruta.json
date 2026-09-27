@@ -1,0 +1,329 @@
+{
+  "run_id": "lab_20260925_151636_taiwan_uci_credit_card_random_forest_iv-boruta",
+  "timestamp": "2026-09-25T15:16:36",
+  "dataset": {
+    "name": "Taiwan_UCI_Credit_Card",
+    "csv_path": "data\\ml_lab\\datasets\\Taiwan_UCI_Credit_Card.csv",
+    "n_rows": 30000,
+    "target": "target",
+    "target_note": "positive class = '1'",
+    "positive_rate_overall": 0.2212,
+    "n_raw_features": 14,
+    "n_encoded_features": 14,
+    "numeric_columns": [
+      "LIMIT_BAL",
+      "AGE",
+      "PAY_0",
+      "PAY_2",
+      "PAY_3",
+      "PAY_4",
+      "PAY_5",
+      "PAY_6",
+      "PAY_AMT1",
+      "PAY_AMT2",
+      "PAY_AMT3",
+      "PAY_AMT4",
+      "PAY_AMT5",
+      "PAY_AMT6"
+    ],
+    "categorical_columns": [],
+    "dropped_columns": [
+      "BILL_AMT6",
+      "BILL_AMT4",
+      "BILL_AMT5",
+      "EDUCATION",
+      "BILL_AMT1",
+      "SEX",
+      "BILL_AMT3",
+      "BILL_AMT2",
+      "MARRIAGE"
+    ],
+    "rows_with_any_missing": 0
+  },
+  "model_type": "random_forest",
+  "hyperparameters": {
+    "n_estimators": 300,
+    "max_depth": 8,
+    "min_samples_leaf": 5,
+    "max_features": "sqrt",
+    "class_weight": "balanced",
+    "random_state": 42
+  },
+  "pipeline_options": {
+    "iv_boruta": true,
+    "resample": "none",
+    "tuned": false
+  },
+  "screening": {
+    "iv_min": 0.02,
+    "iv_dropped": [
+      "BILL_AMT1",
+      "BILL_AMT2",
+      "BILL_AMT3",
+      "BILL_AMT4",
+      "BILL_AMT5",
+      "BILL_AMT6",
+      "MARRIAGE",
+      "SEX"
+    ],
+    "iv_values": {
+      "PAY_0": 0.8698,
+      "PAY_2": 0.5424,
+      "PAY_3": 0.4109,
+      "PAY_4": 0.3592,
+      "PAY_5": 0.3293,
+      "PAY_6": 0.2884,
+      "LIMIT_BAL": 0.1781,
+      "PAY_AMT1": 0.1611,
+      "PAY_AMT2": 0.1475,
+      "PAY_AMT3": 0.1227,
+      "PAY_AMT6": 0.0903,
+      "PAY_AMT4": 0.0899,
+      "PAY_AMT5": 0.0811,
+      "EDUCATION": 0.0363,
+      "AGE": 0.0206,
+      "BILL_AMT6": 0.0192,
+      "BILL_AMT5": 0.0141,
+      "BILL_AMT1": 0.012,
+      "BILL_AMT2": 0.0111,
+      "BILL_AMT4": 0.011,
+      "BILL_AMT3": 0.0103,
+      "MARRIAGE": 0.0056,
+      "SEX": 0.0
+    },
+    "iv_survivor_count": 15,
+    "boruta": {
+      "confirmed": [
+        "LIMIT_BAL",
+        "AGE",
+        "PAY_0",
+        "PAY_2",
+        "PAY_3",
+        "PAY_4",
+        "PAY_5",
+        "PAY_6",
+        "PAY_AMT1",
+        "PAY_AMT2",
+        "PAY_AMT3",
+        "PAY_AMT4",
+        "PAY_AMT5",
+        "PAY_AMT6"
+      ],
+      "tentative": [],
+      "rejected": [
+        "EDUCATION"
+      ],
+      "dummy_detail": [
+        {
+          "encoded_column": "LIMIT_BAL",
+          "raw_column": "LIMIT_BAL",
+          "status": "confirmed"
+        },
+        {
+          "encoded_column": "EDUCATION",
+          "raw_column": "EDUCATION",
+          "status": "rejected"
+        },
+        {
+          "encoded_column": "AGE",
+          "raw_column": "AGE",
+          "status": "confirmed"
+        },
+        {
+          "encoded_column": "PAY_0",
+          "raw_column": "PAY_0",
+          "status": "confirmed"
+        },
+        {
+          "encoded_column": "PAY_2",
+          "raw_column": "PAY_2",
+          "status": "confirmed"
+        },
+        {
+          "encoded_column": "PAY_3",
+          "raw_column": "PAY_3",
+          "status": "confirmed"
+        },
+        {
+          "encoded_column": "PAY_4",
+          "raw_column": "PAY_4",
+          "status": "confirmed"
+        },
+        {
+          "encoded_column": "PAY_5",
+          "raw_column": "PAY_5",
+          "status": "confirmed"
+        },
+        {
+          "encoded_column": "PAY_6",
+          "raw_column": "PAY_6",
+          "status": "confirmed"
+        },
+        {
+          "encoded_column": "PAY_AMT1",
+          "raw_column": "PAY_AMT1",
+          "status": "confirmed"
+        },
+        {
+          "encoded_column": "PAY_AMT2",
+          "raw_column": "PAY_AMT2",
+          "status": "confirmed"
+        },
+        {
+          "encoded_column": "PAY_AMT3",
+          "raw_column": "PAY_AMT3",
+          "status": "confirmed"
+        },
+        {
+          "encoded_column": "PAY_AMT4",
+          "raw_column": "PAY_AMT4",
+          "status": "confirmed"
+        },
+        {
+          "encoded_column": "PAY_AMT5",
+          "raw_column": "PAY_AMT5",
+          "status": "confirmed"
+        },
+        {
+          "encoded_column": "PAY_AMT6",
+          "raw_column": "PAY_AMT6",
+          "status": "confirmed"
+        }
+      ],
+      "perc": 90,
+      "n_candidate_raw": 15,
+      "n_encoded": 15
+    },
+    "include_tentative": true,
+    "retained_columns": [
+      "LIMIT_BAL",
+      "AGE",
+      "PAY_0",
+      "PAY_2",
+      "PAY_3",
+      "PAY_4",
+      "PAY_5",
+      "PAY_6",
+      "PAY_AMT1",
+      "PAY_AMT2",
+      "PAY_AMT3",
+      "PAY_AMT4",
+      "PAY_AMT5",
+      "PAY_AMT6"
+    ],
+    "n_raw_total": 23,
+    "n_retained": 14
+  },
+  "resampling": null,
+  "tuning": null,
+  "split": {
+    "test_size": 0.2,
+    "n_train": 24000,
+    "n_test": 6000,
+    "threshold": 0.5,
+    "stratified": true,
+    "random_state": 42
+  },
+  "metrics": {
+    "auc_roc": 0.7683,
+    "pr_auc": 0.5462,
+    "accuracy": 0.783,
+    "precision": 0.5084,
+    "recall": 0.569,
+    "f1": 0.537,
+    "brier_score": 0.179721,
+    "n_test": 6000,
+    "n_positive": 1327,
+    "positive_rate": 0.2212
+  },
+  "confusion_matrix": [
+    [
+      3943,
+      730
+    ],
+    [
+      572,
+      755
+    ]
+  ],
+  "cross_validation": {
+    "n_splits": 5,
+    "fold_aucs": [
+      0.7857,
+      0.7732,
+      0.7739,
+      0.7724,
+      0.7706
+    ],
+    "mean_auc": 0.7752,
+    "std_auc": 0.0054,
+    "note": null
+  },
+  "epv": {
+    "epv": 379.21,
+    "n_events": 5309,
+    "n_features": 14,
+    "overfitting_risk": "low",
+    "note": "Rule of thumb: EPV >= 10 acceptable, >= 20 comfortable (Peduzzi et al.)."
+  },
+  "top_features": [
+    {
+      "feature": "PAY_0",
+      "importance": 0.322269
+    },
+    {
+      "feature": "PAY_2",
+      "importance": 0.128227
+    },
+    {
+      "feature": "PAY_3",
+      "importance": 0.099026
+    },
+    {
+      "feature": "PAY_4",
+      "importance": 0.071521
+    },
+    {
+      "feature": "PAY_AMT1",
+      "importance": 0.053231
+    },
+    {
+      "feature": "LIMIT_BAL",
+      "importance": 0.051448
+    },
+    {
+      "feature": "PAY_5",
+      "importance": 0.048697
+    },
+    {
+      "feature": "PAY_AMT2",
+      "importance": 0.043112
+    },
+    {
+      "feature": "PAY_AMT3",
+      "importance": 0.040571
+    },
+    {
+      "feature": "PAY_6",
+      "importance": 0.038119
+    },
+    {
+      "feature": "PAY_AMT5",
+      "importance": 0.030035
+    },
+    {
+      "feature": "PAY_AMT6",
+      "importance": 0.027418
+    },
+    {
+      "feature": "PAY_AMT4",
+      "importance": 0.027047
+    },
+    {
+      "feature": "AGE",
+      "importance": 0.019279
+    }
+  ],
+  "train_seconds": 23.0,
+  "notes": null
+}
