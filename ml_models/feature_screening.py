@@ -26,13 +26,33 @@ Two gates:
 """
 import numpy as np
 import pandas as pd
+from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.impute import SimpleImputer
 from sklearn.preprocessing import StandardScaler
 
 IV_MIN_DEFAULT = 0.02
 BORUTA_PERC_DEFAULT = 90
+CARDINALITY_CAP_DEFAULT = 50
 EPS = 1e-6
+OTHER_LABEL = '__other__'
+
+
+def cap_categories(series, max_categories=CARDINALITY_CAP_DEFAULT, other_label=OTHER_LABEL):
+    """Collapse all but the `max_categories` most frequent values of a
+    categorical series into a single bucket. Without this, a near-identifier
+    column (e.g. PAK.csv's RESIDENCIAL_BOROUGH with 14,510 distinct values
+    across 50,000 rows) either explodes a one-hot encoding into tens of
+    thousands of dummy columns (multi-GB memory for a modest row count) or,
+    for a model given native categorical support, wastes search effort and
+    invites overfitting on categories that appear only once or twice.
+    NaN is left untouched (handled by whatever missing-value strategy the
+    caller already applies) - only present, non-null values are capped."""
+    counts = series.value_counts()
+    if len(counts) <= max_categories:
+        return series
+    keep = set(counts.index[:max_categories])
+    return series.where(series.isna() | series.isin(keep), other_label)
 
 
 def _woe_iv_for_bins(bin_labels, y):
@@ -90,7 +110,7 @@ def _encode_for_importance(df, cols):
     if num_cols:
         sub[num_cols] = SimpleImputer(strategy='median').fit_transform(sub[num_cols])
     for c in cat_cols:
-        sub[c] = sub[c].fillna('__missing__').astype(str)
+        sub[c] = cap_categories(sub[c].fillna('__missing__').astype(str))
     enc = pd.get_dummies(sub, columns=cat_cols, dtype=float) if cat_cols else sub.astype(float)
     Xs = StandardScaler().fit_transform(enc.values)
     # map each encoded (dummy) column back to its raw source column
@@ -136,6 +156,68 @@ def boruta_screen(df, target_col, candidate_cols, perc=BORUTA_PERC_DEFAULT, rand
         'dummy_detail': dummy_detail,
         'perc': perc, 'n_candidate_raw': len(candidate_cols), 'n_encoded': len(enc_cols),
     }
+
+
+class MissingValueSafeImputer(BaseEstimator, TransformerMixin):
+    """SMOTE and SMOTENC both require the continuous feature part to have no
+    missing values at all - they compute real-valued nearest-neighbour
+    distances, which are undefined for NaN. This isn't specific to any one
+    dataset (GMSC's MonthlyIncome/NumberOfDependents, PAK.csv's numeric
+    columns, and any future dataset with real missingness would all hit the
+    same error), so it belongs directly in front of the sampler, not as a
+    one-off fix. Median-imputes numeric columns and constant-fills
+    categorical/'category' dtype columns, fit per call (i.e. per CV fold
+    when used as a Pipeline step, so no test-fold statistic leaks into a
+    training fold's imputation)."""
+
+    def __init__(self, categorical_placeholder='__missing__'):
+        self.categorical_placeholder = categorical_placeholder
+
+    def fit(self, X, y=None):
+        self.medians_ = {c: X[c].median() for c in X.columns if pd.api.types.is_numeric_dtype(X[c])}
+        return self
+
+    def transform(self, X):
+        X = X.copy()
+        for c in X.columns:
+            if pd.api.types.is_numeric_dtype(X[c]):
+                X[c] = X[c].fillna(self.medians_.get(c, 0))
+            elif str(X[c].dtype) == 'category':
+                if self.categorical_placeholder not in X[c].cat.categories:
+                    X[c] = X[c].cat.add_categories([self.categorical_placeholder])
+                X[c] = X[c].fillna(self.categorical_placeholder)
+            else:
+                X[c] = X[c].fillna(self.categorical_placeholder)
+        return X
+
+
+def make_smote_sampler(X, random_state=42, k_neighbors=5):
+    """Plain SMOTE requires purely numeric input - it interpolates a synthetic
+    point's feature values continuously between neighbours, which is undefined
+    for a categorical value. dataset_lab.prepare_features' native-XGBoost path
+    leaves categorical columns as pandas 'category' dtype rather than one-hot
+    encoding them, so SMOTE would either error or silently corrupt those
+    columns. SMOTENC handles mixed numeric/categorical data correctly (it
+    copies a neighbour's actual categorical value rather than interpolating),
+    so this picks SMOTENC whenever any 'category' dtype column is present,
+    and falls back to plain SMOTE otherwise (the one-hot path, where every
+    column is already numeric 0/1)."""
+    from imblearn.over_sampling import SMOTE, SMOTENC
+    cat_mask = [str(dt) == 'category' for dt in X.dtypes] if hasattr(X, 'dtypes') else []
+    if any(cat_mask):
+        return SMOTENC(categorical_features=cat_mask, random_state=random_state, k_neighbors=k_neighbors)
+    return SMOTE(random_state=random_state, k_neighbors=k_neighbors)
+
+
+def restore_categorical_dtypes(X_resampled, reference_X):
+    """SMOTENC's internal encode/resample/decode round-trip can hand back a
+    'category' dtype column as plain object/string. Re-cast any column that
+    was 'category' dtype in `reference_X` back to it, so a native-categorical
+    XGBoost model still sees the dtype it expects after resampling."""
+    for c in reference_X.columns:
+        if str(reference_X[c].dtype) == 'category' and c in X_resampled.columns:
+            X_resampled[c] = X_resampled[c].astype('category')
+    return X_resampled
 
 
 def screen(df, target_col, iv_min=IV_MIN_DEFAULT, boruta_perc=BORUTA_PERC_DEFAULT,

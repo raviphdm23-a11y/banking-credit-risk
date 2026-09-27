@@ -34,6 +34,8 @@ from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 from xgboost import XGBClassifier
 
+from ml_models.feature_screening import MissingValueSafeImputer
+
 # All keys are 'clf__'-prefixed since every model_type is now Pipeline-wrapped
 # for tuning purposes (see build_unfitted), regardless of `resample`.
 PARAM_GRIDS = {
@@ -78,9 +80,14 @@ PARAM_GRIDS = {
 def _base_steps(model_type, random_state):
     """(name, transformer_or_estimator) steps, classifier always keyed 'clf'."""
     if model_type == 'xgboost':
+        # enable_categorical + tree_method='hist': lets XGBoost split on a
+        # pandas 'category' dtype column internally (dataset_lab.prepare_features'
+        # native-categorical path) instead of requiring one-hot encoding. Harmless
+        # no-op when every column is already numeric.
         return [('clf', XGBClassifier(n_estimators=200, max_depth=4, learning_rate=0.05, subsample=0.8,
                                       colsample_bytree=0.8, min_child_weight=5, gamma=0.1, reg_alpha=0.1,
                                       reg_lambda=1.0, random_state=random_state, eval_metric='logloss',
+                                      enable_categorical=True, tree_method='hist',
                                       verbosity=0, n_jobs=-1))]
     if model_type == 'random_forest':
         return [('imputer', SimpleImputer(strategy='median')),
@@ -105,16 +112,29 @@ def _base_steps(model_type, random_state):
     raise ValueError(f'no tuning grid for model_type {model_type}')
 
 
-def build_unfitted(model_type, random_state=42, resample=None):
+def build_unfitted(model_type, random_state=42, resample=None, categorical_features=None):
     """Unfitted Pipeline for `model_type`. If resample='smote', an imblearn
-    Pipeline with a leading 'smote' step is returned instead of a plain
-    sklearn one, so SMOTE is re-fit per CV fold rather than applied once
-    up front (see module docstring)."""
+    Pipeline with a leading sampler step is returned instead of a plain
+    sklearn one, so the resampler is re-fit per CV fold rather than applied
+    once up front (see module docstring). `categorical_features` is a
+    boolean mask (one entry per training column) identifying pandas
+    'category' dtype columns - when any are present (the native-XGBoost
+    path from dataset_lab.prepare_features), SMOTENC is used instead of
+    plain SMOTE, since SMOTE's continuous interpolation between neighbours
+    is undefined for a categorical value."""
     steps = _base_steps(model_type, random_state)
     if resample == 'smote':
-        from imblearn.over_sampling import SMOTE
         from imblearn.pipeline import Pipeline as ImbPipeline
-        return ImbPipeline([('smote', SMOTE(random_state=random_state))] + steps)
+        if categorical_features is not None and any(categorical_features):
+            from imblearn.over_sampling import SMOTENC
+            sampler = SMOTENC(categorical_features=categorical_features, random_state=random_state)
+        else:
+            from imblearn.over_sampling import SMOTE
+            sampler = SMOTE(random_state=random_state)
+        # SMOTE/SMOTENC can't accept NaN - impute as the Pipeline's first step
+        # so it refits per CV fold (and again for the final refit), same
+        # leakage-safe scoping as the resampling itself.
+        return ImbPipeline([('smote_impute', MissingValueSafeImputer()), ('smote', sampler)] + steps)
     if resample not in (None, 'none'):
         raise ValueError(f"unknown resample '{resample}'; choose from None, 'smote'")
     return Pipeline(steps)
@@ -127,7 +147,8 @@ def tune_and_fit(model_type, X_train, y_train, n_iter=20, cv_folds=5, random_sta
     resampled) training fold when resample='smote' - resampling happens
     inside each CV fold and again on the full data for the final refit.
     Returns (fitted_best_estimator, report_dict)."""
-    est = build_unfitted(model_type, random_state, resample=resample)
+    categorical_features = [str(dt) == 'category' for dt in X_train.dtypes] if hasattr(X_train, 'dtypes') else None
+    est = build_unfitted(model_type, random_state, resample=resample, categorical_features=categorical_features)
     grid = PARAM_GRIDS[model_type]
     n_candidates = int(np.prod([len(v) for v in grid.values()]))
     n_iter_eff = min(n_iter, n_candidates)  # RandomizedSearchCV errors if n_iter > the full grid size

@@ -89,9 +89,20 @@ def load_dataset(csv_path, target, positive_label=None, sep=None):
     return df, y, note
 
 
-def prepare_features(df, target, drop_columns=None):
-    """Numeric columns pass through (coerced); string/categorical columns are
-    one-hot encoded; booleans become 0/1. Returns (X, encoding_info)."""
+def prepare_features(df, target, drop_columns=None, model_type=None,
+                     max_categories=_screen.CARDINALITY_CAP_DEFAULT):
+    """Numeric columns pass through (coerced); booleans become 0/1.
+    Categorical columns: for model_type='xgboost', cast to pandas 'category'
+    dtype and left un-encoded - XGBoost (>=1.5) partitions categorical splits
+    internally, so this avoids one-hot's dummy-column explosion entirely.
+    Every other model_type gets the original one-hot encoding, since sklearn's
+    RandomForest/ExtraTrees/GradientBoosting/LogisticRegression all require
+    numeric input. Either way, any categorical column is first capped to its
+    `max_categories` most frequent values (see feature_screening.cap_categories)
+    - without this, a near-identifier column (e.g. a city/borough field with
+    thousands of distinct values) blows up one-hot memory regardless of model,
+    and even with native categorical support wastes search effort on categories
+    seen once or twice. Returns (X, encoding_info)."""
     drop_columns = list(drop_columns or [])
     missing = [c for c in drop_columns if c not in df.columns]
     if missing:
@@ -106,8 +117,31 @@ def prepare_features(df, target, drop_columns=None):
     num_cols = [c for c in feats.columns if c not in cat_cols]
     for c in num_cols:
         feats[c] = pd.to_numeric(feats[c], errors='coerce')
+    for c in cat_cols:
+        # A pandas 'object' column can hold a genuine mix of types (e.g. some
+        # rows read as str, others as a stray float) - PAK.csv triggers a
+        # DtypeWarning on load for exactly this reason. astype('category')
+        # then produces a categories list mixing strings and floats, which
+        # XGBoost's categorical serializer can't handle (it assumes every
+        # category label is a string). Normalize to string first, preserving
+        # real NaN so it's still treated as missing rather than the text 'nan'.
+        feats[c] = feats[c].where(feats[c].isna(), feats[c].astype(str))
 
-    X = pd.get_dummies(feats, columns=cat_cols, dtype=float) if cat_cols else feats.astype(float)
+    capped_categories = {}
+    for c in cat_cols:
+        n_before = int(feats[c].nunique(dropna=True))
+        feats[c] = _screen.cap_categories(feats[c], max_categories=max_categories)
+        n_after = int(feats[c].nunique(dropna=True))
+        if n_after < n_before:
+            capped_categories[c] = {'before': n_before, 'after': n_after}
+
+    native_categorical = model_type == 'xgboost'
+    if native_categorical:
+        for c in cat_cols:
+            feats[c] = feats[c].astype('category')
+        X = feats
+    else:
+        X = pd.get_dummies(feats, columns=cat_cols, dtype=float) if cat_cols else feats.astype(float)
     # XGBoost rejects feature names containing [, ] or <
     X.columns = [re.sub(r'[\[\]<]', '_', str(c)) for c in X.columns]
 
@@ -116,6 +150,8 @@ def prepare_features(df, target, drop_columns=None):
         'n_encoded_features': int(X.shape[1]),
         'numeric_columns': num_cols,
         'categorical_columns': cat_cols,
+        'categorical_encoding': 'native_xgboost' if native_categorical else 'one_hot',
+        'capped_categories': capped_categories,
         'dropped_columns': drop_columns,
         'rows_with_any_missing': int(X.isna().any(axis=1).sum()),
     }
@@ -159,7 +195,7 @@ def run_experiment(csv_path, target, positive_label=None, model_type='xgboost',
         retained = set(screening_report['retained_columns'])
         drop_columns = list(set(drop_columns) | {c for c in df.columns if c != target and c not in retained})
 
-    X, enc = prepare_features(df, target, drop_columns)
+    X, enc = prepare_features(df, target, drop_columns, model_type=model_type)
 
     X_tr, X_te, y_tr, y_te = train_test_split(
         X, y, test_size=test_size, stratify=y, random_state=random_state)
@@ -184,21 +220,33 @@ def run_experiment(csv_path, target, positive_label=None, model_type='xgboost',
                                                   cv_folds=tune_folds, random_state=random_state,
                                                   resample=resample)
         if resample == 'smote':
-            resample_report = {'method': 'smote', 'applied_to': 'inside_every_tuning_cv_fold_and_final_refit',
+            uses_smotenc = any(str(dt) == 'category' for dt in X_tr.dtypes)
+            resample_report = {'method': 'smotenc' if uses_smotenc else 'smote',
+                               'applied_to': 'inside_every_tuning_cv_fold_and_final_refit',
                                'class_counts_before_final_refit': n_before,
                                'note': 'resampling happens once per inner CV fold during search, and once '
                                        'more on the full training fold for the final refit - no single '
                                        'before/after count applies; see tuning.resample_inside_cv'}
     elif resample == 'smote':
-        from imblearn.over_sampling import SMOTE
         n_min = int(y_tr.value_counts().min())
         k_neighbors = min(5, max(1, n_min - 1))
         n_before = {int(k): int(v) for k, v in y_tr.value_counts().items()}
-        X_tr, y_tr = SMOTE(random_state=random_state, k_neighbors=k_neighbors).fit_resample(X_tr, y_tr)
+        n_missing_before_impute = int(X_tr.isna().any(axis=1).sum())
+        # SMOTE/SMOTENC cannot handle NaN (they compute real-valued nearest-
+        # neighbour distances) - impute on the training fold only, same
+        # scope as the resampling itself, before either sampler sees the data.
+        imputer = _screen.MissingValueSafeImputer()
+        X_tr_imputed = imputer.fit_transform(X_tr)
+        sampler = _screen.make_smote_sampler(X_tr_imputed, random_state=random_state, k_neighbors=k_neighbors)
+        X_tr, y_tr = sampler.fit_resample(X_tr_imputed, y_tr)
+        X_tr = _screen.restore_categorical_dtypes(X_tr, X_tr_imputed)
         n_after = {int(k): int(v) for k, v in y_tr.value_counts().items()}
-        resample_report = {'method': 'smote', 'applied_to': 'training_fold_only_after_split',
+        resample_report = {'method': type(sampler).__name__.lower(), 'applied_to': 'training_fold_only_after_split',
                            'k_neighbors': k_neighbors, 'class_counts_before': n_before,
-                           'class_counts_after': n_after}
+                           'class_counts_after': n_after,
+                           'rows_imputed_before_resample': n_missing_before_impute,
+                           'note': ('median/placeholder-imputed before resampling since SMOTE/SMOTENC cannot '
+                                    'accept missing values' if n_missing_before_impute else None)}
         model = train_model(X_tr, y_tr, hp, model_type=model_type)
     else:
         model = train_model(X_tr, y_tr, hp, model_type=model_type)
@@ -317,6 +365,11 @@ def _print_summary(rec):
     print(f"  target   : {d['target']}  ({d['target_note']})")
     if d['dropped_columns']:
         print(f"  dropped  : {d['dropped_columns']}")
+    if d.get('categorical_encoding') == 'native_xgboost':
+        print(f"  encoding : native XGBoost categorical (no one-hot) for {len(d['categorical_columns'])} column(s)")
+    if d.get('capped_categories'):
+        capped_str = ', '.join(f"{c} ({v['before']}->{v['after']})" for c, v in d['capped_categories'].items())
+        print(f"  capped   : {capped_str}")
     opts = rec.get('pipeline_options', {})
     opt_str = ', '.join(k for k in ('iv_boruta', 'tuned') if opts.get(k)) or 'none'
     if opts.get('resample', 'none') != 'none':

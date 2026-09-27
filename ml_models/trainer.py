@@ -662,6 +662,11 @@ def _build_xgboost(X_train, y_train, hp):
         scale_pos_weight  = auto_spw,
         random_state      = int(model_hp.get('random_state', 42)),
         eval_metric       = 'logloss',
+        # Lets XGBoost split on a pandas 'category' dtype column internally
+        # instead of requiring one-hot encoding (dataset_lab.prepare_features'
+        # native-categorical path); a no-op when every column is numeric.
+        enable_categorical = True,
+        tree_method       = 'hist',
         verbosity         = 0,
         n_jobs            = -1,
     )
