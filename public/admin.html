@@ -2220,7 +2220,7 @@ async function labLoadRuns() {
   if (!runs.length) { el.innerHTML = '<p style="color:var(--sub)">No benchmark runs recorded yet.</p>'; return; }
   el.innerHTML = `<table><thead><tr>
       <th><input type="checkbox" id="labSelectAllCb" onchange="labToggleSelectAllRuns(this)"></th>
-      <th>When</th><th>Dataset</th><th>Target</th><th>Model</th><th>Rows</th><th>Feat.</th><th>Pos. rate</th>
+      <th>When</th><th>Dataset</th><th>Target</th><th>Model</th><th>Rows</th><th>Features</th><th>Pos. rate</th>
       <th>AUC-ROC</th><th>PR-AUC</th><th>F1</th><th>CV AUC</th><th>Excluded</th><th></th></tr></thead><tbody>` +
     runs.map(r => `<tr style="cursor:pointer" onclick="labShowRun('${labEsc(r.run_id)}')" title="${labEsc(r.notes || '')}">
       <td><input type="checkbox" class="lab-select-cb" data-run-id="${labEsc(r.run_id)}" onclick="event.stopPropagation()" onchange="labUpdateDeleteSelectedState()"></td>
