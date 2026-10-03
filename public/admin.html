@@ -2015,7 +2015,7 @@ async function labLoadDatasets() {
   const sel = document.getElementById('labDataset');
   const keep = sel.value;
   const res = await api('/admin/api/dataset-lab/datasets');
-  const list = res.datasets || [];
+  const list = (res.datasets || []).slice().sort((a, b) => b.size_bytes - a.size_bytes);
   sel.innerHTML = list.length
     ? list.map(d => `<option value="${labEsc(d.name)}">${labEsc(d.name)} (${(d.size_bytes/1048576).toFixed(1)} MB)</option>`).join('')
     : '<option value="">— no CSVs yet: upload one —</option>';
