@@ -354,13 +354,33 @@ testing, but check licensing before citing results from this file in any publica
 
 ## Mortgage Panel (`mortgage.csv`)
 
-**Origin (✅ verified):** A randomized selection of U.S. residential mortgage-backed-securities (RMBS)
-loan-level performance data, provided by International Financial Research — tracking 50,000 borrowers over up to
-60 observation periods each, purpose-built for competing-risks (default vs. prepayment) survival analysis. The
-`default_time`/`payoff_time` competing-risks framing is the same one formalized in Deng, Quigley & Van Order,
-*"Mortgage Terminations, Heterogeneity and the Exercise of Mortgage Options,"* Econometrica 68(2), 2000 — though
-I could not confirm this exact file is *that* paper's replication data specifically (⚠️ the paper/dataset link is
-plausible given the matching methodology, not independently confirmed).
+**Origin (✅ verified via a deep-dive pass on 2026-10-03, correcting an earlier guess):** this is the companion
+dataset to Baesens, B., Roesch, D., & Scheule, H., *Credit Risk Analytics: Measurement Techniques, Applications,
+and Examples in SAS* (Wiley, 2016) and its R companion, *Credit Risk Analytics: The R Companion* (2017) — hosted
+on the authors' own site, `creditriskanalytics.net` (direct link to `mortgage_csv.rar`), and on their newer
+platform `deepcreditrisk.com`, which describes it precisely as "50,000 mortgages with 15,000 defaults across 60
+quarters" — matching this file's structure exactly. The underlying raw data is a randomized sample from U.S.
+residential mortgage-backed-securities (RMBS) securitization portfolios, sourced from "International Financial
+Research." The book builds its **Discrete-Time Hazard Models** and **Continuous-Time Hazard Models** chapters
+(probability of default) specifically around this dataset — matching the competing-risks structure
+(`default_time`/`payoff_time`) confirmed directly from the data.
+
+**Correction to an earlier claim in this catalog:** I had speculated this might be the replication data behind
+Deng, Quigley & Van Order, *"Mortgage Terminations, Heterogeneity and the Exercise of Mortgage Options,"*
+Econometrica 68(2), 2000, flagged at the time as unconfirmed. A further search found no actual evidence connecting
+them — that paper uses the same general competing-risks hazard methodology, which is standard in this field, but
+that is a methodological resemblance, not a data lineage. There is no basis for that earlier guess; the
+Baesens/Roesch/Scheule textbook above is the real, confirmed source.
+
+**Usage requirement found during this research:** the authors' site states a request to **reference their books
+upon use of this dataset** — if any result from this file goes into the TAI paper revision, cite Baesens, Roesch
+& Scheule accordingly.
+
+**What I still could not find:** despite a genuinely thorough search (the exact column-name fingerprint, the
+dataset's specific "50,000 loans / 60 periods" description, and author-name searches for a standalone paper), I
+found no independent, peer-reviewed journal article outside the textbook itself that uses this exact dataset. That
+doesn't prove none exists — course assignments, theses, and paywalled papers are hard to fully surface by search —
+but no such citation should be assumed or invented.
 
 **Profile:** 622,489 rows = 50,000 unique loans × ~12.4 observed periods each (confirmed directly). **Not a
 binary-target dataset** — `default_time`/`payoff_time`/`status_time` together encode three mutually exclusive
