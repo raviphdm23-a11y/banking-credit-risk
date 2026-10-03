@@ -2179,8 +2179,16 @@ async function labRefreshColumnStats() {
   const rows = Array.from(tbody.children);
   rows.sort((a, b) => {
     const ca = byName[a.dataset.col], cb = byName[b.dataset.col];
-    const va = (ca && ca.corr != null) ? Math.abs(ca.corr) : -1, vb = (cb && cb.corr != null) ? Math.abs(cb.corr) : -1;
-    return vb - va;
+    // 1) |correlation| descending
+    const va = (ca && ca.corr != null) ? Math.abs(ca.corr) : -1;
+    const vb = (cb && cb.corr != null) ? Math.abs(cb.corr) : -1;
+    if (va !== vb) return vb - va;
+    // 2) null % descending
+    const na = ca ? ca.null_pct : -1, nb = cb ? cb.null_pct : -1;
+    if (na !== nb) return nb - na;
+    // 3) categorical (text) before numeric
+    const ka = ca && ca.kind === 'text' ? 0 : 1, kb = cb && cb.kind === 'text' ? 0 : 1;
+    return ka - kb;
   });
   rows.forEach(r => tbody.appendChild(r));
   rows.forEach(r => {
