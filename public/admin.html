@@ -664,7 +664,7 @@
 
         <label style="font-size:12px;font-weight:600;color:var(--sub)">Exclude columns <span style="font-weight:400">(leakage / IDs &mdash; e.g. a value only known after the outcome)</span></label>
         <div style="font-size:11px;color:var(--sub);margin:4px 0 2px">Sorted by IV (Information Value vs. the chosen target &amp; positive class) — highest first, so the columns most worth a look are at the top. IV is used instead of a plain correlation coefficient since it stays meaningful for categorical columns too, not just numeric ones.</div>
-        <div id="labDropCols" style="max-height:260px;overflow-y:auto;border:1px solid var(--border);border-radius:6px;padding:4px 10px;margin:4px 0 12px;font-size:12px"></div>
+        <div id="labDropCols" style="max-height:260px;overflow-y:auto;overflow-x:hidden;border:1px solid var(--border);border-radius:6px;padding:4px 10px;margin:4px 0 12px;font-size:12px"></div>
 
         <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:12px">
           <div><label style="font-size:12px;font-weight:600;color:var(--sub)">Test size</label>
@@ -2139,10 +2139,12 @@ function labOnTargetChange() {
   if (truthy) psel.value = truthy;
   const box = document.getElementById('labDropCols');
   box.innerHTML = _labColumns.filter(c => c.name !== target).map(c =>
-    `<label class="lab-dropcol-row" data-col="${labEsc(c.name)}" style="display:flex;align-items:center;gap:8px;padding:3px 0;border-bottom:1px solid var(--border)">
-       <input type="checkbox" value="${labEsc(c.name)}" style="width:auto;margin:0;flex:none">
-       <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${labEsc(c.name)}</span>
-       <span class="lab-dropcol-stats" style="color:var(--sub);font-size:11px;white-space:nowrap;flex:none">${c.kind}</span>
+    `<label class="lab-dropcol-row" data-col="${labEsc(c.name)}" style="display:flex;align-items:flex-start;gap:8px;padding:5px 0;border-bottom:1px solid var(--border)">
+       <input type="checkbox" value="${labEsc(c.name)}" style="width:auto;margin:3px 0 0;flex:none">
+       <span style="flex:1;min-width:0;overflow-wrap:break-word">
+         <span style="display:block">${labEsc(c.name)}</span>
+         <span class="lab-dropcol-stats" style="display:block;color:var(--sub);font-size:11px">${c.kind}</span>
+       </span>
      </label>`).join('');
   labRefreshColumnStats();
 }
