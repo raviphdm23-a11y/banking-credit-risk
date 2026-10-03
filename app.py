@@ -2095,14 +2095,43 @@ def admin_lab_dataset_catalog(name):
     return jsonify({'error': f'no catalog entry found for {safe}'}), 404
 
 
+def _correlation_with_target(s, y, is_numeric, _pd, _np):
+    """Pearson correlation for a numeric column against the binary target
+    (equivalent to point-biserial correlation, since y is 0/1). Plain Pearson
+    is meaningless for an unordered categorical column, so those instead get
+    Cramer's V - the standard correlation-strength analogue for two
+    categorical variables, derived from a chi-square test of association.
+    Cramer's V is unsigned (0 to 1, no direction), unlike Pearson (-1 to 1) -
+    the UI must not imply the two are on the same signed scale."""
+    if is_numeric:
+        x = _pd.to_numeric(s, errors='coerce')
+        mask = x.notna()
+        if int(mask.sum()) < 2 or x[mask].std() == 0:
+            return None
+        corr = _np.corrcoef(x[mask], y[mask.values])[0, 1]
+        return None if _np.isnan(corr) else round(float(corr), 4)
+    from scipy.stats import chi2_contingency
+    filled = s.fillna('__missing__').astype(str)
+    ct = _pd.crosstab(filled, y)
+    if ct.shape[0] < 2 or ct.shape[1] < 2:
+        return None
+    chi2 = chi2_contingency(ct)[0]
+    n = ct.values.sum()
+    r, k = ct.shape
+    denom = min(k - 1, r - 1)
+    if n == 0 or denom == 0:
+        return None
+    return round(float((chi2 / n / denom) ** 0.5), 4)
+
+
 @app.route('/admin/api/dataset-lab/datasets/<name>/column-stats', methods=['GET'])
 def admin_lab_column_stats(name):
-    """Per-column stats (null %, unique count, numeric/categorical, Information
-    Value against the chosen target) to help pick which columns to exclude -
-    IV rather than raw Pearson correlation, since IV is meaningful for both
-    numeric and categorical columns consistently (the Sandbox already uses it
-    for Phase-1 screening) where a correlation coefficient only makes sense
-    for numeric-vs-numeric pairs."""
+    """Per-column stats (null %, unique count, numeric/categorical, correlation
+    with the chosen target) to help pick which columns to exclude. 'correlation'
+    is Pearson for numeric columns and Cramer's V for categorical ones (see
+    _correlation_with_target) - a plain Pearson coefficient is undefined for
+    unordered categories, so a single signed number can't be reused across
+    both column kinds without silently misleading for one of them."""
     if not _check_admin_auth(): return _admin_auth_error()
     path = _lab_dataset_path(name)
     if not path:
@@ -2111,11 +2140,13 @@ def admin_lab_column_stats(name):
     if not target:
         return jsonify({'error': 'target query param is required'}), 400
     positive = request.args.get('positive') or None
+    import numpy as _np
     import pandas as _pd
     try:
         df, y, target_note = _lab.load_dataset(path, target, positive)
     except Exception as e:
         return jsonify({'error': str(e)}), 400
+    y_arr = y.values.astype(float)
 
     cols = []
     for c in df.columns:
@@ -2131,9 +2162,9 @@ def admin_lab_column_stats(name):
             'n_unique': int(s.nunique(dropna=True)),
         }
         try:
-            entry['iv'] = round(float(_lab._screen.compute_iv(s, y)), 4)
+            entry['corr'] = _correlation_with_target(s, y_arr, is_num, _pd, _np)
         except Exception:
-            entry['iv'] = None
+            entry['corr'] = None
         cols.append(entry)
     return jsonify({'target': target, 'target_note': target_note, 'columns': cols})
 

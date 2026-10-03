@@ -663,8 +663,8 @@
         </div>
 
         <label style="font-size:12px;font-weight:600;color:var(--sub)">Exclude columns <span style="font-weight:400">(leakage / IDs &mdash; e.g. a value only known after the outcome)</span></label>
-        <div style="font-size:11px;color:var(--sub);margin:4px 0 2px">Sorted by IV (Information Value vs. the chosen target &amp; positive class) — highest first, so the columns most worth a look are at the top. IV is used instead of a plain correlation coefficient since it stays meaningful for categorical columns too, not just numeric ones.</div>
-        <div id="labDropCols" style="max-height:260px;overflow-y:auto;overflow-x:hidden;border:1px solid var(--border);border-radius:6px;padding:4px 10px;margin:4px 0 12px;font-size:12px"></div>
+        <div style="font-size:11px;color:var(--sub);margin:4px 0 2px">Sorted by correlation strength vs. the chosen target &amp; positive class — highest first. Numeric columns show Pearson correlation (&minus;1 to 1, signed); text columns show Cram&eacute;r's V (0 to 1, unsigned) since a plain correlation coefficient is undefined for unordered categories. Refreshes automatically when the target or positive class changes.</div>
+        <div id="labDropCols" style="max-height:320px;overflow-y:auto;overflow-x:hidden;border:1px solid var(--border);border-radius:6px;margin:4px 0 12px;font-size:12px"></div>
 
         <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:12px">
           <div><label style="font-size:12px;font-weight:600;color:var(--sub)">Test size</label>
@@ -2138,14 +2138,24 @@ function labOnTargetChange() {
   const truthy = vals.find(v => ['yes','y','true','t','1'].includes(String(v).toLowerCase()));
   if (truthy) psel.value = truthy;
   const box = document.getElementById('labDropCols');
-  box.innerHTML = _labColumns.filter(c => c.name !== target).map(c =>
-    `<label class="lab-dropcol-row" data-col="${labEsc(c.name)}" style="display:flex;align-items:flex-start;gap:8px;padding:5px 0;border-bottom:1px solid var(--border)">
-       <input type="checkbox" value="${labEsc(c.name)}" style="width:auto;margin:3px 0 0;flex:none">
-       <span style="flex:1;min-width:0;overflow-wrap:break-word">
-         <span style="display:block">${labEsc(c.name)}</span>
-         <span class="lab-dropcol-stats" style="display:block;color:var(--sub);font-size:11px">${c.kind}</span>
-       </span>
-     </label>`).join('');
+  box.innerHTML = `<table style="width:100%;border-collapse:collapse">
+    <thead><tr style="position:sticky;top:0;background:var(--card,#fff)">
+      <th style="width:1%"></th>
+      <th style="text-align:left;padding:5px 8px;border-bottom:2px solid var(--border)">Column</th>
+      <th style="text-align:right;padding:5px 8px;border-bottom:2px solid var(--border)">Correlation</th>
+      <th style="text-align:left;padding:5px 8px;border-bottom:2px solid var(--border)">Type</th>
+      <th style="text-align:right;padding:5px 8px;border-bottom:2px solid var(--border)">Unique</th>
+      <th style="text-align:right;padding:5px 8px;border-bottom:2px solid var(--border)">Null %</th>
+    </tr></thead>
+    <tbody>` + _labColumns.filter(c => c.name !== target).map(c =>
+    `<tr class="lab-dropcol-row" data-col="${labEsc(c.name)}">
+       <td style="padding:4px 8px;border-bottom:1px solid var(--border)"><input type="checkbox" value="${labEsc(c.name)}" style="width:auto;margin:0"></td>
+       <td style="padding:4px 8px;border-bottom:1px solid var(--border);overflow-wrap:break-word;max-width:0">${labEsc(c.name)}</td>
+       <td class="lab-dropcol-corr" style="text-align:right;padding:4px 8px;border-bottom:1px solid var(--border);color:var(--sub)">&hellip;</td>
+       <td style="padding:4px 8px;border-bottom:1px solid var(--border);color:var(--sub)">${c.kind}</td>
+       <td class="lab-dropcol-unique" style="text-align:right;padding:4px 8px;border-bottom:1px solid var(--border);color:var(--sub)">&hellip;</td>
+       <td class="lab-dropcol-null" style="text-align:right;padding:4px 8px;border-bottom:1px solid var(--border);color:var(--sub)">&hellip;</td>
+     </tr>`).join('') + '</tbody></table>';
   labRefreshColumnStats();
 }
 
@@ -2154,29 +2164,31 @@ async function labRefreshColumnStats() {
   const target = document.getElementById('labTarget').value;
   const positive = document.getElementById('labPositive').value;
   const box = document.getElementById('labDropCols');
-  if (!dataset || !target || !box.children.length) return;
+  const tbody = box.querySelector('tbody');
+  if (!dataset || !target || !tbody || !tbody.children.length) return;
   const res = await api(`/admin/api/dataset-lab/datasets/${encodeURIComponent(dataset)}/column-stats?target=${encodeURIComponent(target)}&positive=${encodeURIComponent(positive || '')}`);
   if (res.error) {
     // Most common cause: target doesn't have exactly 2 distinct values (e.g. mortgage.csv's
-    // status_time) - leave the basic kind-only labels in place rather than show nothing.
-    box.querySelectorAll('.lab-dropcol-stats').forEach(el => { el.title = res.error; });
+    // status_time) - leave the basic type-only rows in place rather than show nothing.
+    tbody.querySelectorAll('.lab-dropcol-corr').forEach(el => { el.textContent = 'n/a'; el.title = res.error; });
+    tbody.querySelectorAll('.lab-dropcol-unique, .lab-dropcol-null').forEach(el => { el.textContent = '—'; });
     return;
   }
   const byName = {};
   res.columns.forEach(c => { byName[c.name] = c; });
-  const rows = Array.from(box.children);
+  const rows = Array.from(tbody.children);
   rows.sort((a, b) => {
     const ca = byName[a.dataset.col], cb = byName[b.dataset.col];
-    const iva = (ca && ca.iv != null) ? ca.iv : -1, ivb = (cb && cb.iv != null) ? cb.iv : -1;
-    return ivb - iva;
+    const va = (ca && ca.corr != null) ? Math.abs(ca.corr) : -1, vb = (cb && cb.corr != null) ? Math.abs(cb.corr) : -1;
+    return vb - va;
   });
-  rows.forEach(r => box.appendChild(r));
+  rows.forEach(r => tbody.appendChild(r));
   rows.forEach(r => {
     const c = byName[r.dataset.col];
-    const statsEl = r.querySelector('.lab-dropcol-stats');
     if (!c) return;
-    const ivText = c.iv == null ? 'IV n/a' : `IV ${c.iv.toFixed(3)}`;
-    statsEl.textContent = `${c.kind} · ${c.n_unique.toLocaleString()} unique · ${c.null_pct}% null · ${ivText}`;
+    r.querySelector('.lab-dropcol-corr').textContent = c.corr == null ? 'n/a' : c.corr.toFixed(3);
+    r.querySelector('.lab-dropcol-unique').textContent = c.n_unique.toLocaleString();
+    r.querySelector('.lab-dropcol-null').textContent = `${c.null_pct}%`;
   });
 }
 
