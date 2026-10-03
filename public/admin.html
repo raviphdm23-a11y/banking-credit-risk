@@ -2221,7 +2221,7 @@ async function labLoadRuns() {
   el.innerHTML = `<table><thead><tr>
       <th><input type="checkbox" id="labSelectAllCb" onchange="labToggleSelectAllRuns(this)"></th>
       <th>When</th><th>Dataset</th><th>Target</th><th>Model</th><th>Rows</th><th>Features</th><th>Event rate</th>
-      <th>AUC-ROC</th><th>PR-AUC</th><th>F1</th><th>CV AUC</th><th>Excluded</th><th></th></tr></thead><tbody>` +
+      <th>AUC-ROC</th><th>PR-AUC</th><th>F1</th><th>CV AUC</th><th>Pipeline</th><th>Excluded</th><th></th></tr></thead><tbody>` +
     runs.map(r => `<tr style="cursor:pointer" onclick="labShowRun('${labEsc(r.run_id)}')" title="${labEsc(r.notes || '')}">
       <td><input type="checkbox" class="lab-select-cb" data-run-id="${labEsc(r.run_id)}" onclick="event.stopPropagation()" onchange="labUpdateDeleteSelectedState()"></td>
       <td style="white-space:nowrap">${labEsc((r.timestamp || '').replace('T', ' ').slice(0, 16))}</td>
@@ -2229,9 +2229,20 @@ async function labLoadRuns() {
       <td>${Number(r.n_rows).toLocaleString()}</td><td>${r.n_features}</td><td>${(r.positive_rate * 100).toFixed(1)}%</td>
       <td><b>${labNum(r.auc_roc)}</b></td><td>${labNum(r.pr_auc)}</td><td>${labNum(r.f1)}</td>
       <td>${r.cv_auc_mean == null ? '—' : `${labNum(r.cv_auc_mean)} &plusmn; ${labNum(r.cv_auc_std)}`}</td>
+      <td style="font-size:11px;white-space:nowrap">${labPipelineBadges(r.pipeline_options)}</td>
       <td style="font-size:11px;color:var(--sub)">${labEsc((r.dropped_columns || []).join(', ') || '—')}</td>
       <td><button class="btn btn-sm btn-danger" type="button" title="Delete this run" onclick="event.stopPropagation();labDeleteRun('${labEsc(r.run_id)}')">&#128465;</button></td></tr>`).join('') +
     '</tbody></table>';
+}
+
+function labPipelineBadges(opts) {
+  if (!opts) return '<span style="color:var(--sub)">&mdash;</span>';
+  const badges = [];
+  if (opts.iv_boruta) badges.push('IV+Boruta');
+  if (opts.resample && opts.resample !== 'none') badges.push(labEsc(opts.resample.toUpperCase()));
+  if (opts.tuned) badges.push('Tuned');
+  if (!badges.length) return '<span style="color:var(--sub)">&mdash;</span>';
+  return badges.map(b => `<span style="display:inline-block;background:var(--blue);color:#fff;border-radius:4px;padding:1px 6px;margin:1px 2px 1px 0;font-size:10px">${b}</span>`).join('');
 }
 
 function labToggleSelectAllRuns(headerCb) {
