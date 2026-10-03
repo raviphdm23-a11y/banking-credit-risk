@@ -2095,6 +2095,49 @@ def admin_lab_dataset_catalog(name):
     return jsonify({'error': f'no catalog entry found for {safe}'}), 404
 
 
+@app.route('/admin/api/dataset-lab/datasets/<name>/column-stats', methods=['GET'])
+def admin_lab_column_stats(name):
+    """Per-column stats (null %, unique count, numeric/categorical, Information
+    Value against the chosen target) to help pick which columns to exclude -
+    IV rather than raw Pearson correlation, since IV is meaningful for both
+    numeric and categorical columns consistently (the Sandbox already uses it
+    for Phase-1 screening) where a correlation coefficient only makes sense
+    for numeric-vs-numeric pairs."""
+    if not _check_admin_auth(): return _admin_auth_error()
+    path = _lab_dataset_path(name)
+    if not path:
+        return jsonify({'error': 'dataset not found'}), 404
+    target = (request.args.get('target') or '').strip()
+    if not target:
+        return jsonify({'error': 'target query param is required'}), 400
+    positive = request.args.get('positive') or None
+    import pandas as _pd
+    try:
+        df, y, target_note = _lab.load_dataset(path, target, positive)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 400
+
+    cols = []
+    for c in df.columns:
+        if c == target:
+            continue
+        s = df[c]
+        is_num = _pd.api.types.is_numeric_dtype(s)
+        n_null = int(s.isna().sum())
+        n_total = len(s)
+        entry = {
+            'name': str(c), 'kind': 'numeric' if is_num else 'text',
+            'n_null': n_null, 'null_pct': round(n_null / n_total * 100, 2) if n_total else 0.0,
+            'n_unique': int(s.nunique(dropna=True)),
+        }
+        try:
+            entry['iv'] = round(float(_lab._screen.compute_iv(s, y)), 4)
+        except Exception:
+            entry['iv'] = None
+        cols.append(entry)
+    return jsonify({'target': target, 'target_note': target_note, 'columns': cols})
+
+
 @app.route('/admin/api/dataset-lab/upload', methods=['POST'])
 def admin_lab_upload():
     if not _check_admin_auth(): return _admin_auth_error()
