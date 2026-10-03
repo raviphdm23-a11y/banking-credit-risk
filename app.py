@@ -5,6 +5,7 @@ Flask API for AIRB, Standardized Approach calculations, and Admin/ML Training.
 
 import os
 import json
+import re
 import shutil
 import threading
 from flask import Flask, render_template, request, jsonify, send_from_directory
@@ -2066,6 +2067,32 @@ def admin_lab_dataset_columns(name):
                         'sample_rows': int(len(full)), 'columns': cols})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+
+@app.route('/admin/api/dataset-lab/datasets/<name>/catalog', methods=['GET'])
+def admin_lab_dataset_catalog(name):
+    """Returns the DATASET_CATALOG.md section (markdown text) for one dataset,
+    found by matching its exact backtick-quoted filename in a '## ' heading -
+    e.g. '## TH02 (`TH02.csv`)' matches name='TH02.csv'. 404 if the catalog
+    file doesn't exist yet or has no section for this dataset (a newly added
+    CSV not yet documented)."""
+    if not _check_admin_auth(): return _admin_auth_error()
+    safe = _secure_filename(name)
+    if not safe:
+        return jsonify({'error': 'invalid dataset name'}), 400
+    catalog_path = os.path.join(_lab.LAB_DIR, 'datasets', 'DATASET_CATALOG.md')
+    if not os.path.isfile(catalog_path):
+        return jsonify({'error': 'no DATASET_CATALOG.md found'}), 404
+    with open(catalog_path, 'r', encoding='utf-8') as fh:
+        text = fh.read()
+    # Split into '## '-level sections, keep the heading with each section's body.
+    sections = re.split(r'(?m)^(?=## )', text)
+    needle = f'`{safe}`'
+    for sec in sections:
+        first_line = sec.split('\n', 1)[0]
+        if first_line.startswith('## ') and needle in first_line:
+            return jsonify({'name': safe, 'markdown': sec.strip()})
+    return jsonify({'error': f'no catalog entry found for {safe}'}), 404
 
 
 @app.route('/admin/api/dataset-lab/upload', methods=['POST'])

@@ -99,5 +99,10 @@ backups/
 # Model Trust Ledger snapshots (regenerated automatically on every promotion)
 data/governance_reports/
 
-# Dataset Lab: raw benchmark CSVs are downloaded, not committed (results under data/ml_lab/runs/ are kept)
-data/ml_lab/datasets/
+# Dataset Lab: raw benchmark CSVs are downloaded, not committed (results under data/ml_lab/runs/ are kept).
+# Excluding by extension (not the whole directory) so git still traverses into it - a directory-level
+# exclude would stop the negation below from working at all.
+data/ml_lab/datasets/*.csv
+# ...but the hand-researched catalog of those datasets (origin, benchmarks, known data-quality issues) is
+# authored content worth keeping in version control, unlike the bulk CSVs themselves
+!data/ml_lab/datasets/DATASET_CATALOG.md
