@@ -719,6 +719,10 @@
     <p style="color:var(--sub);font-size:13px;margin-bottom:12px">
       Every benchmark ever run, newest first (<code>data/ml_lab/index.json</code>). Click a row for full metrics, confusion matrix, CV folds and top features.
     </p>
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px">
+      <button class="btn btn-danger btn-sm" id="labDeleteSelectedBtn" onclick="labDeleteSelectedRuns()" disabled>&#128465; Delete Selected</button>
+      <span id="labDeleteMsg" class="msg"></span>
+    </div>
     <div id="labRunsTable"><p style="color:var(--sub)">Loading...</p></div>
   </div>
 
@@ -2141,11 +2145,14 @@ async function labLoadRuns() {
   const res = await api('/admin/api/dataset-lab/runs');
   const runs = res.runs || [];
   const el = document.getElementById('labRunsTable');
+  document.getElementById('labDeleteSelectedBtn').disabled = true;
   if (!runs.length) { el.innerHTML = '<p style="color:var(--sub)">No benchmark runs recorded yet.</p>'; return; }
   el.innerHTML = `<table><thead><tr>
+      <th><input type="checkbox" id="labSelectAllCb" onchange="labToggleSelectAllRuns(this)"></th>
       <th>When</th><th>Dataset</th><th>Target</th><th>Model</th><th>Rows</th><th>Feat.</th><th>Pos. rate</th>
       <th>AUC-ROC</th><th>PR-AUC</th><th>F1</th><th>CV AUC</th><th>Excluded</th><th></th></tr></thead><tbody>` +
     runs.map(r => `<tr style="cursor:pointer" onclick="labShowRun('${labEsc(r.run_id)}')" title="${labEsc(r.notes || '')}">
+      <td><input type="checkbox" class="lab-select-cb" data-run-id="${labEsc(r.run_id)}" onclick="event.stopPropagation()" onchange="labUpdateDeleteSelectedState()"></td>
       <td style="white-space:nowrap">${labEsc((r.timestamp || '').replace('T', ' ').slice(0, 16))}</td>
       <td>${labEsc(r.dataset)}</td><td><code>${labEsc(r.target)}</code></td><td>${labEsc(r.model_type)}</td>
       <td>${Number(r.n_rows).toLocaleString()}</td><td>${r.n_features}</td><td>${(r.positive_rate * 100).toFixed(1)}%</td>
@@ -2154,6 +2161,44 @@ async function labLoadRuns() {
       <td style="font-size:11px;color:var(--sub)">${labEsc((r.dropped_columns || []).join(', ') || '—')}</td>
       <td><button class="btn btn-sm btn-danger" type="button" title="Delete this run" onclick="event.stopPropagation();labDeleteRun('${labEsc(r.run_id)}')">&#128465;</button></td></tr>`).join('') +
     '</tbody></table>';
+}
+
+function labToggleSelectAllRuns(headerCb) {
+  document.querySelectorAll('.lab-select-cb').forEach(cb => { cb.checked = headerCb.checked; });
+  labUpdateDeleteSelectedState();
+}
+
+function labUpdateDeleteSelectedState() {
+  const checked = document.querySelectorAll('.lab-select-cb:checked');
+  const all = document.querySelectorAll('.lab-select-cb');
+  document.getElementById('labDeleteSelectedBtn').disabled = checked.length === 0;
+  const selectAllCb = document.getElementById('labSelectAllCb');
+  if (selectAllCb) selectAllCb.checked = all.length > 0 && checked.length === all.length;
+}
+
+async function labDeleteSelectedRuns() {
+  const checked = Array.from(document.querySelectorAll('.lab-select-cb:checked'));
+  if (!checked.length) return;
+  if (!confirm(`Permanently delete ${checked.length} run(s)?\n\nThis removes their record files and cannot be undone.`)) return;
+
+  const msg = document.getElementById('labDeleteMsg');
+  const btn = document.getElementById('labDeleteSelectedBtn');
+  btn.disabled = true;
+  msg.textContent = `Deleting ${checked.length} run(s)...`;
+
+  let succeeded = 0, failed = 0;
+  for (const cb of checked) {
+    const runId = cb.dataset.runId;
+    const res = await api(`/admin/api/dataset-lab/runs/${encodeURIComponent(runId)}`, 'DELETE');
+    if (res.error) { failed++; console.error(runId, res.error); } else { succeeded++; }
+  }
+
+  msg.textContent = failed
+    ? `✅ Deleted ${succeeded} — ❌ ${failed} failed (see console)`
+    : `✅ Deleted ${succeeded} run(s)`;
+  setTimeout(() => { msg.textContent = ''; }, 5000);
+  document.getElementById('labDetailCard').style.display = 'none';
+  labLoadRuns();
 }
 
 async function labDeleteRun(runId) {
