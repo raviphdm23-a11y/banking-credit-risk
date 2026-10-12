@@ -188,9 +188,10 @@
 
   <div class="frameworks">
     <div class="fw-card">
-      <span class="tag">SR 11-7</span>
-      <p>US Federal Reserve / OCC guidance: banks must independently validate, document and monitor
-        any model used to make credit decisions — not just build it well.</p>
+      <span class="tag">SR 26-2</span>
+      <p>US Federal Reserve / OCC / FDIC guidance (17 Apr 2026, superseded SR 11-7): banks should
+        independently validate, document and monitor any model used to make credit decisions — not
+        just build it well.</p>
     </div>
     <div class="fw-card">
       <span class="tag">BASEL</span>
@@ -224,7 +225,7 @@ const REQ_META = {
     toClose: "Open this model's Governance Wiki tab and fill in its purpose and escalation rules."
   },
   'Independent Validation': {
-    why: "SR 11-7's core idea: the people who built a model shouldn't be the only ones who check it. A second, independent reviewer works through six standard pillars — is the approach sound, is the data clean, was the build process followed, do the outcomes hold up, is it being watched, is it governed — and signs off on each one.",
+    why: "SR 26-2's core idea: the people who built a model shouldn't be the only ones who check it. A second, independent reviewer works through six standard pillars — is the approach sound, is the data clean, was the build process followed, do the outcomes hold up, is it being watched, is it governed — and signs off on each one.",
     toClose: "Open Model Governance → this model → Validation, and have a reviewer (not the person who trained it) sign each of the six pillars."
   },
   'Documentation': {
@@ -457,7 +458,7 @@ function renderModel(source, isOnly){
 
   <section>
     <h2>Independent Validation, pillar by pillar</h2>
-    <p class="section-sub">This is the "Independent Validation" row above, broken into the six specific things SR 11-7 asks a second reviewer to check.</p>
+    <p class="section-sub">This is the "Independent Validation" row above, broken into the six specific things SR 26-2 asks a second reviewer to check.</p>
     ${renderPillars(validation.pillars)}
   </section>
 

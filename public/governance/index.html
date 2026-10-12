@@ -125,7 +125,7 @@ body{font-family:'IBM Plex Sans',sans-serif;background:var(--off);color:var(--t1
   <div class="page-head">
     <div>
       <div class="page-title">Model Risk Dashboard</div>
-      <div class="page-desc">SR 11-7 / Basel / EU AI Act aligned governance over every active PD model:
+      <div class="page-desc">SR 26-2 / Basel / EU AI Act aligned governance over every active PD model:
         data-drift (PSI), performance stability (AUC), fairness-gap monitoring, champion/challenger
         promotion gating, six-pillar independent validation, and a hash-chained model-lifecycle audit trail.</div>
     </div>
@@ -387,7 +387,7 @@ async function saveWiki(){
 function renderValidation(v){
   let html = `<div class="card-sub">Independent validation of <span class="chip">${esc(v.model_id)}</span> —
     ${v.signed_off}/${v.total} pillars signed off. A newly promoted model resets to a fresh PENDING checklist.
-    Sign-offs are recorded on the audit chain (SR 11-7 independent-validation requirement).</div>`;
+    Sign-offs are recorded on the audit chain (SR 26-2 independent-validation requirement).</div>`;
   html += (v.pillars||[]).map(p=>`
     <div class="pillar-row">
       <div class="pillar-num">${p.pillar}</div>

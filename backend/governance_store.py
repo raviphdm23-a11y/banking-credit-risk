@@ -1,9 +1,10 @@
 """
 governance_store.py
 ───────────────────
-The Model Governance department's data layer — the SR 11-7 / Basel / EU AI Act
+The Model Governance department's data layer — the SR 26-2 / Basel / EU AI Act
 control backbone that wraps policy, thresholds and sign-off workflow around
-what the ML pipeline already computes.
+what the ML pipeline already computes. (SR 26-2, issued 17 Apr 2026 by the Fed,
+OCC and FDIC, superseded SR 11-7 and SR 21-8.)
 
 Storage (sqlite, in bank.db — every table self-creates on first use):
     gov_audit_events          — unified, hash-chained model-lifecycle audit log
@@ -396,9 +397,10 @@ DEFAULT_PROSE = {
                          'automatically by the monitor; must be acknowledged with actor name '
                          'and an action taken (min 20 chars), recorded on the hash-chained '
                          'audit trail.'),
-    'regulatory_references': ('SR 11-7 (Fed/OCC model risk management); Basel Committee '
-                              'principles (BCBS); EU AI Act Articles 9-15 (high-risk credit '
-                              'scoring systems); RBI IRB guidelines.'),
+    'regulatory_references': ('SR 26-2 (Fed/OCC/FDIC model risk management, 17 Apr 2026, '
+                              'supersedes SR 11-7); Basel Committee principles (BCBS); EU AI '
+                              'Act Articles 9-15 (high-risk credit scoring systems); RBI IRB '
+                              'guidelines.'),
 }
 
 
@@ -610,7 +612,7 @@ def get_latest_baselines(conn, slot_key):
 
 # ── regulatory mapping ───────────────────────────────────────────────────────
 def regulatory_mapping(conn, slot_key):
-    """Auto-derived SR 11-7 / Basel / EU AI Act requirement status for one slot.
+    """Auto-derived SR 26-2 / Basel / EU AI Act requirement status for one slot.
     Statuses are computed from live governance state — not hand-asserted — so
     the compliance view can never claim more than the system actually does."""
     ensure_wiki_entry(conn, slot_key)
@@ -653,17 +655,17 @@ def regulatory_mapping(conn, slot_key):
 
     requirements = [
         {'requirement': 'Governance & Accountability',
-         'frameworks': ['SR 11-7', 'Basel'],
+         'frameworks': ['SR 26-2', 'Basel'],
          'status': status_of(gov_ok),
          'evidence': 'Wiki entry with documented purpose, ownership and escalation rules'
                      if gov_ok else 'Wiki purpose/escalation rules incomplete'},
         {'requirement': 'Independent Validation',
-         'frameworks': ['SR 11-7'],
+         'frameworks': ['SR 26-2'],
          'status': val_status,
          'evidence': f"Six-pillar validation: {signoffs['signed_off']}/6 pillars signed off "
                      f"for {signoffs['model_id']}"},
         {'requirement': 'Documentation',
-         'frameworks': ['SR 11-7', 'Basel', 'EU AI Act'],
+         'frameworks': ['SR 26-2', 'Basel', 'EU AI Act'],
          'status': status_of(prose_complete, partial=True),
          'evidence': 'All wiki sections populated with version history'
                      if prose_complete else 'Some wiki sections empty'},
@@ -674,7 +676,7 @@ def regulatory_mapping(conn, slot_key):
                      'metadata; macro-regime sensitivity in assessment engine'
                      if stress_evidence else 'No CV/significance diagnostics found in metadata'},
         {'requirement': 'Ongoing Monitoring',
-         'frameworks': ['SR 11-7', 'EU AI Act'],
+         'frameworks': ['SR 26-2', 'EU AI Act'],
          'status': status_of(bool(mon_row)),
          'evidence': f'Drift/KPI monitor ran within 48h (last: {mon_row[0]})'
                      if mon_row else 'No KPI snapshot in the last 48h — run the monitor'},
