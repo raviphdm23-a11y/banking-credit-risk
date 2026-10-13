@@ -15,29 +15,25 @@ example datasets *and* for any new dataset.
 
 ## 1. Prerequisites
 
+> **Platform:** this solution targets **Windows 10/11 with PowerShell**. The paths, launcher
+> (`run_flask.ps1`), and `venv310\Scripts\` layout assume Windows; it is designed and maintained for Windows
+> only.
+
+- **Windows 10/11** (PowerShell)
 - **Python 3.10** (exact — `venv310` is the only supported virtual environment)
-- **Git**
+- **Git for Windows**
 - **[Claude Code CLI](https://claude.com/claude-code)** — for the interactive governed workflow
 - *(optional)* Google Chrome — only for the web app's Selenium smoke tests
 
-## 2. Setup on a fresh machine
+## 2. Setup on a fresh Windows machine
 
-```bash
+```powershell
 git clone https://github.com/raviphdm23-a11y/banking-credit-risk.git
 cd banking-credit-risk
-```
 
-**Windows (PowerShell):**
-```powershell
 python -m venv venv310
-./venv310/Scripts/python.exe -m pip install -r requirements.txt
-# or simply: ./run_flask.ps1   (creates venv310, installs deps, launches the app)
-```
-
-**macOS / Linux:**
-```bash
-python3.10 -m venv venv310
-venv310/bin/python -m pip install -r requirements.txt
+.\venv310\Scripts\python.exe -m pip install -r requirements.txt
+# or simply: .\run_flask.ps1   (creates venv310, installs deps, and launches the app)
 ```
 
 `requirements.txt` includes `scikit-learn`, `xgboost`, `shap`, `pandas`, `numpy` — everything SHARP/AEGIS
@@ -71,11 +67,8 @@ For a **new dataset**, drop any binary-classification CSV into `data/ml_lab/data
 
 ## 5. Running SHARP directly (without Claude)
 
-```bash
-./venv310/Scripts/python.exe -c "import sys; sys.path.insert(0,'ml_models'); \
-import pandas as pd, v3_pipeline as v3; \
-df=pd.read_csv('data/ml_lab/datasets/hmeq.csv'); \
-print(v3.run_pipeline(df, target='target', dataset_name='hmeq', verbose=False)['report'])"
+```powershell
+.\venv310\Scripts\python.exe -c "import sys; sys.path.insert(0,'ml_models'); import pandas as pd, v3_pipeline as v3; df=pd.read_csv('data/ml_lab/datasets/hmeq.csv'); print(v3.run_pipeline(df, target='target', dataset_name='hmeq', verbose=False)['report'])"
 ```
 
 For German Credit, exclude the prohibited attributes first (`personal_status_sex`, `age`,
