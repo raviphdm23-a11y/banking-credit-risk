@@ -62,6 +62,23 @@ validation step the fixed grade/cutoff policy depends on — `AEGIS_HMEQ_CUTOFF_
 **Open conditions now:** C1 (label — met), **CP2** (use-test — deferred to deployment), **CP6** (MoC
 quantification — open), **C3** (fairness monitoring — deferred to deployment). CP4 closed.
 
+---
+
+## Amendment (2026-10-13) — condition C-PDfloor added (PD floor & ceiling)
+
+**Chain:** … → 3b896863 (GF) → **1fd2baf9** (this amendment). Post-approval change-control, added alongside
+the German run's GC5: isotonic calibration on small data can emit a degenerate ~0% PD in the safest bin,
+which is unreal and non-compliant for IRB.
+
+**C-PDfloor — PD floor & ceiling (→ deployment):**
+- **Floor PD at 0.03%** — Basel **CRE32.3** (verified at BIS): PD = greater of internal estimate or 0.03%
+  (corporate/bank; retail generally mirrors — *confirm retail-specific before paper*).
+- **Defaulted → PD 100%**; prudential cap (e.g., 99.9%) on non-defaulted for symmetry.
+- Implementation: `reported_PD = min(max(calibrated_PD, 0.0003), 0.999)` at scoring time (policy overlay).
+- Signer: Ravi (Risk Officer) · entry_hash `1fd2baf9`.
+- **GRADUATED TO METHODOLOGY (2026-10-13):** now a standard always-on step (`METHODOLOGY.md §7.8` item 4),
+  implemented in `missing_governance.Scorer`. Satisfied by methodology, not a per-run task.
+
 ## G5 — Deployment Governance  ·  status: ✅ DECIDED (Option A)
 
 **Signer:** Ravi (Model Owner) · **2026-10-12** · entry_hash `6228ef0c`

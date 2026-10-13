@@ -465,6 +465,17 @@ selection or the Stage 1–7 metrics, and complete/honest applicants are unaffec
    `__missing__`/`__other__` conflation. **Caveat:** its deterrent scales with the feature's predictive power
    — strong for a dominant column, negligible for a weak one, which isotonic calibration can absorb — so the
    **reject gate is the robust primary control** and `adverse_score` is a fallback only.
+4. **Regulatory PD floor & ceiling [STANDARD, always on]** (`build_scorer(pd_floor=0.0003, pd_cap=0.999)`).
+   The reported PD is bounded at scoring: **floored at 0.03%** — Basel **CRE32.3** (verified at BIS): PD is the
+   *greater of* the internal estimate or 0.03% (corporate/bank; retail mirrors — confirm per exposure class) —
+   and capped strictly below a literal 100% (a *defaulted* borrower is assigned PD = 100% directly). This is a
+   **mandatory** regulatory control applied like isotonic calibration (§7.1) — not an option. It fixes the
+   degenerate ~0% PD that isotonic calibration can emit from a zero-default bin on small data (observed on
+   German Credit's safest grade, whose GC4 CI was [0%, 65.8%]). The floor **value** is a documented parameter
+   (per class/jurisdiction); the **step** is universal. Applied **at scoring only** — it does not alter the
+   Stage 1–4 selection or calibration metrics. *(This step was surfaced as a per-run AEGIS condition, then
+   graduated into the methodology once recognised as a necessary universal requirement — the governance→
+   methodology feedback loop; cf. §7.9.)*
 
 `missing_governance.build_scorer` returns a `Scorer` whose `.score()` emits, per application,
 `decision ∈ {SCORE, SCORE_FLAGGED, REFER, REJECT}` with a calibrated PD and a reason string. The worst-case

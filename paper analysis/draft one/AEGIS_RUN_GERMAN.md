@@ -64,6 +64,28 @@ larger/fresh data at deployment.
 **Open conditions now:** GC1 (label — met), **GC3** (fairness monitoring — deferred to deployment),
 **GC-use** (use-test — deferred to deployment), R6 MoC (informed, quantification optional). GC4 closed.
 
+---
+
+## Amendment (2026-10-13) — condition GC5 added (PD floor & ceiling)
+
+**Chain:** … → 00d5d25e (GF) → **01524fec** (this amendment). Post-approval change-control: a scoring-time
+control identified when a sample applicant (G-strong) scored a **calibrated PD of exactly 0.0%** — an
+isotonic-calibration artifact on small data (the safest OOF bin had zero defaults; cf. the AAA grade's GC4
+CI of [0%, 65.8%]). A literal 0% PD is unreal and, for IRB, non-compliant.
+
+**GC5 — PD floor & ceiling (→ deployment):**
+- **Floor PD at 0.03%** — Basel **CRE32.3** (verified at BIS): PD = greater of the internal estimate or
+  **0.03%** (corporate/bank; retail generally mirrors it — *confirm retail-specific before paper*).
+- **Defaulted borrowers → PD = 100%** (CRE32.3); apply a prudential cap (e.g., 99.9%) to non-defaulted
+  scores for symmetry.
+- Implementation: `reported_PD = min(max(calibrated_PD, 0.0003), 0.999)` at scoring time — a documented
+  policy overlay, not a model change. Ties to R6 (small-sample MoC) and R4.
+- Signer: Ravi (Risk Officer) · entry_hash `01524fec`.
+- **GRADUATED TO METHODOLOGY (2026-10-13):** now a standard always-on step in SHARP deployment
+  (`METHODOLOGY.md §7.8` item 4), implemented in `missing_governance.Scorer` (default `pd_floor=0.0003`,
+  `pd_cap=0.999`). GC5 is therefore **satisfied by methodology**, not a per-run task. Re-scored G-strong:
+  reported PD 0.0% → **0.03%** (grade AAA).
+
 ## G5 — Deployment Governance  ·  status: ✅ DECIDED (Option A)
 
 **Signer:** Ravi (Model Owner) · **2026-10-13** · entry_hash `72c3b146`
