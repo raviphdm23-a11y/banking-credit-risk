@@ -1,0 +1,30 @@
+[
+  {
+    "n_rows": 10000,
+    "cpu_time_s": 0.16,
+    "cpu_auc": 0.9774,
+    "cuda_time_s": 0.257,
+    "cuda_auc": 0.9786
+  },
+  {
+    "n_rows": 50000,
+    "cpu_time_s": 0.318,
+    "cpu_auc": 0.9766,
+    "cuda_time_s": 0.308,
+    "cuda_auc": 0.977
+  },
+  {
+    "n_rows": 200000,
+    "cpu_time_s": 0.846,
+    "cpu_auc": 0.9813,
+    "cuda_time_s": 0.458,
+    "cuda_auc": 0.981
+  },
+  {
+    "n_rows": 1000000,
+    "cpu_time_s": 3.41,
+    "cpu_auc": 0.9779,
+    "cuda_time_s": 1.277,
+    "cuda_auc": 0.9777
+  }
+]

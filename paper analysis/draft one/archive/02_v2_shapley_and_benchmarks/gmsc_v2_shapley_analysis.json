@@ -1,0 +1,107 @@
+{
+  "columns": [
+    "NumberOfTimes90DaysLate",
+    "NumberOfTime30-59DaysPastDueNotWorse",
+    "NumberOfTime60-89DaysPastDueNotWorse",
+    "age",
+    "MonthlyIncome",
+    "DebtRatio",
+    "NumberOfOpenCreditLinesAndLoans",
+    "NumberRealEstateLoansOrLines",
+    "RevolvingUtilizationOfUnsecuredLines",
+    "NumberOfDependents"
+  ],
+  "results": [
+    {
+      "column": "NumberOfTimes90DaysLate",
+      "mean": 0.05380107107294015,
+      "std": 0.0033519515086645247,
+      "t": 35.890391573511295,
+      "p": 3.5974445643703884e-06,
+      "bh_p": 7.194889128740777e-06,
+      "keep": true
+    },
+    {
+      "column": "NumberOfTime30-59DaysPastDueNotWorse",
+      "mean": 0.06402755769950305,
+      "std": 0.0032431854539408124,
+      "t": 44.144861119616905,
+      "p": 1.5745134855412422e-06,
+      "bh_p": 4.6787843267555035e-06,
+      "keep": true
+    },
+    {
+      "column": "NumberOfTime60-89DaysPastDueNotWorse",
+      "mean": 0.03844548112050893,
+      "std": 0.002033505343771334,
+      "t": 42.275133171624276,
+      "p": 1.8715137307022016e-06,
+      "bh_p": 4.6787843267555035e-06,
+      "keep": true
+    },
+    {
+      "column": "age",
+      "mean": 0.032451990172269754,
+      "std": 0.001359266903293636,
+      "t": 53.38528868356801,
+      "p": 7.369697354485567e-07,
+      "bh_p": 3.6848486772427835e-06,
+      "keep": true
+    },
+    {
+      "column": "MonthlyIncome",
+      "mean": 0.01606532063615872,
+      "std": 0.0017894528158554374,
+      "t": 20.074935032924135,
+      "p": 3.6339947842320655e-05,
+      "bh_p": 4.037771982480073e-05,
+      "keep": true
+    },
+    {
+      "column": "DebtRatio",
+      "mean": 0.0227030352694405,
+      "std": 0.001868658855313242,
+      "t": 27.166826097604865,
+      "p": 1.0916484916977346e-05,
+      "bh_p": 1.6960464194763906e-05,
+      "keep": true
+    },
+    {
+      "column": "NumberOfOpenCreditLinesAndLoans",
+      "mean": 0.017464990100121213,
+      "std": 0.0015337989032528135,
+      "t": 25.461554971391752,
+      "p": 1.4130536874789456e-05,
+      "bh_p": 1.766317109348682e-05,
+      "keep": true
+    },
+    {
+      "column": "NumberRealEstateLoansOrLines",
+      "mean": 0.015530616318737447,
+      "std": 0.001305539570572338,
+      "t": 26.60012350750901,
+      "p": 1.1872324936334735e-05,
+      "bh_p": 1.6960464194763906e-05,
+      "keep": true
+    },
+    {
+      "column": "RevolvingUtilizationOfUnsecuredLines",
+      "mean": 0.09609167895533417,
+      "std": 0.0034754246674745175,
+      "t": 61.824826251334265,
+      "p": 4.0996099518898365e-07,
+      "bh_p": 3.6848486772427835e-06,
+      "keep": true
+    },
+    {
+      "column": "NumberOfDependents",
+      "mean": 0.008680520540645116,
+      "std": 0.0016218887272718926,
+      "t": 11.967673048455552,
+      "p": 0.0002793592600094917,
+      "bh_p": 0.0002793592600094917,
+      "keep": true
+    }
+  ],
+  "efficiency_max_diff": 2.220446049250313e-16
+}

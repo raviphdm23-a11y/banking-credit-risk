@@ -10,12 +10,13 @@ Standing methodology for deciding which raw columns are useful for predicting a 
 review, and **it is implemented in code** — the module map in §2 is authoritative and the code and this
 document are meant to stay in step.
 
-**History and companion documents**
-- `METHODOLOGY_V2_ARCHIVED.md` — the previous (v2) version, kept for provenance. Superseded.
-- `METHODOLOGY_SUMMARY_FOR_EXPERT_REVIEW.md` — the v2 summary that was submitted for review.
-- `EXPERT_REVIEW_OF_METHODOLOGY.md` — the review. Findings are referenced below as M1-M10 (major) and
+**History and companion documents** *(moved to `archive/` — see `archive/PROVENANCE.md` for the full
+methodology-evolution narrative and file index)*
+- `archive/03_expert_review_and_v3_spec/METHODOLOGY_V2_ARCHIVED.md` — the previous (v2) version, kept for provenance. Superseded.
+- `archive/03_expert_review_and_v3_spec/METHODOLOGY_SUMMARY_FOR_EXPERT_REVIEW.md` — the v2 summary that was submitted for review.
+- `archive/03_expert_review_and_v3_spec/EXPERT_REVIEW_OF_METHODOLOGY.md` — the review. Findings are referenced below as M1-M10 (major) and
   m1-m15 (minor).
-- `METHODOLOGY_V3_REVIEWED.md` — the full v3 specification, including rationale and the implementation
+- `archive/03_expert_review_and_v3_spec/METHODOLOGY_V3_REVIEWED.md` — the full v3 specification, including rationale and the implementation
   brief. **Where this document is terse, that one is the detail.**
 
 **Not shown anywhere in the Sandbox frontend** — a private reference for Claude + the user.

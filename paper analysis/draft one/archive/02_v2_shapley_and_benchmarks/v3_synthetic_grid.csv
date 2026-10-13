@@ -1,0 +1,7 @@
+n,event_rate,event_rate_realised,rho,T,power,fdr,n_confirmed,tp,fp,redundancy_collapsed,nonmonotonic_flagged_stage1,interaction_passed_stage1,interaction_confirmed_stage2,proxy_confirmed,seconds
+2000,0.15,0.15,0.0,150,1.0,0.0,8,8,0,True,True,True,True,True,58.1
+2000,0.15,0.15,0.5,150,1.0,0.0,8,8,0,True,True,True,True,True,63.0
+2000,0.15,0.153,0.9,150,1.0,0.0,8,8,0,True,True,True,True,True,38.1
+10000,0.15,0.147,0.0,150,1.0,0.0,8,8,0,True,True,True,True,True,102.5
+10000,0.15,0.1488,0.5,150,1.0,0.0,8,8,0,True,True,True,True,True,20943.8
+10000,0.15,0.1484,0.9,150,1.0,0.0,8,8,0,True,True,True,True,True,69.3

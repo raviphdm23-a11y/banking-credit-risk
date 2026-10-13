@@ -1,0 +1,42 @@
+{
+  "German Credit": {
+    "baseline_brier_always_base_rate": 0.21,
+    "raw_brier": 0.1955,
+    "raw_ece": 0.1492,
+    "calibrated_brier": 0.1664,
+    "calibrated_ece": 0.0519,
+    "calibrated_auc": 0.7795,
+    "method": "isotonic",
+    "cv": 5
+  },
+  "PAK": {
+    "baseline_brier_always_base_rate": 0.1928,
+    "raw_brier": 0.2368,
+    "raw_ece": 0.2236,
+    "calibrated_brier": 0.1855,
+    "calibrated_ece": 0.0064,
+    "calibrated_auc": 0.6259,
+    "method": "isotonic",
+    "cv": 5
+  },
+  "HMEQ": {
+    "baseline_brier_always_base_rate": 0.1598,
+    "raw_brier": 0.0779,
+    "raw_ece": 0.0819,
+    "calibrated_brier": 0.0681,
+    "calibrated_ece": 0.0123,
+    "calibrated_auc": 0.9472,
+    "method": "isotonic",
+    "cv": 5
+  },
+  "GMSC": {
+    "baseline_brier_always_base_rate": 0.0625,
+    "raw_brier": 0.1425,
+    "raw_ece": 0.2513,
+    "calibrated_brier": 0.0487,
+    "calibrated_ece": 0.0044,
+    "calibrated_auc": 0.8649,
+    "method": "isotonic",
+    "cv": 5
+  }
+}

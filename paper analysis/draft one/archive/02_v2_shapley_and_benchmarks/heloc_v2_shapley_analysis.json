@@ -1,0 +1,137 @@
+{
+  "columns": [
+    "AverageMInFile",
+    "ExternalRiskEstimate",
+    "MSinceMostRecentDelq",
+    "MSinceMostRecentInqexcl7days",
+    "NetFractionInstallBurden",
+    "NetFractionRevolvingBurden",
+    "NumInqLast6M",
+    "NumRevolvingTradesWBalance",
+    "NumSatisfactoryTrades",
+    "NumTrades60Ever2DerogPubRec",
+    "PercentInstallTrades",
+    "PercentTradesNeverDelq",
+    "PercentTradesWBalance"
+  ],
+  "results": [
+    {
+      "column": "AverageMInFile",
+      "mean": 0.028706344073171058,
+      "std": 0.0028056034286974606,
+      "t": 22.87897714856638,
+      "p": 2.1621896226866356e-05,
+      "bh_p": 4.68474418248771e-05,
+      "keep": true
+    },
+    {
+      "column": "ExternalRiskEstimate",
+      "mean": 0.05691210494826713,
+      "std": 0.003365012784350173,
+      "t": 37.81838095795017,
+      "p": 2.9195631373189367e-06,
+      "bh_p": 3.6644093223084705e-05,
+      "keep": true
+    },
+    {
+      "column": "MSinceMostRecentDelq",
+      "mean": 0.02375009661295075,
+      "std": 0.0018596428586848822,
+      "t": 28.55754278340408,
+      "p": 8.948001221655918e-06,
+      "bh_p": 3.757638927157286e-05,
+      "keep": true
+    },
+    {
+      "column": "MSinceMostRecentInqexcl7days",
+      "mean": 0.028410727470800423,
+      "std": 0.005173215956643637,
+      "t": 12.280236983601077,
+      "p": 0.00025256029594824316,
+      "bh_p": 0.0003648093163696846,
+      "keep": true
+    },
+    {
+      "column": "NetFractionInstallBurden",
+      "mean": 0.005129475740877968,
+      "std": 0.0013448982633883033,
+      "t": 8.528419403741633,
+      "p": 0.0010372491540700244,
+      "bh_p": 0.0011236865835758598,
+      "keep": true
+    },
+    {
+      "column": "NetFractionRevolvingBurden",
+      "mean": 0.0395838296288976,
+      "std": 0.00447198751041682,
+      "t": 19.79257179359505,
+      "p": 3.844036508984807e-05,
+      "bh_p": 7.138924945257497e-05,
+      "keep": true
+    },
+    {
+      "column": "NumInqLast6M",
+      "mean": 0.011490688885020306,
+      "std": 0.0025802501513206896,
+      "t": 9.957934288679462,
+      "p": 0.0005712497702597376,
+      "bh_p": 0.0006751133648524172,
+      "keep": true
+    },
+    {
+      "column": "NumRevolvingTradesWBalance",
+      "mean": 0.013612737814572128,
+      "std": 0.0011367300921139608,
+      "t": 26.777690961500117,
+      "p": 1.1561965929714726e-05,
+      "bh_p": 3.757638927157286e-05,
+      "keep": true
+    },
+    {
+      "column": "NumSatisfactoryTrades",
+      "mean": 0.013968523457409787,
+      "std": 0.0026449369795166796,
+      "t": 11.80919176447686,
+      "p": 0.0002942994388922215,
+      "bh_p": 0.00038258927055988794,
+      "keep": true
+    },
+    {
+      "column": "NumTrades60Ever2DerogPubRec",
+      "mean": 0.01419091755670096,
+      "std": 0.001781265012284427,
+      "t": 17.814225340441215,
+      "p": 5.834648327721363e-05,
+      "bh_p": 9.481303532547215e-05,
+      "keep": true
+    },
+    {
+      "column": "PercentInstallTrades",
+      "mean": 0.008807459111863076,
+      "std": 0.0027631678838391347,
+      "t": 7.127354583975872,
+      "p": 0.002048748332267418,
+      "bh_p": 0.002048748332267418,
+      "keep": true
+    },
+    {
+      "column": "PercentTradesNeverDelq",
+      "mean": 0.02717965366651067,
+      "std": 0.0018952493228104684,
+      "t": 32.067312976582464,
+      "p": 5.637552803551493e-06,
+      "bh_p": 3.6644093223084705e-05,
+      "keep": true
+    },
+    {
+      "column": "PercentTradesWBalance",
+      "mean": 0.022932992246181068,
+      "std": 0.0020623102134642943,
+      "t": 24.865187232815057,
+      "p": 1.5528014506875408e-05,
+      "bh_p": 4.0372837717876064e-05,
+      "keep": true
+    }
+  ],
+  "efficiency_max_diff": 1.6653345369377348e-16
+}
