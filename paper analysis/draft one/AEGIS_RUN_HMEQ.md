@@ -131,3 +131,19 @@ Rejected B (rejects 21% on blank DEBTINC; over-declines honest thin files), C (l
 - **C2 (→ G5):** govern DEBTINC and the other informative-missing columns explicitly — preserve the WOE `__missing__` bin (no imputation), and decide per-column adverse flooring at G5. (EBA MoC Category A item.)
 
 Rejected: A (would overstate regulatory posture), C (over-conservative; blocks a legitimate benchmark use), D (discards 21% of rows and destroys the strongest signal).
+
+---
+
+## Acceptance demonstration (required — use-test R2 / transparency EU AI Act Art 13 / ECOA)
+
+Approved WOE-logistic model + `AEGIS_HMEQ_CUTOFF_POLICY.md`. Portfolio default rate 19.95%. PD floored at
+0.03% (Basel CRE32.3). Reason codes = exact WOE decomposition (principal reasons).
+
+| Candidate | Calibrated PD | Grade | Decision | Indic. rate | Principal reasons |
+|---|--:|---|---|--:|---|
+| **N** | 16.94% | CCC | **APPROVE (risk-based)** | 14.5% | delinquent credit line, short job tenure, DTI above safe band |
+| **Q** | 22.95% | CC | **REFER (manual)** | 17.5% | delinquent line, short job tenure, recent inquiries |
+| **P** | 96.77% | D | **DECLINE** | — | multiple delinquencies, derogatory reports, recent inquiries |
+
+Spans approve / refer / decline with defensible, hand-auditable reasons. Demonstrates the model+policy
+produce governed, explainable decisions — not just a PD. **Acceptance: PASS.**
