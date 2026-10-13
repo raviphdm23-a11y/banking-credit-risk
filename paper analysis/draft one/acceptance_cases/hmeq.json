@@ -1,0 +1,15 @@
+{
+  "dataset": "hmeq.csv",
+  "target": "target",
+  "title": "HMEQ (Home Equity)",
+  "selected_columns": ["DEBTINC","DELINQ","VALUE","DEROG","CLAGE","NINQ","LOAN","JOB","YOJ","CLNO","MORTDUE"],
+  "mandatory_columns": ["LOAN","VALUE"],
+  "floor_columns": ["YOJ","JOB"],
+  "incomplete_policy": "refer",
+  "policy": {"LGD": 0.50, "cost": 0.04, "margin": 0.02, "std_rate": 0.12, "max_rate": 0.20, "refer_floor": 0.20},
+  "cases": {
+    "N": {"LOAN":25000,"MORTDUE":80000,"VALUE":100000,"JOB":"Office","YOJ":3,"DEROG":0,"DELINQ":1,"CLAGE":150,"NINQ":2,"CLNO":16,"DEBTINC":41},
+    "Q": {"LOAN":25000,"MORTDUE":80000,"VALUE":100000,"JOB":"Office","YOJ":3,"DEROG":0,"DELINQ":1,"CLAGE":150,"NINQ":3,"CLNO":16,"DEBTINC":41},
+    "P": {"LOAN":15000,"MORTDUE":68000,"VALUE":72000,"JOB":"Other","YOJ":1,"DEROG":2,"DELINQ":3,"CLAGE":90,"NINQ":5,"CLNO":10,"DEBTINC":45}
+  }
+}

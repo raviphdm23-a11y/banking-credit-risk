@@ -1,0 +1,16 @@
+{
+  "dataset": "Taiwan_UCI_Credit_Card.csv",
+  "target": "target",
+  "title": "Taiwan UCI Credit Card (behavioural)",
+  "selected_columns": ["PAY_0","PAY_2","PAY_3","PAY_4","PAY_5","PAY_6","LIMIT_BAL","PAY_AMT2","PAY_AMT3","PAY_AMT4","PAY_AMT1","PAY_AMT6","PAY_AMT5"],
+  "mandatory_columns": ["PAY_0","PAY_2","LIMIT_BAL"],
+  "floor_columns": [],
+  "incomplete_policy": "refer",
+  "policy": {"LGD": 0.80, "cost": 0.06, "margin": 0.03, "std_rate": 0.18, "max_rate": 0.36, "refer_floor": 0.25},
+  "cases": {
+    "T-strong": {"PAY_0":-1,"PAY_2":-1,"PAY_3":-1,"PAY_4":-1,"PAY_5":-1,"PAY_6":-1,"LIMIT_BAL":300000,"PAY_AMT1":20000,"PAY_AMT2":20000,"PAY_AMT3":20000,"PAY_AMT4":20000,"PAY_AMT5":20000,"PAY_AMT6":20000},
+    "T-mid": {"PAY_0":0,"PAY_2":0,"PAY_3":-1,"PAY_4":0,"PAY_5":0,"PAY_6":0,"LIMIT_BAL":120000,"PAY_AMT1":5000,"PAY_AMT2":5000,"PAY_AMT3":4000,"PAY_AMT4":5000,"PAY_AMT5":4000,"PAY_AMT6":5000},
+    "T-watch": {"PAY_0":1,"PAY_2":2,"PAY_3":0,"PAY_4":0,"PAY_5":0,"PAY_6":0,"LIMIT_BAL":70000,"PAY_AMT1":2500,"PAY_AMT2":2000,"PAY_AMT3":3000,"PAY_AMT4":2000,"PAY_AMT5":2500,"PAY_AMT6":2000},
+    "T-weak": {"PAY_0":2,"PAY_2":2,"PAY_3":2,"PAY_4":1,"PAY_5":0,"PAY_6":0,"LIMIT_BAL":30000,"PAY_AMT1":1000,"PAY_AMT2":800,"PAY_AMT3":1000,"PAY_AMT4":1000,"PAY_AMT5":500,"PAY_AMT6":1000}
+  }
+}
