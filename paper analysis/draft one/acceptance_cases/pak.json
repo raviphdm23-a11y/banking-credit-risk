@@ -1,0 +1,57 @@
+{
+  "dataset": "PAK.csv",
+  "target": "target",
+  "title": "PAK (PAKDD-2009 Brazilian retail credit)",
+  "note": "Candidates are REAL applicants drawn at the 2nd/35th/75th/99th percentiles of the modelled (OOF) PD distribution (not invented profiles). Under the deployed governed scorer (adverse floor on missing PROFESSIONAL_STATE + isotonic calibration) all four compress into grades CC-C (28-39% PD): the model produces no investment-grade / clearly-approvable applicant and barely orders the cases - the empirical face of Gini 0.148. The 6-col benchmark retains two flagged geographic proxies, not suitable for a live credit decision.",
+  "selected_columns": [
+    "PAYMENT_DAY",
+    "RESIDENCIAL_PHONE_AREA_CODE",
+    "OCCUPATION_TYPE",
+    "PROFESSIONAL_STATE",
+    "QUANT_BANKING_ACCOUNTS",
+    "QUANT_SPECIAL_BANKING_ACCOUNTS"
+  ],
+  "mandatory_columns": [
+    "PAYMENT_DAY",
+    "QUANT_BANKING_ACCOUNTS",
+    "QUANT_SPECIAL_BANKING_ACCOUNTS"
+  ],
+  "floor_columns": [
+    "PROFESSIONAL_STATE"
+  ],
+  "incomplete_policy": "refer",
+  "cases": {
+    "PAK-A (p02)": {
+      "PAYMENT_DAY": 5,
+      "RESIDENCIAL_PHONE_AREA_CODE": 117,
+      "OCCUPATION_TYPE": 1,
+      "PROFESSIONAL_STATE": null,
+      "QUANT_BANKING_ACCOUNTS": 1,
+      "QUANT_SPECIAL_BANKING_ACCOUNTS": 1
+    },
+    "PAK-B (p35)": {
+      "PAYMENT_DAY": 1,
+      "RESIDENCIAL_PHONE_AREA_CODE": 117,
+      "OCCUPATION_TYPE": null,
+      "PROFESSIONAL_STATE": null,
+      "QUANT_BANKING_ACCOUNTS": 0,
+      "QUANT_SPECIAL_BANKING_ACCOUNTS": 0
+    },
+    "PAK-C (p75)": {
+      "PAYMENT_DAY": 1,
+      "RESIDENCIAL_PHONE_AREA_CODE": 105,
+      "OCCUPATION_TYPE": 2,
+      "PROFESSIONAL_STATE": "RN",
+      "QUANT_BANKING_ACCOUNTS": 1,
+      "QUANT_SPECIAL_BANKING_ACCOUNTS": 1
+    },
+    "PAK-D (p99)": {
+      "PAYMENT_DAY": 1,
+      "RESIDENCIAL_PHONE_AREA_CODE": null,
+      "OCCUPATION_TYPE": 2,
+      "PROFESSIONAL_STATE": "BA",
+      "QUANT_BANKING_ACCOUNTS": 1,
+      "QUANT_SPECIAL_BANKING_ACCOUNTS": 1
+    }
+  }
+}

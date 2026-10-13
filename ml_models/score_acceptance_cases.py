@@ -66,6 +66,14 @@ def main():
     details = []
     for name, cust in spec['cases'].items():
         row = pd.DataFrame([cust]).reindex(columns=order)
+        # JSON null -> NaN, keyed off the TRAINING column dtype: a missing numeric input must
+        # route into the learned __missing__ bin / adverse floor (the governance being shown),
+        # not crash pd.cut on a Python None. String/categorical columns keep their value.
+        for c in order:
+            if pd.api.types.is_numeric_dtype(df[c]):
+                row[c] = pd.to_numeric(row[c], errors='coerce')
+            else:
+                row[c] = row[c].astype(object).where(row[c].notna(), np.nan)
         W = enc.transform(scorer._prep(row)).values.astype(float)[0]
         contrib = coef * W
         gov = scorer.score(row).iloc[0]
