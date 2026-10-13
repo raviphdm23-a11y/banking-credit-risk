@@ -2,15 +2,48 @@
   "dataset": "german_credit_record.csv",
   "target": "target",
   "title": "German Credit",
-  "selected_columns": ["checking_status","credit_history","months_duration","savings_status","purpose"],
-  "mandatory_columns": ["checking_status","credit_history","months_duration"],
+  "selected_columns": [
+    "checking_status",
+    "credit_history",
+    "months_duration",
+    "savings_status",
+    "purpose"
+  ],
+  "mandatory_columns": [
+    "checking_status",
+    "credit_history",
+    "months_duration"
+  ],
   "floor_columns": [],
   "incomplete_policy": "refer",
-  "policy": {"LGD": 0.75, "cost": 0.05, "margin": 0.03, "std_rate": 0.15, "max_rate": 0.30, "refer_floor": 0.20},
   "cases": {
-    "A-strong": {"checking_status":"no checking account","credit_history":"critical account / other credits elsewhere","months_duration":6,"savings_status":"≥ 1000 DM","purpose":"car (used)"},
-    "B-good": {"checking_status":"≥ 200 DM / salary assignment ≥ 1y","credit_history":"existing credits paid duly till now","months_duration":18,"savings_status":"< 100 DM","purpose":"car (used)"},
-    "C-weaker": {"checking_status":"0 ≤ ... < 200 DM","credit_history":"critical account / other credits elsewhere","months_duration":36,"savings_status":"< 100 DM","purpose":"radio/television"},
-    "D-weak": {"checking_status":"< 0 DM","credit_history":"delay in past","months_duration":48,"savings_status":"< 100 DM","purpose":"education"}
+    "A-strong": {
+      "checking_status": "no checking account",
+      "credit_history": "critical account / other credits elsewhere",
+      "months_duration": 6,
+      "savings_status": "≥ 1000 DM",
+      "purpose": "car (used)"
+    },
+    "B-good": {
+      "checking_status": "≥ 200 DM / salary assignment ≥ 1y",
+      "credit_history": "existing credits paid duly till now",
+      "months_duration": 18,
+      "savings_status": "< 100 DM",
+      "purpose": "car (used)"
+    },
+    "C-weaker": {
+      "checking_status": "0 ≤ ... < 200 DM",
+      "credit_history": "critical account / other credits elsewhere",
+      "months_duration": 36,
+      "savings_status": "< 100 DM",
+      "purpose": "radio/television"
+    },
+    "D-weak": {
+      "checking_status": "< 0 DM",
+      "credit_history": "delay in past",
+      "months_duration": 48,
+      "savings_status": "< 100 DM",
+      "purpose": "education"
+    }
   }
 }

@@ -7,8 +7,8 @@ Run it interactively with Claude Code; you are the human signer, Claude is the m
 **Deliverables at the end** (per dataset `<NAME>`):
 1. `SHARP_<NAME>.md` — the analytical record (Stages 0–4, every figure traceable)
 2. `AEGIS_RUN_<NAME>.md` — the hash-chained gate decision log (G0–GF) + acceptance demonstration
-3. `AEGIS_<NAME>_CUTOFF_POLICY.md` — the fixed cutoff / rating-grade / risk-based-pricing policy
-4. Scored sample candidates with **approve/decline decisions and reason-code reports**
+3. `AEGIS_<NAME>_CUTOFF_POLICY.md` — the decisioning note (rating-grade risk tiers; the accept/refer/decline threshold is an institution input, **not derived and not priced here**)
+4. Scored sample candidates: PD, grade, governed decision, reason-code reports (the lending decision applies the institution's own threshold)
 
 ---
 
@@ -55,23 +55,26 @@ to `AEGIS_RUN_<NAME>.md` (hash-chained).
 - **G5** Deployment governance — missing-value controls + reason-code format (PD floor automatic). **G5
   produces the two required deliverables in Steps 4–5.**
 
-## Step 4 — Cutoff & grade policy [REQUIRED — G5 deliverable, BEFORE Go/No-Go]
-> "Draft the cutoff / grade / risk-based-pricing policy for this product as `AEGIS_<NAME>_CUTOFF_POLICY.md`."
+## Step 4 — Decisioning note [REQUIRED — G5 deliverable, BEFORE Go/No-Go]
+> "Write the decisioning note for this product as `AEGIS_<NAME>_CUTOFF_POLICY.md`."
 
-A **required risk-appetite governance decision**, not analytics: fixed **absolute PD cutoffs** →
-approve / refer / decline bands, mapped to rating grades, with risk-based pricing. Cutoffs are documented and
-**retrain-stable** (see `AEGIS_HMEQ_CUTOFF_POLICY.md` as the template). Without this, the model outputs a PD
-but makes no decision — incomplete.
+Record how the model's outputs **feed** a decision: **calibrated PD → rating grade (risk tier)**, and that the
+**accept / refer / decline threshold is an institution risk-appetite input — exogenous to this methodology,
+not derived here, and NOT priced** (see `AEGIS_HMEQ_CUTOFF_POLICY.md` as the template). **Do not invent PD
+cutoffs, LGD, margins or interest rates — they have no research basis** (an earlier version did; it was
+removed). The grade-scale band edges need a citation (e.g., agency idealised default rates) or must be stated
+as the institution's internal scale.
 
 ## Step 5 — Acceptance demonstration: score candidates + reason reports [REQUIRED — G5 deliverable, BEFORE Go/No-Go]
 > "Build the approved scorer and score these representative candidates: [paste 3–5 applicant profiles, or ask
 > Claude to pick a strong / borderline / weak example — include a deliberately extreme one to check nothing
-> breaks]. For each give: calibrated PD (floored), rating grade, the policy decision (approve/refer/decline +
-> indicative rate), and the adverse-action **reason codes**."
+> breaks]. For each give: calibrated PD (floored), rating grade (risk tier), the governed completeness
+> decision, and the adverse-action **reason codes**. Do not invent a price or a cutoff."
 
 Claude produces, per candidate, the applicant report you need — e.g.:
-> *Customer X — PD 16.9% (grade CCC) — APPROVE (risk-based pricing, 14.5%). Principal reasons: ① one
-> delinquent credit line, ② short job tenure, ③ debt-to-income above safe band.*
+> *Customer X — PD 16.9% · grade CCC (risk tier) · governed decision SCORE. Principal reasons: ① one
+> delinquent credit line, ② short job tenure, ③ debt-to-income above safe band. (Accept/decline applies the
+> institution's own PD threshold — not derived here.)*
 
 This is both the **demonstration** and a **sanity test** of the whole pipeline, and the model's **use-test +
 transparency evidence** (R2 / EU AI Act Art 13 / ECOA).
@@ -101,7 +104,7 @@ A dataset's end-to-end run is complete only when **all** of these exist and are 
 
 - [ ] `SHARP_<NAME>.md` — Stages 0–4 recorded, figures traceable
 - [ ] **Per-grade calibration backtest** (G4) — realised vs expected by grade; small-data caveat/MoC noted
-- [ ] `AEGIS_<NAME>_CUTOFF_POLICY.md` — fixed cutoffs + grades + pricing
+- [ ] `AEGIS_<NAME>_CUTOFF_POLICY.md` — decisioning note (grades; accept/decline = institution threshold; **no pricing, no invented cutoffs**)
 - [ ] Acceptance demonstration — `acceptance_cases/<name>.json` (saved inputs) + `SAMPLE_RUNS_<NAME>.md` (committee pack: ≥3 candidates, decisions + full reason-code reports), reproducible via `score_acceptance_cases.py`
 - [ ] `AEGIS_RUN_<NAME>.md` — G0–G5 signed, **then GF ruled last** with visibility of the backtest + policy + demo; hash chain intact
 - [ ] Open GF conditions listed, each with its discharge point

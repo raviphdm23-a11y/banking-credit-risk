@@ -1,0 +1,65 @@
+{
+  "dataset": "GMSC.csv",
+  "target": "target",
+  "title": "GMSC (Give Me Some Credit)",
+  "selected_columns": [
+    "RevolvingUtilizationOfUnsecuredLines",
+    "NumberOfTime30-59DaysPastDueNotWorse",
+    "NumberOfTimes90DaysLate",
+    "NumberOfTime60-89DaysPastDueNotWorse",
+    "MonthlyIncome",
+    "NumberRealEstateLoansOrLines",
+    "NumberOfDependents",
+    "DebtRatio"
+  ],
+  "mandatory_columns": [
+    "RevolvingUtilizationOfUnsecuredLines",
+    "NumberOfTime30-59DaysPastDueNotWorse"
+  ],
+  "floor_columns": [
+    "MonthlyIncome"
+  ],
+  "incomplete_policy": "refer",
+  "cases": {
+    "G-strong": {
+      "RevolvingUtilizationOfUnsecuredLines": 0,
+      "NumberOfTime30-59DaysPastDueNotWorse": 0,
+      "NumberOfTimes90DaysLate": 0,
+      "NumberOfTime60-89DaysPastDueNotWorse": 0,
+      "MonthlyIncome": 11000,
+      "NumberRealEstateLoansOrLines": 1,
+      "NumberOfDependents": 0,
+      "DebtRatio": 0.0735
+    },
+    "G-good": {
+      "RevolvingUtilizationOfUnsecuredLines": 0.7545,
+      "NumberOfTime30-59DaysPastDueNotWorse": 0,
+      "NumberOfTimes90DaysLate": 0,
+      "NumberOfTime60-89DaysPastDueNotWorse": 0,
+      "MonthlyIncome": 3500,
+      "NumberRealEstateLoansOrLines": 0,
+      "NumberOfDependents": 0,
+      "DebtRatio": 0.2099
+    },
+    "G-refer": {
+      "RevolvingUtilizationOfUnsecuredLines": 0.6933,
+      "NumberOfTime30-59DaysPastDueNotWorse": 2,
+      "NumberOfTimes90DaysLate": 0,
+      "NumberOfTime60-89DaysPastDueNotWorse": 0,
+      "MonthlyIncome": 2230,
+      "NumberRealEstateLoansOrLines": 0,
+      "NumberOfDependents": 0,
+      "DebtRatio": 0.2577
+    },
+    "G-weak": {
+      "RevolvingUtilizationOfUnsecuredLines": 1.0,
+      "NumberOfTime30-59DaysPastDueNotWorse": 1,
+      "NumberOfTimes90DaysLate": 2,
+      "NumberOfTime60-89DaysPastDueNotWorse": 0,
+      "MonthlyIncome": 3833,
+      "NumberRealEstateLoansOrLines": 0,
+      "NumberOfDependents": 2,
+      "DebtRatio": 0.1917
+    }
+  }
+}

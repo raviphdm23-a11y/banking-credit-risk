@@ -85,12 +85,14 @@ external-score dependence), C (hard-excluding it loses the top predictor — use
 Approved 17-col model + `AEGIS_HELOC_CUTOFF_POLICY.md`. Portfolio default 52.2% (balanced benchmark). PD
 floored at 0.03%. All reason codes are legitimate credit-bureau factors (no protected attributes exist).
 
-| Customer | Calibrated PD | Grade | Decision | Indic. rate | Principal reasons |
-|---|--:|---|---|--:|---|
-| **HE-strong** | 1.9% | A | **APPROVE (standard)** | 7.0% | worst recent delinquency grade (minor) |
-| **HE-good** | 17.6% | CCC | **APPROVE (risk-based)** | 14.8% | high revolving utilization, worst-ever delinquency, external score |
-| **HE-refer** | 22.5% | CC | **REFER (manual)** | 17.2% | many revolving accounts w/ balances, worst-ever delinquency, utilization |
-| **HE-weak** | 90.1% | D | **DECLINE** | 20.0% | recent delinquency, thin file, installment mix |
+| Customer | Calibrated PD | Grade (risk tier) | Principal reasons |
+|---|--:|---|---|
+| **HE-strong** | 1.9% | A | worst recent delinquency grade (minor) |
+| **HE-good** | 17.6% | CCC | high revolving utilization, worst-ever delinquency, external score |
+| **HE-refer** | 22.5% | CC | many revolving accounts w/ balances, worst-ever delinquency, utilization |
+| **HE-weak** | 90.1% | D | recent delinquency, thin file, installment mix |
+
+*(Accept/refer/decline threshold is an institution input, not derived here — pricing removed. Full showcase: `SAMPLE_RUNS_HELOC.md`.)*
 
 Spans approve / refer / decline with hand-auditable reasons. **Acceptance: PASS.**
 

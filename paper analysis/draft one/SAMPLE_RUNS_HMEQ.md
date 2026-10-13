@@ -4,15 +4,15 @@
 
 **Model:** AEGIS-approved WOE-logistic (11 features) · **Portfolio default rate:** 19.9% · PD floored at 0.03% (Basel CRE32.3).
 
+> **Scope.** This pack reports only methodology/regulation-grounded outputs: calibrated PD, rating grade (risk tier, on the institution's internal master scale), exact WOE reason codes, and the governed completeness decision. The **accept / refer / decline lending decision is set by the institution applying its own risk-appetite PD threshold** — it is exogenous to this methodology and is **not** derived or priced here.
+
 ## Summary
 
-| Candidate | Calibrated PD | Grade | Decision | Indic. rate | Principal reasons |
-|---|--:|---|---|--:|---|
-| **N** | 16.94% | CCC | APPROVE (risk-based) | 14.5% | DELINQ, YOJ, DEBTINC |
-| **Q** | 22.95% | CC | REFER (manual) | 17.5% | DELINQ, YOJ, NINQ |
-| **P** | 96.77% | D | DECLINE | 20.0% | DELINQ, DEROG, NINQ |
-
-Policy bands (fixed, absolute PD): approve-standard ≤ 12.0% · refer > 20.0% · decline > 28.0% (illustrative economics — Risk Committee ratifies).
+| Candidate | Calibrated PD | vs portfolio | Grade (risk tier) | Governed decision | Principal reasons |
+|---|--:|--:|---|---|---|
+| **N** | 16.94% | 0.85× | CCC (Distressed) | SCORE | DELINQ, YOJ, DEBTINC |
+| **Q** | 22.95% | 1.15× | CC (Highly Distressed) | SCORE | DELINQ, YOJ, NINQ |
+| **P** | 96.77% | 4.85× | D (Default) | SCORE | DELINQ, DEROG, NINQ |
 
 ---
 ## Per-candidate showcase (what a new applicant report looks like)
@@ -21,7 +21,7 @@ Policy bands (fixed, absolute PD): approve-standard ≤ 12.0% · refer > 20.0% �
 
 **Inputs:** DEBTINC=41, DELINQ=1, VALUE=100000, DEROG=0, CLAGE=150, NINQ=2, LOAN=25000, JOB=Office, YOJ=3, CLNO=16, MORTDUE=80000
 
-**Governed decision:** SCORE · raw PD 23.75% → **calibrated PD 16.94%** (0.85× portfolio) · grade **CCC** (Distressed) · **APPROVE (risk-based)** · indicative rate 14.5%
+**Governed decision:** SCORE · raw PD 23.75% → **calibrated PD 16.94%** (0.85× portfolio) · grade **CCC** (Distressed)
 
 | Feature | Value | WOE | Contribution | Effect |
 |---|---|--:|--:|---|
@@ -43,7 +43,7 @@ Policy bands (fixed, absolute PD): approve-standard ≤ 12.0% · refer > 20.0% �
 
 **Inputs:** DEBTINC=41, DELINQ=1, VALUE=100000, DEROG=0, CLAGE=150, NINQ=3, LOAN=25000, JOB=Office, YOJ=3, CLNO=16, MORTDUE=80000
 
-**Governed decision:** SCORE · raw PD 25.57% → **calibrated PD 22.95%** (1.15× portfolio) · grade **CC** (Highly Distressed) · **REFER (manual)** · indicative rate 17.5%
+**Governed decision:** SCORE · raw PD 25.57% → **calibrated PD 22.95%** (1.15× portfolio) · grade **CC** (Highly Distressed)
 
 | Feature | Value | WOE | Contribution | Effect |
 |---|---|--:|--:|---|
@@ -65,7 +65,7 @@ Policy bands (fixed, absolute PD): approve-standard ≤ 12.0% · refer > 20.0% �
 
 **Inputs:** DEBTINC=45, DELINQ=3, VALUE=72000, DEROG=2, CLAGE=90, NINQ=5, LOAN=15000, JOB=Other, YOJ=1, CLNO=10, MORTDUE=68000
 
-**Governed decision:** SCORE · raw PD 95.45% → **calibrated PD 96.77%** (4.85× portfolio) · grade **D** (Default) · **DECLINE** · indicative rate 20.0%
+**Governed decision:** SCORE · raw PD 95.45% → **calibrated PD 96.77%** (4.85× portfolio) · grade **D** (Default)
 
 | Feature | Value | WOE | Contribution | Effect |
 |---|---|--:|--:|---|

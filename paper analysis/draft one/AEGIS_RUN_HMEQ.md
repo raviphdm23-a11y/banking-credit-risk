@@ -139,11 +139,13 @@ Rejected: A (would overstate regulatory posture), C (over-conservative; blocks a
 Approved WOE-logistic model + `AEGIS_HMEQ_CUTOFF_POLICY.md`. Portfolio default rate 19.95%. PD floored at
 0.03% (Basel CRE32.3). Reason codes = exact WOE decomposition (principal reasons).
 
-| Candidate | Calibrated PD | Grade | Decision | Indic. rate | Principal reasons |
-|---|--:|---|---|--:|---|
-| **N** | 16.94% | CCC | **APPROVE (risk-based)** | 14.5% | delinquent credit line, short job tenure, DTI above safe band |
-| **Q** | 22.95% | CC | **REFER (manual)** | 17.5% | delinquent line, short job tenure, recent inquiries |
-| **P** | 96.77% | D | **DECLINE** | — | multiple delinquencies, derogatory reports, recent inquiries |
+| Candidate | Calibrated PD | Grade (risk tier) | Principal reasons |
+|---|--:|---|---|
+| **N** | 16.94% | CCC | delinquent credit line, short job tenure, DTI above safe band |
+| **Q** | 22.95% | CC | delinquent line, short job tenure, recent inquiries |
+| **P** | 96.77% | D | multiple delinquencies, derogatory reports, recent inquiries |
+
+*(Accept/refer/decline threshold is an institution risk-appetite input, not derived here — pricing removed per the decisioning-note revision. Full showcase: `SAMPLE_RUNS_HMEQ.md`.)*
 
 Spans approve / refer / decline with defensible, hand-auditable reasons. Demonstrates the model+policy
 produce governed, explainable decisions — not just a PD. **Acceptance: PASS.**

@@ -135,14 +135,16 @@ Approved 13-column behavioural model + `AEGIS_TAIWAN_CUTOFF_POLICY.md`. Portfoli
 0.03%. Account-management actions (behavioural model, not origination). No reason code cites a protected
 attribute (proxy EDUCATION removed at G4).
 
-| Customer | Calibrated PD | Grade | Action | Indic. rate | Principal reasons |
-|---|--:|---|---|--:|---|
-| **T-strong** | 5.44% | BB | **MAINTAIN (standard)** | 13.4% | all factors protective |
-| **T-mid** | 8.91% | B | **MAINTAIN (standard)** | 16.1% | moderate credit limit |
-| **T-watch** | 28.02% | CC | **REVIEW (manual)** | 31.4% | recent repayment delay, lower limit, earlier delay |
-| **T-weak** | 71.50% | D | **REDUCE LINE** | 36.0% | recent repayment delay, low limit, prior delays |
+| Customer | Calibrated PD | Grade (risk tier) | Principal reasons |
+|---|--:|---|---|
+| **T-strong** | 5.44% | BB | all factors protective |
+| **T-mid** | 8.91% | B | moderate credit limit |
+| **T-watch** | 28.02% | CC | recent repayment delay, lower limit, earlier delay |
+| **T-weak** | 71.50% | D | recent repayment delay, low limit, prior delays |
 
-Spans maintain / review / reduce with hand-auditable reasons. **Acceptance: PASS.**
+Spans the risk spectrum with hand-auditable reasons. The account-management action (maintain/review/reduce)
+is an institution risk-appetite input, not derived here (pricing removed). Full showcase: `SAMPLE_RUNS_TAIWAN.md`.
+**Acceptance: PASS.**
 
 ## Deliverables checklist (end-to-end standard)
 - [x] `SHARP_TAIWAN.md` — Stages 0–4

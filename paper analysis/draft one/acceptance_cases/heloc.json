@@ -27,14 +27,6 @@
   ],
   "floor_columns": [],
   "incomplete_policy": "refer",
-  "policy": {
-    "LGD": 0.5,
-    "cost": 0.04,
-    "margin": 0.02,
-    "std_rate": 0.12,
-    "max_rate": 0.2,
-    "refer_floor": 0.2
-  },
   "cases": {
     "HE-strong": {
       "ExternalRiskEstimate": 89,

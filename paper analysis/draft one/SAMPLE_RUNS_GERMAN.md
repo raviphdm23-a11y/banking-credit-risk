@@ -4,16 +4,16 @@
 
 **Model:** AEGIS-approved WOE-logistic (5 features) · **Portfolio default rate:** 30.0% · PD floored at 0.03% (Basel CRE32.3).
 
+> **Scope.** This pack reports only methodology/regulation-grounded outputs: calibrated PD, rating grade (risk tier, on the institution's internal master scale), exact WOE reason codes, and the governed completeness decision. The **accept / refer / decline lending decision is set by the institution applying its own risk-appetite PD threshold** — it is exogenous to this methodology and is **not** derived or priced here.
+
 ## Summary
 
-| Candidate | Calibrated PD | Grade | Decision | Indic. rate | Principal reasons |
-|---|--:|---|---|--:|---|
-| **A-strong** | 0.03% | AAA | APPROVE (standard) | 8.0% | all protective |
-| **B-good** | 19.90% | CCC | APPROVE (risk-based) | 22.9% | savings_status, months_duration, credit_history |
-| **C-weaker** | 35.45% | C | DECLINE | 30.0% | months_duration, checking_status, savings_status |
-| **D-weak** | 85.71% | D | DECLINE | 30.0% | months_duration, checking_status, purpose |
-
-Policy bands (fixed, absolute PD): approve-standard ≤ 9.3% · refer > 20.0% · decline > 29.3% (illustrative economics — Risk Committee ratifies).
+| Candidate | Calibrated PD | vs portfolio | Grade (risk tier) | Governed decision | Principal reasons |
+|---|--:|--:|---|---|---|
+| **A-strong** | 0.03% | 0.00× | AAA (Exceptional) | SCORE | all protective |
+| **B-good** | 19.90% | 0.66× | CCC (Distressed) | SCORE | savings_status, months_duration, credit_history |
+| **C-weaker** | 35.45% | 1.18× | C (Near Default) | SCORE | months_duration, checking_status, savings_status |
+| **D-weak** | 85.71% | 2.86× | D (Default) | SCORE | months_duration, checking_status, purpose |
 
 ---
 ## Per-candidate showcase (what a new applicant report looks like)
@@ -22,7 +22,7 @@ Policy bands (fixed, absolute PD): approve-standard ≤ 9.3% · refer > 20.0% ·
 
 **Inputs:** checking_status=no checking account, credit_history=critical account / other credits elsewhere, months_duration=6, savings_status=≥ 1000 DM, purpose=car (used)
 
-**Governed decision:** SCORE · raw PD 0.57% → **calibrated PD 0.03%** (0.00× portfolio) · grade **AAA** (Exceptional) · **APPROVE (standard)** · indicative rate 8.0%
+**Governed decision:** SCORE · raw PD 0.57% → **calibrated PD 0.03%** (0.00× portfolio) · grade **AAA** (Exceptional)
 
 | Feature | Value | WOE | Contribution | Effect |
 |---|---|--:|--:|---|
@@ -38,7 +38,7 @@ Policy bands (fixed, absolute PD): approve-standard ≤ 9.3% · refer > 20.0% ·
 
 **Inputs:** checking_status=≥ 200 DM / salary assignment ≥ 1y, credit_history=existing credits paid duly till now, months_duration=18, savings_status=< 100 DM, purpose=car (used)
 
-**Governed decision:** SCORE · raw PD 17.19% → **calibrated PD 19.90%** (0.66× portfolio) · grade **CCC** (Distressed) · **APPROVE (risk-based)** · indicative rate 22.9%
+**Governed decision:** SCORE · raw PD 17.19% → **calibrated PD 19.90%** (0.66× portfolio) · grade **CCC** (Distressed)
 
 | Feature | Value | WOE | Contribution | Effect |
 |---|---|--:|--:|---|
@@ -54,7 +54,7 @@ Policy bands (fixed, absolute PD): approve-standard ≤ 9.3% · refer > 20.0% ·
 
 **Inputs:** checking_status=0 ≤ ... < 200 DM, credit_history=critical account / other credits elsewhere, months_duration=36, savings_status=< 100 DM, purpose=radio/television
 
-**Governed decision:** SCORE · raw PD 33.72% → **calibrated PD 35.45%** (1.18× portfolio) · grade **C** (Near Default) · **DECLINE** · indicative rate 30.0%
+**Governed decision:** SCORE · raw PD 33.72% → **calibrated PD 35.45%** (1.18× portfolio) · grade **C** (Near Default)
 
 | Feature | Value | WOE | Contribution | Effect |
 |---|---|--:|--:|---|
@@ -70,7 +70,7 @@ Policy bands (fixed, absolute PD): approve-standard ≤ 9.3% · refer > 20.0% ·
 
 **Inputs:** checking_status=< 0 DM, credit_history=delay in past, months_duration=48, savings_status=< 100 DM, purpose=education
 
-**Governed decision:** SCORE · raw PD 83.19% → **calibrated PD 85.71%** (2.86× portfolio) · grade **D** (Default) · **DECLINE** · indicative rate 30.0%
+**Governed decision:** SCORE · raw PD 83.19% → **calibrated PD 85.71%** (2.86× portfolio) · grade **D** (Default)
 
 | Feature | Value | WOE | Contribution | Effect |
 |---|---|--:|--:|---|

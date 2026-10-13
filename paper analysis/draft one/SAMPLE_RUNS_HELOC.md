@@ -4,16 +4,16 @@
 
 **Model:** AEGIS-approved WOE-logistic (17 features) · **Portfolio default rate:** 52.2% · PD floored at 0.03% (Basel CRE32.3).
 
+> **Scope.** This pack reports only methodology/regulation-grounded outputs: calibrated PD, rating grade (risk tier, on the institution's internal master scale), exact WOE reason codes, and the governed completeness decision. The **accept / refer / decline lending decision is set by the institution applying its own risk-appetite PD threshold** — it is exogenous to this methodology and is **not** derived or priced here.
+
 ## Summary
 
-| Candidate | Calibrated PD | Grade | Decision | Indic. rate | Principal reasons |
-|---|--:|---|---|--:|---|
-| **HE-strong** | 1.92% | A | APPROVE (standard) | 7.0% | MaxDelq2PublicRecLast12M |
-| **HE-good** | 17.56% | CCC | APPROVE (risk-based) | 14.8% | NetFractionRevolvingBurden, MaxDelqEver, ExternalRiskEstimate |
-| **HE-refer** | 22.49% | CC | REFER (manual) | 17.2% | NumRevolvingTradesWBalance, MaxDelqEver, NetFractionRevolvingBurden |
-| **HE-weak** | 90.14% | D | DECLINE | 20.0% | MSinceMostRecentDelq, AverageMInFile, PercentInstallTrades |
-
-Policy bands (fixed, absolute PD): approve-standard ≤ 12.0% · refer > 20.0% · decline > 28.0% (illustrative economics — Risk Committee ratifies).
+| Candidate | Calibrated PD | vs portfolio | Grade (risk tier) | Governed decision | Principal reasons |
+|---|--:|--:|---|---|---|
+| **HE-strong** | 1.92% | 0.04× | A (Strong) | SCORE | MaxDelq2PublicRecLast12M |
+| **HE-good** | 17.56% | 0.34× | CCC (Distressed) | SCORE | NetFractionRevolvingBurden, MaxDelqEver, ExternalRiskEstimate |
+| **HE-refer** | 22.49% | 0.43× | CC (Highly Distressed) | SCORE | NumRevolvingTradesWBalance, MaxDelqEver, NetFractionRevolvingBurden |
+| **HE-weak** | 90.14% | 1.73× | D (Default) | SCORE | MSinceMostRecentDelq, AverageMInFile, PercentInstallTrades |
 
 ---
 ## Per-candidate showcase (what a new applicant report looks like)
@@ -22,7 +22,7 @@ Policy bands (fixed, absolute PD): approve-standard ≤ 12.0% · refer > 20.0% �
 
 **Inputs:** ExternalRiskEstimate=89, NetFractionRevolvingBurden=2, NumBank2NatlTradesWHighUtilization=0, MSinceMostRecentDelq=-7, AverageMInFile=149, MSinceOldestTradeOpen=273, MaxDelq2PublicRecLast12M=6, MaxDelqEver=7, PercentTradesNeverDelq=100, MSinceMostRecentInqexcl7days=-8, PercentTradesWBalance=57, NumTrades60Ever2DerogPubRec=0, NumTrades90Ever2DerogPubRec=0, NumSatisfactoryTrades=17, NumTotalTrades=69, NumRevolvingTradesWBalance=4, PercentInstallTrades=24
 
-**Governed decision:** SCORE · raw PD 6.59% → **calibrated PD 1.92%** (0.04× portfolio) · grade **A** (Strong) · **APPROVE (standard)** · indicative rate 7.0%
+**Governed decision:** SCORE · raw PD 6.59% → **calibrated PD 1.92%** (0.04× portfolio) · grade **A** (Strong)
 
 | Feature | Value | WOE | Contribution | Effect |
 |---|---|--:|--:|---|
@@ -50,7 +50,7 @@ Policy bands (fixed, absolute PD): approve-standard ≤ 12.0% · refer > 20.0% �
 
 **Inputs:** ExternalRiskEstimate=71, NetFractionRevolvingBurden=43, NumBank2NatlTradesWHighUtilization=0, MSinceMostRecentDelq=-7, AverageMInFile=72, MSinceOldestTradeOpen=152, MaxDelq2PublicRecLast12M=7, MaxDelqEver=8, PercentTradesNeverDelq=100, MSinceMostRecentInqexcl7days=2, PercentTradesWBalance=80, NumTrades60Ever2DerogPubRec=0, NumTrades90Ever2DerogPubRec=0, NumSatisfactoryTrades=53, NumTotalTrades=59, NumRevolvingTradesWBalance=3, PercentInstallTrades=21
 
-**Governed decision:** SCORE · raw PD 19.88% → **calibrated PD 17.56%** (0.34× portfolio) · grade **CCC** (Distressed) · **APPROVE (risk-based)** · indicative rate 14.8%
+**Governed decision:** SCORE · raw PD 19.88% → **calibrated PD 17.56%** (0.34× portfolio) · grade **CCC** (Distressed)
 
 | Feature | Value | WOE | Contribution | Effect |
 |---|---|--:|--:|---|
@@ -78,7 +78,7 @@ Policy bands (fixed, absolute PD): approve-standard ≤ 12.0% · refer > 20.0% �
 
 **Inputs:** ExternalRiskEstimate=73, NetFractionRevolvingBurden=40, NumBank2NatlTradesWHighUtilization=1, MSinceMostRecentDelq=-7, AverageMInFile=113, MSinceOldestTradeOpen=190, MaxDelq2PublicRecLast12M=7, MaxDelqEver=8, PercentTradesNeverDelq=100, MSinceMostRecentInqexcl7days=7, PercentTradesWBalance=68, NumTrades60Ever2DerogPubRec=0, NumTrades90Ever2DerogPubRec=0, NumSatisfactoryTrades=27, NumTotalTrades=30, NumRevolvingTradesWBalance=9, PercentInstallTrades=23
 
-**Governed decision:** SCORE · raw PD 23.43% → **calibrated PD 22.49%** (0.43× portfolio) · grade **CC** (Highly Distressed) · **REFER (manual)** · indicative rate 17.2%
+**Governed decision:** SCORE · raw PD 23.43% → **calibrated PD 22.49%** (0.43× portfolio) · grade **CC** (Highly Distressed)
 
 | Feature | Value | WOE | Contribution | Effect |
 |---|---|--:|--:|---|
@@ -106,7 +106,7 @@ Policy bands (fixed, absolute PD): approve-standard ≤ 12.0% · refer > 20.0% �
 
 **Inputs:** ExternalRiskEstimate=59, NetFractionRevolvingBurden=18, NumBank2NatlTradesWHighUtilization=0, MSinceMostRecentDelq=1, AverageMInFile=33, MSinceOldestTradeOpen=118, MaxDelq2PublicRecLast12M=3, MaxDelqEver=5, PercentTradesNeverDelq=87, MSinceMostRecentInqexcl7days=-7, PercentTradesWBalance=60, NumTrades60Ever2DerogPubRec=2, NumTrades90Ever2DerogPubRec=0, NumSatisfactoryTrades=12, NumTotalTrades=15, NumRevolvingTradesWBalance=1, PercentInstallTrades=53
 
-**Governed decision:** SCORE · raw PD 90.20% → **calibrated PD 90.14%** (1.73× portfolio) · grade **D** (Default) · **DECLINE** · indicative rate 20.0%
+**Governed decision:** SCORE · raw PD 90.20% → **calibrated PD 90.14%** (1.73× portfolio) · grade **D** (Default)
 
 | Feature | Value | WOE | Contribution | Effect |
 |---|---|--:|--:|---|

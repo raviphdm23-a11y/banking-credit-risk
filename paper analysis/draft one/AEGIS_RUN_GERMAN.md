@@ -152,12 +152,14 @@ Rejected: B (lets a prohibited basis enter the modelling process — ECOA exposu
 Approved WOE-logistic 5-column model + `AEGIS_GERMAN_CUTOFF_POLICY.md`. Portfolio default rate 30.0%. PD
 floored at 0.03% (Basel CRE32.3). Every reason code is a legitimate credit factor (no protected attributes).
 
-| Candidate | Calibrated PD | Grade | Decision | Indic. rate | Principal reasons |
-|---|--:|---|---|--:|---|
-| **A-strong** | 0.03% (floored) | AAA | **APPROVE (standard)** | 8.0% | all factors protective |
-| **B-good** | 19.90% | CCC | **APPROVE (risk-based)** | 22.9% | low savings, long term, credit history |
-| **C-weaker** | 35.45% | C | **DECLINE** | — | long term, checking balance, low savings |
-| **D-weak** | 85.71% | D | **DECLINE** | — | long term (48mo), overdrawn checking, loan purpose |
+| Candidate | Calibrated PD | Grade (risk tier) | Principal reasons |
+|---|--:|---|---|
+| **A-strong** | 0.03% (floored) | AAA | all factors protective |
+| **B-good** | 19.90% | CCC | low savings, long term, credit history |
+| **C-weaker** | 35.45% | C | long term, checking balance, low savings |
+| **D-weak** | 85.71% | D | long term (48mo), overdrawn checking, loan purpose |
+
+*(Accept/refer/decline threshold is an institution input, not derived here — pricing removed. Full showcase: `SAMPLE_RUNS_GERMAN.md`.)*
 
 A-strong shows the 0.03% PD floor in action (was a degenerate 0.0%). Fair-lending holds at the applicant
 level: no adverse-action reason cites a protected attribute. **Acceptance: PASS.** (Refer band 20–29.3% is

@@ -4,16 +4,16 @@
 
 **Model:** AEGIS-approved WOE-logistic (13 features) · **Portfolio default rate:** 22.1% · PD floored at 0.03% (Basel CRE32.3).
 
+> **Scope.** This pack reports only methodology/regulation-grounded outputs: calibrated PD, rating grade (risk tier, on the institution's internal master scale), exact WOE reason codes, and the governed completeness decision. The **accept / refer / decline lending decision is set by the institution applying its own risk-appetite PD threshold** — it is exogenous to this methodology and is **not** derived or priced here.
+
 ## Summary
 
-| Candidate | Calibrated PD | Grade | Decision | Indic. rate | Principal reasons |
-|---|--:|---|---|--:|---|
-| **T-strong** | 5.44% | BB | APPROVE (standard) | 13.4% | all protective |
-| **T-mid** | 8.91% | B | APPROVE (standard) | 16.1% | LIMIT_BAL |
-| **T-watch** | 28.02% | CC | REFER (manual) | 31.4% | PAY_0, LIMIT_BAL, PAY_2 |
-| **T-weak** | 71.50% | D | DECLINE | 36.0% | PAY_0, LIMIT_BAL, PAY_4 |
-
-Policy bands (fixed, absolute PD): approve-standard ≤ 11.2% · refer > 25.0% · decline > 33.8% (illustrative economics — Risk Committee ratifies).
+| Candidate | Calibrated PD | vs portfolio | Grade (risk tier) | Governed decision | Principal reasons |
+|---|--:|--:|---|---|---|
+| **T-strong** | 5.44% | 0.25× | BB (Speculative) | SCORE | all protective |
+| **T-mid** | 8.91% | 0.40× | B (Vulnerable) | SCORE | LIMIT_BAL |
+| **T-watch** | 28.02% | 1.27× | CC (Highly Distressed) | SCORE | PAY_0, LIMIT_BAL, PAY_2 |
+| **T-weak** | 71.50% | 3.23× | D (Default) | SCORE | PAY_0, LIMIT_BAL, PAY_4 |
 
 ---
 ## Per-candidate showcase (what a new applicant report looks like)
@@ -22,7 +22,7 @@ Policy bands (fixed, absolute PD): approve-standard ≤ 11.2% · refer > 25.0% �
 
 **Inputs:** PAY_0=-1, PAY_2=-1, PAY_3=-1, PAY_4=-1, PAY_5=-1, PAY_6=-1, LIMIT_BAL=300000, PAY_AMT2=20000, PAY_AMT3=20000, PAY_AMT4=20000, PAY_AMT1=20000, PAY_AMT6=20000, PAY_AMT5=20000
 
-**Governed decision:** SCORE · raw PD 5.92% → **calibrated PD 5.44%** (0.25× portfolio) · grade **BB** (Speculative) · **APPROVE (standard)** · indicative rate 13.4%
+**Governed decision:** SCORE · raw PD 5.92% → **calibrated PD 5.44%** (0.25× portfolio) · grade **BB** (Speculative)
 
 | Feature | Value | WOE | Contribution | Effect |
 |---|---|--:|--:|---|
@@ -46,7 +46,7 @@ Policy bands (fixed, absolute PD): approve-standard ≤ 11.2% · refer > 25.0% �
 
 **Inputs:** PAY_0=0, PAY_2=0, PAY_3=-1, PAY_4=0, PAY_5=0, PAY_6=0, LIMIT_BAL=120000, PAY_AMT2=5000, PAY_AMT3=4000, PAY_AMT4=5000, PAY_AMT1=5000, PAY_AMT6=5000, PAY_AMT5=4000
 
-**Governed decision:** SCORE · raw PD 10.52% → **calibrated PD 8.91%** (0.40× portfolio) · grade **B** (Vulnerable) · **APPROVE (standard)** · indicative rate 16.1%
+**Governed decision:** SCORE · raw PD 10.52% → **calibrated PD 8.91%** (0.40× portfolio) · grade **B** (Vulnerable)
 
 | Feature | Value | WOE | Contribution | Effect |
 |---|---|--:|--:|---|
@@ -70,7 +70,7 @@ Policy bands (fixed, absolute PD): approve-standard ≤ 11.2% · refer > 25.0% �
 
 **Inputs:** PAY_0=1, PAY_2=2, PAY_3=0, PAY_4=0, PAY_5=0, PAY_6=0, LIMIT_BAL=70000, PAY_AMT2=2000, PAY_AMT3=3000, PAY_AMT4=2000, PAY_AMT1=2500, PAY_AMT6=2000, PAY_AMT5=2500
 
-**Governed decision:** SCORE · raw PD 30.22% → **calibrated PD 28.02%** (1.27× portfolio) · grade **CC** (Highly Distressed) · **REFER (manual)** · indicative rate 31.4%
+**Governed decision:** SCORE · raw PD 30.22% → **calibrated PD 28.02%** (1.27× portfolio) · grade **CC** (Highly Distressed)
 
 | Feature | Value | WOE | Contribution | Effect |
 |---|---|--:|--:|---|
@@ -94,7 +94,7 @@ Policy bands (fixed, absolute PD): approve-standard ≤ 11.2% · refer > 25.0% �
 
 **Inputs:** PAY_0=2, PAY_2=2, PAY_3=2, PAY_4=1, PAY_5=0, PAY_6=0, LIMIT_BAL=30000, PAY_AMT2=800, PAY_AMT3=1000, PAY_AMT4=1000, PAY_AMT1=1000, PAY_AMT6=1000, PAY_AMT5=500
 
-**Governed decision:** SCORE · raw PD 74.48% → **calibrated PD 71.50%** (3.23× portfolio) · grade **D** (Default) · **DECLINE** · indicative rate 36.0%
+**Governed decision:** SCORE · raw PD 74.48% → **calibrated PD 71.50%** (3.23× portfolio) · grade **D** (Default)
 
 | Feature | Value | WOE | Contribution | Effect |
 |---|---|--:|--:|---|
