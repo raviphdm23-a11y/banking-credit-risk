@@ -150,3 +150,9 @@ Spans maintain / review / reduce with hand-auditable reasons. **Acceptance: PASS
 - [x] `AEGIS_TAIWAN_CUTOFF_POLICY.md` — fixed cutoffs + grades + pricing
 - [x] Acceptance demonstration — 4 candidates with actions + reason reports
 - [x] Open GF conditions listed (TC1, TC2, TC3, TC-cal, TC-use)
+
+## Condition TC-cal — DISCHARGED (2026-10-13)
+Per-grade calibration backtest (held-out n=6,000): ECE 0.0120, Hosmer-Lemeshow p=0.307 (not rejected; cleanest
+of the three runs), 6/7 grades within the realised 95% CI, tight CIs (30k rows). **R4 → SATISFIED.** Full table
+in `SHARP_TAIWAN.md` §"Stage 4b". Open conditions now: TC1 (label), TC2 (fairness monitoring — deploy), TC3
+(without-PAY_0 variant — deploy), TC-use (use-test — deploy).

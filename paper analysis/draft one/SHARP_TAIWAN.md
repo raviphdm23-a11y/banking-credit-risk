@@ -134,3 +134,22 @@ Retained regulatory-ineligible features:
 | `EDUCATION` | proxy_risk | Education - recognised proxy for race/national origin and age. |
 
 **Availability caveat (near_target):** `PAY_0`. Results including these are not an origination-time (application) model; report with and without them (METHODOLOGY v3 s3.3).
+
+## Stage 4b - per-grade calibration backtest (AEGIS condition TC-cal; CRE36.122-123)
+
+Held-out 80/20 split (random_state=42), 13-col behavioural model, calibrated PD floored at 0.03%, mapped to
+the master scale. Test n=6,000, AUC 0.7581.
+
+| Grade | n | Expected PD | Realised | 95% CI (Wilson) | Within? |
+|---|--:|--:|--:|---|:--:|
+| AAA | 10 | 0.0% | 0.0% | [0.0%, 27.8%] | OK |
+| BB | 536 | 6.1% | 8.4% | [6.3%, 11.0%] | REVIEW (mild under-predict) |
+| B | 1739 | 8.7% | 9.3% | [8.0%, 10.8%] | OK |
+| CCC | 1582 | 15.9% | 15.6% | [13.9%, 17.5%] | OK |
+| CC | 999 | 23.7% | 24.0% | [21.5%, 26.8%] | OK |
+| C | 448 | 40.4% | 39.7% | [35.3%, 44.3%] | OK |
+| D | 686 | 68.6% | 66.3% | [62.7%, 69.8%] | OK |
+
+**Overall ECE 0.0120; Hosmer-Lemeshow chi2=9.43, df=8, p=0.307 => calibration not rejected.** 6/7 grades pass.
+The 6,000-row test set yields tight per-grade CIs (contrast German's wide small-data bands) - the benefit of
+30k rows. Calibration is the cleanest of the three runs.
