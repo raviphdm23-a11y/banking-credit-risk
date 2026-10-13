@@ -93,10 +93,16 @@ For German Credit, exclude the prohibited attributes first (`personal_status_sex
      residual-risk);
    - **you pick one option with a short rationale**; Claude logs a **hash-chained decision** in
      `AEGIS_RUN_<NAME>.md`;
-   - at **GF** it runs the Go/No-Go engine; you rule **GO / GO-WITH-CONDITIONS / NO-GO** as MAC chair.
+   - at **GF** it runs the Go/No-Go engine; you rule **GO / GO-WITH-CONDITIONS / NO-GO** as MAC chair;
+   - **[required] produces the cutoff / grade / risk-based-pricing policy** (`AEGIS_<NAME>_CUTOFF_POLICY.md`)
+     and an **acceptance demonstration** — ≥3 representative candidates scored with **approve/decline
+     decisions and reason-code reports**. A PD with no decision and no applicant report is not complete.
 
-You end with a SHARP analytical record and an auditable, hash-chained AEGIS approval log — the same artifacts
-as the HMEQ and German examples here.
+You end with a SHARP analytical record, an auditable hash-chained AEGIS approval log, a decisioning policy,
+and applicant reason reports — the same artifacts as the HMEQ and German examples here.
+
+**The full step-by-step process (with the exact prompts) is in `paper analysis/draft one/USER_JOURNEY.md`** —
+every stage is mandatory, ending in scored candidates with approve/decline + reasons.
 
 ---
 

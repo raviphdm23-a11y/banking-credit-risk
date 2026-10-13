@@ -75,7 +75,7 @@ SHARP's stages become AEGIS gates **G0–GF**. Each gate has the same anatomy (�
 | **G2** | Attribution | Stage 2 (Shapley ranking, shadow/Boruta confirmation) | Is the attribution stable and trustworthy enough to select on? |
 | **G3** | Selection | Stage 3 (parsimony selection under DeLong + Gini-loss tolerance) | Which feature set is adopted — parsimonious vs full, and the trade-off accepted? |
 | **G4** | Calibration & Fairness | Stage 4 (isotonic calibration, backtest, fairness gap) | Is the model well-calibrated, discriminating, and fair enough to approve? |
-| **G5** | Deployment Governance | Scoring layer (missing-value gate, adverse floor, reason codes) | Are the deployment-time controls (mandatory-field gate, adverse fallback, adverse-action transparency) correctly configured? |
+| **G5** | Deployment Governance | Scoring layer (missing-value gate, adverse floor, reason codes) | Are the deployment-time controls (mandatory-field gate, adverse fallback, adverse-action transparency) correctly configured? **G5 must also produce two required deliverables: (a) the fixed cutoff / grade / risk-based-pricing policy (`AEGIS_<NAME>_CUTOFF_POLICY.md`), and (b) an acceptance demonstration — ≥3 representative candidates scored with approve/decline decisions and reason-code reports.** A model that outputs a PD but no governed decision and no applicant report is not deployment-complete. The acceptance demonstration is the use-test (R2) and transparency (EU AI Act Art 13 / ECOA) evidence. |
 | **GF** | Final Go/No-Go | — (whole-model) | GO / GO-WITH-CONDITIONS / NO-GO, decided by the Model Approval Committee (§6). |
 
 G0–G5 are **stage gates** (a role-holder signs each); **GF is the committee gate** (the MAC decides).
