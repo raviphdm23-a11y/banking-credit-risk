@@ -60,6 +60,7 @@ rubber-stamping as the **primary failure mode** and designs against it structura
 | P5 | **Tamper-evidence.** | Append-only hash chain (`gov_audit_events` already implements this); reversals are new events. |
 | P6 | **Risk-proportionate rigor.** | Gate depth scales with model materiality (SR 26-2's risk-based approach; EBA/CRE tiering). A low-materiality reference portfolio does not get the same ceremony as a core PD model. |
 | P7 | **Primary-sourced criteria.** | Acceptance criteria cite the regulator's own text; each citation carries a confidence flag. |
+| P8 | **Gates decide governance, not analytics.** | A gate's closed option set must **never** re-open a pre-registered methodology parameter (estimator mode e.g. exact/sampled, selection tolerances, shadow bar, confirm-frequency, `random_state`, CV folds). Those are fixed in `METHODOLOGY.md`, identical across every dataset, and chosen/reported once. Gates decide *scope, eligibility, fairness treatment, cutoffs, Go/No-Go* — never the analysis method. Letting a per-run gate switch the estimator is the un-reportable, dataset-dependent path-changing a research methodology must avoid. |
 
 ---
 
