@@ -88,3 +88,43 @@ Rejected B (ECOA exposure), C (over-excludes NumberOfDependents), D (ECOA clear)
 ---
 
 *(G1 onward recorded after the SHARP run completes.)*
+
+---
+
+| 6 | G5 | **A — Standard config + adverse floor on income** | Ravi / Model Owner | adverse floor MonthlyIncome (missing-protective omission trap); mandatory utilization+delinquency; refer | 55aaed1e | 6987d0fb |
+| 7 | GF | **GO-WITH-CONDITIONS** | Ravi / MAC Chair (CRO) | best discrimination+calibration of 5 runs; missing-value+fairness handled; not production-IRB | 6987d0fb | 3bc6f197 |
+
+**Chain:** GEN-GMSC0 → 9c550c96 → 4de742cf → 292df169 → f567f2be → 55aaed1e → 6987d0fb → 3bc6f197.
+
+## GF — Final Go/No-Go  ·  status: ✅ DECIDED — **GO-WITH-CONDITIONS** (ruled with full visibility)
+
+**MAC Chair:** Ravi (CRO) · **2026-10-13** · entry_hash `3bc6f197`
+**Verdict:** the GMSC 8-column WOE-logistic model is **approved as a MEDIUM-tier reference benchmark**, **not**
+production-IRB. Ruled after G4's backtest and G5's decisioning note + `SAMPLE_RUNS_GMSC.md` were complete and
+visible (corrected order). **Strengths:** best discrimination (Gini 0.705) and best calibration (per-grade
+backtest 10/10 grades, ECE 0.0023) of all five runs; missing-value governance (adverse floor on income);
+fairness handled (age excluded, disparate impact risk-justified; proxy under threshold, kept).
+
+### Open conditions register
+
+| ID | Condition | Tie | Discharge before |
+|---|---|---|---|
+| MC1 | Not-production-IRB label; no time axis | R1/CRE36.79 | IRB claim |
+| MC-age | Monitor age-correlated disparate impact (age excluded; gap risk-justified) | ECOA / EU AI Act | scoring real customers |
+| MC3 | Cleaned-sentinel sensitivity (recode delinquency-count 96/98 → missing) | R10/BCBS 239 | production use |
+| MC-use | Use test | R2/CRE36.60 | real-decision use |
+
+### Run outcome
+- **Production model:** WOE-logistic, 8 features, Gini 0.705, ECE 0.0023 (cleanest calibration of all runs).
+- **Provenance:** 7 logged decisions; missing-value governance (adverse floor on income) exercised at scale.
+- **Status:** APPROVED (conditional). Semi-annual re-validation.
+
+## Deliverables checklist (end-to-end standard — corrected order)
+- [x] `SHARP_GMSC.md` — Stages 0–4 + Stage 4b backtest
+- [x] **Per-grade calibration backtest (in G4, before GF)** — 10/10 grades pass, ECE 0.0023
+- [x] `AEGIS_GMSC_CUTOFF_POLICY.md` — decisioning note (grades; institution threshold; no pricing)
+- [x] Acceptance demonstration — `acceptance_cases/gmsc.json` + `SAMPLE_RUNS_GMSC.md` (4 candidates, PD+grade+reasons)
+- [x] `AEGIS_RUN_GMSC.md` — G0–G5 signed, **GF ruled last** with visibility, chain intact
+- [x] Open GF conditions listed
+
+*AEGIS run complete (GMSC) — fifth governed run; missing-value governance at scale + best calibration.*
