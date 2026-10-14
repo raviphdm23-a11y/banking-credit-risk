@@ -65,7 +65,7 @@ literature comparability only. Unlike PAK, a valid **origination-only model stan
 - [x] `SHARP_LOAN.md` — Stages 0–4 + Stage 4b backtest + availability sensitivity + fairness-N/A
 - [x] **Per-grade calibration backtest (in G4, before GF)** — HL p=0.437, 8/8 grades pass
 - [x] `AEGIS_LOAN_CUTOFF_POLICY.md` — decisioning note (grades; institution threshold; no pricing; availability caveat)
-- [x] Acceptance demonstration — `acceptance_cases/loan.json` + `SAMPLE_RUNS_LOAN.md` (4 real applicants, BB→C gradient)
+- [x] Acceptance demonstration — `acceptance_cases/loan.json` + `SAMPLE_RUNS_LOAN.md` (6-case standard: 4 real w/ actual outcome, BB→C + 2 synthetic; SYN-best floors at AAA)
 - [x] `AEGIS_RUN_LOAN.md` — G0–G5 signed, **GF ruled last** with visibility — **GO-WITH-CONDITIONS**, chain intact
 - [x] Open GF conditions listed, each with its discharge point
 
@@ -85,18 +85,21 @@ origination-only model**, not the 7-col benchmark that contains the circular/ext
 **G5 deliverables (decisioning note + acceptance pack) produced below — before GF.**
 
 ### Acceptance demonstration (committee pack: `SAMPLE_RUNS_LOAN.md`, inputs `acceptance_cases/loan.json`)
-Real applicants at the 3rd/45th/85th/99th PD percentiles (7-col benchmark). **A genuine strong→weak gradient**
-(contrast PAK): the model spreads cleanly across BB→C with sensible reason codes.
+**Fixed 6-case standard:** 4 real applicants (actual outcome shown, spanning the risk range with both outcomes)
++ 2 synthetic composites (built from observed feature-value extremes — PD-floor check + stress check).
+**Predicted vs actual is sensible** (contrast PAK): repaid cases sit low, defaulters high.
 
-| Candidate | Calibrated PD | Grade (risk tier) | Governed decision | Principal reasons |
-|---|--:|---|---|---|
-| LN-strong | 4.46% | BB | SCORE | all protective |
-| LN-good | 14.85% | CCC | SCORE | revol.util, fico |
-| LN-refer | 24.73% | CC | SCORE | inq.last.6mths, fico, int.rate |
-| LN-weak | 38.52% | C | SCORE | purpose, int.rate, inq.last.6mths |
+| Candidate | Type | Actual | Calibrated PD | Grade | Decision | Principal reasons |
+|---|---|---|--:|---|---|---|
+| R1-low-repaid | real | repaid | 4.46% | BB | SCORE | revol.util |
+| R2-mid-repaid | real | repaid | 15.04% | CCC | SCORE | int.rate, log.annual.inc, fico |
+| R3-mid-default | real | defaulted | 17.42% | CCC | SCORE | fico, int.rate, revol.util |
+| R4-high-default | real | defaulted | 38.52% | C | SCORE | purpose, log.annual.inc, fico |
+| SYN-best | synthetic | — | 0.03% | AAA | SCORE | all protective (PD floor hit) |
+| SYN-worst | synthetic | — | 80.00% | D | SCORE | purpose, inq.last.6mths, log.annual.inc |
 
-*(Accept/refer/decline threshold is an institution input, not derived here — no pricing. The benchmark's reason
-codes include the availability-flagged `fico`/`int.rate`; the deployable **origination-only** model excludes them.
+*(Accept/refer/decline threshold is an institution input, not derived here — no pricing. Honest messy-middle:
+R2 repaid at 15.0% vs R3 defaulted at 17.4% — close but correctly ordered; SYN-best confirms the 0.03% floor.
 Full showcase: `SAMPLE_RUNS_LOAN.md`; decisioning note: `AEGIS_LOAN_CUTOFF_POLICY.md`.)*
 
 ---

@@ -70,7 +70,7 @@ prior GO-WITH-CONDITIONS runs.
 - [x] `SHARP_PAK.md` — Stages 0–4 + Stage 4b backtest + fairness
 - [x] **Per-grade calibration backtest (in G4, before GF)** — HL p=0.382, 5/5 populated grades pass
 - [x] `AEGIS_PAK_CUTOFF_POLICY.md` — decisioning note (grades; institution threshold; no pricing; weak-signal + proxy caveats)
-- [x] Acceptance demonstration — `acceptance_cases/pak.json` + `SAMPLE_RUNS_PAK.md` (4 real applicants, all CC–C)
+- [x] Acceptance demonstration — `acceptance_cases/pak.json` + `SAMPLE_RUNS_PAK.md` (6-case standard: 4 real w/ actual outcome + 2 synthetic; repayer & defaulter share PD 36.28%)
 - [x] `AEGIS_RUN_PAK.md` — G0–G5 signed, **GF ruled last** with visibility — **NO-GO**, chain intact
 - [x] Rejection basis listed, each with its reconsideration requirement
 
@@ -93,23 +93,28 @@ C leaves the trap open; D (drop it) diverges from the ratified benchmark (sensit
 **G5 deliverables (decisioning note + acceptance pack) produced below — before GF.**
 
 ### Acceptance demonstration (committee pack: `SAMPLE_RUNS_PAK.md`, inputs `acceptance_cases/pak.json`)
-Real applicants at the 2nd/35th/75th/99th OOF-PD percentiles. **All four compress into grades CC–C** under the
-governed scorer — the empirical face of Gini 0.148 (no approvable / investment-grade applicant produced).
+**Fixed 6-case standard:** 4 real applicants (actual outcome shown) + 2 synthetic composites (PD-floor + stress).
+**The predicted-vs-actual view is damning (and honest):** a repayer (R2) and a defaulter (R3) get the **identical
+36.28% PD**, and even `SYN-best` (all best-observed values) cannot clear grade CC — the model produces **no
+approvable applicant even synthetically**. The empirical face of Gini 0.148, reinforcing the NO-GO.
 
-| Candidate | Calibrated PD | Grade (risk tier) | Governed decision | Principal reasons |
-|---|--:|---|---|---|
-| PAK-A (p02) | 28.17% | CC | SCORE_FLAGGED | banking-accounts (adverse floor on missing PROFESSIONAL_STATE) |
-| PAK-B (p35) | 36.28% | C | SCORE_FLAGGED | PAYMENT_DAY, OCCUPATION_TYPE (missing) |
-| PAK-C (p75) | 30.64% | CC | SCORE | PROFESSIONAL_STATE, OCCUPATION_TYPE, PAYMENT_DAY |
-| PAK-D (p99) | 38.90% | C | SCORE | RESIDENCIAL_PHONE_AREA_CODE (missing), PROFESSIONAL_STATE |
+| Candidate | Type | Actual | Calibrated PD | Grade | Decision | Principal reasons |
+|---|---|---|--:|---|---|---|
+| R1-low-repaid | real | repaid | 29.48% | CC | SCORE_FLAGGED | banking-accounts (adverse floor on missing PROFESSIONAL_STATE) |
+| R2-mid-repaid | real | repaid | 36.28% | C | SCORE_FLAGGED | PAYMENT_DAY, banking-accounts |
+| R3-mid-default | real | defaulted | 36.28% | C | SCORE_FLAGGED | PAYMENT_DAY, banking-accounts |
+| R4-high-default | real | defaulted | 36.28% | C | SCORE | RESIDENCIAL_PHONE_AREA_CODE, PROFESSIONAL_STATE |
+| SYN-best | synthetic | — | 20.22% | CC | SCORE | PAYMENT_DAY, RESIDENCIAL_PHONE_AREA_CODE |
+| SYN-worst | synthetic | — | 65.40% | D | SCORE | banking-accounts, PAYMENT_DAY |
 
-*(Accept/refer/decline threshold is an institution input, not derived here — no pricing. The adverse floor
-re-ranks the two missing-`PROFESSIONAL_STATE` cases upward, visible because the model carries little real signal.
-Full showcase: `SAMPLE_RUNS_PAK.md`; decisioning note: `AEGIS_PAK_CUTOFF_POLICY.md`.)*
+*(Accept/refer/decline threshold is an institution input, not derived here — no pricing. R2 repaid and R3
+defaulted share an identical PD (36.28%): the model cannot separate the two outcomes. Full showcase:
+`SAMPLE_RUNS_PAK.md`; decisioning note: `AEGIS_PAK_CUTOFF_POLICY.md`.)*
 
-**Scorer note:** `score_acceptance_cases.py` was extended to coerce JSON `null`→`NaN` by training-column dtype,
-so a missing *numeric* input routes into the learned `__missing__` bin / adverse floor (PAK is the first run
-with missing numeric inputs in the acceptance cases). No change to existing packs.
+**Scorer notes:** `score_acceptance_cases.py` was extended (a) to coerce JSON `null`→`NaN` by training-column
+dtype so a missing *numeric* input routes into the learned `__missing__` bin / adverse floor, and (b) to render
+the fixed 6-case standard — `Type` (real/synthetic) + `Actual outcome` columns via an optional `case_meta` block
+(a pack with no `case_meta` still generates — PDs unchanged; the new columns show real/unknown).
 
 ---
 

@@ -2,7 +2,7 @@
   "dataset": "PAK.csv",
   "target": "target",
   "title": "PAK (PAKDD-2009 Brazilian retail credit)",
-  "note": "Candidates are REAL applicants drawn at the 2nd/35th/75th/99th percentiles of the modelled (OOF) PD distribution (not invented profiles). Under the deployed governed scorer (adverse floor on missing PROFESSIONAL_STATE + isotonic calibration) all four compress into grades CC-C (28-39% PD): the model produces no investment-grade / clearly-approvable applicant and barely orders the cases - the empirical face of Gini 0.148. The 6-col benchmark retains two flagged geographic proxies, not suitable for a live credit decision.",
+  "note": "Fixed 6-case committee standard: 4 REAL applicants (actual outcome shown) spanning the risk range with both outcomes, + 2 SYNTHETIC composites (SYN-best / SYN-worst, built from observed feature-value extremes; no real outcome). 6-col benchmark retains two flagged geographic proxies, not for live use. Model barely discriminates (Gini 0.148) - the real cases show how little the PD moves with outcome.",
   "selected_columns": [
     "PAYMENT_DAY",
     "RESIDENCIAL_PHONE_AREA_CODE",
@@ -21,37 +21,83 @@
   ],
   "incomplete_policy": "refer",
   "cases": {
-    "PAK-A (p02)": {
+    "R1-low-repaid": {
       "PAYMENT_DAY": 5,
-      "RESIDENCIAL_PHONE_AREA_CODE": 117,
-      "OCCUPATION_TYPE": 1,
+      "RESIDENCIAL_PHONE_AREA_CODE": 20.0,
+      "OCCUPATION_TYPE": 1.0,
       "PROFESSIONAL_STATE": null,
       "QUANT_BANKING_ACCOUNTS": 1,
       "QUANT_SPECIAL_BANKING_ACCOUNTS": 1
     },
-    "PAK-B (p35)": {
+    "R2-mid-repaid": {
       "PAYMENT_DAY": 1,
-      "RESIDENCIAL_PHONE_AREA_CODE": 117,
-      "OCCUPATION_TYPE": null,
+      "RESIDENCIAL_PHONE_AREA_CODE": 97.0,
+      "OCCUPATION_TYPE": 0.0,
       "PROFESSIONAL_STATE": null,
+      "QUANT_BANKING_ACCOUNTS": 1,
+      "QUANT_SPECIAL_BANKING_ACCOUNTS": 1
+    },
+    "R3-mid-default": {
+      "PAYMENT_DAY": 1,
+      "RESIDENCIAL_PHONE_AREA_CODE": 90.0,
+      "OCCUPATION_TYPE": 0.0,
+      "PROFESSIONAL_STATE": null,
+      "QUANT_BANKING_ACCOUNTS": 1,
+      "QUANT_SPECIAL_BANKING_ACCOUNTS": 1
+    },
+    "R4-high-default": {
+      "PAYMENT_DAY": 1,
+      "RESIDENCIAL_PHONE_AREA_CODE": null,
+      "OCCUPATION_TYPE": 2.0,
+      "PROFESSIONAL_STATE": "SP",
+      "QUANT_BANKING_ACCOUNTS": 1,
+      "QUANT_SPECIAL_BANKING_ACCOUNTS": 1
+    },
+    "SYN-best": {
+      "PAYMENT_DAY": 1,
+      "RESIDENCIAL_PHONE_AREA_CODE": 1.0,
+      "OCCUPATION_TYPE": 0.0,
+      "PROFESSIONAL_STATE": "RO",
       "QUANT_BANKING_ACCOUNTS": 0,
       "QUANT_SPECIAL_BANKING_ACCOUNTS": 0
     },
-    "PAK-C (p75)": {
-      "PAYMENT_DAY": 1,
-      "RESIDENCIAL_PHONE_AREA_CODE": 105,
-      "OCCUPATION_TYPE": 2,
-      "PROFESSIONAL_STATE": "RN",
-      "QUANT_BANKING_ACCOUNTS": 1,
-      "QUANT_SPECIAL_BANKING_ACCOUNTS": 1
+    "SYN-worst": {
+      "PAYMENT_DAY": 25,
+      "RESIDENCIAL_PHONE_AREA_CODE": 126.0,
+      "OCCUPATION_TYPE": 5.0,
+      "PROFESSIONAL_STATE": "AL",
+      "QUANT_BANKING_ACCOUNTS": 2,
+      "QUANT_SPECIAL_BANKING_ACCOUNTS": 2
+    }
+  },
+  "case_meta": {
+    "R1-low-repaid": {
+      "kind": "real",
+      "actual": 0,
+      "modelled_pd": 0.1833
     },
-    "PAK-D (p99)": {
-      "PAYMENT_DAY": 1,
-      "RESIDENCIAL_PHONE_AREA_CODE": null,
-      "OCCUPATION_TYPE": 2,
-      "PROFESSIONAL_STATE": "BA",
-      "QUANT_BANKING_ACCOUNTS": 1,
-      "QUANT_SPECIAL_BANKING_ACCOUNTS": 1
+    "R2-mid-repaid": {
+      "kind": "real",
+      "actual": 0,
+      "modelled_pd": 0.2676
+    },
+    "R3-mid-default": {
+      "kind": "real",
+      "actual": 1,
+      "modelled_pd": 0.2676
+    },
+    "R4-high-default": {
+      "kind": "real",
+      "actual": 1,
+      "modelled_pd": 0.3581
+    },
+    "SYN-best": {
+      "kind": "synthetic",
+      "actual": null
+    },
+    "SYN-worst": {
+      "kind": "synthetic",
+      "actual": null
     }
   }
 }

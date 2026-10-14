@@ -61,10 +61,27 @@ def main():
          'institution applying its own risk-appetite PD threshold** — it is exogenous to this methodology and '
          'is **not** derived or priced here.',
          '', '## Summary', '',
-         '| Candidate | Calibrated PD | vs portfolio | Grade (risk tier) | Governed decision | Principal reasons |',
-         '|---|--:|--:|---|---|---|']
+         '| Candidate | Type | Actual outcome | Calibrated PD | vs portfolio | Grade (risk tier) | Governed decision | Principal reasons |',
+         '|---|---|---|--:|--:|---|---|---|']
+    # Optional per-case metadata: {name: {"kind": "real"|"synthetic", "actual": 0|1|null}}.
+    # Absent -> treated as real with unknown outcome, so older packs render unchanged.
+    meta = spec.get('case_meta', {})
+    def _actual_str(a):
+        return 'defaulted' if a == 1 else ('repaid' if a == 0 else '—')
+    if meta:
+        n_real = sum(1 for n in spec['cases'] if meta.get(n, {}).get('kind', 'real') == 'real')
+        n_syn = len(spec['cases']) - n_real
+        _si = L.index('## Summary')
+        L[_si:_si] = [
+            '**Case composition (fixed standard):** %d real applicants (drawn from the dataset, actual outcome '
+            'shown) + %d synthetic composites (constructed from observed feature values — no real outcome; a '
+            'PD-floor check and a stress check). Real cases span the risk range and include both outcomes.'
+            % (n_real, n_syn), '']
     details = []
     for name, cust in spec['cases'].items():
+        cm = meta.get(name, {})
+        kind = cm.get('kind', 'real')
+        actual = cm.get('actual', None)
         row = pd.DataFrame([cust]).reindex(columns=order)
         # JSON null -> NaN, keyed off the TRAINING column dtype: a missing numeric input must
         # route into the learned __missing__ bin / adverse floor (the governance being shown),
@@ -85,10 +102,12 @@ def main():
         t['effect'] = np.where(t.contribution > 0, 'raises risk', 'lowers risk')
         t = t.reindex(t.contribution.abs().sort_values(ascending=False).index)
         adv = t[t.contribution > 0].head(3).feature.tolist()
-        L.append('| **%s** | %.2f%% | %.2f× | %s (%s) | %s | %s |'
-                 % (name, 100*pd_, pd_/port, g['grade'], g['label'], gov['decision'],
+        L.append('| **%s** | %s | %s | %.2f%% | %.2f× | %s (%s) | %s | %s |'
+                 % (name, kind, _actual_str(actual), 100*pd_, pd_/port, g['grade'], g['label'], gov['decision'],
                     ', '.join(adv) if adv else 'all protective'))
         d = ['', '### %s' % name, '',
+             '**Type:** %s · **Actual outcome:** %s'
+             % (kind, _actual_str(actual) if kind == 'real' else 'n/a (synthetic composite — constructed from observed feature values; no real outcome)'), '',
              '**Inputs:** ' + ', '.join('%s=%s' % (c, cust[c]) for c in order), '',
              '**Governed decision:** %s · raw PD %.2f%% → **calibrated PD %.2f%%** (%.2f× portfolio) · '
              'grade **%s** (%s)' % (gov['decision'], 100*raw, 100*pd_, pd_/port, g['grade'], g['label']),

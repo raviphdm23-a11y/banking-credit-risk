@@ -6,97 +6,138 @@
 
 > **Scope.** This pack reports only methodology/regulation-grounded outputs: calibrated PD, rating grade (risk tier, on the institution's internal master scale), exact WOE reason codes, and the governed completeness decision. The **accept / refer / decline lending decision is set by the institution applying its own risk-appetite PD threshold** — it is exogenous to this methodology and is **not** derived or priced here.
 
-> **⚠️ Interpretation (the honest finding).** Candidates are **real applicants** drawn at the 2nd/35th/75th/99th
-> percentiles of the modelled (OOF) PD distribution — not invented profiles. Under the deployed governed scorer
-> (adverse floor on missing `PROFESSIONAL_STATE` + isotonic calibration) **all four compress into grades CC–C
-> (28–39% PD)**: the model produces **no investment-grade / clearly-approvable applicant** and barely orders the
-> cases — the empirical face of Gini 0.148 (backtest: 8,665/10,000 in one grade). PAK-A/B have `PROFESSIONAL_STATE`
-> missing, so the **adverse floor** pushes them up, which on a model this weak **re-ranks them above** applicants
-> who supplied it (A/B vs C) — the floor penalising omission as designed, but visible precisely because there is
-> little genuine signal to override it. The 6-col benchmark also retains two **flagged geographic proxies**, not
-> suitable for a live credit decision. This pack is the concrete evidence for the "benchmark, **not** for lending
-> decisions" designation carried into GF.
+**Case composition (fixed standard):** 4 real applicants (drawn from the dataset, actual outcome shown) + 2 synthetic composites (constructed from observed feature values — no real outcome; a PD-floor check and a stress check). Real cases span the risk range and include both outcomes.
 
 ## Summary
 
-| Candidate | Calibrated PD | vs portfolio | Grade (risk tier) | Governed decision | Principal reasons |
-|---|--:|--:|---|---|---|
-| **PAK-A (p02)** | 28.17% | 1.08× | CC (Highly Distressed) | SCORE_FLAGGED | QUANT_BANKING_ACCOUNTS, QUANT_SPECIAL_BANKING_ACCOUNTS |
-| **PAK-B (p35)** | 36.28% | 1.39× | C (Near Default) | SCORE_FLAGGED | PAYMENT_DAY, OCCUPATION_TYPE |
-| **PAK-C (p75)** | 30.64% | 1.17× | CC (Highly Distressed) | SCORE | PROFESSIONAL_STATE, OCCUPATION_TYPE, PAYMENT_DAY |
-| **PAK-D (p99)** | 38.90% | 1.49× | C (Near Default) | SCORE | RESIDENCIAL_PHONE_AREA_CODE, PROFESSIONAL_STATE, OCCUPATION_TYPE |
+| Candidate | Type | Actual outcome | Calibrated PD | vs portfolio | Grade (risk tier) | Governed decision | Principal reasons |
+|---|---|---|--:|--:|---|---|---|
+| **R1-low-repaid** | real | repaid | 29.48% | 1.13× | CC (Highly Distressed) | SCORE_FLAGGED | QUANT_BANKING_ACCOUNTS, QUANT_SPECIAL_BANKING_ACCOUNTS |
+| **R2-mid-repaid** | real | repaid | 36.28% | 1.39× | C (Near Default) | SCORE_FLAGGED | PAYMENT_DAY, QUANT_BANKING_ACCOUNTS, QUANT_SPECIAL_BANKING_ACCOUNTS |
+| **R3-mid-default** | real | defaulted | 36.28% | 1.39× | C (Near Default) | SCORE_FLAGGED | PAYMENT_DAY, QUANT_BANKING_ACCOUNTS, QUANT_SPECIAL_BANKING_ACCOUNTS |
+| **R4-high-default** | real | defaulted | 36.28% | 1.39× | C (Near Default) | SCORE | RESIDENCIAL_PHONE_AREA_CODE, PROFESSIONAL_STATE, OCCUPATION_TYPE |
+| **SYN-best** | synthetic | — | 20.22% | 0.78× | CC (Highly Distressed) | SCORE | PAYMENT_DAY, RESIDENCIAL_PHONE_AREA_CODE |
+| **SYN-worst** | synthetic | — | 65.40% | 2.51× | D (Default) | SCORE | QUANT_BANKING_ACCOUNTS, QUANT_SPECIAL_BANKING_ACCOUNTS, PAYMENT_DAY |
 
 ---
 ## Per-candidate showcase (what a new applicant report looks like)
 
-### PAK-A (p02)
+### R1-low-repaid
 
-**Inputs:** PAYMENT_DAY=5, RESIDENCIAL_PHONE_AREA_CODE=117, OCCUPATION_TYPE=1, PROFESSIONAL_STATE=None, QUANT_BANKING_ACCOUNTS=1, QUANT_SPECIAL_BANKING_ACCOUNTS=1
+**Type:** real · **Actual outcome:** repaid
 
-**Governed decision:** SCORE_FLAGGED · raw PD 17.48% → **calibrated PD 28.17%** (1.08× portfolio) · grade **CC** (Highly Distressed)
+**Inputs:** PAYMENT_DAY=5, RESIDENCIAL_PHONE_AREA_CODE=20.0, OCCUPATION_TYPE=1.0, PROFESSIONAL_STATE=None, QUANT_BANKING_ACCOUNTS=1, QUANT_SPECIAL_BANKING_ACCOUNTS=1
+
+**Governed decision:** SCORE_FLAGGED · raw PD 18.07% → **calibrated PD 29.48%** (1.13× portfolio) · grade **CC** (Highly Distressed)
 
 Governance note: adverse floor: PROFESSIONAL_STATE
 
 | Feature | Value | WOE | Contribution | Effect |
 |---|---|--:|--:|---|
 | OCCUPATION_TYPE | 1.0 | +0.325 | -0.283 | lowers risk |
-| RESIDENCIAL_PHONE_AREA_CODE | 117.0 | +0.116 | -0.132 | lowers risk |
 | PAYMENT_DAY | 5.0 | +0.125 | -0.111 | lowers risk |
+| RESIDENCIAL_PHONE_AREA_CODE | 20.0 | +0.081 | -0.092 | lowers risk |
 | PROFESSIONAL_STATE | nan | +0.041 | -0.028 | lowers risk |
 | QUANT_BANKING_ACCOUNTS | 1.0 | -0.034 | +0.022 | raises risk |
 | QUANT_SPECIAL_BANKING_ACCOUNTS | 1.0 | -0.034 | +0.022 | raises risk |
 
 **Principal (adverse-action) reasons:** QUANT_BANKING_ACCOUNTS, QUANT_SPECIAL_BANKING_ACCOUNTS
 
-### PAK-B (p35)
+### R2-mid-repaid
 
-**Inputs:** PAYMENT_DAY=1, RESIDENCIAL_PHONE_AREA_CODE=117, OCCUPATION_TYPE=None, PROFESSIONAL_STATE=None, QUANT_BANKING_ACCOUNTS=0, QUANT_SPECIAL_BANKING_ACCOUNTS=0
+**Type:** real · **Actual outcome:** repaid
 
-**Governed decision:** SCORE_FLAGGED · raw PD 23.86% → **calibrated PD 36.28%** (1.39× portfolio) · grade **C** (Near Default)
+**Inputs:** PAYMENT_DAY=1, RESIDENCIAL_PHONE_AREA_CODE=97.0, OCCUPATION_TYPE=0.0, PROFESSIONAL_STATE=None, QUANT_BANKING_ACCOUNTS=1, QUANT_SPECIAL_BANKING_ACCOUNTS=1
+
+**Governed decision:** SCORE_FLAGGED · raw PD 25.87% → **calibrated PD 36.28%** (1.39× portfolio) · grade **C** (Near Default)
 
 Governance note: adverse floor: PROFESSIONAL_STATE
 
 | Feature | Value | WOE | Contribution | Effect |
 |---|---|--:|--:|---|
-| RESIDENCIAL_PHONE_AREA_CODE | 117.0 | +0.116 | -0.132 | lowers risk |
+| RESIDENCIAL_PHONE_AREA_CODE | 97.0 | +0.054 | -0.061 | lowers risk |
 | PAYMENT_DAY | 1.0 | -0.043 | +0.038 | raises risk |
-| OCCUPATION_TYPE | nan | -0.033 | +0.029 | raises risk |
 | PROFESSIONAL_STATE | nan | +0.041 | -0.028 | lowers risk |
-| QUANT_BANKING_ACCOUNTS | 0.0 | +0.020 | -0.013 | lowers risk |
-| QUANT_SPECIAL_BANKING_ACCOUNTS | 0.0 | +0.020 | -0.013 | lowers risk |
+| QUANT_BANKING_ACCOUNTS | 1.0 | -0.034 | +0.022 | raises risk |
+| QUANT_SPECIAL_BANKING_ACCOUNTS | 1.0 | -0.034 | +0.022 | raises risk |
+| OCCUPATION_TYPE | 0.0 | +0.004 | -0.004 | lowers risk |
 
-**Principal (adverse-action) reasons:** PAYMENT_DAY, OCCUPATION_TYPE
+**Principal (adverse-action) reasons:** PAYMENT_DAY, QUANT_BANKING_ACCOUNTS, QUANT_SPECIAL_BANKING_ACCOUNTS
 
-### PAK-C (p75)
+### R3-mid-default
 
-**Inputs:** PAYMENT_DAY=1, RESIDENCIAL_PHONE_AREA_CODE=105, OCCUPATION_TYPE=2, PROFESSIONAL_STATE=RN, QUANT_BANKING_ACCOUNTS=1, QUANT_SPECIAL_BANKING_ACCOUNTS=1
+**Type:** real · **Actual outcome:** defaulted
 
-**Governed decision:** SCORE · raw PD 30.05% → **calibrated PD 30.64%** (1.17× portfolio) · grade **CC** (Highly Distressed)
+**Inputs:** PAYMENT_DAY=1, RESIDENCIAL_PHONE_AREA_CODE=90.0, OCCUPATION_TYPE=0.0, PROFESSIONAL_STATE=None, QUANT_BANKING_ACCOUNTS=1, QUANT_SPECIAL_BANKING_ACCOUNTS=1
+
+**Governed decision:** SCORE_FLAGGED · raw PD 25.87% → **calibrated PD 36.28%** (1.39× portfolio) · grade **C** (Near Default)
+
+Governance note: adverse floor: PROFESSIONAL_STATE
 
 | Feature | Value | WOE | Contribution | Effect |
 |---|---|--:|--:|---|
-| PROFESSIONAL_STATE | RN | -0.179 | +0.123 | raises risk |
-| RESIDENCIAL_PHONE_AREA_CODE | 105 | +0.051 | -0.058 | lowers risk |
-| OCCUPATION_TYPE | 2 | -0.057 | +0.050 | raises risk |
-| PAYMENT_DAY | 1 | -0.043 | +0.038 | raises risk |
-| QUANT_BANKING_ACCOUNTS | 1 | -0.034 | +0.022 | raises risk |
-| QUANT_SPECIAL_BANKING_ACCOUNTS | 1 | -0.034 | +0.022 | raises risk |
+| RESIDENCIAL_PHONE_AREA_CODE | 90.0 | +0.054 | -0.061 | lowers risk |
+| PAYMENT_DAY | 1.0 | -0.043 | +0.038 | raises risk |
+| PROFESSIONAL_STATE | nan | +0.041 | -0.028 | lowers risk |
+| QUANT_BANKING_ACCOUNTS | 1.0 | -0.034 | +0.022 | raises risk |
+| QUANT_SPECIAL_BANKING_ACCOUNTS | 1.0 | -0.034 | +0.022 | raises risk |
+| OCCUPATION_TYPE | 0.0 | +0.004 | -0.004 | lowers risk |
 
-**Principal (adverse-action) reasons:** PROFESSIONAL_STATE, OCCUPATION_TYPE, PAYMENT_DAY
+**Principal (adverse-action) reasons:** PAYMENT_DAY, QUANT_BANKING_ACCOUNTS, QUANT_SPECIAL_BANKING_ACCOUNTS
 
-### PAK-D (p99)
+### R4-high-default
 
-**Inputs:** PAYMENT_DAY=1, RESIDENCIAL_PHONE_AREA_CODE=None, OCCUPATION_TYPE=2, PROFESSIONAL_STATE=BA, QUANT_BANKING_ACCOUNTS=1, QUANT_SPECIAL_BANKING_ACCOUNTS=1
+**Type:** real · **Actual outcome:** defaulted
 
-**Governed decision:** SCORE · raw PD 39.75% → **calibrated PD 38.90%** (1.49× portfolio) · grade **C** (Near Default)
+**Inputs:** PAYMENT_DAY=1, RESIDENCIAL_PHONE_AREA_CODE=None, OCCUPATION_TYPE=2.0, PROFESSIONAL_STATE=SP, QUANT_BANKING_ACCOUNTS=1, QUANT_SPECIAL_BANKING_ACCOUNTS=1
+
+**Governed decision:** SCORE · raw PD 37.27% → **calibrated PD 36.28%** (1.39× portfolio) · grade **C** (Near Default)
 
 | Feature | Value | WOE | Contribution | Effect |
 |---|---|--:|--:|---|
 | RESIDENCIAL_PHONE_AREA_CODE | None | -0.293 | +0.332 | raises risk |
-| PROFESSIONAL_STATE | BA | -0.235 | +0.162 | raises risk |
-| OCCUPATION_TYPE | 2 | -0.057 | +0.050 | raises risk |
+| PROFESSIONAL_STATE | SP | -0.083 | +0.057 | raises risk |
+| OCCUPATION_TYPE | 2.0 | -0.057 | +0.050 | raises risk |
 | PAYMENT_DAY | 1 | -0.043 | +0.038 | raises risk |
 | QUANT_BANKING_ACCOUNTS | 1 | -0.034 | +0.022 | raises risk |
 | QUANT_SPECIAL_BANKING_ACCOUNTS | 1 | -0.034 | +0.022 | raises risk |
 
 **Principal (adverse-action) reasons:** RESIDENCIAL_PHONE_AREA_CODE, PROFESSIONAL_STATE, OCCUPATION_TYPE
+
+### SYN-best
+
+**Type:** synthetic · **Actual outcome:** n/a (synthetic composite — constructed from observed feature values; no real outcome)
+
+**Inputs:** PAYMENT_DAY=1, RESIDENCIAL_PHONE_AREA_CODE=1.0, OCCUPATION_TYPE=0.0, PROFESSIONAL_STATE=RO, QUANT_BANKING_ACCOUNTS=0, QUANT_SPECIAL_BANKING_ACCOUNTS=0
+
+**Governed decision:** SCORE · raw PD 20.18% → **calibrated PD 20.22%** (0.78× portfolio) · grade **CC** (Highly Distressed)
+
+| Feature | Value | WOE | Contribution | Effect |
+|---|---|--:|--:|---|
+| PROFESSIONAL_STATE | RO | +0.499 | -0.344 | lowers risk |
+| PAYMENT_DAY | 1 | -0.043 | +0.038 | raises risk |
+| QUANT_SPECIAL_BANKING_ACCOUNTS | 0 | +0.020 | -0.013 | lowers risk |
+| QUANT_BANKING_ACCOUNTS | 0 | +0.020 | -0.013 | lowers risk |
+| OCCUPATION_TYPE | 0.0 | +0.004 | -0.004 | lowers risk |
+| RESIDENCIAL_PHONE_AREA_CODE | 1.0 | -0.001 | +0.001 | raises risk |
+
+**Principal (adverse-action) reasons:** PAYMENT_DAY, RESIDENCIAL_PHONE_AREA_CODE
+
+### SYN-worst
+
+**Type:** synthetic · **Actual outcome:** n/a (synthetic composite — constructed from observed feature values; no real outcome)
+
+**Inputs:** PAYMENT_DAY=25, RESIDENCIAL_PHONE_AREA_CODE=126.0, OCCUPATION_TYPE=5.0, PROFESSIONAL_STATE=AL, QUANT_BANKING_ACCOUNTS=2, QUANT_SPECIAL_BANKING_ACCOUNTS=2
+
+**Governed decision:** SCORE · raw PD 76.40% → **calibrated PD 65.40%** (2.51× portfolio) · grade **D** (Default)
+
+| Feature | Value | WOE | Contribution | Effect |
+|---|---|--:|--:|---|
+| QUANT_BANKING_ACCOUNTS | 2 | -1.329 | +0.859 | raises risk |
+| QUANT_SPECIAL_BANKING_ACCOUNTS | 2 | -1.329 | +0.859 | raises risk |
+| PAYMENT_DAY | 25 | -0.337 | +0.299 | raises risk |
+| PROFESSIONAL_STATE | AL | -0.410 | +0.283 | raises risk |
+| RESIDENCIAL_PHONE_AREA_CODE | 126.0 | +0.116 | -0.132 | lowers risk |
+| OCCUPATION_TYPE | 5.0 | -0.056 | +0.049 | raises risk |
+
+**Principal (adverse-action) reasons:** QUANT_BANKING_ACCOUNTS, QUANT_SPECIAL_BANKING_ACCOUNTS, PAYMENT_DAY

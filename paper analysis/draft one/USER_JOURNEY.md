@@ -66,10 +66,25 @@ removed). The grade-scale band edges need a citation (e.g., agency idealised def
 as the institution's internal scale.
 
 ## Step 5 — Acceptance demonstration: score candidates + reason reports [REQUIRED — G5 deliverable, BEFORE Go/No-Go]
-> "Build the approved scorer and score these representative candidates: [paste 3–5 applicant profiles, or ask
-> Claude to pick a strong / borderline / weak example — include a deliberately extreme one to check nothing
-> breaks]. For each give: calibrated PD (floored), rating grade (risk tier), the governed completeness
-> decision, and the adverse-action **reason codes**. Do not invent a price or a cutoff."
+> "Build the approved scorer and score the fixed 6-case committee set. For each give: calibrated PD (floored),
+> rating grade (risk tier), the governed completeness decision, and the adverse-action **reason codes**. Do not
+> invent a price or a cutoff."
+
+**Fixed case-composition standard (6 cases per pack — identical across every dataset, for committee
+comparability):**
+- **4 REAL applicants** drawn from the dataset, each with its **actual outcome (default / repaid) shown** next to
+  the predicted PD. They are composed to span the risk range *and* include both outcomes:
+  `R1-low-repaid` (low PD, repaid), `R2-mid-repaid` (mid PD, repaid), `R3-mid-default` (mid PD, defaulted),
+  `R4-high-default` (high PD, defaulted). This surfaces the honest "messy middle" where a repayer and a defaulter
+  can share a near-identical PD.
+- **2 SYNTHETIC composites**, clearly labelled, with **no actual outcome**: `SYN-best` (each feature set to its
+  lowest-risk *observed* value → checks the 0.03% PD floor) and `SYN-worst` (each feature at its highest-risk
+  *observed* value → stress check that nothing breaks). Each synthetic value is a real observed value; only the
+  **combination** is constructed — never an invented number.
+
+The real-case actuals and the synthetic extremes are both **data-derived** (no fabricated inputs); the pack's
+`case_meta` block records each case's `kind` (real/synthetic) and `actual` (0/1/null). The scorer renders the
+`Type` and `Actual outcome` columns from it.
 
 Claude produces, per candidate, the applicant report you need — e.g.:
 > *Customer X — PD 16.9% · grade CCC (risk tier) · governed decision SCORE. Principal reasons: ① one
@@ -105,7 +120,7 @@ A dataset's end-to-end run is complete only when **all** of these exist and are 
 - [ ] `SHARP_<NAME>.md` — Stages 0–4 recorded, figures traceable
 - [ ] **Per-grade calibration backtest** (G4) — realised vs expected by grade; small-data caveat/MoC noted
 - [ ] `AEGIS_<NAME>_CUTOFF_POLICY.md` — decisioning note (grades; accept/decline = institution threshold; **no pricing, no invented cutoffs**)
-- [ ] Acceptance demonstration — `acceptance_cases/<name>.json` (saved inputs) + `SAMPLE_RUNS_<NAME>.md` (committee pack: ≥3 candidates, decisions + full reason-code reports), reproducible via `score_acceptance_cases.py`
+- [ ] Acceptance demonstration — `acceptance_cases/<name>.json` (saved inputs + `case_meta`) + `SAMPLE_RUNS_<NAME>.md` (committee pack: **fixed 6-case standard — 4 real w/ actual outcome + 2 synthetic**, decisions + full reason-code reports), reproducible via `score_acceptance_cases.py`
 - [ ] `AEGIS_RUN_<NAME>.md` — G0–G5 signed, **then GF ruled last** with visibility of the backtest + policy + demo; hash chain intact
 - [ ] Open GF conditions listed, each with its discharge point
 

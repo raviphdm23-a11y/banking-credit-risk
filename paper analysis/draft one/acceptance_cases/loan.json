@@ -2,7 +2,7 @@
   "dataset": "loan_data.csv",
   "target": "target",
   "title": "LOAN (LendingClub 2007-2010 educational subset)",
-  "note": "Candidates are REAL applicants drawn at the 3rd/45th/85th/99th PD percentiles (not invented). Scored with the ratified 7-col benchmark. NOTE: three features (fico external score; int.rate, credit.policy prior-decision artifacts) are availability-flagged - this benchmark is NOT an origination-time model; the deployable application-time model is the 4-col origination-only variant (fico/int.rate/credit.policy removed). See AEGIS_RUN_LOAN.md G3/G4 (LC-orig).",
+  "note": "Fixed 6-case committee standard: 4 REAL applicants (actual outcome shown) spanning the risk range with both outcomes, + 2 SYNTHETIC composites (SYN-best / SYN-worst, built from observed feature-value extremes; no real outcome). Scored with the ratified 7-col benchmark. Three features (fico external score; int.rate, credit.policy prior-decision artifacts) are availability-flagged - the deployable application-time model is the 4-col origination-only variant (see AEGIS_RUN_LOAN.md LC-orig).",
   "selected_columns": [
     "fico",
     "int.rate",
@@ -19,21 +19,89 @@
   "floor_columns": [],
   "incomplete_policy": "refer",
   "cases": {
-    "LN-strong": {
-      "fico": 727, "int.rate": 0.0788, "inq.last.6mths": 0, "credit.policy": 1,
-      "purpose": "credit_card", "revol.util": 51.0, "log.annual.inc": 11.90496755
+    "R1-low-repaid": {
+      "fico": 797,
+      "int.rate": 0.0894,
+      "inq.last.6mths": 1,
+      "credit.policy": 1,
+      "purpose": "credit_card",
+      "revol.util": 52.7,
+      "log.annual.inc": 11.60823564
     },
-    "LN-good": {
-      "fico": 712, "int.rate": 0.1008, "inq.last.6mths": 1, "credit.policy": 1,
-      "purpose": "debt_consolidation", "revol.util": 73.2, "log.annual.inc": 11.35040654
+    "R2-mid-repaid": {
+      "fico": 682,
+      "int.rate": 0.1357,
+      "inq.last.6mths": 1,
+      "credit.policy": 1,
+      "purpose": "debt_consolidation",
+      "revol.util": 25.6,
+      "log.annual.inc": 10.37349118
     },
-    "LN-refer": {
-      "fico": 667, "int.rate": 0.1513, "inq.last.6mths": 3, "credit.policy": 1,
-      "purpose": "major_purchase", "revol.util": 84.4, "log.annual.inc": 11.00209984
+    "R3-mid-default": {
+      "fico": 667,
+      "int.rate": 0.1496,
+      "inq.last.6mths": 0,
+      "credit.policy": 1,
+      "purpose": "debt_consolidation",
+      "revol.util": 76.8,
+      "log.annual.inc": 10.71441777
     },
-    "LN-weak": {
-      "fico": 662, "int.rate": 0.1836, "inq.last.6mths": 3, "credit.policy": 1,
-      "purpose": "small_business", "revol.util": 93.4, "log.annual.inc": 11.33857208
+    "R4-high-default": {
+      "fico": 662,
+      "int.rate": 0.1217,
+      "inq.last.6mths": 2,
+      "credit.policy": 1,
+      "purpose": "small_business",
+      "revol.util": 54.7,
+      "log.annual.inc": 9.210340372
+    },
+    "SYN-best": {
+      "fico": 827,
+      "int.rate": 0.06,
+      "inq.last.6mths": 0,
+      "credit.policy": 1,
+      "purpose": "major_purchase",
+      "revol.util": 0.0,
+      "log.annual.inc": 14.52835448
+    },
+    "SYN-worst": {
+      "fico": 612,
+      "int.rate": 0.2164,
+      "inq.last.6mths": 33,
+      "credit.policy": 0,
+      "purpose": "small_business",
+      "revol.util": 119.0,
+      "log.annual.inc": 7.547501683
+    }
+  },
+  "case_meta": {
+    "R1-low-repaid": {
+      "kind": "real",
+      "actual": 0,
+      "modelled_pd": 0.0475
+    },
+    "R2-mid-repaid": {
+      "kind": "real",
+      "actual": 0,
+      "modelled_pd": 0.1563
+    },
+    "R3-mid-default": {
+      "kind": "real",
+      "actual": 1,
+      "modelled_pd": 0.1563
+    },
+    "R4-high-default": {
+      "kind": "real",
+      "actual": 1,
+      "modelled_pd": 0.3384
+    },
+    "SYN-best": {
+      "kind": "synthetic",
+      "actual": null
+    },
+    "SYN-worst": {
+      "kind": "synthetic",
+      "actual": null
     }
   }
 }
