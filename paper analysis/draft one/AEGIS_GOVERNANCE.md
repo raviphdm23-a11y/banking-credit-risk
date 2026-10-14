@@ -95,6 +95,48 @@ purpose). The tier sets *who* must sign each gate and *how often* the model is r
   Model Owner; annual review. *Lowering a tier is itself a G0 decision with a recorded rationale* — it
   cannot be used to quietly skip scrutiny.
 
+### 3.2 Materiality-tier acceptance criteria (every threshold is externally sourced)
+
+The tier does **not** change the analytics — the method is fixed (P8) and every metric is measured
+identically across datasets. The tier sets *how high the pass-bar sits*. To keep the framework citable, **each
+individual threshold is anchored to either peer-reviewed literature or supervisory guidance**; only the
+*composition* (which cited bar applies at which tier) is AEGIS's own operationalization of SR 26-2's
+risk-proportionate principle (R9). No numeric bar is asserted from memory.
+
+**Per-criterion sources**
+
+| Criterion | Threshold | Source |
+|---|---|---|
+| Data adequacy — events per variable (EPV) | ≥ 10 EPV (guideline, not law) | Peduzzi et al., *J. Clin. Epidemiol.* 49(12), 1996; van Smeden et al., *BMC Med. Res. Methodol.* 16, 2016; Riley et al., *Statistics in Medicine* 38, 2019 |
+| Discrimination — AUC interpretation bands | 0.7–0.8 acceptable; ≥0.8 excellent | Hosmer, Lemeshow & Sturdivant, *Applied Logistic Regression*, 3rd ed., Wiley 2013 |
+| Discrimination — ROC CI & paired comparison | DeLong CI / DeLong test | DeLong, DeLong & Clarke-Pearson, *Biometrics* 44(3), 1988 |
+| Calibration — goodness-of-fit | Hosmer-Lemeshow p > 0.05 | Hosmer & Lemeshow, *Commun. Stat. Theory Methods* 9(10), 1980 |
+| Calibration — per-grade realised-vs-expected backtest | realised within expected CI, by grade | Basel **CRE36.122–123** |
+| Conservatism under data deficiency | Margin of Conservatism, category A/B/C | EBA Guidelines on PD/LGD estimation (EBA/GL/2017/16) |
+| Fairness — adverse-impact ratio | AIR ≥ 0.80 (four-fifths) | EEOC Uniform Guidelines on Employee Selection, 29 CFR 1607 |
+| Use test | model must feed real credit decisions | Basel **CRE36.60** |
+| Univariate IV interpretation bands | <0.02 … >0.5 | Siddiqi, *Credit Risk Scorecards*, Wiley 2006 (**book**, not a journal) |
+| Risk-proportionate rigor (the tiering itself) | gate depth ∝ exposure × purpose | **SR 26-2** §II–III (Fed/OCC/FDIC, 17 Apr 2026) |
+
+**Composition — how the cited bars apply per tier** (AEGIS design, operationalizing SR 26-2):
+
+| | LOW | MEDIUM | HIGH |
+|---|---|---|---|
+| EPV ≥ 10 (Peduzzi/Riley) | waived **with** documented MoC (EBA) | preferred; if < 10 → mandatory MoC + not-for-capital | **required** |
+| AUC floor (HLS 2013) | none (benchmark) | ≥ 0.70 (acceptable) | ≥ 0.80 (excellent) or justified |
+| HL (HL 1980) + per-grade backtest (CRE36.122) | run; MoC for sparse grades | must **not** be rejected; adequate grade n | must pass; no thinly-populated (n ≲ 20) grades |
+| Use test (CRE36.60) | n/a (benchmark) | required if deployed | required |
+| Governance ceremony | Owner batch-sign | stage gates + MAC notice | independent validator every gate |
+
+**Citation discipline for the paper.** Cite the *principles* to the regulators (SR 26-2, CRE36.60/.122–123,
+EBA MoC, EEOC) and the *statistical bars* to the journals (Peduzzi/van Smeden/Riley, HL 1980, DeLong 1988,
+HLS 2013). Present the **composition table as AEGIS's operational policy** — defensible because every cell is a
+sourced bar, not an invented number. The **0.05 mean-PD-gap** deployment-monitor threshold remains operational
+(not a standard) and is excluded here. All references above are recorded from domain knowledge and **must be
+verified against the primary source** (author/year/clause/page) before publication, per the standing working
+agreement; the Siddiqi IV bands are from a book — substitute a journal treatment (e.g. the WoE/IV usage in
+Lessmann et al., *EJOR* 247(1), 2015) if journal-only sourcing is required.
+
 ---
 
 ## 4. Anatomy of a gate

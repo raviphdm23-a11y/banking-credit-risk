@@ -1,0 +1,177 @@
+{
+  "dataset": "MSME_Credit_Data.csv",
+  "target": "target",
+  "title": "MSME (Chinese SME enterprise credit)",
+  "note": "Fixed 6-case committee standard: 4 REAL firms (actual outcome shown) + 2 SYNTHETIC composites (observed extremes; outcome = construction intent, by design). CORPORATE/SME credit (fairness N/A). HIGH-DIM / LOW-EPV stress test: 87 features vs 102 defaults; SHARP pruned to 6 players (15 cols). PDs are INDICATIVE not precise (MoC-epv): per-grade CIs are very wide and grade D rests on n=2.",
+  "selected_columns": [
+    "Sector",
+    "t-1 Basic medical insurance for employees",
+    "t-1 Basic old-age insurance for urban employees",
+    "t-1 Birth insurance",
+    "t-1 Employment injury insurance",
+    "t-1 Unemployment insurance",
+    "t-2 Basic medical insurance for employees",
+    "t-2 Basic old-age insurance for urban employees",
+    "t-2 Birth insurance",
+    "t-2 Employment injury insurance",
+    "t-2 Unemployment insurance",
+    "Trademark_info_num_5years+",
+    "Certificate_num_2years",
+    "Registered_capital (Ten thousand Yuan)",
+    "Enterprise_type"
+  ],
+  "mandatory_columns": [
+    "Sector",
+    "Registered_capital (Ten thousand Yuan)",
+    "Enterprise_type"
+  ],
+  "floor_columns": [
+    "t-1 Basic medical insurance for employees",
+    "t-1 Basic old-age insurance for urban employees",
+    "t-1 Birth insurance",
+    "t-1 Employment injury insurance",
+    "t-1 Unemployment insurance",
+    "t-2 Basic medical insurance for employees",
+    "t-2 Basic old-age insurance for urban employees",
+    "t-2 Birth insurance",
+    "t-2 Employment injury insurance",
+    "t-2 Unemployment insurance"
+  ],
+  "incomplete_policy": "refer",
+  "cases": {
+    "R1-low-repaid": {
+      "Sector": "Information transmission, software and information technology services",
+      "t-1 Basic medical insurance for employees": 48.0,
+      "t-1 Basic old-age insurance for urban employees": 48.0,
+      "t-1 Birth insurance": 29.0,
+      "t-1 Employment injury insurance": 48.0,
+      "t-1 Unemployment insurance": 48.0,
+      "t-2 Basic medical insurance for employees": 34.0,
+      "t-2 Basic old-age insurance for urban employees": 34.0,
+      "t-2 Birth insurance": 34.0,
+      "t-2 Employment injury insurance": 34.0,
+      "t-2 Unemployment insurance": 34.0,
+      "Trademark_info_num_5years+": 0,
+      "Certificate_num_2years": 3,
+      "Registered_capital (Ten thousand Yuan)": 10188.0,
+      "Enterprise_type": "Limited liability company (Natural person investment or holding)"
+    },
+    "R2-mid-repaid": {
+      "Sector": "Wholesale and retail",
+      "t-1 Basic medical insurance for employees": 49.0,
+      "t-1 Basic old-age insurance for urban employees": 49.0,
+      "t-1 Birth insurance": 49.0,
+      "t-1 Employment injury insurance": 49.0,
+      "t-1 Unemployment insurance": 49.0,
+      "t-2 Basic medical insurance for employees": 62.0,
+      "t-2 Basic old-age insurance for urban employees": 62.0,
+      "t-2 Birth insurance": 62.0,
+      "t-2 Employment injury insurance": 62.0,
+      "t-2 Unemployment insurance": 62.0,
+      "Trademark_info_num_5years+": 0,
+      "Certificate_num_2years": 3,
+      "Registered_capital (Ten thousand Yuan)": 6000.0,
+      "Enterprise_type": "Joint stock limited company (unlisted, natural person investment or holding)"
+    },
+    "R3-mid-default": {
+      "Sector": "Wholesale and retail",
+      "t-1 Basic medical insurance for employees": 197.0,
+      "t-1 Basic old-age insurance for urban employees": 209.0,
+      "t-1 Birth insurance": 197.0,
+      "t-1 Employment injury insurance": 214.0,
+      "t-1 Unemployment insurance": 210.0,
+      "t-2 Basic medical insurance for employees": 284.0,
+      "t-2 Basic old-age insurance for urban employees": 284.0,
+      "t-2 Birth insurance": 284.0,
+      "t-2 Employment injury insurance": 286.0,
+      "t-2 Unemployment insurance": 286.0,
+      "Trademark_info_num_5years+": 0,
+      "Certificate_num_2years": 2,
+      "Registered_capital (Ten thousand Yuan)": 5009.4233,
+      "Enterprise_type": "Other joint stock limited companies (unlisted)"
+    },
+    "R4-high-default": {
+      "Sector": "Wholesale and retail",
+      "t-1 Basic medical insurance for employees": 2.0,
+      "t-1 Basic old-age insurance for urban employees": 2.0,
+      "t-1 Birth insurance": 2.0,
+      "t-1 Employment injury insurance": 2.0,
+      "t-1 Unemployment insurance": 2.0,
+      "t-2 Basic medical insurance for employees": 0.0,
+      "t-2 Basic old-age insurance for urban employees": 0.0,
+      "t-2 Birth insurance": 0.0,
+      "t-2 Employment injury insurance": 0.0,
+      "t-2 Unemployment insurance": 0.0,
+      "Trademark_info_num_5years+": 0,
+      "Certificate_num_2years": 4,
+      "Registered_capital (Ten thousand Yuan)": 1200.0,
+      "Enterprise_type": "Other limited liability companies"
+    },
+    "SYN-best": {
+      "Sector": "Construction industry",
+      "t-1 Basic medical insurance for employees": 225.0,
+      "t-1 Basic old-age insurance for urban employees": 280.0,
+      "t-1 Birth insurance": 225.0,
+      "t-1 Employment injury insurance": 395.0,
+      "t-1 Unemployment insurance": 225.0,
+      "t-2 Basic medical insurance for employees": 3396.0,
+      "t-2 Basic old-age insurance for urban employees": 3396.0,
+      "t-2 Birth insurance": 3396.0,
+      "t-2 Employment injury insurance": 3396.0,
+      "t-2 Unemployment insurance": 3396.0,
+      "Trademark_info_num_5years+": 0,
+      "Certificate_num_2years": 28,
+      "Registered_capital (Ten thousand Yuan)": 100000.0,
+      "Enterprise_type": "Limited liability company (Natural person investment or holding)"
+    },
+    "SYN-worst": {
+      "Sector": "Manufacturing",
+      "t-1 Basic medical insurance for employees": 0.0,
+      "t-1 Basic old-age insurance for urban employees": 0.0,
+      "t-1 Birth insurance": 0.0,
+      "t-1 Employment injury insurance": 0.0,
+      "t-1 Unemployment insurance": 0.0,
+      "t-2 Basic medical insurance for employees": 0.0,
+      "t-2 Basic old-age insurance for urban employees": 0.0,
+      "t-2 Birth insurance": 0.0,
+      "t-2 Employment injury insurance": 0.0,
+      "t-2 Unemployment insurance": 0.0,
+      "Trademark_info_num_5years+": 54,
+      "Certificate_num_2years": 0,
+      "Registered_capital (Ten thousand Yuan)": 50.0,
+      "Enterprise_type": "Other limited liability companies"
+    }
+  },
+  "case_meta": {
+    "R1-low-repaid": {
+      "kind": "real",
+      "actual": 0,
+      "deployed_pd": 0.0003
+    },
+    "R2-mid-repaid": {
+      "kind": "real",
+      "actual": 0,
+      "deployed_pd": 0.043
+    },
+    "R3-mid-default": {
+      "kind": "real",
+      "actual": 1,
+      "deployed_pd": 0.043
+    },
+    "R4-high-default": {
+      "kind": "real",
+      "actual": 1,
+      "deployed_pd": 0.2875
+    },
+    "SYN-best": {
+      "kind": "synthetic",
+      "actual": null,
+      "design": "repaid"
+    },
+    "SYN-worst": {
+      "kind": "synthetic",
+      "actual": null,
+      "design": "default"
+    }
+  }
+}
