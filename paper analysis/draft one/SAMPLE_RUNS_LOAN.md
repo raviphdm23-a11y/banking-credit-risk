@@ -6,25 +6,25 @@
 
 > **Scope.** This pack reports only methodology/regulation-grounded outputs: calibrated PD, rating grade (risk tier, on the institution's internal master scale), exact WOE reason codes, and the governed completeness decision. The **accept / refer / decline lending decision is set by the institution applying its own risk-appetite PD threshold** — it is exogenous to this methodology and is **not** derived or priced here.
 
-**Case composition (fixed standard):** 4 real applicants (drawn from the dataset, actual outcome shown) + 2 synthetic composites (constructed from observed feature values — no real outcome; a PD-floor check and a stress check). Real cases span the risk range and include both outcomes.
+**Case composition (fixed standard):** 4 real applicants (drawn from the dataset, observed outcome shown — defaulted / repaid) + 2 synthetic composites (constructed from observed feature-value extremes; outcome shown is the construction intent, "(by design)", not an observed outcome — a PD-floor check and a stress check). Real cases span the risk range and include both outcomes.
 
 ## Summary
 
-| Candidate | Type | Actual outcome | Calibrated PD | vs portfolio | Grade (risk tier) | Governed decision | Principal reasons |
+| Candidate | Type | Outcome | Calibrated PD | vs portfolio | Grade (risk tier) | Governed decision | Principal reasons |
 |---|---|---|--:|--:|---|---|---|
 | **R1-low-repaid** | real | repaid | 4.46% | 0.28× | BB (Speculative) | SCORE | all protective |
 | **R2-mid-repaid** | real | repaid | 15.09% | 0.94× | CCC (Distressed) | SCORE | revol.util, log.annual.inc, fico |
 | **R3-mid-default** | real | defaulted | 15.79% | 0.99× | CCC (Distressed) | SCORE | revol.util, log.annual.inc, fico |
 | **R4-high-default** | real | defaulted | 35.00% | 2.19× | C (Near Default) | SCORE | purpose, int.rate, revol.util |
-| **SYN-best** | synthetic | — | 0.03% | 0.00× | AAA (Exceptional) | SCORE | all protective |
-| **SYN-worst** | synthetic | — | 80.00% | 5.00× | D (Default) | SCORE | purpose, inq.last.6mths, log.annual.inc |
+| **SYN-best** | synthetic | repaid (by design) | 0.03% | 0.00× | AAA (Exceptional) | SCORE | all protective |
+| **SYN-worst** | synthetic | default (by design) | 80.00% | 5.00× | D (Default) | SCORE | purpose, inq.last.6mths, log.annual.inc |
 
 ---
 ## Per-candidate showcase (what a new applicant report looks like)
 
 ### R1-low-repaid
 
-**Type:** real · **Actual outcome:** repaid
+**Type:** real · **Outcome:** repaid
 
 **Inputs:** fico=727, int.rate=0.0788, inq.last.6mths=0, credit.policy=1, purpose=credit_card, revol.util=51.0, log.annual.inc=11.90496755
 
@@ -44,7 +44,7 @@
 
 ### R2-mid-repaid
 
-**Type:** real · **Actual outcome:** repaid
+**Type:** real · **Outcome:** repaid
 
 **Inputs:** fico=717, int.rate=0.0988, inq.last.6mths=1, credit.policy=1, purpose=major_purchase, revol.util=61.0, log.annual.inc=10.30895266
 
@@ -64,7 +64,7 @@
 
 ### R3-mid-default
 
-**Type:** real · **Actual outcome:** defaulted
+**Type:** real · **Outcome:** defaulted
 
 **Inputs:** fico=682, int.rate=0.1154, inq.last.6mths=1, credit.policy=1, purpose=debt_consolidation, revol.util=57.7, log.annual.inc=10.70099475
 
@@ -84,7 +84,7 @@
 
 ### R4-high-default
 
-**Type:** real · **Actual outcome:** defaulted
+**Type:** real · **Outcome:** defaulted
 
 **Inputs:** fico=702, int.rate=0.16, inq.last.6mths=1, credit.policy=1, purpose=small_business, revol.util=98.6, log.annual.inc=10.81977828
 
@@ -104,7 +104,7 @@
 
 ### SYN-best
 
-**Type:** synthetic · **Actual outcome:** n/a (synthetic composite — constructed from observed feature values; no real outcome)
+**Type:** synthetic · **Outcome:** repaid (by design) — synthetic composite constructed from observed feature-value extremes; no observed outcome
 
 **Inputs:** fico=827, int.rate=0.06, inq.last.6mths=0, credit.policy=1, purpose=major_purchase, revol.util=0.0, log.annual.inc=14.52835448
 
@@ -124,7 +124,7 @@
 
 ### SYN-worst
 
-**Type:** synthetic · **Actual outcome:** n/a (synthetic composite — constructed from observed feature values; no real outcome)
+**Type:** synthetic · **Outcome:** default (by design) — synthetic composite constructed from observed feature-value extremes; no observed outcome
 
 **Inputs:** fico=612, int.rate=0.2164, inq.last.6mths=33, credit.policy=0, purpose=small_business, revol.util=119.0, log.annual.inc=7.547501683
 

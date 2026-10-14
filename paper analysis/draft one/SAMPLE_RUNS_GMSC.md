@@ -6,25 +6,25 @@
 
 > **Scope.** This pack reports only methodology/regulation-grounded outputs: calibrated PD, rating grade (risk tier, on the institution's internal master scale), exact WOE reason codes, and the governed completeness decision. The **accept / refer / decline lending decision is set by the institution applying its own risk-appetite PD threshold** — it is exogenous to this methodology and is **not** derived or priced here.
 
-**Case composition (fixed standard):** 4 real applicants (drawn from the dataset, actual outcome shown) + 2 synthetic composites (constructed from observed feature values — no real outcome; a PD-floor check and a stress check). Real cases span the risk range and include both outcomes.
+**Case composition (fixed standard):** 4 real applicants (drawn from the dataset, observed outcome shown — defaulted / repaid) + 2 synthetic composites (constructed from observed feature-value extremes; outcome shown is the construction intent, "(by design)", not an observed outcome — a PD-floor check and a stress check). Real cases span the risk range and include both outcomes.
 
 ## Summary
 
-| Candidate | Type | Actual outcome | Calibrated PD | vs portfolio | Grade (risk tier) | Governed decision | Principal reasons |
+| Candidate | Type | Outcome | Calibrated PD | vs portfolio | Grade (risk tier) | Governed decision | Principal reasons |
 |---|---|---|--:|--:|---|---|---|
 | **R1-low-repaid** | real | repaid | 0.70% | 0.10× | AA (Very Strong) | SCORE | NumberOfDependents |
 | **R2-mid-repaid** | real | repaid | 2.90% | 0.43× | BBB (Adequate) | SCORE | NumberOfDependents, RevolvingUtilizationOfUnsecuredLines |
 | **R3-mid-default** | real | defaulted | 2.90% | 0.43× | BBB (Adequate) | SCORE | DebtRatio, NumberRealEstateLoansOrLines, NumberOfDependents |
 | **R4-high-default** | real | defaulted | 41.46% | 6.19× | C (Near Default) | SCORE_FLAGGED | NumberOfTimes90DaysLate, RevolvingUtilizationOfUnsecuredLines, NumberOfTime30-59DaysPastDueNotWorse |
-| **SYN-best** | synthetic | — | 12.34% | 1.84× | CCC (Distressed) | SCORE | RevolvingUtilizationOfUnsecuredLines, DebtRatio, NumberRealEstateLoansOrLines |
-| **SYN-worst** | synthetic | — | 58.65% | 8.75× | D (Default) | SCORE | NumberOfTimes90DaysLate, NumberOfTime60-89DaysPastDueNotWorse, NumberOfTime30-59DaysPastDueNotWorse |
+| **SYN-best** | synthetic | repaid (by design) | 12.34% | 1.84× | CCC (Distressed) | SCORE | RevolvingUtilizationOfUnsecuredLines, DebtRatio, NumberRealEstateLoansOrLines |
+| **SYN-worst** | synthetic | default (by design) | 58.65% | 8.75× | D (Default) | SCORE | NumberOfTimes90DaysLate, NumberOfTime60-89DaysPastDueNotWorse, NumberOfTime30-59DaysPastDueNotWorse |
 
 ---
 ## Per-candidate showcase (what a new applicant report looks like)
 
 ### R1-low-repaid
 
-**Type:** real · **Actual outcome:** repaid
+**Type:** real · **Outcome:** repaid
 
 **Inputs:** RevolvingUtilizationOfUnsecuredLines=0.010351857, NumberOfTime30-59DaysPastDueNotWorse=0.0, NumberOfTimes90DaysLate=0.0, NumberOfTime60-89DaysPastDueNotWorse=0.0, MonthlyIncome=12454.0, NumberRealEstateLoansOrLines=2.0, NumberOfDependents=2.0, DebtRatio=0.298354075
 
@@ -45,7 +45,7 @@
 
 ### R2-mid-repaid
 
-**Type:** real · **Actual outcome:** repaid
+**Type:** real · **Outcome:** repaid
 
 **Inputs:** RevolvingUtilizationOfUnsecuredLines=0.548458062, NumberOfTime30-59DaysPastDueNotWorse=0.0, NumberOfTimes90DaysLate=0.0, NumberOfTime60-89DaysPastDueNotWorse=0.0, MonthlyIncome=11362.0, NumberRealEstateLoansOrLines=1.0, NumberOfDependents=2.0, DebtRatio=0.209891754
 
@@ -66,7 +66,7 @@
 
 ### R3-mid-default
 
-**Type:** real · **Actual outcome:** defaulted
+**Type:** real · **Outcome:** defaulted
 
 **Inputs:** RevolvingUtilizationOfUnsecuredLines=0.025892469, NumberOfTime30-59DaysPastDueNotWorse=0.0, NumberOfTimes90DaysLate=0.0, NumberOfTime60-89DaysPastDueNotWorse=0.0, MonthlyIncome=1.0, NumberRealEstateLoansOrLines=0.0, NumberOfDependents=2.0, DebtRatio=74.5
 
@@ -87,7 +87,7 @@
 
 ### R4-high-default
 
-**Type:** real · **Actual outcome:** defaulted
+**Type:** real · **Outcome:** defaulted
 
 **Inputs:** RevolvingUtilizationOfUnsecuredLines=0.802417179, NumberOfTime30-59DaysPastDueNotWorse=1.0, NumberOfTimes90DaysLate=1.0, NumberOfTime60-89DaysPastDueNotWorse=0.0, MonthlyIncome=None, NumberRealEstateLoansOrLines=0.0, NumberOfDependents=0.0, DebtRatio=668.0
 
@@ -110,7 +110,7 @@ Governance note: adverse floor: MonthlyIncome
 
 ### SYN-best
 
-**Type:** synthetic · **Actual outcome:** n/a (synthetic composite — constructed from observed feature values; no real outcome)
+**Type:** synthetic · **Outcome:** repaid (by design) — synthetic composite constructed from observed feature-value extremes; no observed outcome
 
 **Inputs:** RevolvingUtilizationOfUnsecuredLines=50708.0, NumberOfTime30-59DaysPastDueNotWorse=0, NumberOfTimes90DaysLate=0, NumberOfTime60-89DaysPastDueNotWorse=0, MonthlyIncome=3008750.0, NumberRealEstateLoansOrLines=54, NumberOfDependents=0.0, DebtRatio=329664.0
 
@@ -131,7 +131,7 @@ Governance note: adverse floor: MonthlyIncome
 
 ### SYN-worst
 
-**Type:** synthetic · **Actual outcome:** n/a (synthetic composite — constructed from observed feature values; no real outcome)
+**Type:** synthetic · **Outcome:** default (by design) — synthetic composite constructed from observed feature-value extremes; no observed outcome
 
 **Inputs:** RevolvingUtilizationOfUnsecuredLines=0.0, NumberOfTime30-59DaysPastDueNotWorse=98, NumberOfTimes90DaysLate=98, NumberOfTime60-89DaysPastDueNotWorse=98, MonthlyIncome=0.0, NumberRealEstateLoansOrLines=0, NumberOfDependents=20.0, DebtRatio=0.0
 

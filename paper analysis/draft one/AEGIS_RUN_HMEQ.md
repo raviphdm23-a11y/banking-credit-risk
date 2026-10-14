@@ -141,14 +141,14 @@ Approved WOE-logistic model + `AEGIS_HMEQ_CUTOFF_POLICY.md`. Portfolio default r
 (actual outcome shown) + 2 synthetic composites (PD-floor + stress). Strong model — wide tail separation
 (R1 0.9% → R4 90.8%); SYN-best floors at 0.03% AAA.
 
-| Candidate | Actual | Calibrated PD | Grade | Decision | Principal reasons |
+| Candidate | Outcome | Calibrated PD | Grade | Decision | Principal reasons |
 |---|---|--:|---|---|---|
 | R1-low-repaid | repaid | 0.89% | AA | SCORE | JOB, LOAN, MORTDUE |
 | R2-mid-repaid | repaid | 9.31% | B | SCORE | LOAN, DEBTINC, MORTDUE |
 | R3-mid-default | defaulted | 9.31% | B | SCORE_FLAGGED | VALUE, LOAN, CLNO |
 | R4-high-default | defaulted | 90.76% | D | SCORE | DEBTINC, DELINQ, VALUE |
-| SYN-best | — | 0.03% | AAA | SCORE | all protective (PD floor hit) |
-| SYN-worst | — | 99.90% | D | SCORE | DELINQ, DEROG, CLNO |
+| SYN-best | repaid (by design) | 0.03% | AAA | SCORE | all protective (PD floor hit) |
+| SYN-worst | default (by design) | 99.90% | D | SCORE | DELINQ, DEROG, CLNO |
 
 *(Accept/refer/decline threshold is an institution risk-appetite input, not derived here — no pricing. Honest
 messy-middle: R2 repaid and R3 defaulted share PD 9.31%. Full showcase: `SAMPLE_RUNS_HMEQ.md`.)*

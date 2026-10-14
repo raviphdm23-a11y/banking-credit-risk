@@ -6,25 +6,25 @@
 
 > **Scope.** This pack reports only methodology/regulation-grounded outputs: calibrated PD, rating grade (risk tier, on the institution's internal master scale), exact WOE reason codes, and the governed completeness decision. The **accept / refer / decline lending decision is set by the institution applying its own risk-appetite PD threshold** — it is exogenous to this methodology and is **not** derived or priced here.
 
-**Case composition (fixed standard):** 4 real applicants (drawn from the dataset, actual outcome shown) + 2 synthetic composites (constructed from observed feature values — no real outcome; a PD-floor check and a stress check). Real cases span the risk range and include both outcomes.
+**Case composition (fixed standard):** 4 real applicants (drawn from the dataset, observed outcome shown — defaulted / repaid) + 2 synthetic composites (constructed from observed feature-value extremes; outcome shown is the construction intent, "(by design)", not an observed outcome — a PD-floor check and a stress check). Real cases span the risk range and include both outcomes.
 
 ## Summary
 
-| Candidate | Type | Actual outcome | Calibrated PD | vs portfolio | Grade (risk tier) | Governed decision | Principal reasons |
+| Candidate | Type | Outcome | Calibrated PD | vs portfolio | Grade (risk tier) | Governed decision | Principal reasons |
 |---|---|---|--:|--:|---|---|---|
 | **R1-low-repaid** | real | repaid | 0.89% | 0.04× | AA (Very Strong) | SCORE | JOB, LOAN, MORTDUE |
 | **R2-mid-repaid** | real | repaid | 9.31% | 0.47× | B (Vulnerable) | SCORE | LOAN, DEBTINC, MORTDUE |
 | **R3-mid-default** | real | defaulted | 9.31% | 0.47× | B (Vulnerable) | SCORE_FLAGGED | VALUE, LOAN, CLNO |
 | **R4-high-default** | real | defaulted | 90.76% | 4.55× | D (Default) | SCORE | DEBTINC, DELINQ, VALUE |
-| **SYN-best** | synthetic | — | 0.03% | 0.00× | AAA (Exceptional) | SCORE | MORTDUE |
-| **SYN-worst** | synthetic | — | 99.90% | 5.01× | D (Default) | SCORE | DELINQ, DEROG, CLNO |
+| **SYN-best** | synthetic | repaid (by design) | 0.03% | 0.00× | AAA (Exceptional) | SCORE | MORTDUE |
+| **SYN-worst** | synthetic | default (by design) | 99.90% | 5.01× | D (Default) | SCORE | DELINQ, DEROG, CLNO |
 
 ---
 ## Per-candidate showcase (what a new applicant report looks like)
 
 ### R1-low-repaid
 
-**Type:** real · **Actual outcome:** repaid
+**Type:** real · **Outcome:** repaid
 
 **Inputs:** DEBTINC=31.1772613, DELINQ=0.0, VALUE=80355.0, DEROG=0.0, CLAGE=335.0741426, NINQ=1.0, LOAN=6300, JOB=Other, YOJ=24.0, CLNO=46.0, MORTDUE=78724.0
 
@@ -48,7 +48,7 @@
 
 ### R2-mid-repaid
 
-**Type:** real · **Actual outcome:** repaid
+**Type:** real · **Outcome:** repaid
 
 **Inputs:** DEBTINC=42.90999735, DELINQ=0.0, VALUE=87266.0, DEROG=0.0, CLAGE=250.6312692, NINQ=0.0, LOAN=3200, JOB=ProfExe, YOJ=7.0, CLNO=12.0, MORTDUE=74864.0
 
@@ -72,7 +72,7 @@
 
 ### R3-mid-default
 
-**Type:** real · **Actual outcome:** defaulted
+**Type:** real · **Outcome:** defaulted
 
 **Inputs:** DEBTINC=39.1969854, DELINQ=0.0, VALUE=36078.0, DEROG=0.0, CLAGE=302.3587095, NINQ=0.0, LOAN=5300, JOB=Other, YOJ=None, CLNO=8.0, MORTDUE=26908.0
 
@@ -98,7 +98,7 @@ Governance note: adverse floor: YOJ
 
 ### R4-high-default
 
-**Type:** real · **Actual outcome:** defaulted
+**Type:** real · **Outcome:** defaulted
 
 **Inputs:** DEBTINC=None, DELINQ=1.0, VALUE=16020.0, DEROG=0.0, CLAGE=85.8, NINQ=2.0, LOAN=4000, JOB=Other, YOJ=18.0, CLNO=23.0, MORTDUE=7000.0
 
@@ -122,7 +122,7 @@ Governance note: adverse floor: YOJ
 
 ### SYN-best
 
-**Type:** synthetic · **Actual outcome:** n/a (synthetic composite — constructed from observed feature values; no real outcome)
+**Type:** synthetic · **Outcome:** repaid (by design) — synthetic composite constructed from observed feature-value extremes; no observed outcome
 
 **Inputs:** DEBTINC=0.524499215, DELINQ=0.0, VALUE=855909.0, DEROG=0.0, CLAGE=1168.233561, NINQ=0.0, LOAN=89900, JOB=Office, YOJ=41.0, CLNO=71.0, MORTDUE=399550.0
 
@@ -146,7 +146,7 @@ Governance note: adverse floor: YOJ
 
 ### SYN-worst
 
-**Type:** synthetic · **Actual outcome:** n/a (synthetic composite — constructed from observed feature values; no real outcome)
+**Type:** synthetic · **Outcome:** default (by design) — synthetic composite constructed from observed feature-value extremes; no observed outcome
 
 **Inputs:** DEBTINC=203.3121487, DELINQ=15.0, VALUE=8000.0, DEROG=10.0, CLAGE=0.0, NINQ=17.0, LOAN=1100, JOB=Sales, YOJ=0.0, CLNO=0.0, MORTDUE=2063.0
 

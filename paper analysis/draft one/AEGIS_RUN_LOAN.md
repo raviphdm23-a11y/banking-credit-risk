@@ -89,14 +89,14 @@ origination-only model**, not the 7-col benchmark that contains the circular/ext
 + 2 synthetic composites (built from observed feature-value extremes — PD-floor check + stress check).
 **Predicted vs actual is sensible** (contrast PAK): repaid cases sit low, defaulters high.
 
-| Candidate | Type | Actual | Calibrated PD | Grade | Decision | Principal reasons |
+| Candidate | Type | Outcome | Calibrated PD | Grade | Decision | Principal reasons |
 |---|---|---|--:|---|---|---|
 | R1-low-repaid | real | repaid | 4.46% | BB | SCORE | all protective |
 | R2-mid-repaid | real | repaid | 15.09% | CCC | SCORE | revol.util, log.annual.inc, fico |
 | R3-mid-default | real | defaulted | 15.79% | CCC | SCORE | revol.util, log.annual.inc, fico |
 | R4-high-default | real | defaulted | 35.00% | C | SCORE | purpose, int.rate, revol.util |
-| SYN-best | synthetic | — | 0.03% | AAA | SCORE | all protective (PD floor hit) |
-| SYN-worst | synthetic | — | 80.00% | D | SCORE | purpose, inq.last.6mths, log.annual.inc |
+| SYN-best | synthetic | repaid (by design) | 0.03% | AAA | SCORE | all protective (PD floor hit) |
+| SYN-worst | synthetic | default (by design) | 80.00% | D | SCORE | purpose, inq.last.6mths, log.annual.inc |
 
 *(Accept/refer/decline threshold is an institution input, not derived here — no pricing. Honest messy-middle:
 R2 repaid at 15.1% vs R3 defaulted at 15.8% — near-identical; SYN-best confirms the 0.03% floor (grade AAA).

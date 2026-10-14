@@ -153,14 +153,14 @@ Approved WOE-logistic 5-column model + `AEGIS_GERMAN_CUTOFF_POLICY.md`. Portfoli
 floored at 0.03% (Basel CRE32.3). Every reason code is a legitimate credit factor (no protected attributes).
 **Fixed 6-case standard:** 4 real applicants (actual outcome shown) + 2 synthetic composites (PD-floor + stress).
 
-| Candidate | Actual | Calibrated PD | Grade | Decision | Principal reasons |
+| Candidate | Outcome | Calibrated PD | Grade | Decision | Principal reasons |
 |---|---|--:|---|---|---|
 | R1-low-repaid | repaid | 3.33% | BBB | SCORE | checking_status |
 | R2-mid-repaid | repaid | 28.40% | CC | SCORE | checking_status, purpose, savings_status |
 | R3-mid-default | defaulted | 28.57% | CC | SCORE | checking_status, purpose, credit_history |
 | R4-high-default | defaulted | 75.87% | D | SCORE | checking_status, months_duration, purpose |
-| SYN-best | — | 0.03% | AAA | SCORE | all protective (PD floor hit) |
-| SYN-worst | — | 99.90% | D | SCORE | credit_history, months_duration, checking_status |
+| SYN-best | repaid (by design) | 0.03% | AAA | SCORE | all protective (PD floor hit) |
+| SYN-worst | default (by design) | 99.90% | D | SCORE | credit_history, months_duration, checking_status |
 
 *(Accept/refer/decline threshold is an institution input, not derived here — no pricing. SYN-best shows the 0.03%
 floor; R2 repaid and R3 defaulted share ~28.5% PD (small-data messy middle). Full showcase: `SAMPLE_RUNS_GERMAN.md`.)*

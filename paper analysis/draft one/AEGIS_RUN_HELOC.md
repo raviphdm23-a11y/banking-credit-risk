@@ -86,14 +86,14 @@ Approved 17-col model + `AEGIS_HELOC_CUTOFF_POLICY.md`. Portfolio default 52.2% 
 floored at 0.03%. All reason codes are legitimate credit-bureau factors (no protected attributes exist).
 **Fixed 6-case standard:** 4 real applicants (actual outcome shown) + 2 synthetic composites (PD-floor + stress).
 
-| Candidate | Actual | Calibrated PD | Grade | Decision | Principal reasons |
+| Candidate | Outcome | Calibrated PD | Grade | Decision | Principal reasons |
 |---|---|--:|---|---|---|
 | R1-low-repaid | repaid | 12.12% | CCC | SCORE | NumRevolvingTradesWBalance, MaxDelqEver, PercentInstallTrades |
 | R2-mid-repaid | repaid | 61.16% | D | SCORE | MSinceMostRecentInqexcl7days, ExternalRiskEstimate, NumBank2NatlTrades… |
 | R3-mid-default | defaulted | 61.16% | D | SCORE | NumRevolvingTradesWBalance, MSinceMostRecentInqexcl7days, NumBank2NatlTrades… |
 | R4-high-default | defaulted | 90.54% | D | SCORE | NetFractionRevolvingBurden, MSinceMostRecentDelq, MSinceMostRecentInq… |
-| SYN-best | — | 9.77% | B | SCORE | MaxDelq2PublicRecLast12M, MaxDelqEver, NumBank2NatlTrades… |
-| SYN-worst | — | 90.54% | D | SCORE | NetFractionRevolvingBurden, NumSatisfactoryTrades, AverageMInFile |
+| SYN-best | repaid (by design) | 9.77% | B | SCORE | MaxDelq2PublicRecLast12M, MaxDelqEver, NumBank2NatlTrades… |
+| SYN-worst | default (by design) | 90.54% | D | SCORE | NetFractionRevolvingBurden, NumSatisfactoryTrades, AverageMInFile |
 
 *(Accept/refer/decline threshold is an institution input, not derived here — no pricing. On this 52%-base-rate
 balanced benchmark the messy middle is wide — R2 repaid and R3 defaulted both score 61% D; SYN-best reaches only

@@ -1,0 +1,102 @@
+{
+  "dataset": "credit_risk_dataset.csv",
+  "target": "loan_status",
+  "title": "CREDITRISK (Kaggle Credit Risk Dataset, laotse)",
+  "note": "Fixed 6-case committee standard: 4 REAL applicants (actual outcome shown) + 2 SYNTHETIC composites (observed extremes). Label is the VERIFIED loan_status (corrupted target column rejected at G0). Scored with the 6-col benchmark; loan_grade + loan_int_rate are availability-flagged (prior-decision artifacts) - the deployable application-time model is the 4-col origination-only variant (CR-orig, Gini 0.591).",
+  "selected_columns": [
+    "loan_percent_income",
+    "loan_grade",
+    "person_income",
+    "loan_int_rate",
+    "person_home_ownership",
+    "loan_intent"
+  ],
+  "mandatory_columns": [
+    "loan_percent_income",
+    "person_income"
+  ],
+  "floor_columns": [],
+  "incomplete_policy": "refer",
+  "cases": {
+    "R1-low-repaid": {
+      "loan_percent_income": 0.05,
+      "loan_grade": "A",
+      "person_income": 38400,
+      "loan_int_rate": null,
+      "person_home_ownership": "MORTGAGE",
+      "loan_intent": "VENTURE"
+    },
+    "R2-mid-repaid": {
+      "loan_percent_income": 0.08,
+      "loan_grade": "F",
+      "person_income": 300000,
+      "loan_int_rate": 19.41,
+      "person_home_ownership": "OWN",
+      "loan_intent": "EDUCATION"
+    },
+    "R3-mid-default": {
+      "loan_percent_income": 0.04,
+      "loan_grade": "C",
+      "person_income": 36000,
+      "loan_int_rate": 13.16,
+      "person_home_ownership": "RENT",
+      "loan_intent": "EDUCATION"
+    },
+    "R4-high-default": {
+      "loan_percent_income": 0.35,
+      "loan_grade": "C",
+      "person_income": 11389,
+      "loan_int_rate": 12.84,
+      "person_home_ownership": "OTHER",
+      "loan_intent": "EDUCATION"
+    },
+    "SYN-best": {
+      "loan_percent_income": 0.0,
+      "loan_grade": "A",
+      "person_income": 6000000,
+      "loan_int_rate": 5.42,
+      "person_home_ownership": "OWN",
+      "loan_intent": "VENTURE"
+    },
+    "SYN-worst": {
+      "loan_percent_income": 0.83,
+      "loan_grade": "G",
+      "person_income": 4000,
+      "loan_int_rate": 23.22,
+      "person_home_ownership": "RENT",
+      "loan_intent": "DEBTCONSOLIDATION"
+    }
+  },
+  "case_meta": {
+    "R1-low-repaid": {
+      "kind": "real",
+      "actual": 0,
+      "deployed_pd": 0.0203
+    },
+    "R2-mid-repaid": {
+      "kind": "real",
+      "actual": 0,
+      "deployed_pd": 0.0878
+    },
+    "R3-mid-default": {
+      "kind": "real",
+      "actual": 1,
+      "deployed_pd": 0.0878
+    },
+    "R4-high-default": {
+      "kind": "real",
+      "actual": 1,
+      "deployed_pd": 0.8912
+    },
+    "SYN-best": {
+      "kind": "synthetic",
+      "actual": null,
+      "design": "repaid"
+    },
+    "SYN-worst": {
+      "kind": "synthetic",
+      "actual": null,
+      "design": "default"
+    }
+  }
+}

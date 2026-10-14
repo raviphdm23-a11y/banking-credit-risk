@@ -98,14 +98,14 @@ C leaves the trap open; D (drop it) diverges from the ratified benchmark (sensit
 34.04% PD**, every real applicant lands in CC–C, and even `SYN-best` (all best-observed values) cannot clear grade
 CC — the model produces **no approvable applicant even synthetically**. The empirical face of Gini 0.148, reinforcing the NO-GO.
 
-| Candidate | Type | Actual | Calibrated PD | Grade | Decision | Principal reasons |
+| Candidate | Type | Outcome | Calibrated PD | Grade | Decision | Principal reasons |
 |---|---|---|--:|---|---|---|
 | R1-low-repaid | real | repaid | 23.99% | CC | SCORE | OCCUPATION_TYPE, PAYMENT_DAY, banking-accounts |
 | R2-mid-repaid | real | repaid | 34.04% | CC | SCORE_FLAGGED | PAYMENT_DAY, banking-accounts |
 | R3-mid-default | real | defaulted | 34.04% | CC | SCORE_FLAGGED | PAYMENT_DAY, banking-accounts |
 | R4-high-default | real | defaulted | 45.78% | C | SCORE | RESIDENCIAL_PHONE_AREA_CODE, PAYMENT_DAY, PROFESSIONAL_STATE |
-| SYN-best | synthetic | — | 20.22% | CC | SCORE | PAYMENT_DAY, RESIDENCIAL_PHONE_AREA_CODE |
-| SYN-worst | synthetic | — | 65.40% | D | SCORE | banking-accounts, PAYMENT_DAY |
+| SYN-best | synthetic | repaid (by design) | 20.22% | CC | SCORE | PAYMENT_DAY, RESIDENCIAL_PHONE_AREA_CODE |
+| SYN-worst | synthetic | default (by design) | 65.40% | D | SCORE | banking-accounts, PAYMENT_DAY |
 
 *(Accept/refer/decline threshold is an institution input, not derived here — no pricing. R2 repaid and R3
 defaulted share an identical PD (34.04%): the model cannot separate the two outcomes; the lowest-risk real

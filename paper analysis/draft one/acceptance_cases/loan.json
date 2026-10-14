@@ -97,11 +97,13 @@
     },
     "SYN-best": {
       "kind": "synthetic",
-      "actual": null
+      "actual": null,
+      "design": "repaid"
     },
     "SYN-worst": {
       "kind": "synthetic",
-      "actual": null
+      "actual": null,
+      "design": "default"
     }
   }
 }

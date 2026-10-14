@@ -77,10 +77,12 @@ comparability):**
   `R1-low-repaid` (low PD, repaid), `R2-mid-repaid` (mid PD, repaid), `R3-mid-default` (mid PD, defaulted),
   `R4-high-default` (high PD, defaulted). This surfaces the honest "messy middle" where a repayer and a defaulter
   can share a near-identical PD.
-- **2 SYNTHETIC composites**, clearly labelled, with **no actual outcome**: `SYN-best` (each feature set to its
+- **2 SYNTHETIC composites**, clearly labelled, with **no observed outcome**: `SYN-best` (each feature set to its
   lowest-risk *observed* value → checks the 0.03% PD floor) and `SYN-worst` (each feature at its highest-risk
   *observed* value → stress check that nothing breaks). Each synthetic value is a real observed value; only the
-  **combination** is constructed — never an invented number.
+  **combination** is constructed — never an invented number. The `Outcome` column still reads in the dataset's
+  outcome vocabulary — `repaid (by design)` for `SYN-best`, `default (by design)` for `SYN-worst` — where
+  "(by design)" marks it as the construction intent, **not** an observed outcome (`case_meta.design`).
 
 The real-case actuals and the synthetic extremes are both **data-derived** (no fabricated inputs); the pack's
 `case_meta` block records each case's `kind` (real/synthetic) and `actual` (0/1/null). The scorer renders the

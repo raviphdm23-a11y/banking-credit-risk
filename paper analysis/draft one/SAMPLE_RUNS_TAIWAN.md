@@ -6,25 +6,25 @@
 
 > **Scope.** This pack reports only methodology/regulation-grounded outputs: calibrated PD, rating grade (risk tier, on the institution's internal master scale), exact WOE reason codes, and the governed completeness decision. The **accept / refer / decline lending decision is set by the institution applying its own risk-appetite PD threshold** — it is exogenous to this methodology and is **not** derived or priced here.
 
-**Case composition (fixed standard):** 4 real applicants (drawn from the dataset, actual outcome shown) + 2 synthetic composites (constructed from observed feature values — no real outcome; a PD-floor check and a stress check). Real cases span the risk range and include both outcomes.
+**Case composition (fixed standard):** 4 real applicants (drawn from the dataset, observed outcome shown — defaulted / repaid) + 2 synthetic composites (constructed from observed feature-value extremes; outcome shown is the construction intent, "(by design)", not an observed outcome — a PD-floor check and a stress check). Real cases span the risk range and include both outcomes.
 
 ## Summary
 
-| Candidate | Type | Actual outcome | Calibrated PD | vs portfolio | Grade (risk tier) | Governed decision | Principal reasons |
+| Candidate | Type | Outcome | Calibrated PD | vs portfolio | Grade (risk tier) | Governed decision | Principal reasons |
 |---|---|---|--:|--:|---|---|---|
 | **R1-low-repaid** | real | repaid | 7.12% | 0.32× | B (Vulnerable) | SCORE | PAY_AMT4, PAY_AMT6 |
 | **R2-mid-repaid** | real | repaid | 16.93% | 0.77× | CCC (Distressed) | SCORE | LIMIT_BAL, PAY_AMT4, PAY_AMT2 |
 | **R3-mid-default** | real | defaulted | 16.93% | 0.77× | CCC (Distressed) | SCORE | PAY_AMT2, PAY_AMT1, PAY_AMT3 |
 | **R4-high-default** | real | defaulted | 71.50% | 3.23× | D (Default) | SCORE | PAY_0, PAY_6, PAY_5 |
-| **SYN-best** | synthetic | — | 5.44% | 0.25× | BB (Speculative) | SCORE | all protective |
-| **SYN-worst** | synthetic | — | 88.89% | 4.02× | D (Default) | SCORE | PAY_0, PAY_6, PAY_5 |
+| **SYN-best** | synthetic | repaid (by design) | 5.44% | 0.25× | BB (Speculative) | SCORE | all protective |
+| **SYN-worst** | synthetic | default (by design) | 88.89% | 4.02× | D (Default) | SCORE | PAY_0, PAY_6, PAY_5 |
 
 ---
 ## Per-candidate showcase (what a new applicant report looks like)
 
 ### R1-low-repaid
 
-**Type:** real · **Actual outcome:** repaid
+**Type:** real · **Outcome:** repaid
 
 **Inputs:** PAY_0=-2.0, PAY_2=-2.0, PAY_3=-2.0, PAY_4=-2.0, PAY_5=-2.0, PAY_6=-2.0, LIMIT_BAL=500000.0, PAY_AMT2=31178.0, PAY_AMT3=3180.0, PAY_AMT4=0.0, PAY_AMT1=5006.0, PAY_AMT6=768.0, PAY_AMT5=5293.0
 
@@ -50,7 +50,7 @@
 
 ### R2-mid-repaid
 
-**Type:** real · **Actual outcome:** repaid
+**Type:** real · **Outcome:** repaid
 
 **Inputs:** PAY_0=0.0, PAY_2=0.0, PAY_3=0.0, PAY_4=0.0, PAY_5=0.0, PAY_6=0.0, LIMIT_BAL=50000.0, PAY_AMT2=1194.0, PAY_AMT3=379.0, PAY_AMT4=281.0, PAY_AMT1=1411.0, PAY_AMT6=197.0, PAY_AMT5=321.0
 
@@ -76,7 +76,7 @@
 
 ### R3-mid-default
 
-**Type:** real · **Actual outcome:** defaulted
+**Type:** real · **Outcome:** defaulted
 
 **Inputs:** PAY_0=0.0, PAY_2=0.0, PAY_3=-2.0, PAY_4=-2.0, PAY_5=-2.0, PAY_6=-1.0, LIMIT_BAL=360000.0, PAY_AMT2=0.0, PAY_AMT3=0.0, PAY_AMT4=0.0, PAY_AMT1=0.0, PAY_AMT6=0.0, PAY_AMT5=2650.0
 
@@ -102,7 +102,7 @@
 
 ### R4-high-default
 
-**Type:** real · **Actual outcome:** defaulted
+**Type:** real · **Outcome:** defaulted
 
 **Inputs:** PAY_0=2.0, PAY_2=0.0, PAY_3=0.0, PAY_4=2.0, PAY_5=2.0, PAY_6=2.0, LIMIT_BAL=70000.0, PAY_AMT2=3582.0, PAY_AMT3=0.0, PAY_AMT4=3601.0, PAY_AMT1=2007.0, PAY_AMT6=1820.0, PAY_AMT5=0.0
 
@@ -128,7 +128,7 @@
 
 ### SYN-best
 
-**Type:** synthetic · **Actual outcome:** n/a (synthetic composite — constructed from observed feature values; no real outcome)
+**Type:** synthetic · **Outcome:** repaid (by design) — synthetic composite constructed from observed feature-value extremes; no observed outcome
 
 **Inputs:** PAY_0=-2, PAY_2=-2, PAY_3=-2, PAY_4=-2, PAY_5=-2, PAY_6=-2, LIMIT_BAL=1000000.0, PAY_AMT2=1684259.0, PAY_AMT3=896040.0, PAY_AMT4=621000.0, PAY_AMT1=873552.0, PAY_AMT6=528666.0, PAY_AMT5=426529.0
 
@@ -154,7 +154,7 @@
 
 ### SYN-worst
 
-**Type:** synthetic · **Actual outcome:** n/a (synthetic composite — constructed from observed feature values; no real outcome)
+**Type:** synthetic · **Outcome:** default (by design) — synthetic composite constructed from observed feature-value extremes; no observed outcome
 
 **Inputs:** PAY_0=8, PAY_2=8, PAY_3=8, PAY_4=8, PAY_5=8, PAY_6=8, LIMIT_BAL=10000.0, PAY_AMT2=0.0, PAY_AMT3=0.0, PAY_AMT4=0.0, PAY_AMT1=0.0, PAY_AMT6=0.0, PAY_AMT5=0.0
 

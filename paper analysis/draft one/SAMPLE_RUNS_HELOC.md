@@ -6,25 +6,25 @@
 
 > **Scope.** This pack reports only methodology/regulation-grounded outputs: calibrated PD, rating grade (risk tier, on the institution's internal master scale), exact WOE reason codes, and the governed completeness decision. The **accept / refer / decline lending decision is set by the institution applying its own risk-appetite PD threshold** — it is exogenous to this methodology and is **not** derived or priced here.
 
-**Case composition (fixed standard):** 4 real applicants (drawn from the dataset, actual outcome shown) + 2 synthetic composites (constructed from observed feature values — no real outcome; a PD-floor check and a stress check). Real cases span the risk range and include both outcomes.
+**Case composition (fixed standard):** 4 real applicants (drawn from the dataset, observed outcome shown — defaulted / repaid) + 2 synthetic composites (constructed from observed feature-value extremes; outcome shown is the construction intent, "(by design)", not an observed outcome — a PD-floor check and a stress check). Real cases span the risk range and include both outcomes.
 
 ## Summary
 
-| Candidate | Type | Actual outcome | Calibrated PD | vs portfolio | Grade (risk tier) | Governed decision | Principal reasons |
+| Candidate | Type | Outcome | Calibrated PD | vs portfolio | Grade (risk tier) | Governed decision | Principal reasons |
 |---|---|---|--:|--:|---|---|---|
 | **R1-low-repaid** | real | repaid | 12.12% | 0.23× | CCC (Distressed) | SCORE | NumRevolvingTradesWBalance, MaxDelqEver, PercentInstallTrades |
 | **R2-mid-repaid** | real | repaid | 61.16% | 1.17× | D (Default) | SCORE | MSinceMostRecentInqexcl7days, ExternalRiskEstimate, NumBank2NatlTradesWHighUtilization |
 | **R3-mid-default** | real | defaulted | 61.16% | 1.17× | D (Default) | SCORE | NumRevolvingTradesWBalance, MSinceMostRecentInqexcl7days, NumBank2NatlTradesWHighUtilization |
 | **R4-high-default** | real | defaulted | 90.54% | 1.73× | D (Default) | SCORE | NetFractionRevolvingBurden, MSinceMostRecentDelq, MSinceMostRecentInqexcl7days |
-| **SYN-best** | synthetic | — | 9.77% | 0.19× | B (Vulnerable) | SCORE | MaxDelq2PublicRecLast12M, MaxDelqEver, NumBank2NatlTradesWHighUtilization |
-| **SYN-worst** | synthetic | — | 90.54% | 1.73× | D (Default) | SCORE | NetFractionRevolvingBurden, NumSatisfactoryTrades, AverageMInFile |
+| **SYN-best** | synthetic | repaid (by design) | 9.77% | 0.19× | B (Vulnerable) | SCORE | MaxDelq2PublicRecLast12M, MaxDelqEver, NumBank2NatlTradesWHighUtilization |
+| **SYN-worst** | synthetic | default (by design) | 90.54% | 1.73× | D (Default) | SCORE | NetFractionRevolvingBurden, NumSatisfactoryTrades, AverageMInFile |
 
 ---
 ## Per-candidate showcase (what a new applicant report looks like)
 
 ### R1-low-repaid
 
-**Type:** real · **Actual outcome:** repaid
+**Type:** real · **Outcome:** repaid
 
 **Inputs:** ExternalRiskEstimate=79, NetFractionRevolvingBurden=18, NumBank2NatlTradesWHighUtilization=0, MSinceMostRecentDelq=-7, AverageMInFile=100, MSinceOldestTradeOpen=245, MaxDelq2PublicRecLast12M=7, MaxDelqEver=8, PercentTradesNeverDelq=100, MSinceMostRecentInqexcl7days=4, PercentTradesWBalance=71, NumTrades60Ever2DerogPubRec=0, NumTrades90Ever2DerogPubRec=0, NumSatisfactoryTrades=35, NumTotalTrades=37, NumRevolvingTradesWBalance=6, PercentInstallTrades=43
 
@@ -54,7 +54,7 @@
 
 ### R2-mid-repaid
 
-**Type:** real · **Actual outcome:** repaid
+**Type:** real · **Outcome:** repaid
 
 **Inputs:** ExternalRiskEstimate=68, NetFractionRevolvingBurden=28, NumBank2NatlTradesWHighUtilization=2, MSinceMostRecentDelq=31, AverageMInFile=65, MSinceOldestTradeOpen=148, MaxDelq2PublicRecLast12M=6, MaxDelqEver=6, PercentTradesNeverDelq=83, MSinceMostRecentInqexcl7days=0, PercentTradesWBalance=40, NumTrades60Ever2DerogPubRec=0, NumTrades90Ever2DerogPubRec=0, NumSatisfactoryTrades=17, NumTotalTrades=18, NumRevolvingTradesWBalance=2, PercentInstallTrades=44
 
@@ -84,7 +84,7 @@
 
 ### R3-mid-default
 
-**Type:** real · **Actual outcome:** defaulted
+**Type:** real · **Outcome:** defaulted
 
 **Inputs:** ExternalRiskEstimate=69, NetFractionRevolvingBurden=50, NumBank2NatlTradesWHighUtilization=4, MSinceMostRecentDelq=-7, AverageMInFile=157, MSinceOldestTradeOpen=476, MaxDelq2PublicRecLast12M=6, MaxDelqEver=8, PercentTradesNeverDelq=100, MSinceMostRecentInqexcl7days=0, PercentTradesWBalance=89, NumTrades60Ever2DerogPubRec=4, NumTrades90Ever2DerogPubRec=4, NumSatisfactoryTrades=38, NumTotalTrades=39, NumRevolvingTradesWBalance=14, PercentInstallTrades=36
 
@@ -114,7 +114,7 @@
 
 ### R4-high-default
 
-**Type:** real · **Actual outcome:** defaulted
+**Type:** real · **Outcome:** defaulted
 
 **Inputs:** ExternalRiskEstimate=50, NetFractionRevolvingBurden=84, NumBank2NatlTradesWHighUtilization=2, MSinceMostRecentDelq=2, AverageMInFile=76, MSinceOldestTradeOpen=311, MaxDelq2PublicRecLast12M=3, MaxDelqEver=5, PercentTradesNeverDelq=60, MSinceMostRecentInqexcl7days=0, PercentTradesWBalance=88, NumTrades60Ever2DerogPubRec=1, NumTrades90Ever2DerogPubRec=0, NumSatisfactoryTrades=12, NumTotalTrades=15, NumRevolvingTradesWBalance=5, PercentInstallTrades=20
 
@@ -144,7 +144,7 @@
 
 ### SYN-best
 
-**Type:** synthetic · **Actual outcome:** n/a (synthetic composite — constructed from observed feature values; no real outcome)
+**Type:** synthetic · **Outcome:** repaid (by design) — synthetic composite constructed from observed feature-value extremes; no observed outcome
 
 **Inputs:** ExternalRiskEstimate=94, NetFractionRevolvingBurden=-9, NumBank2NatlTradesWHighUtilization=-9, MSinceMostRecentDelq=-9, AverageMInFile=383, MSinceOldestTradeOpen=803, MaxDelq2PublicRecLast12M=9, MaxDelqEver=8, PercentTradesNeverDelq=100, MSinceMostRecentInqexcl7days=24, PercentTradesWBalance=-9, NumTrades60Ever2DerogPubRec=-9, NumTrades90Ever2DerogPubRec=-9, NumSatisfactoryTrades=79, NumTotalTrades=104, NumRevolvingTradesWBalance=-9, PercentInstallTrades=-9
 
@@ -174,7 +174,7 @@
 
 ### SYN-worst
 
-**Type:** synthetic · **Actual outcome:** n/a (synthetic composite — constructed from observed feature values; no real outcome)
+**Type:** synthetic · **Outcome:** default (by design) — synthetic composite constructed from observed feature-value extremes; no observed outcome
 
 **Inputs:** ExternalRiskEstimate=-9, NetFractionRevolvingBurden=232, NumBank2NatlTradesWHighUtilization=18, MSinceMostRecentDelq=83, AverageMInFile=-9, MSinceOldestTradeOpen=-9, MaxDelq2PublicRecLast12M=-9, MaxDelqEver=-9, PercentTradesNeverDelq=-9, MSinceMostRecentInqexcl7days=-9, PercentTradesWBalance=100, NumTrades60Ever2DerogPubRec=19, NumTrades90Ever2DerogPubRec=19, NumSatisfactoryTrades=-9, NumTotalTrades=-9, NumRevolvingTradesWBalance=32, PercentInstallTrades=100
 

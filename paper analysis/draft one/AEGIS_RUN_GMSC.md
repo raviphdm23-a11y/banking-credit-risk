@@ -46,14 +46,14 @@ exact reason codes; PD floor auto; `drift_monitor` + MC-age fairness watch. Reje
 ### Acceptance demonstration (committee pack: `SAMPLE_RUNS_GMSC.md`, inputs `acceptance_cases/gmsc.json`)
 **Fixed 6-case standard:** 4 real applicants (actual outcome shown) + 2 synthetic composites (PD-floor + stress).
 
-| Candidate | Actual | Calibrated PD | Grade | Decision | Principal reasons |
+| Candidate | Outcome | Calibrated PD | Grade | Decision | Principal reasons |
 |---|---|--:|---|---|---|
 | R1-low-repaid | repaid | 0.70% | AA | SCORE | NumberOfDependents |
 | R2-mid-repaid | repaid | 2.90% | BBB | SCORE | NumberOfDependents, RevolvingUtilization |
 | R3-mid-default | defaulted | 2.90% | BBB | SCORE | DebtRatio, NumberRealEstateLoans, NumberOfDependents |
 | R4-high-default | defaulted | 41.46% | C | SCORE_FLAGGED | 90d late, revolving utilization, 30-59d past due |
-| SYN-best | — | 12.34% | CCC | SCORE | revolving utilization, DebtRatio, real-estate loans |
-| SYN-worst | — | 58.65% | D | SCORE | 90d late, 60-89d past due, 30-59d past due |
+| SYN-best | repaid (by design) | 12.34% | CCC | SCORE | revolving utilization, DebtRatio, real-estate loans |
+| SYN-worst | default (by design) | 58.65% | D | SCORE | 90d late, 60-89d past due, 30-59d past due |
 
 *(Accept/refer/decline threshold is an institution input, not derived here — no pricing. R2 repaid and R3
 defaulted share PD 2.90% (best-calibrated model's low-end messy middle). Full showcase: `SAMPLE_RUNS_GMSC.md`.)*

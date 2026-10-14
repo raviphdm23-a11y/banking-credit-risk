@@ -6,25 +6,25 @@
 
 > **Scope.** This pack reports only methodology/regulation-grounded outputs: calibrated PD, rating grade (risk tier, on the institution's internal master scale), exact WOE reason codes, and the governed completeness decision. The **accept / refer / decline lending decision is set by the institution applying its own risk-appetite PD threshold** — it is exogenous to this methodology and is **not** derived or priced here.
 
-**Case composition (fixed standard):** 4 real applicants (drawn from the dataset, actual outcome shown) + 2 synthetic composites (constructed from observed feature values — no real outcome; a PD-floor check and a stress check). Real cases span the risk range and include both outcomes.
+**Case composition (fixed standard):** 4 real applicants (drawn from the dataset, observed outcome shown — defaulted / repaid) + 2 synthetic composites (constructed from observed feature-value extremes; outcome shown is the construction intent, "(by design)", not an observed outcome — a PD-floor check and a stress check). Real cases span the risk range and include both outcomes.
 
 ## Summary
 
-| Candidate | Type | Actual outcome | Calibrated PD | vs portfolio | Grade (risk tier) | Governed decision | Principal reasons |
+| Candidate | Type | Outcome | Calibrated PD | vs portfolio | Grade (risk tier) | Governed decision | Principal reasons |
 |---|---|---|--:|--:|---|---|---|
 | **R1-low-repaid** | real | repaid | 3.33% | 0.11× | BBB (Adequate) | SCORE | checking_status |
 | **R2-mid-repaid** | real | repaid | 28.40% | 0.95× | CC (Highly Distressed) | SCORE | checking_status, purpose, savings_status |
 | **R3-mid-default** | real | defaulted | 28.57% | 0.95× | CC (Highly Distressed) | SCORE | checking_status, purpose, credit_history |
 | **R4-high-default** | real | defaulted | 75.87% | 2.53× | D (Default) | SCORE | checking_status, months_duration, purpose |
-| **SYN-best** | synthetic | — | 0.03% | 0.00× | AAA (Exceptional) | SCORE | all protective |
-| **SYN-worst** | synthetic | — | 99.90% | 3.33× | D (Default) | SCORE | credit_history, months_duration, checking_status |
+| **SYN-best** | synthetic | repaid (by design) | 0.03% | 0.00× | AAA (Exceptional) | SCORE | all protective |
+| **SYN-worst** | synthetic | default (by design) | 99.90% | 3.33× | D (Default) | SCORE | credit_history, months_duration, checking_status |
 
 ---
 ## Per-candidate showcase (what a new applicant report looks like)
 
 ### R1-low-repaid
 
-**Type:** real · **Actual outcome:** repaid
+**Type:** real · **Outcome:** repaid
 
 **Inputs:** checking_status=< 0 DM, credit_history=critical account / other credits elsewhere, months_duration=6, savings_status=unknown / none, purpose=radio/television
 
@@ -42,7 +42,7 @@
 
 ### R2-mid-repaid
 
-**Type:** real · **Actual outcome:** repaid
+**Type:** real · **Outcome:** repaid
 
 **Inputs:** checking_status=< 0 DM, credit_history=critical account / other credits elsewhere, months_duration=9, savings_status=100 ≤ ... < 500 DM, purpose=repairs
 
@@ -60,7 +60,7 @@
 
 ### R3-mid-default
 
-**Type:** real · **Actual outcome:** defaulted
+**Type:** real · **Outcome:** defaulted
 
 **Inputs:** checking_status=< 0 DM, credit_history=existing credits paid duly till now, months_duration=15, savings_status=unknown / none, purpose=domestic appliances
 
@@ -78,7 +78,7 @@
 
 ### R4-high-default
 
-**Type:** real · **Actual outcome:** defaulted
+**Type:** real · **Outcome:** defaulted
 
 **Inputs:** checking_status=< 0 DM, credit_history=delay in past, months_duration=36, savings_status=< 100 DM, purpose=education
 
@@ -96,7 +96,7 @@
 
 ### SYN-best
 
-**Type:** synthetic · **Actual outcome:** n/a (synthetic composite — constructed from observed feature values; no real outcome)
+**Type:** synthetic · **Outcome:** repaid (by design) — synthetic composite constructed from observed feature-value extremes; no observed outcome
 
 **Inputs:** checking_status=no checking account, credit_history=critical account / other credits elsewhere, months_duration=4, savings_status=≥ 1000 DM, purpose=car (used)
 
@@ -114,7 +114,7 @@
 
 ### SYN-worst
 
-**Type:** synthetic · **Actual outcome:** n/a (synthetic composite — constructed from observed feature values; no real outcome)
+**Type:** synthetic · **Outcome:** default (by design) — synthetic composite constructed from observed feature-value extremes; no observed outcome
 
 **Inputs:** checking_status=< 0 DM, credit_history=no credits / all paid duly, months_duration=72, savings_status=< 100 DM, purpose=education
 

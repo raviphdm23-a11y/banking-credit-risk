@@ -6,25 +6,25 @@
 
 > **Scope.** This pack reports only methodology/regulation-grounded outputs: calibrated PD, rating grade (risk tier, on the institution's internal master scale), exact WOE reason codes, and the governed completeness decision. The **accept / refer / decline lending decision is set by the institution applying its own risk-appetite PD threshold** — it is exogenous to this methodology and is **not** derived or priced here.
 
-**Case composition (fixed standard):** 4 real applicants (drawn from the dataset, actual outcome shown) + 2 synthetic composites (constructed from observed feature values — no real outcome; a PD-floor check and a stress check). Real cases span the risk range and include both outcomes.
+**Case composition (fixed standard):** 4 real applicants (drawn from the dataset, observed outcome shown — defaulted / repaid) + 2 synthetic composites (constructed from observed feature-value extremes; outcome shown is the construction intent, "(by design)", not an observed outcome — a PD-floor check and a stress check). Real cases span the risk range and include both outcomes.
 
 ## Summary
 
-| Candidate | Type | Actual outcome | Calibrated PD | vs portfolio | Grade (risk tier) | Governed decision | Principal reasons |
+| Candidate | Type | Outcome | Calibrated PD | vs portfolio | Grade (risk tier) | Governed decision | Principal reasons |
 |---|---|---|--:|--:|---|---|---|
 | **R1-low-repaid** | real | repaid | 23.99% | 0.92× | CC (Highly Distressed) | SCORE | OCCUPATION_TYPE, PAYMENT_DAY, QUANT_BANKING_ACCOUNTS |
 | **R2-mid-repaid** | real | repaid | 34.04% | 1.31× | CC (Highly Distressed) | SCORE_FLAGGED | PAYMENT_DAY, QUANT_BANKING_ACCOUNTS, QUANT_SPECIAL_BANKING_ACCOUNTS |
 | **R3-mid-default** | real | defaulted | 34.04% | 1.31× | CC (Highly Distressed) | SCORE_FLAGGED | PAYMENT_DAY, QUANT_BANKING_ACCOUNTS, QUANT_SPECIAL_BANKING_ACCOUNTS |
 | **R4-high-default** | real | defaulted | 45.78% | 1.76× | C (Near Default) | SCORE | RESIDENCIAL_PHONE_AREA_CODE, PAYMENT_DAY, PROFESSIONAL_STATE |
-| **SYN-best** | synthetic | — | 20.22% | 0.78× | CC (Highly Distressed) | SCORE | PAYMENT_DAY, RESIDENCIAL_PHONE_AREA_CODE |
-| **SYN-worst** | synthetic | — | 65.40% | 2.51× | D (Default) | SCORE | QUANT_BANKING_ACCOUNTS, QUANT_SPECIAL_BANKING_ACCOUNTS, PAYMENT_DAY |
+| **SYN-best** | synthetic | repaid (by design) | 20.22% | 0.78× | CC (Highly Distressed) | SCORE | PAYMENT_DAY, RESIDENCIAL_PHONE_AREA_CODE |
+| **SYN-worst** | synthetic | default (by design) | 65.40% | 2.51× | D (Default) | SCORE | QUANT_BANKING_ACCOUNTS, QUANT_SPECIAL_BANKING_ACCOUNTS, PAYMENT_DAY |
 
 ---
 ## Per-candidate showcase (what a new applicant report looks like)
 
 ### R1-low-repaid
 
-**Type:** real · **Actual outcome:** repaid
+**Type:** real · **Outcome:** repaid
 
 **Inputs:** PAYMENT_DAY=1, RESIDENCIAL_PHONE_AREA_CODE=58.0, OCCUPATION_TYPE=2.0, PROFESSIONAL_STATE=RS, QUANT_BANKING_ACCOUNTS=1, QUANT_SPECIAL_BANKING_ACCOUNTS=1
 
@@ -43,7 +43,7 @@
 
 ### R2-mid-repaid
 
-**Type:** real · **Actual outcome:** repaid
+**Type:** real · **Outcome:** repaid
 
 **Inputs:** PAYMENT_DAY=1, RESIDENCIAL_PHONE_AREA_CODE=58.0, OCCUPATION_TYPE=0.0, PROFESSIONAL_STATE=None, QUANT_BANKING_ACCOUNTS=1, QUANT_SPECIAL_BANKING_ACCOUNTS=1
 
@@ -64,7 +64,7 @@ Governance note: adverse floor: PROFESSIONAL_STATE
 
 ### R3-mid-default
 
-**Type:** real · **Actual outcome:** defaulted
+**Type:** real · **Outcome:** defaulted
 
 **Inputs:** PAYMENT_DAY=1, RESIDENCIAL_PHONE_AREA_CODE=66.0, OCCUPATION_TYPE=0.0, PROFESSIONAL_STATE=None, QUANT_BANKING_ACCOUNTS=1, QUANT_SPECIAL_BANKING_ACCOUNTS=1
 
@@ -85,7 +85,7 @@ Governance note: adverse floor: PROFESSIONAL_STATE
 
 ### R4-high-default
 
-**Type:** real · **Actual outcome:** defaulted
+**Type:** real · **Outcome:** defaulted
 
 **Inputs:** PAYMENT_DAY=25, RESIDENCIAL_PHONE_AREA_CODE=None, OCCUPATION_TYPE=4.0, PROFESSIONAL_STATE=MS, QUANT_BANKING_ACCOUNTS=1, QUANT_SPECIAL_BANKING_ACCOUNTS=1
 
@@ -104,7 +104,7 @@ Governance note: adverse floor: PROFESSIONAL_STATE
 
 ### SYN-best
 
-**Type:** synthetic · **Actual outcome:** n/a (synthetic composite — constructed from observed feature values; no real outcome)
+**Type:** synthetic · **Outcome:** repaid (by design) — synthetic composite constructed from observed feature-value extremes; no observed outcome
 
 **Inputs:** PAYMENT_DAY=1, RESIDENCIAL_PHONE_AREA_CODE=1.0, OCCUPATION_TYPE=0.0, PROFESSIONAL_STATE=RO, QUANT_BANKING_ACCOUNTS=0, QUANT_SPECIAL_BANKING_ACCOUNTS=0
 
@@ -123,7 +123,7 @@ Governance note: adverse floor: PROFESSIONAL_STATE
 
 ### SYN-worst
 
-**Type:** synthetic · **Actual outcome:** n/a (synthetic composite — constructed from observed feature values; no real outcome)
+**Type:** synthetic · **Outcome:** default (by design) — synthetic composite constructed from observed feature-value extremes; no observed outcome
 
 **Inputs:** PAYMENT_DAY=25, RESIDENCIAL_PHONE_AREA_CODE=126.0, OCCUPATION_TYPE=5.0, PROFESSIONAL_STATE=AL, QUANT_BANKING_ACCOUNTS=2, QUANT_SPECIAL_BANKING_ACCOUNTS=2
 
