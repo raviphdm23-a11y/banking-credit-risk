@@ -1,0 +1,39 @@
+{
+  "dataset": "loan_data.csv",
+  "target": "target",
+  "title": "LOAN (LendingClub 2007-2010 educational subset)",
+  "note": "Candidates are REAL applicants drawn at the 3rd/45th/85th/99th PD percentiles (not invented). Scored with the ratified 7-col benchmark. NOTE: three features (fico external score; int.rate, credit.policy prior-decision artifacts) are availability-flagged - this benchmark is NOT an origination-time model; the deployable application-time model is the 4-col origination-only variant (fico/int.rate/credit.policy removed). See AEGIS_RUN_LOAN.md G3/G4 (LC-orig).",
+  "selected_columns": [
+    "fico",
+    "int.rate",
+    "inq.last.6mths",
+    "credit.policy",
+    "purpose",
+    "revol.util",
+    "log.annual.inc"
+  ],
+  "mandatory_columns": [
+    "inq.last.6mths",
+    "revol.util"
+  ],
+  "floor_columns": [],
+  "incomplete_policy": "refer",
+  "cases": {
+    "LN-strong": {
+      "fico": 727, "int.rate": 0.0788, "inq.last.6mths": 0, "credit.policy": 1,
+      "purpose": "credit_card", "revol.util": 51.0, "log.annual.inc": 11.90496755
+    },
+    "LN-good": {
+      "fico": 712, "int.rate": 0.1008, "inq.last.6mths": 1, "credit.policy": 1,
+      "purpose": "debt_consolidation", "revol.util": 73.2, "log.annual.inc": 11.35040654
+    },
+    "LN-refer": {
+      "fico": 667, "int.rate": 0.1513, "inq.last.6mths": 3, "credit.policy": 1,
+      "purpose": "major_purchase", "revol.util": 84.4, "log.annual.inc": 11.00209984
+    },
+    "LN-weak": {
+      "fico": 662, "int.rate": 0.1836, "inq.last.6mths": 3, "credit.policy": 1,
+      "purpose": "small_business", "revol.util": 93.4, "log.annual.inc": 11.33857208
+    }
+  }
+}
