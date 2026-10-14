@@ -133,14 +133,20 @@ monitored and risk-justified.
 
 Approved 13-column behavioural model + `AEGIS_TAIWAN_CUTOFF_POLICY.md`. Portfolio default 22.1%. PD floored at
 0.03%. Account-management actions (behavioural model, not origination). No reason code cites a protected
-attribute (proxy EDUCATION removed at G4).
+attribute (proxy EDUCATION removed at G4). **Fixed 6-case standard:** 4 real applicants (actual outcome shown)
++ 2 synthetic composites (PD-floor + stress).
 
-| Customer | Calibrated PD | Grade (risk tier) | Principal reasons |
-|---|--:|---|---|
-| **T-strong** | 5.44% | BB | all factors protective |
-| **T-mid** | 8.91% | B | moderate credit limit |
-| **T-watch** | 28.02% | CC | recent repayment delay, lower limit, earlier delay |
-| **T-weak** | 71.50% | D | recent repayment delay, low limit, prior delays |
+| Candidate | Actual | Calibrated PD | Grade | Decision | Principal reasons |
+|---|---|--:|---|---|---|
+| R1-low-repaid | repaid | 7.12% | B | SCORE | PAY_AMT4, PAY_AMT6 |
+| R2-mid-repaid | repaid | 16.93% | CCC | SCORE | LIMIT_BAL, PAY_AMT4, PAY_AMT2 |
+| R3-mid-default | defaulted | 16.93% | CCC | SCORE | PAY_AMT2, PAY_AMT1, PAY_AMT3 |
+| R4-high-default | defaulted | 71.50% | D | SCORE | PAY_0, PAY_6, PAY_5 |
+| SYN-best | — | 5.44% | BB | SCORE | all protective |
+| SYN-worst | — | 88.89% | D | SCORE | PAY_0, PAY_6, PAY_5 |
+
+*(R2 repaid and R3 defaulted share PD 16.93% — the behavioural model's messy middle. SYN-best reaches only BB,
+not AAA — a repayment-history model cannot certify a pristine applicant it has not observed over time.)*
 
 Spans the risk spectrum with hand-auditable reasons. The account-management action (maintain/review/reduce)
 is an institution risk-appetite input, not derived here (pricing removed). Full showcase: `SAMPLE_RUNS_TAIWAN.md`.
@@ -150,7 +156,7 @@ is an institution risk-appetite input, not derived here (pricing removed). Full 
 - [x] `SHARP_TAIWAN.md` — Stages 0–4
 - [x] `AEGIS_RUN_TAIWAN.md` — G0–GF signed, hash chain intact, GF verdict
 - [x] `AEGIS_TAIWAN_CUTOFF_POLICY.md` — fixed cutoffs + grades + pricing
-- [x] Acceptance demonstration — 4 candidates with actions + reason reports
+- [x] Acceptance demonstration — `acceptance_cases/taiwan.json` + `SAMPLE_RUNS_TAIWAN.md` (6-case standard: 4 real w/ actual outcome + 2 synthetic)
 - [x] Open GF conditions listed (TC1, TC2, TC3, TC-cal, TC-use)
 
 ## Condition TC-cal — DISCHARGED (2026-10-13)

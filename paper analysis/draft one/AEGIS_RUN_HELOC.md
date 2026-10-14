@@ -84,15 +84,20 @@ external-score dependence), C (hard-excluding it loses the top predictor — use
 
 Approved 17-col model + `AEGIS_HELOC_CUTOFF_POLICY.md`. Portfolio default 52.2% (balanced benchmark). PD
 floored at 0.03%. All reason codes are legitimate credit-bureau factors (no protected attributes exist).
+**Fixed 6-case standard:** 4 real applicants (actual outcome shown) + 2 synthetic composites (PD-floor + stress).
 
-| Customer | Calibrated PD | Grade (risk tier) | Principal reasons |
-|---|--:|---|---|
-| **HE-strong** | 1.9% | A | worst recent delinquency grade (minor) |
-| **HE-good** | 17.6% | CCC | high revolving utilization, worst-ever delinquency, external score |
-| **HE-refer** | 22.5% | CC | many revolving accounts w/ balances, worst-ever delinquency, utilization |
-| **HE-weak** | 90.1% | D | recent delinquency, thin file, installment mix |
+| Candidate | Actual | Calibrated PD | Grade | Decision | Principal reasons |
+|---|---|--:|---|---|---|
+| R1-low-repaid | repaid | 12.12% | CCC | SCORE | NumRevolvingTradesWBalance, MaxDelqEver, PercentInstallTrades |
+| R2-mid-repaid | repaid | 61.16% | D | SCORE | MSinceMostRecentInqexcl7days, ExternalRiskEstimate, NumBank2NatlTrades… |
+| R3-mid-default | defaulted | 61.16% | D | SCORE | NumRevolvingTradesWBalance, MSinceMostRecentInqexcl7days, NumBank2NatlTrades… |
+| R4-high-default | defaulted | 90.54% | D | SCORE | NetFractionRevolvingBurden, MSinceMostRecentDelq, MSinceMostRecentInq… |
+| SYN-best | — | 9.77% | B | SCORE | MaxDelq2PublicRecLast12M, MaxDelqEver, NumBank2NatlTrades… |
+| SYN-worst | — | 90.54% | D | SCORE | NetFractionRevolvingBurden, NumSatisfactoryTrades, AverageMInFile |
 
-*(Accept/refer/decline threshold is an institution input, not derived here — pricing removed. Full showcase: `SAMPLE_RUNS_HELOC.md`.)*
+*(Accept/refer/decline threshold is an institution input, not derived here — no pricing. On this 52%-base-rate
+balanced benchmark the messy middle is wide — R2 repaid and R3 defaulted both score 61% D; SYN-best reaches only
+B. Full showcase: `SAMPLE_RUNS_HELOC.md`.)*
 
 Spans approve / refer / decline with hand-auditable reasons. **Acceptance: PASS.**
 
@@ -130,7 +135,7 @@ attributes — the clean case). Discrimination the strongest of the four runs (G
 - [x] `SHARP_HELOC.md` — Stages 0–4 + Stage 4b backtest
 - [x] **Per-grade calibration backtest (in G4, before GF)** — HL p=0.051, 5/6 grades pass
 - [x] `AEGIS_HELOC_CUTOFF_POLICY.md` — fixed cutoffs + grades + pricing
-- [x] Acceptance demonstration — 4 candidates with decisions + reason reports
+- [x] Acceptance demonstration — `acceptance_cases/heloc.json` + `SAMPLE_RUNS_HELOC.md` (6-case standard: 4 real w/ actual outcome + 2 synthetic)
 - [x] `AEGIS_RUN_HELOC.md` — G0–G5 signed, **GF ruled last with visibility**, chain intact
 - [x] Open GF conditions listed
 

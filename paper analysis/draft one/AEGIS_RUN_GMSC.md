@@ -44,14 +44,19 @@ exact reason codes; PD floor auto; `drift_monitor` + MC-age fairness watch. Reje
 19.6%), C (leaves trap open), D. **G5 deliverables (cutoff policy + SAMPLE_RUNS pack) produced below — before GF.**
 
 ### Acceptance demonstration (committee pack: `SAMPLE_RUNS_GMSC.md`, inputs `acceptance_cases/gmsc.json`)
-| Candidate | Calibrated PD | Grade (risk tier) | Principal reasons |
-|---|--:|---|---|
-| G-strong | 0.56% | AA | all protective |
-| G-good | 7.75% | B | revolving utilization, real-estate loans, income |
-| G-refer | 21.15% | CC | 30-59d past due, utilization, real-estate loans |
-| G-weak | 52.98% | D | 90d late, utilization, 30-59d past due |
+**Fixed 6-case standard:** 4 real applicants (actual outcome shown) + 2 synthetic composites (PD-floor + stress).
 
-*(Accept/refer/decline threshold is an institution input, not derived here — pricing removed. Full showcase: `SAMPLE_RUNS_GMSC.md`.)*
+| Candidate | Actual | Calibrated PD | Grade | Decision | Principal reasons |
+|---|---|--:|---|---|---|
+| R1-low-repaid | repaid | 0.70% | AA | SCORE | NumberOfDependents |
+| R2-mid-repaid | repaid | 2.90% | BBB | SCORE | NumberOfDependents, RevolvingUtilization |
+| R3-mid-default | defaulted | 2.90% | BBB | SCORE | DebtRatio, NumberRealEstateLoans, NumberOfDependents |
+| R4-high-default | defaulted | 41.46% | C | SCORE_FLAGGED | 90d late, revolving utilization, 30-59d past due |
+| SYN-best | — | 12.34% | CCC | SCORE | revolving utilization, DebtRatio, real-estate loans |
+| SYN-worst | — | 58.65% | D | SCORE | 90d late, 60-89d past due, 30-59d past due |
+
+*(Accept/refer/decline threshold is an institution input, not derived here — no pricing. R2 repaid and R3
+defaulted share PD 2.90% (best-calibrated model's low-end messy middle). Full showcase: `SAMPLE_RUNS_GMSC.md`.)*
 
 ---
 
@@ -123,7 +128,7 @@ fairness handled (age excluded, disparate impact risk-justified; proxy under thr
 - [x] `SHARP_GMSC.md` — Stages 0–4 + Stage 4b backtest
 - [x] **Per-grade calibration backtest (in G4, before GF)** — 10/10 grades pass, ECE 0.0023
 - [x] `AEGIS_GMSC_CUTOFF_POLICY.md` — decisioning note (grades; institution threshold; no pricing)
-- [x] Acceptance demonstration — `acceptance_cases/gmsc.json` + `SAMPLE_RUNS_GMSC.md` (4 candidates, PD+grade+reasons)
+- [x] Acceptance demonstration — `acceptance_cases/gmsc.json` + `SAMPLE_RUNS_GMSC.md` (6-case standard: 4 real w/ actual outcome + 2 synthetic)
 - [x] `AEGIS_RUN_GMSC.md` — G0–G5 signed, **GF ruled last** with visibility, chain intact
 - [x] Open GF conditions listed
 

@@ -25,65 +25,126 @@
   "floor_columns": [],
   "incomplete_policy": "refer",
   "cases": {
-    "T-strong": {
-      "PAY_0": -1,
-      "PAY_2": -1,
-      "PAY_3": -1,
-      "PAY_4": -1,
-      "PAY_5": -1,
-      "PAY_6": -1,
-      "LIMIT_BAL": 300000,
-      "PAY_AMT1": 20000,
-      "PAY_AMT2": 20000,
-      "PAY_AMT3": 20000,
-      "PAY_AMT4": 20000,
-      "PAY_AMT5": 20000,
-      "PAY_AMT6": 20000
+    "R1-low-repaid": {
+      "PAY_0": -2.0,
+      "PAY_2": -2.0,
+      "PAY_3": -2.0,
+      "PAY_4": -2.0,
+      "PAY_5": -2.0,
+      "PAY_6": -2.0,
+      "LIMIT_BAL": 500000.0,
+      "PAY_AMT2": 31178.0,
+      "PAY_AMT3": 3180.0,
+      "PAY_AMT4": 0.0,
+      "PAY_AMT1": 5006.0,
+      "PAY_AMT6": 768.0,
+      "PAY_AMT5": 5293.0
     },
-    "T-mid": {
-      "PAY_0": 0,
-      "PAY_2": 0,
-      "PAY_3": -1,
-      "PAY_4": 0,
-      "PAY_5": 0,
-      "PAY_6": 0,
-      "LIMIT_BAL": 120000,
-      "PAY_AMT1": 5000,
-      "PAY_AMT2": 5000,
-      "PAY_AMT3": 4000,
-      "PAY_AMT4": 5000,
-      "PAY_AMT5": 4000,
-      "PAY_AMT6": 5000
+    "R2-mid-repaid": {
+      "PAY_0": 0.0,
+      "PAY_2": 0.0,
+      "PAY_3": 0.0,
+      "PAY_4": 0.0,
+      "PAY_5": 0.0,
+      "PAY_6": 0.0,
+      "LIMIT_BAL": 50000.0,
+      "PAY_AMT2": 1194.0,
+      "PAY_AMT3": 379.0,
+      "PAY_AMT4": 281.0,
+      "PAY_AMT1": 1411.0,
+      "PAY_AMT6": 197.0,
+      "PAY_AMT5": 321.0
     },
-    "T-watch": {
-      "PAY_0": 1,
-      "PAY_2": 2,
-      "PAY_3": 0,
-      "PAY_4": 0,
-      "PAY_5": 0,
-      "PAY_6": 0,
-      "LIMIT_BAL": 70000,
-      "PAY_AMT1": 2500,
-      "PAY_AMT2": 2000,
-      "PAY_AMT3": 3000,
-      "PAY_AMT4": 2000,
-      "PAY_AMT5": 2500,
-      "PAY_AMT6": 2000
+    "R3-mid-default": {
+      "PAY_0": 0.0,
+      "PAY_2": 0.0,
+      "PAY_3": -2.0,
+      "PAY_4": -2.0,
+      "PAY_5": -2.0,
+      "PAY_6": -1.0,
+      "LIMIT_BAL": 360000.0,
+      "PAY_AMT2": 0.0,
+      "PAY_AMT3": 0.0,
+      "PAY_AMT4": 0.0,
+      "PAY_AMT1": 0.0,
+      "PAY_AMT6": 0.0,
+      "PAY_AMT5": 2650.0
     },
-    "T-weak": {
-      "PAY_0": 2,
-      "PAY_2": 2,
-      "PAY_3": 2,
-      "PAY_4": 1,
-      "PAY_5": 0,
-      "PAY_6": 0,
-      "LIMIT_BAL": 30000,
-      "PAY_AMT1": 1000,
-      "PAY_AMT2": 800,
-      "PAY_AMT3": 1000,
-      "PAY_AMT4": 1000,
-      "PAY_AMT5": 500,
-      "PAY_AMT6": 1000
+    "R4-high-default": {
+      "PAY_0": 2.0,
+      "PAY_2": 0.0,
+      "PAY_3": 0.0,
+      "PAY_4": 2.0,
+      "PAY_5": 2.0,
+      "PAY_6": 2.0,
+      "LIMIT_BAL": 70000.0,
+      "PAY_AMT2": 3582.0,
+      "PAY_AMT3": 0.0,
+      "PAY_AMT4": 3601.0,
+      "PAY_AMT1": 2007.0,
+      "PAY_AMT6": 1820.0,
+      "PAY_AMT5": 0.0
+    },
+    "SYN-best": {
+      "PAY_0": -2,
+      "PAY_2": -2,
+      "PAY_3": -2,
+      "PAY_4": -2,
+      "PAY_5": -2,
+      "PAY_6": -2,
+      "LIMIT_BAL": 1000000.0,
+      "PAY_AMT2": 1684259.0,
+      "PAY_AMT3": 896040.0,
+      "PAY_AMT4": 621000.0,
+      "PAY_AMT1": 873552.0,
+      "PAY_AMT6": 528666.0,
+      "PAY_AMT5": 426529.0
+    },
+    "SYN-worst": {
+      "PAY_0": 8,
+      "PAY_2": 8,
+      "PAY_3": 8,
+      "PAY_4": 8,
+      "PAY_5": 8,
+      "PAY_6": 8,
+      "LIMIT_BAL": 10000.0,
+      "PAY_AMT2": 0.0,
+      "PAY_AMT3": 0.0,
+      "PAY_AMT4": 0.0,
+      "PAY_AMT1": 0.0,
+      "PAY_AMT6": 0.0,
+      "PAY_AMT5": 0.0
+    }
+  },
+  "note": "Fixed 6-case committee standard: 4 REAL applicants (actual outcome shown) spanning the risk range with both outcomes, + 2 SYNTHETIC composites (SYN-best / SYN-worst, built from observed feature-value extremes; no real outcome - a PD-floor check and a stress check). Reproducible via score_acceptance_cases.py.",
+  "case_meta": {
+    "R1-low-repaid": {
+      "kind": "real",
+      "actual": 0,
+      "deployed_pd": 0.0712
+    },
+    "R2-mid-repaid": {
+      "kind": "real",
+      "actual": 0,
+      "deployed_pd": 0.1693
+    },
+    "R3-mid-default": {
+      "kind": "real",
+      "actual": 1,
+      "deployed_pd": 0.1693
+    },
+    "R4-high-default": {
+      "kind": "real",
+      "actual": 1,
+      "deployed_pd": 0.715
+    },
+    "SYN-best": {
+      "kind": "synthetic",
+      "actual": null
+    },
+    "SYN-worst": {
+      "kind": "synthetic",
+      "actual": null
     }
   }
 }

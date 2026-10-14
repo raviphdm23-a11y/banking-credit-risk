@@ -20,40 +20,40 @@
   "incomplete_policy": "refer",
   "cases": {
     "R1-low-repaid": {
-      "fico": 797,
-      "int.rate": 0.0894,
-      "inq.last.6mths": 1,
-      "credit.policy": 1,
-      "purpose": "credit_card",
-      "revol.util": 52.7,
-      "log.annual.inc": 11.60823564
-    },
-    "R2-mid-repaid": {
-      "fico": 682,
-      "int.rate": 0.1357,
-      "inq.last.6mths": 1,
-      "credit.policy": 1,
-      "purpose": "debt_consolidation",
-      "revol.util": 25.6,
-      "log.annual.inc": 10.37349118
-    },
-    "R3-mid-default": {
-      "fico": 667,
-      "int.rate": 0.1496,
+      "fico": 727,
+      "int.rate": 0.0788,
       "inq.last.6mths": 0,
       "credit.policy": 1,
+      "purpose": "credit_card",
+      "revol.util": 51.0,
+      "log.annual.inc": 11.90496755
+    },
+    "R2-mid-repaid": {
+      "fico": 717,
+      "int.rate": 0.0988,
+      "inq.last.6mths": 1,
+      "credit.policy": 1,
+      "purpose": "major_purchase",
+      "revol.util": 61.0,
+      "log.annual.inc": 10.30895266
+    },
+    "R3-mid-default": {
+      "fico": 682,
+      "int.rate": 0.1154,
+      "inq.last.6mths": 1,
+      "credit.policy": 1,
       "purpose": "debt_consolidation",
-      "revol.util": 76.8,
-      "log.annual.inc": 10.71441777
+      "revol.util": 57.7,
+      "log.annual.inc": 10.70099475
     },
     "R4-high-default": {
-      "fico": 662,
-      "int.rate": 0.1217,
-      "inq.last.6mths": 2,
+      "fico": 702,
+      "int.rate": 0.16,
+      "inq.last.6mths": 1,
       "credit.policy": 1,
       "purpose": "small_business",
-      "revol.util": 54.7,
-      "log.annual.inc": 9.210340372
+      "revol.util": 98.6,
+      "log.annual.inc": 10.81977828
     },
     "SYN-best": {
       "fico": 827,
@@ -78,22 +78,22 @@
     "R1-low-repaid": {
       "kind": "real",
       "actual": 0,
-      "modelled_pd": 0.0475
+      "deployed_pd": 0.0446
     },
     "R2-mid-repaid": {
       "kind": "real",
       "actual": 0,
-      "modelled_pd": 0.1563
+      "deployed_pd": 0.1509
     },
     "R3-mid-default": {
       "kind": "real",
       "actual": 1,
-      "modelled_pd": 0.1563
+      "deployed_pd": 0.1579
     },
     "R4-high-default": {
       "kind": "real",
       "actual": 1,
-      "modelled_pd": 0.3384
+      "deployed_pd": 0.35
     },
     "SYN-best": {
       "kind": "synthetic",

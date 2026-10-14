@@ -6,110 +6,174 @@
 
 > **Scope.** This pack reports only methodology/regulation-grounded outputs: calibrated PD, rating grade (risk tier, on the institution's internal master scale), exact WOE reason codes, and the governed completeness decision. The **accept / refer / decline lending decision is set by the institution applying its own risk-appetite PD threshold** — it is exogenous to this methodology and is **not** derived or priced here.
 
+**Case composition (fixed standard):** 4 real applicants (drawn from the dataset, actual outcome shown) + 2 synthetic composites (constructed from observed feature values — no real outcome; a PD-floor check and a stress check). Real cases span the risk range and include both outcomes.
+
 ## Summary
 
-| Candidate | Calibrated PD | vs portfolio | Grade (risk tier) | Governed decision | Principal reasons |
-|---|--:|--:|---|---|---|
-| **T-strong** | 5.44% | 0.25× | BB (Speculative) | SCORE | all protective |
-| **T-mid** | 8.91% | 0.40× | B (Vulnerable) | SCORE | LIMIT_BAL |
-| **T-watch** | 28.02% | 1.27× | CC (Highly Distressed) | SCORE | PAY_0, LIMIT_BAL, PAY_2 |
-| **T-weak** | 71.50% | 3.23× | D (Default) | SCORE | PAY_0, LIMIT_BAL, PAY_4 |
+| Candidate | Type | Actual outcome | Calibrated PD | vs portfolio | Grade (risk tier) | Governed decision | Principal reasons |
+|---|---|---|--:|--:|---|---|---|
+| **R1-low-repaid** | real | repaid | 7.12% | 0.32× | B (Vulnerable) | SCORE | PAY_AMT4, PAY_AMT6 |
+| **R2-mid-repaid** | real | repaid | 16.93% | 0.77× | CCC (Distressed) | SCORE | LIMIT_BAL, PAY_AMT4, PAY_AMT2 |
+| **R3-mid-default** | real | defaulted | 16.93% | 0.77× | CCC (Distressed) | SCORE | PAY_AMT2, PAY_AMT1, PAY_AMT3 |
+| **R4-high-default** | real | defaulted | 71.50% | 3.23× | D (Default) | SCORE | PAY_0, PAY_6, PAY_5 |
+| **SYN-best** | synthetic | — | 5.44% | 0.25× | BB (Speculative) | SCORE | all protective |
+| **SYN-worst** | synthetic | — | 88.89% | 4.02× | D (Default) | SCORE | PAY_0, PAY_6, PAY_5 |
 
 ---
 ## Per-candidate showcase (what a new applicant report looks like)
 
-### T-strong
+### R1-low-repaid
 
-**Inputs:** PAY_0=-1, PAY_2=-1, PAY_3=-1, PAY_4=-1, PAY_5=-1, PAY_6=-1, LIMIT_BAL=300000, PAY_AMT2=20000, PAY_AMT3=20000, PAY_AMT4=20000, PAY_AMT1=20000, PAY_AMT6=20000, PAY_AMT5=20000
+**Type:** real · **Actual outcome:** repaid
 
-**Governed decision:** SCORE · raw PD 5.92% → **calibrated PD 5.44%** (0.25× portfolio) · grade **BB** (Speculative)
+**Inputs:** PAY_0=-2.0, PAY_2=-2.0, PAY_3=-2.0, PAY_4=-2.0, PAY_5=-2.0, PAY_6=-2.0, LIMIT_BAL=500000.0, PAY_AMT2=31178.0, PAY_AMT3=3180.0, PAY_AMT4=0.0, PAY_AMT1=5006.0, PAY_AMT6=768.0, PAY_AMT5=5293.0
+
+**Governed decision:** SCORE · raw PD 7.84% → **calibrated PD 7.12%** (0.32× portfolio) · grade **B** (Vulnerable)
 
 | Feature | Value | WOE | Contribution | Effect |
 |---|---|--:|--:|---|
-| PAY_AMT2 | 20000 | +1.239 | -0.296 | lowers risk |
-| PAY_0 | -1 | +0.343 | -0.260 | lowers risk |
-| PAY_AMT1 | 20000 | +0.961 | -0.197 | lowers risk |
-| LIMIT_BAL | 300000 | +0.467 | -0.178 | lowers risk |
-| PAY_AMT3 | 20000 | +0.672 | -0.125 | lowers risk |
-| PAY_AMT4 | 20000 | +0.746 | -0.102 | lowers risk |
-| PAY_6 | -1 | +0.328 | -0.072 | lowers risk |
-| PAY_3 | -1 | +0.430 | -0.070 | lowers risk |
-| PAY_AMT6 | 20000 | +0.684 | -0.068 | lowers risk |
-| PAY_5 | -1 | +0.385 | -0.060 | lowers risk |
-| PAY_4 | -1 | +0.407 | -0.052 | lowers risk |
-| PAY_AMT5 | 20000 | +0.665 | -0.025 | lowers risk |
-| PAY_2 | -1 | +0.402 | -0.012 | lowers risk |
+| PAY_0 | -2.0 | +0.622 | -0.472 | lowers risk |
+| PAY_AMT2 | 31178.0 | +1.239 | -0.296 | lowers risk |
+| LIMIT_BAL | 500000.0 | +0.746 | -0.285 | lowers risk |
+| PAY_AMT1 | 5006.0 | +0.344 | -0.071 | lowers risk |
+| PAY_AMT4 | 0.0 | -0.381 | +0.052 | raises risk |
+| PAY_3 | -2.0 | +0.222 | -0.036 | lowers risk |
+| PAY_AMT3 | 3180.0 | +0.154 | -0.029 | lowers risk |
+| PAY_6 | -2.0 | +0.125 | -0.028 | lowers risk |
+| PAY_5 | -2.0 | +0.147 | -0.023 | lowers risk |
+| PAY_4 | -2.0 | +0.175 | -0.022 | lowers risk |
+| PAY_AMT6 | 768.0 | -0.101 | +0.010 | raises risk |
+| PAY_AMT5 | 5293.0 | +0.262 | -0.010 | lowers risk |
+| PAY_2 | -2.0 | +0.239 | -0.007 | lowers risk |
+
+**Principal (adverse-action) reasons:** PAY_AMT4, PAY_AMT6
+
+### R2-mid-repaid
+
+**Type:** real · **Actual outcome:** repaid
+
+**Inputs:** PAY_0=0.0, PAY_2=0.0, PAY_3=0.0, PAY_4=0.0, PAY_5=0.0, PAY_6=0.0, LIMIT_BAL=50000.0, PAY_AMT2=1194.0, PAY_AMT3=379.0, PAY_AMT4=281.0, PAY_AMT1=1411.0, PAY_AMT6=197.0, PAY_AMT5=321.0
+
+**Governed decision:** SCORE · raw PD 15.62% → **calibrated PD 16.93%** (0.77× portfolio) · grade **CCC** (Distressed)
+
+| Feature | Value | WOE | Contribution | Effect |
+|---|---|--:|--:|---|
+| PAY_0 | 0.0 | +0.659 | -0.500 | lowers risk |
+| LIMIT_BAL | 50000.0 | -0.293 | +0.112 | raises risk |
+| PAY_AMT4 | 281.0 | -0.381 | +0.052 | raises risk |
+| PAY_3 | 0.0 | +0.295 | -0.048 | lowers risk |
+| PAY_6 | 0.0 | +0.201 | -0.044 | lowers risk |
+| PAY_5 | 0.0 | +0.201 | -0.031 | lowers risk |
+| PAY_4 | 0.0 | +0.236 | -0.030 | lowers risk |
+| PAY_AMT2 | 1194.0 | -0.109 | +0.026 | raises risk |
+| PAY_2 | 0.0 | +0.406 | -0.013 | lowers risk |
+| PAY_AMT3 | 379.0 | -0.070 | +0.013 | raises risk |
+| PAY_AMT6 | 197.0 | -0.125 | +0.013 | raises risk |
+| PAY_AMT1 | 1411.0 | -0.034 | +0.007 | raises risk |
+| PAY_AMT5 | 321.0 | -0.140 | +0.005 | raises risk |
+
+**Principal (adverse-action) reasons:** LIMIT_BAL, PAY_AMT4, PAY_AMT2
+
+### R3-mid-default
+
+**Type:** real · **Actual outcome:** defaulted
+
+**Inputs:** PAY_0=0.0, PAY_2=0.0, PAY_3=-2.0, PAY_4=-2.0, PAY_5=-2.0, PAY_6=-1.0, LIMIT_BAL=360000.0, PAY_AMT2=0.0, PAY_AMT3=0.0, PAY_AMT4=0.0, PAY_AMT1=0.0, PAY_AMT6=0.0, PAY_AMT5=2650.0
+
+**Governed decision:** SCORE · raw PD 15.97% → **calibrated PD 16.93%** (0.77× portfolio) · grade **CCC** (Distressed)
+
+| Feature | Value | WOE | Contribution | Effect |
+|---|---|--:|--:|---|
+| PAY_0 | 0.0 | +0.659 | -0.500 | lowers risk |
+| LIMIT_BAL | 360000.0 | +0.467 | -0.178 | lowers risk |
+| PAY_AMT2 | 0.0 | -0.535 | +0.128 | raises risk |
+| PAY_AMT1 | 0.0 | -0.605 | +0.124 | raises risk |
+| PAY_AMT3 | 0.0 | -0.519 | +0.096 | raises risk |
+| PAY_6 | -1.0 | +0.328 | -0.072 | lowers risk |
+| PAY_AMT4 | 0.0 | -0.381 | +0.052 | raises risk |
+| PAY_3 | -2.0 | +0.222 | -0.036 | lowers risk |
+| PAY_AMT6 | 0.0 | -0.350 | +0.035 | raises risk |
+| PAY_5 | -2.0 | +0.147 | -0.023 | lowers risk |
+| PAY_4 | -2.0 | +0.175 | -0.022 | lowers risk |
+| PAY_2 | 0.0 | +0.406 | -0.013 | lowers risk |
+| PAY_AMT5 | 2650.0 | +0.091 | -0.003 | lowers risk |
+
+**Principal (adverse-action) reasons:** PAY_AMT2, PAY_AMT1, PAY_AMT3
+
+### R4-high-default
+
+**Type:** real · **Actual outcome:** defaulted
+
+**Inputs:** PAY_0=2.0, PAY_2=0.0, PAY_3=0.0, PAY_4=2.0, PAY_5=2.0, PAY_6=2.0, LIMIT_BAL=70000.0, PAY_AMT2=3582.0, PAY_AMT3=0.0, PAY_AMT4=3601.0, PAY_AMT1=2007.0, PAY_AMT6=1820.0, PAY_AMT5=0.0
+
+**Governed decision:** SCORE · raw PD 74.67% → **calibrated PD 71.50%** (3.23× portfolio) · grade **D** (Default)
+
+| Feature | Value | WOE | Contribution | Effect |
+|---|---|--:|--:|---|
+| PAY_0 | 2.0 | -2.065 | +1.568 | raises risk |
+| PAY_6 | 2.0 | -1.285 | +0.283 | raises risk |
+| PAY_5 | 2.0 | -1.427 | +0.221 | raises risk |
+| PAY_4 | 2.0 | -1.352 | +0.171 | raises risk |
+| LIMIT_BAL | 70000.0 | -0.293 | +0.112 | raises risk |
+| PAY_AMT3 | 0.0 | -0.519 | +0.096 | raises risk |
+| PAY_3 | 0.0 | +0.295 | -0.048 | lowers risk |
+| PAY_AMT4 | 3601.0 | +0.300 | -0.041 | lowers risk |
+| PAY_AMT2 | 3582.0 | +0.091 | -0.022 | lowers risk |
+| PAY_AMT1 | 2007.0 | +0.067 | -0.014 | lowers risk |
+| PAY_2 | 0.0 | +0.406 | -0.013 | lowers risk |
+| PAY_AMT5 | 0.0 | -0.332 | +0.013 | raises risk |
+| PAY_AMT6 | 1820.0 | -0.007 | +0.001 | raises risk |
+
+**Principal (adverse-action) reasons:** PAY_0, PAY_6, PAY_5
+
+### SYN-best
+
+**Type:** synthetic · **Actual outcome:** n/a (synthetic composite — constructed from observed feature values; no real outcome)
+
+**Inputs:** PAY_0=-2, PAY_2=-2, PAY_3=-2, PAY_4=-2, PAY_5=-2, PAY_6=-2, LIMIT_BAL=1000000.0, PAY_AMT2=1684259.0, PAY_AMT3=896040.0, PAY_AMT4=621000.0, PAY_AMT1=873552.0, PAY_AMT6=528666.0, PAY_AMT5=426529.0
+
+**Governed decision:** SCORE · raw PD 5.05% → **calibrated PD 5.44%** (0.25× portfolio) · grade **BB** (Speculative)
+
+| Feature | Value | WOE | Contribution | Effect |
+|---|---|--:|--:|---|
+| PAY_0 | -2.0 | +0.622 | -0.472 | lowers risk |
+| PAY_AMT2 | 1684259.0 | +1.239 | -0.296 | lowers risk |
+| LIMIT_BAL | 1000000.0 | +0.746 | -0.285 | lowers risk |
+| PAY_AMT1 | 873552.0 | +0.961 | -0.197 | lowers risk |
+| PAY_AMT3 | 896040.0 | +0.672 | -0.125 | lowers risk |
+| PAY_AMT4 | 621000.0 | +0.746 | -0.102 | lowers risk |
+| PAY_AMT6 | 528666.0 | +0.684 | -0.068 | lowers risk |
+| PAY_3 | -2.0 | +0.222 | -0.036 | lowers risk |
+| PAY_6 | -2.0 | +0.125 | -0.028 | lowers risk |
+| PAY_AMT5 | 426529.0 | +0.665 | -0.025 | lowers risk |
+| PAY_5 | -2.0 | +0.147 | -0.023 | lowers risk |
+| PAY_4 | -2.0 | +0.175 | -0.022 | lowers risk |
+| PAY_2 | -2.0 | +0.239 | -0.007 | lowers risk |
 
 **Principal (adverse-action) reasons:** none — all factors protective
 
-### T-mid
+### SYN-worst
 
-**Inputs:** PAY_0=0, PAY_2=0, PAY_3=-1, PAY_4=0, PAY_5=0, PAY_6=0, LIMIT_BAL=120000, PAY_AMT2=5000, PAY_AMT3=4000, PAY_AMT4=5000, PAY_AMT1=5000, PAY_AMT6=5000, PAY_AMT5=4000
+**Type:** synthetic · **Actual outcome:** n/a (synthetic composite — constructed from observed feature values; no real outcome)
 
-**Governed decision:** SCORE · raw PD 10.52% → **calibrated PD 8.91%** (0.40× portfolio) · grade **B** (Vulnerable)
+**Inputs:** PAY_0=8, PAY_2=8, PAY_3=8, PAY_4=8, PAY_5=8, PAY_6=8, LIMIT_BAL=10000.0, PAY_AMT2=0.0, PAY_AMT3=0.0, PAY_AMT4=0.0, PAY_AMT1=0.0, PAY_AMT6=0.0, PAY_AMT5=0.0
 
-| Feature | Value | WOE | Contribution | Effect |
-|---|---|--:|--:|---|
-| PAY_0 | 0 | +0.659 | -0.500 | lowers risk |
-| PAY_AMT1 | 5000 | +0.344 | -0.071 | lowers risk |
-| PAY_3 | -1 | +0.430 | -0.070 | lowers risk |
-| PAY_AMT2 | 5000 | +0.190 | -0.045 | lowers risk |
-| PAY_6 | 0 | +0.201 | -0.044 | lowers risk |
-| PAY_AMT4 | 5000 | +0.300 | -0.041 | lowers risk |
-| PAY_5 | 0 | +0.201 | -0.031 | lowers risk |
-| PAY_4 | 0 | +0.236 | -0.030 | lowers risk |
-| PAY_AMT3 | 4000 | +0.154 | -0.029 | lowers risk |
-| PAY_AMT6 | 5000 | +0.251 | -0.025 | lowers risk |
-| LIMIT_BAL | 120000 | -0.042 | +0.016 | raises risk |
-| PAY_2 | 0 | +0.406 | -0.013 | lowers risk |
-| PAY_AMT5 | 4000 | +0.259 | -0.010 | lowers risk |
-
-**Principal (adverse-action) reasons:** LIMIT_BAL
-
-### T-watch
-
-**Inputs:** PAY_0=1, PAY_2=2, PAY_3=0, PAY_4=0, PAY_5=0, PAY_6=0, LIMIT_BAL=70000, PAY_AMT2=2000, PAY_AMT3=3000, PAY_AMT4=2000, PAY_AMT1=2500, PAY_AMT6=2000, PAY_AMT5=2500
-
-**Governed decision:** SCORE · raw PD 30.22% → **calibrated PD 28.02%** (1.27× portfolio) · grade **CC** (Highly Distressed)
+**Governed decision:** SCORE · raw PD 91.80% → **calibrated PD 88.89%** (4.02× portfolio) · grade **D** (Default)
 
 | Feature | Value | WOE | Contribution | Effect |
 |---|---|--:|--:|---|
-| PAY_0 | 1 | -0.593 | +0.450 | raises risk |
-| LIMIT_BAL | 70000 | -0.293 | +0.112 | raises risk |
-| PAY_3 | 0 | +0.295 | -0.048 | lowers risk |
-| PAY_2 | 2 | -1.484 | +0.046 | raises risk |
-| PAY_6 | 0 | +0.201 | -0.044 | lowers risk |
-| PAY_5 | 0 | +0.201 | -0.031 | lowers risk |
-| PAY_4 | 0 | +0.236 | -0.030 | lowers risk |
-| PAY_AMT3 | 3000 | +0.125 | -0.023 | lowers risk |
-| PAY_AMT1 | 2500 | +0.067 | -0.014 | lowers risk |
-| PAY_AMT2 | 2000 | +0.014 | -0.003 | lowers risk |
-| PAY_AMT5 | 2500 | +0.091 | -0.003 | lowers risk |
-| PAY_AMT6 | 2000 | -0.007 | +0.001 | raises risk |
-| PAY_AMT4 | 2000 | +0.002 | -0.000 | lowers risk |
+| PAY_0 | 8.0 | -2.199 | +1.670 | raises risk |
+| PAY_6 | 8.0 | -1.971 | +0.435 | raises risk |
+| PAY_5 | 8.0 | -1.926 | +0.299 | raises risk |
+| LIMIT_BAL | 10000.0 | -0.693 | +0.265 | raises risk |
+| PAY_3 | 8.0 | -1.628 | +0.265 | raises risk |
+| PAY_4 | 8.0 | -1.851 | +0.235 | raises risk |
+| PAY_AMT2 | 0.0 | -0.535 | +0.128 | raises risk |
+| PAY_AMT1 | 0.0 | -0.605 | +0.124 | raises risk |
+| PAY_AMT3 | 0.0 | -0.519 | +0.096 | raises risk |
+| PAY_AMT4 | 0.0 | -0.381 | +0.052 | raises risk |
+| PAY_2 | 8.0 | -1.546 | +0.048 | raises risk |
+| PAY_AMT6 | 0.0 | -0.350 | +0.035 | raises risk |
+| PAY_AMT5 | 0.0 | -0.332 | +0.013 | raises risk |
 
-**Principal (adverse-action) reasons:** PAY_0, LIMIT_BAL, PAY_2
-
-### T-weak
-
-**Inputs:** PAY_0=2, PAY_2=2, PAY_3=2, PAY_4=1, PAY_5=0, PAY_6=0, LIMIT_BAL=30000, PAY_AMT2=800, PAY_AMT3=1000, PAY_AMT4=1000, PAY_AMT1=1000, PAY_AMT6=1000, PAY_AMT5=500
-
-**Governed decision:** SCORE · raw PD 74.48% → **calibrated PD 71.50%** (3.23× portfolio) · grade **D** (Default)
-
-| Feature | Value | WOE | Contribution | Effect |
-|---|---|--:|--:|---|
-| PAY_0 | 2 | -2.065 | +1.568 | raises risk |
-| LIMIT_BAL | 30000 | -0.652 | +0.249 | raises risk |
-| PAY_4 | 1 | -1.851 | +0.235 | raises risk |
-| PAY_3 | 2 | -1.321 | +0.215 | raises risk |
-| PAY_2 | 2 | -1.484 | +0.046 | raises risk |
-| PAY_6 | 0 | +0.201 | -0.044 | lowers risk |
-| PAY_5 | 0 | +0.201 | -0.031 | lowers risk |
-| PAY_AMT2 | 800 | -0.109 | +0.026 | raises risk |
-| PAY_AMT1 | 1000 | -0.073 | +0.015 | raises risk |
-| PAY_AMT3 | 1000 | -0.070 | +0.013 | raises risk |
-| PAY_AMT4 | 1000 | -0.095 | +0.013 | raises risk |
-| PAY_AMT6 | 1000 | -0.101 | +0.010 | raises risk |
-| PAY_AMT5 | 500 | -0.140 | +0.005 | raises risk |
-
-**Principal (adverse-action) reasons:** PAY_0, LIMIT_BAL, PAY_4
+**Principal (adverse-action) reasons:** PAY_0, PAY_6, PAY_5

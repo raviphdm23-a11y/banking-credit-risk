@@ -6,79 +6,164 @@
 
 > **Scope.** This pack reports only methodology/regulation-grounded outputs: calibrated PD, rating grade (risk tier, on the institution's internal master scale), exact WOE reason codes, and the governed completeness decision. The **accept / refer / decline lending decision is set by the institution applying its own risk-appetite PD threshold** — it is exogenous to this methodology and is **not** derived or priced here.
 
+**Case composition (fixed standard):** 4 real applicants (drawn from the dataset, actual outcome shown) + 2 synthetic composites (constructed from observed feature values — no real outcome; a PD-floor check and a stress check). Real cases span the risk range and include both outcomes.
+
 ## Summary
 
-| Candidate | Calibrated PD | vs portfolio | Grade (risk tier) | Governed decision | Principal reasons |
-|---|--:|--:|---|---|---|
-| **N** | 16.94% | 0.85× | CCC (Distressed) | SCORE | DELINQ, YOJ, DEBTINC |
-| **Q** | 22.95% | 1.15× | CC (Highly Distressed) | SCORE | DELINQ, YOJ, NINQ |
-| **P** | 96.77% | 4.85× | D (Default) | SCORE | DELINQ, DEROG, NINQ |
+| Candidate | Type | Actual outcome | Calibrated PD | vs portfolio | Grade (risk tier) | Governed decision | Principal reasons |
+|---|---|---|--:|--:|---|---|---|
+| **R1-low-repaid** | real | repaid | 0.89% | 0.04× | AA (Very Strong) | SCORE | JOB, LOAN, MORTDUE |
+| **R2-mid-repaid** | real | repaid | 9.31% | 0.47× | B (Vulnerable) | SCORE | LOAN, DEBTINC, MORTDUE |
+| **R3-mid-default** | real | defaulted | 9.31% | 0.47× | B (Vulnerable) | SCORE_FLAGGED | VALUE, LOAN, CLNO |
+| **R4-high-default** | real | defaulted | 90.76% | 4.55× | D (Default) | SCORE | DEBTINC, DELINQ, VALUE |
+| **SYN-best** | synthetic | — | 0.03% | 0.00× | AAA (Exceptional) | SCORE | MORTDUE |
+| **SYN-worst** | synthetic | — | 99.90% | 5.01× | D (Default) | SCORE | DELINQ, DEROG, CLNO |
 
 ---
 ## Per-candidate showcase (what a new applicant report looks like)
 
-### N
+### R1-low-repaid
 
-**Inputs:** DEBTINC=41, DELINQ=1, VALUE=100000, DEROG=0, CLAGE=150, NINQ=2, LOAN=25000, JOB=Office, YOJ=3, CLNO=16, MORTDUE=80000
+**Type:** real · **Actual outcome:** repaid
 
-**Governed decision:** SCORE · raw PD 23.75% → **calibrated PD 16.94%** (0.85× portfolio) · grade **CCC** (Distressed)
+**Inputs:** DEBTINC=31.1772613, DELINQ=0.0, VALUE=80355.0, DEROG=0.0, CLAGE=335.0741426, NINQ=1.0, LOAN=6300, JOB=Other, YOJ=24.0, CLNO=46.0, MORTDUE=78724.0
 
-| Feature | Value | WOE | Contribution | Effect |
-|---|---|--:|--:|---|
-| DELINQ | 1 | -0.724 | +0.660 | raises risk |
-| JOB | Office | +0.495 | -0.463 | lowers risk |
-| VALUE | 100000 | +0.289 | -0.262 | lowers risk |
-| YOJ | 3 | -0.238 | +0.216 | raises risk |
-| DEROG | 0 | +0.221 | -0.157 | lowers risk |
-| DEBTINC | 41 | -0.141 | +0.131 | raises risk |
-| CLAGE | 150 | -0.118 | +0.111 | raises risk |
-| CLNO | 16 | +0.089 | -0.093 | lowers risk |
-| NINQ | 2 | -0.193 | +0.087 | raises risk |
-| LOAN | 25000 | +0.275 | -0.087 | lowers risk |
-| MORTDUE | 80000 | +0.225 | +0.069 | raises risk |
-
-**Principal (adverse-action) reasons:** DELINQ, YOJ, DEBTINC
-
-### Q
-
-**Inputs:** DEBTINC=41, DELINQ=1, VALUE=100000, DEROG=0, CLAGE=150, NINQ=3, LOAN=25000, JOB=Office, YOJ=3, CLNO=16, MORTDUE=80000
-
-**Governed decision:** SCORE · raw PD 25.57% → **calibrated PD 22.95%** (1.15× portfolio) · grade **CC** (Highly Distressed)
+**Governed decision:** SCORE · raw PD 1.34% → **calibrated PD 0.89%** (0.04× portfolio) · grade **AA** (Very Strong)
 
 | Feature | Value | WOE | Contribution | Effect |
 |---|---|--:|--:|---|
-| DELINQ | 1 | -0.724 | +0.660 | raises risk |
-| JOB | Office | +0.495 | -0.463 | lowers risk |
-| VALUE | 100000 | +0.289 | -0.262 | lowers risk |
-| YOJ | 3 | -0.238 | +0.216 | raises risk |
-| NINQ | 3 | -0.410 | +0.184 | raises risk |
-| DEROG | 0 | +0.221 | -0.157 | lowers risk |
-| DEBTINC | 41 | -0.141 | +0.131 | raises risk |
-| CLAGE | 150 | -0.118 | +0.111 | raises risk |
-| CLNO | 16 | +0.089 | -0.093 | lowers risk |
-| LOAN | 25000 | +0.275 | -0.087 | lowers risk |
-| MORTDUE | 80000 | +0.225 | +0.069 | raises risk |
-
-**Principal (adverse-action) reasons:** DELINQ, YOJ, NINQ
-
-### P
-
-**Inputs:** DEBTINC=45, DELINQ=3, VALUE=72000, DEROG=2, CLAGE=90, NINQ=5, LOAN=15000, JOB=Other, YOJ=1, CLNO=10, MORTDUE=68000
-
-**Governed decision:** SCORE · raw PD 95.45% → **calibrated PD 96.77%** (4.85× portfolio) · grade **D** (Default)
-
-| Feature | Value | WOE | Contribution | Effect |
-|---|---|--:|--:|---|
-| DELINQ | 3 | -1.673 | +1.526 | raises risk |
-| DEROG | 2 | -1.867 | +1.329 | raises risk |
-| NINQ | 5 | -1.113 | +0.501 | raises risk |
-| CLAGE | 90 | -0.340 | +0.318 | raises risk |
-| CLNO | 10 | -0.256 | +0.267 | raises risk |
-| YOJ | 1 | -0.238 | +0.216 | raises risk |
+| DEBTINC | 31.1772613 | +1.447 | -1.339 | lowers risk |
+| CLAGE | 335.0741426 | +0.805 | -0.754 | lowers risk |
+| YOJ | 24.0 | +0.556 | -0.506 | lowers risk |
+| DELINQ | 0.0 | +0.430 | -0.392 | lowers risk |
 | JOB | Other | -0.192 | +0.180 | raises risk |
-| DEBTINC | 45 | -0.141 | +0.131 | raises risk |
-| VALUE | 72000 | +0.065 | -0.059 | lowers risk |
-| MORTDUE | 68000 | +0.046 | +0.014 | raises risk |
-| LOAN | 15000 | +0.001 | -0.000 | lowers risk |
+| LOAN | 6300 | -0.499 | +0.157 | raises risk |
+| DEROG | 0.0 | +0.221 | -0.157 | lowers risk |
+| CLNO | 46.0 | +0.089 | -0.093 | lowers risk |
+| MORTDUE | 78724.0 | +0.225 | +0.069 | raises risk |
+| VALUE | 80355.0 | +0.065 | -0.059 | lowers risk |
+| NINQ | 1.0 | +0.063 | -0.028 | lowers risk |
 
-**Principal (adverse-action) reasons:** DELINQ, DEROG, NINQ
+**Principal (adverse-action) reasons:** JOB, LOAN, MORTDUE
+
+### R2-mid-repaid
+
+**Type:** real · **Actual outcome:** repaid
+
+**Inputs:** DEBTINC=42.90999735, DELINQ=0.0, VALUE=87266.0, DEROG=0.0, CLAGE=250.6312692, NINQ=0.0, LOAN=3200, JOB=ProfExe, YOJ=7.0, CLNO=12.0, MORTDUE=74864.0
+
+**Governed decision:** SCORE · raw PD 6.47% → **calibrated PD 9.31%** (0.47× portfolio) · grade **B** (Vulnerable)
+
+| Feature | Value | WOE | Contribution | Effect |
+|---|---|--:|--:|---|
+| CLAGE | 250.6312692 | +0.668 | -0.626 | lowers risk |
+| LOAN | 3200 | -1.258 | +0.397 | raises risk |
+| DELINQ | 0.0 | +0.430 | -0.392 | lowers risk |
+| VALUE | 87266.0 | +0.269 | -0.244 | lowers risk |
+| JOB | ProfExe | +0.224 | -0.209 | lowers risk |
+| DEROG | 0.0 | +0.221 | -0.157 | lowers risk |
+| NINQ | 0.0 | +0.295 | -0.133 | lowers risk |
+| DEBTINC | 42.90999735 | -0.141 | +0.131 | raises risk |
+| CLNO | 12.0 | +0.089 | -0.093 | lowers risk |
+| MORTDUE | 74864.0 | +0.225 | +0.069 | raises risk |
+| YOJ | 7.0 | +0.040 | -0.036 | lowers risk |
+
+**Principal (adverse-action) reasons:** LOAN, DEBTINC, MORTDUE
+
+### R3-mid-default
+
+**Type:** real · **Actual outcome:** defaulted
+
+**Inputs:** DEBTINC=39.1969854, DELINQ=0.0, VALUE=36078.0, DEROG=0.0, CLAGE=302.3587095, NINQ=0.0, LOAN=5300, JOB=Other, YOJ=None, CLNO=8.0, MORTDUE=26908.0
+
+**Governed decision:** SCORE_FLAGGED · raw PD 4.10% → **calibrated PD 9.31%** (0.47× portfolio) · grade **B** (Vulnerable)
+
+Governance note: adverse floor: YOJ
+
+| Feature | Value | WOE | Contribution | Effect |
+|---|---|--:|--:|---|
+| DEBTINC | 39.1969854 | +1.242 | -1.149 | lowers risk |
+| CLAGE | 302.3587095 | +0.805 | -0.754 | lowers risk |
+| VALUE | 36078.0 | -0.647 | +0.587 | raises risk |
+| YOJ | None | +0.545 | -0.495 | lowers risk |
+| LOAN | 5300 | -1.258 | +0.397 | raises risk |
+| DELINQ | 0.0 | +0.430 | -0.392 | lowers risk |
+| CLNO | 8.0 | -0.256 | +0.267 | raises risk |
+| JOB | Other | -0.192 | +0.180 | raises risk |
+| DEROG | 0.0 | +0.221 | -0.157 | lowers risk |
+| NINQ | 0.0 | +0.295 | -0.133 | lowers risk |
+| MORTDUE | 26908.0 | -0.404 | -0.124 | lowers risk |
+
+**Principal (adverse-action) reasons:** VALUE, LOAN, CLNO
+
+### R4-high-default
+
+**Type:** real · **Actual outcome:** defaulted
+
+**Inputs:** DEBTINC=None, DELINQ=1.0, VALUE=16020.0, DEROG=0.0, CLAGE=85.8, NINQ=2.0, LOAN=4000, JOB=Other, YOJ=18.0, CLNO=23.0, MORTDUE=7000.0
+
+**Governed decision:** SCORE · raw PD 89.85% → **calibrated PD 90.76%** (4.55× portfolio) · grade **D** (Default)
+
+| Feature | Value | WOE | Contribution | Effect |
+|---|---|--:|--:|---|
+| DEBTINC | None | -1.881 | +1.740 | raises risk |
+| DELINQ | 1.0 | -0.724 | +0.660 | raises risk |
+| VALUE | 16020.0 | -0.647 | +0.587 | raises risk |
+| LOAN | 4000 | -1.258 | +0.397 | raises risk |
+| CLAGE | 85.8 | -0.340 | +0.318 | raises risk |
+| JOB | Other | -0.192 | +0.180 | raises risk |
+| DEROG | 0.0 | +0.221 | -0.157 | lowers risk |
+| MORTDUE | 7000.0 | -0.404 | -0.124 | lowers risk |
+| CLNO | 23.0 | +0.089 | -0.093 | lowers risk |
+| NINQ | 2.0 | -0.193 | +0.087 | raises risk |
+| YOJ | 18.0 | +0.040 | -0.036 | lowers risk |
+
+**Principal (adverse-action) reasons:** DEBTINC, DELINQ, VALUE
+
+### SYN-best
+
+**Type:** synthetic · **Actual outcome:** n/a (synthetic composite — constructed from observed feature values; no real outcome)
+
+**Inputs:** DEBTINC=0.524499215, DELINQ=0.0, VALUE=855909.0, DEROG=0.0, CLAGE=1168.233561, NINQ=0.0, LOAN=89900, JOB=Office, YOJ=41.0, CLNO=71.0, MORTDUE=399550.0
+
+**Governed decision:** SCORE · raw PD 0.41% → **calibrated PD 0.03%** (0.00× portfolio) · grade **AAA** (Exceptional)
+
+| Feature | Value | WOE | Contribution | Effect |
+|---|---|--:|--:|---|
+| DEBTINC | 0.524499215 | +1.447 | -1.339 | lowers risk |
+| CLAGE | 1168.233561 | +0.805 | -0.754 | lowers risk |
+| YOJ | 41.0 | +0.556 | -0.506 | lowers risk |
+| JOB | Office | +0.495 | -0.463 | lowers risk |
+| DELINQ | 0.0 | +0.430 | -0.392 | lowers risk |
+| VALUE | 855909.0 | +0.289 | -0.262 | lowers risk |
+| DEROG | 0.0 | +0.221 | -0.157 | lowers risk |
+| NINQ | 0.0 | +0.295 | -0.133 | lowers risk |
+| CLNO | 71.0 | +0.089 | -0.093 | lowers risk |
+| LOAN | 89900 | +0.275 | -0.087 | lowers risk |
+| MORTDUE | 399550.0 | +0.225 | +0.069 | raises risk |
+
+**Principal (adverse-action) reasons:** MORTDUE
+
+### SYN-worst
+
+**Type:** synthetic · **Actual outcome:** n/a (synthetic composite — constructed from observed feature values; no real outcome)
+
+**Inputs:** DEBTINC=203.3121487, DELINQ=15.0, VALUE=8000.0, DEROG=10.0, CLAGE=0.0, NINQ=17.0, LOAN=1100, JOB=Sales, YOJ=0.0, CLNO=0.0, MORTDUE=2063.0
+
+**Governed decision:** SCORE · raw PD 99.45% → **calibrated PD 99.90%** (5.01× portfolio) · grade **D** (Default)
+
+| Feature | Value | WOE | Contribution | Effect |
+|---|---|--:|--:|---|
+| DELINQ | 15.0 | -1.673 | +1.526 | raises risk |
+| DEROG | 10.0 | -1.867 | +1.329 | raises risk |
+| CLNO | 0.0 | -0.696 | +0.725 | raises risk |
+| CLAGE | 0.0 | -0.746 | +0.699 | raises risk |
+| VALUE | 8000.0 | -0.647 | +0.587 | raises risk |
+| JOB | Sales | -0.626 | +0.585 | raises risk |
+| NINQ | 17.0 | -1.113 | +0.501 | raises risk |
+| LOAN | 1100 | -1.258 | +0.397 | raises risk |
+| YOJ | 0.0 | -0.238 | +0.216 | raises risk |
+| DEBTINC | 203.3121487 | -0.141 | +0.131 | raises risk |
+| MORTDUE | 2063.0 | -0.404 | -0.124 | lowers risk |
+
+**Principal (adverse-action) reasons:** DELINQ, DEROG, CLNO

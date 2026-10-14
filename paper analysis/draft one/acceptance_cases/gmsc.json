@@ -21,45 +21,96 @@
   ],
   "incomplete_policy": "refer",
   "cases": {
-    "G-strong": {
-      "RevolvingUtilizationOfUnsecuredLines": 0,
+    "R1-low-repaid": {
+      "RevolvingUtilizationOfUnsecuredLines": 0.010351857,
+      "NumberOfTime30-59DaysPastDueNotWorse": 0.0,
+      "NumberOfTimes90DaysLate": 0.0,
+      "NumberOfTime60-89DaysPastDueNotWorse": 0.0,
+      "MonthlyIncome": 12454.0,
+      "NumberRealEstateLoansOrLines": 2.0,
+      "NumberOfDependents": 2.0,
+      "DebtRatio": 0.298354075
+    },
+    "R2-mid-repaid": {
+      "RevolvingUtilizationOfUnsecuredLines": 0.548458062,
+      "NumberOfTime30-59DaysPastDueNotWorse": 0.0,
+      "NumberOfTimes90DaysLate": 0.0,
+      "NumberOfTime60-89DaysPastDueNotWorse": 0.0,
+      "MonthlyIncome": 11362.0,
+      "NumberRealEstateLoansOrLines": 1.0,
+      "NumberOfDependents": 2.0,
+      "DebtRatio": 0.209891754
+    },
+    "R3-mid-default": {
+      "RevolvingUtilizationOfUnsecuredLines": 0.025892469,
+      "NumberOfTime30-59DaysPastDueNotWorse": 0.0,
+      "NumberOfTimes90DaysLate": 0.0,
+      "NumberOfTime60-89DaysPastDueNotWorse": 0.0,
+      "MonthlyIncome": 1.0,
+      "NumberRealEstateLoansOrLines": 0.0,
+      "NumberOfDependents": 2.0,
+      "DebtRatio": 74.5
+    },
+    "R4-high-default": {
+      "RevolvingUtilizationOfUnsecuredLines": 0.802417179,
+      "NumberOfTime30-59DaysPastDueNotWorse": 1.0,
+      "NumberOfTimes90DaysLate": 1.0,
+      "NumberOfTime60-89DaysPastDueNotWorse": 0.0,
+      "MonthlyIncome": null,
+      "NumberRealEstateLoansOrLines": 0.0,
+      "NumberOfDependents": 0.0,
+      "DebtRatio": 668.0
+    },
+    "SYN-best": {
+      "RevolvingUtilizationOfUnsecuredLines": 50708.0,
       "NumberOfTime30-59DaysPastDueNotWorse": 0,
       "NumberOfTimes90DaysLate": 0,
       "NumberOfTime60-89DaysPastDueNotWorse": 0,
-      "MonthlyIncome": 11000,
-      "NumberRealEstateLoansOrLines": 1,
-      "NumberOfDependents": 0,
-      "DebtRatio": 0.0735
+      "MonthlyIncome": 3008750.0,
+      "NumberRealEstateLoansOrLines": 54,
+      "NumberOfDependents": 0.0,
+      "DebtRatio": 329664.0
     },
-    "G-good": {
-      "RevolvingUtilizationOfUnsecuredLines": 0.7545,
-      "NumberOfTime30-59DaysPastDueNotWorse": 0,
-      "NumberOfTimes90DaysLate": 0,
-      "NumberOfTime60-89DaysPastDueNotWorse": 0,
-      "MonthlyIncome": 3500,
+    "SYN-worst": {
+      "RevolvingUtilizationOfUnsecuredLines": 0.0,
+      "NumberOfTime30-59DaysPastDueNotWorse": 98,
+      "NumberOfTimes90DaysLate": 98,
+      "NumberOfTime60-89DaysPastDueNotWorse": 98,
+      "MonthlyIncome": 0.0,
       "NumberRealEstateLoansOrLines": 0,
-      "NumberOfDependents": 0,
-      "DebtRatio": 0.2099
+      "NumberOfDependents": 20.0,
+      "DebtRatio": 0.0
+    }
+  },
+  "note": "Fixed 6-case committee standard: 4 REAL applicants (actual outcome shown) spanning the risk range with both outcomes, + 2 SYNTHETIC composites (SYN-best / SYN-worst, built from observed feature-value extremes; no real outcome - a PD-floor check and a stress check). Reproducible via score_acceptance_cases.py.",
+  "case_meta": {
+    "R1-low-repaid": {
+      "kind": "real",
+      "actual": 0,
+      "deployed_pd": 0.007
     },
-    "G-refer": {
-      "RevolvingUtilizationOfUnsecuredLines": 0.6933,
-      "NumberOfTime30-59DaysPastDueNotWorse": 2,
-      "NumberOfTimes90DaysLate": 0,
-      "NumberOfTime60-89DaysPastDueNotWorse": 0,
-      "MonthlyIncome": 2230,
-      "NumberRealEstateLoansOrLines": 0,
-      "NumberOfDependents": 0,
-      "DebtRatio": 0.2577
+    "R2-mid-repaid": {
+      "kind": "real",
+      "actual": 0,
+      "deployed_pd": 0.029
     },
-    "G-weak": {
-      "RevolvingUtilizationOfUnsecuredLines": 1.0,
-      "NumberOfTime30-59DaysPastDueNotWorse": 1,
-      "NumberOfTimes90DaysLate": 2,
-      "NumberOfTime60-89DaysPastDueNotWorse": 0,
-      "MonthlyIncome": 3833,
-      "NumberRealEstateLoansOrLines": 0,
-      "NumberOfDependents": 2,
-      "DebtRatio": 0.1917
+    "R3-mid-default": {
+      "kind": "real",
+      "actual": 1,
+      "deployed_pd": 0.029
+    },
+    "R4-high-default": {
+      "kind": "real",
+      "actual": 1,
+      "deployed_pd": 0.4146
+    },
+    "SYN-best": {
+      "kind": "synthetic",
+      "actual": null
+    },
+    "SYN-worst": {
+      "kind": "synthetic",
+      "actual": null
     }
   }
 }

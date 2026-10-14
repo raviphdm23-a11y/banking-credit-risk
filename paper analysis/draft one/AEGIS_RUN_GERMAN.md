@@ -151,15 +151,19 @@ Rejected: B (lets a prohibited basis enter the modelling process — ECOA exposu
 
 Approved WOE-logistic 5-column model + `AEGIS_GERMAN_CUTOFF_POLICY.md`. Portfolio default rate 30.0%. PD
 floored at 0.03% (Basel CRE32.3). Every reason code is a legitimate credit factor (no protected attributes).
+**Fixed 6-case standard:** 4 real applicants (actual outcome shown) + 2 synthetic composites (PD-floor + stress).
 
-| Candidate | Calibrated PD | Grade (risk tier) | Principal reasons |
-|---|--:|---|---|
-| **A-strong** | 0.03% (floored) | AAA | all factors protective |
-| **B-good** | 19.90% | CCC | low savings, long term, credit history |
-| **C-weaker** | 35.45% | C | long term, checking balance, low savings |
-| **D-weak** | 85.71% | D | long term (48mo), overdrawn checking, loan purpose |
+| Candidate | Actual | Calibrated PD | Grade | Decision | Principal reasons |
+|---|---|--:|---|---|---|
+| R1-low-repaid | repaid | 3.33% | BBB | SCORE | checking_status |
+| R2-mid-repaid | repaid | 28.40% | CC | SCORE | checking_status, purpose, savings_status |
+| R3-mid-default | defaulted | 28.57% | CC | SCORE | checking_status, purpose, credit_history |
+| R4-high-default | defaulted | 75.87% | D | SCORE | checking_status, months_duration, purpose |
+| SYN-best | — | 0.03% | AAA | SCORE | all protective (PD floor hit) |
+| SYN-worst | — | 99.90% | D | SCORE | credit_history, months_duration, checking_status |
 
-*(Accept/refer/decline threshold is an institution input, not derived here — pricing removed. Full showcase: `SAMPLE_RUNS_GERMAN.md`.)*
+*(Accept/refer/decline threshold is an institution input, not derived here — no pricing. SYN-best shows the 0.03%
+floor; R2 repaid and R3 defaulted share ~28.5% PD (small-data messy middle). Full showcase: `SAMPLE_RUNS_GERMAN.md`.)*
 
 A-strong shows the 0.03% PD floor in action (was a degenerate 0.0%). Fair-lending holds at the applicant
 level: no adverse-action reason cites a protected attribute. **Acceptance: PASS.** (Refer band 20–29.3% is

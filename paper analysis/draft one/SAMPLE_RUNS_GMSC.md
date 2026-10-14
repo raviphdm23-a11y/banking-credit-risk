@@ -6,90 +6,146 @@
 
 > **Scope.** This pack reports only methodology/regulation-grounded outputs: calibrated PD, rating grade (risk tier, on the institution's internal master scale), exact WOE reason codes, and the governed completeness decision. The **accept / refer / decline lending decision is set by the institution applying its own risk-appetite PD threshold** — it is exogenous to this methodology and is **not** derived or priced here.
 
+**Case composition (fixed standard):** 4 real applicants (drawn from the dataset, actual outcome shown) + 2 synthetic composites (constructed from observed feature values — no real outcome; a PD-floor check and a stress check). Real cases span the risk range and include both outcomes.
+
 ## Summary
 
-| Candidate | Calibrated PD | vs portfolio | Grade (risk tier) | Governed decision | Principal reasons |
-|---|--:|--:|---|---|---|
-| **G-strong** | 0.56% | 0.08× | AA (Very Strong) | SCORE | all protective |
-| **G-good** | 7.75% | 1.16× | B (Vulnerable) | SCORE | RevolvingUtilizationOfUnsecuredLines, NumberRealEstateLoansOrLines, MonthlyIncome |
-| **G-refer** | 21.15% | 3.16× | CC (Highly Distressed) | SCORE | NumberOfTime30-59DaysPastDueNotWorse, RevolvingUtilizationOfUnsecuredLines, NumberRealEstateLoansOrLines |
-| **G-weak** | 52.98% | 7.91× | D (Default) | SCORE | NumberOfTimes90DaysLate, RevolvingUtilizationOfUnsecuredLines, NumberOfTime30-59DaysPastDueNotWorse |
+| Candidate | Type | Actual outcome | Calibrated PD | vs portfolio | Grade (risk tier) | Governed decision | Principal reasons |
+|---|---|---|--:|--:|---|---|---|
+| **R1-low-repaid** | real | repaid | 0.70% | 0.10× | AA (Very Strong) | SCORE | NumberOfDependents |
+| **R2-mid-repaid** | real | repaid | 2.90% | 0.43× | BBB (Adequate) | SCORE | NumberOfDependents, RevolvingUtilizationOfUnsecuredLines |
+| **R3-mid-default** | real | defaulted | 2.90% | 0.43× | BBB (Adequate) | SCORE | DebtRatio, NumberRealEstateLoansOrLines, NumberOfDependents |
+| **R4-high-default** | real | defaulted | 41.46% | 6.19× | C (Near Default) | SCORE_FLAGGED | NumberOfTimes90DaysLate, RevolvingUtilizationOfUnsecuredLines, NumberOfTime30-59DaysPastDueNotWorse |
+| **SYN-best** | synthetic | — | 12.34% | 1.84× | CCC (Distressed) | SCORE | RevolvingUtilizationOfUnsecuredLines, DebtRatio, NumberRealEstateLoansOrLines |
+| **SYN-worst** | synthetic | — | 58.65% | 8.75× | D (Default) | SCORE | NumberOfTimes90DaysLate, NumberOfTime60-89DaysPastDueNotWorse, NumberOfTime30-59DaysPastDueNotWorse |
 
 ---
 ## Per-candidate showcase (what a new applicant report looks like)
 
-### G-strong
+### R1-low-repaid
 
-**Inputs:** RevolvingUtilizationOfUnsecuredLines=0, NumberOfTime30-59DaysPastDueNotWorse=0, NumberOfTimes90DaysLate=0, NumberOfTime60-89DaysPastDueNotWorse=0, MonthlyIncome=11000, NumberRealEstateLoansOrLines=1, NumberOfDependents=0, DebtRatio=0.0735
+**Type:** real · **Actual outcome:** repaid
 
-**Governed decision:** SCORE · raw PD 0.91% → **calibrated PD 0.56%** (0.08× portfolio) · grade **AA** (Very Strong)
+**Inputs:** RevolvingUtilizationOfUnsecuredLines=0.010351857, NumberOfTime30-59DaysPastDueNotWorse=0.0, NumberOfTimes90DaysLate=0.0, NumberOfTime60-89DaysPastDueNotWorse=0.0, MonthlyIncome=12454.0, NumberRealEstateLoansOrLines=2.0, NumberOfDependents=2.0, DebtRatio=0.298354075
+
+**Governed decision:** SCORE · raw PD 1.18% → **calibrated PD 0.70%** (0.10× portfolio) · grade **AA** (Very Strong)
 
 | Feature | Value | WOE | Contribution | Effect |
 |---|---|--:|--:|---|
-| RevolvingUtilizationOfUnsecuredLines | 0.0 | +1.388 | -0.903 | lowers risk |
+| RevolvingUtilizationOfUnsecuredLines | 0.010351857 | +1.388 | -0.903 | lowers risk |
+| NumberOfTime30-59DaysPastDueNotWorse | 0.0 | +0.541 | -0.288 | lowers risk |
+| NumberOfTimes90DaysLate | 0.0 | +0.389 | -0.204 | lowers risk |
+| DebtRatio | 0.298354075 | +0.124 | -0.171 | lowers risk |
+| MonthlyIncome | 12454.0 | +0.423 | -0.154 | lowers risk |
+| NumberOfDependents | 2.0 | -0.207 | +0.133 | raises risk |
+| NumberRealEstateLoansOrLines | 2.0 | +0.191 | -0.128 | lowers risk |
+| NumberOfTime60-89DaysPastDueNotWorse | 0.0 | +0.287 | -0.110 | lowers risk |
+
+**Principal (adverse-action) reasons:** NumberOfDependents
+
+### R2-mid-repaid
+
+**Type:** real · **Actual outcome:** repaid
+
+**Inputs:** RevolvingUtilizationOfUnsecuredLines=0.548458062, NumberOfTime30-59DaysPastDueNotWorse=0.0, NumberOfTimes90DaysLate=0.0, NumberOfTime60-89DaysPastDueNotWorse=0.0, MonthlyIncome=11362.0, NumberRealEstateLoansOrLines=1.0, NumberOfDependents=2.0, DebtRatio=0.209891754
+
+**Governed decision:** SCORE · raw PD 3.02% → **calibrated PD 2.90%** (0.43× portfolio) · grade **BBB** (Adequate)
+
+| Feature | Value | WOE | Contribution | Effect |
+|---|---|--:|--:|---|
 | NumberOfTime30-59DaysPastDueNotWorse | 0.0 | +0.541 | -0.288 | lowers risk |
 | NumberOfTimes90DaysLate | 0.0 | +0.389 | -0.204 | lowers risk |
 | NumberRealEstateLoansOrLines | 1.0 | +0.259 | -0.173 | lowers risk |
-| DebtRatio | 0.0735 | +0.124 | -0.171 | lowers risk |
-| MonthlyIncome | 11000.0 | +0.417 | -0.152 | lowers risk |
-| NumberOfTime60-89DaysPastDueNotWorse | 0.0 | +0.287 | -0.110 | lowers risk |
-| NumberOfDependents | 0.0 | +0.139 | -0.089 | lowers risk |
-
-**Principal (adverse-action) reasons:** none — all factors protective
-
-### G-good
-
-**Inputs:** RevolvingUtilizationOfUnsecuredLines=0.7545, NumberOfTime30-59DaysPastDueNotWorse=0, NumberOfTimes90DaysLate=0, NumberOfTime60-89DaysPastDueNotWorse=0, MonthlyIncome=3500, NumberRealEstateLoansOrLines=0, NumberOfDependents=0, DebtRatio=0.2099
-
-**Governed decision:** SCORE · raw PD 6.60% → **calibrated PD 7.75%** (1.16× portfolio) · grade **B** (Vulnerable)
-
-| Feature | Value | WOE | Contribution | Effect |
-|---|---|--:|--:|---|
-| RevolvingUtilizationOfUnsecuredLines | 0.7545 | -0.817 | +0.532 | raises risk |
-| NumberOfTime30-59DaysPastDueNotWorse | 0.0 | +0.541 | -0.288 | lowers risk |
-| NumberOfTimes90DaysLate | 0.0 | +0.389 | -0.204 | lowers risk |
-| DebtRatio | 0.2099 | +0.124 | -0.171 | lowers risk |
-| NumberRealEstateLoansOrLines | 0.0 | -0.241 | +0.161 | raises risk |
-| MonthlyIncome | 3500.0 | -0.333 | +0.121 | raises risk |
-| NumberOfTime60-89DaysPastDueNotWorse | 0.0 | +0.287 | -0.110 | lowers risk |
-| NumberOfDependents | 0.0 | +0.139 | -0.089 | lowers risk |
-
-**Principal (adverse-action) reasons:** RevolvingUtilizationOfUnsecuredLines, NumberRealEstateLoansOrLines, MonthlyIncome
-
-### G-refer
-
-**Inputs:** RevolvingUtilizationOfUnsecuredLines=0.6933, NumberOfTime30-59DaysPastDueNotWorse=2, NumberOfTimes90DaysLate=0, NumberOfTime60-89DaysPastDueNotWorse=0, MonthlyIncome=2230, NumberRealEstateLoansOrLines=0, NumberOfDependents=0, DebtRatio=0.2577
-
-**Governed decision:** SCORE · raw PD 16.67% → **calibrated PD 21.15%** (3.16× portfolio) · grade **CC** (Highly Distressed)
-
-| Feature | Value | WOE | Contribution | Effect |
-|---|---|--:|--:|---|
-| NumberOfTime30-59DaysPastDueNotWorse | 2.0 | -1.900 | +1.011 | raises risk |
-| RevolvingUtilizationOfUnsecuredLines | 0.6933 | -0.420 | +0.274 | raises risk |
-| NumberOfTimes90DaysLate | 0.0 | +0.389 | -0.204 | lowers risk |
-| DebtRatio | 0.2577 | +0.124 | -0.171 | lowers risk |
-| NumberRealEstateLoansOrLines | 0.0 | -0.241 | +0.161 | raises risk |
-| MonthlyIncome | 2230.0 | -0.333 | +0.121 | raises risk |
-| NumberOfTime60-89DaysPastDueNotWorse | 0.0 | +0.287 | -0.110 | lowers risk |
-| NumberOfDependents | 0.0 | +0.139 | -0.089 | lowers risk |
-
-**Principal (adverse-action) reasons:** NumberOfTime30-59DaysPastDueNotWorse, RevolvingUtilizationOfUnsecuredLines, NumberRealEstateLoansOrLines
-
-### G-weak
-
-**Inputs:** RevolvingUtilizationOfUnsecuredLines=1.0, NumberOfTime30-59DaysPastDueNotWorse=1, NumberOfTimes90DaysLate=2, NumberOfTime60-89DaysPastDueNotWorse=0, MonthlyIncome=3833, NumberRealEstateLoansOrLines=0, NumberOfDependents=2, DebtRatio=0.1917
-
-**Governed decision:** SCORE · raw PD 56.79% → **calibrated PD 52.98%** (7.91× portfolio) · grade **D** (Default)
-
-| Feature | Value | WOE | Contribution | Effect |
-|---|---|--:|--:|---|
-| NumberOfTimes90DaysLate | 2.0 | -2.630 | +1.380 | raises risk |
-| RevolvingUtilizationOfUnsecuredLines | 1.0 | -1.454 | +0.947 | raises risk |
-| NumberOfTime30-59DaysPastDueNotWorse | 1.0 | -0.901 | +0.479 | raises risk |
-| DebtRatio | 0.1917 | +0.124 | -0.171 | lowers risk |
-| NumberRealEstateLoansOrLines | 0.0 | -0.241 | +0.161 | raises risk |
+| DebtRatio | 0.209891754 | +0.124 | -0.171 | lowers risk |
+| MonthlyIncome | 11362.0 | +0.417 | -0.152 | lowers risk |
 | NumberOfDependents | 2.0 | -0.207 | +0.133 | raises risk |
 | NumberOfTime60-89DaysPastDueNotWorse | 0.0 | +0.287 | -0.110 | lowers risk |
-| MonthlyIncome | 3833.0 | -0.154 | +0.056 | raises risk |
+| RevolvingUtilizationOfUnsecuredLines | 0.548458062 | -0.150 | +0.097 | raises risk |
+
+**Principal (adverse-action) reasons:** NumberOfDependents, RevolvingUtilizationOfUnsecuredLines
+
+### R3-mid-default
+
+**Type:** real · **Actual outcome:** defaulted
+
+**Inputs:** RevolvingUtilizationOfUnsecuredLines=0.025892469, NumberOfTime30-59DaysPastDueNotWorse=0.0, NumberOfTimes90DaysLate=0.0, NumberOfTime60-89DaysPastDueNotWorse=0.0, MonthlyIncome=1.0, NumberRealEstateLoansOrLines=0.0, NumberOfDependents=2.0, DebtRatio=74.5
+
+**Governed decision:** SCORE · raw PD 2.99% → **calibrated PD 2.90%** (0.43× portfolio) · grade **BBB** (Adequate)
+
+| Feature | Value | WOE | Contribution | Effect |
+|---|---|--:|--:|---|
+| RevolvingUtilizationOfUnsecuredLines | 0.025892469 | +1.388 | -0.903 | lowers risk |
+| NumberOfTime30-59DaysPastDueNotWorse | 0.0 | +0.541 | -0.288 | lowers risk |
+| DebtRatio | 74.5 | -0.153 | +0.211 | raises risk |
+| NumberOfTimes90DaysLate | 0.0 | +0.389 | -0.204 | lowers risk |
+| NumberRealEstateLoansOrLines | 0.0 | -0.241 | +0.161 | raises risk |
+| NumberOfDependents | 2.0 | -0.207 | +0.133 | raises risk |
+| MonthlyIncome | 1.0 | -0.333 | +0.121 | raises risk |
+| NumberOfTime60-89DaysPastDueNotWorse | 0.0 | +0.287 | -0.110 | lowers risk |
+
+**Principal (adverse-action) reasons:** DebtRatio, NumberRealEstateLoansOrLines, NumberOfDependents
+
+### R4-high-default
+
+**Type:** real · **Actual outcome:** defaulted
+
+**Inputs:** RevolvingUtilizationOfUnsecuredLines=0.802417179, NumberOfTime30-59DaysPastDueNotWorse=1.0, NumberOfTimes90DaysLate=1.0, NumberOfTime60-89DaysPastDueNotWorse=0.0, MonthlyIncome=None, NumberRealEstateLoansOrLines=0.0, NumberOfDependents=0.0, DebtRatio=668.0
+
+**Governed decision:** SCORE_FLAGGED · raw PD 38.80% → **calibrated PD 41.46%** (6.19× portfolio) · grade **C** (Near Default)
+
+Governance note: adverse floor: MonthlyIncome
+
+| Feature | Value | WOE | Contribution | Effect |
+|---|---|--:|--:|---|
+| NumberOfTimes90DaysLate | 1.0 | -1.958 | +1.027 | raises risk |
+| RevolvingUtilizationOfUnsecuredLines | 0.802417179 | -0.817 | +0.532 | raises risk |
+| NumberOfTime30-59DaysPastDueNotWorse | 1.0 | -0.901 | +0.479 | raises risk |
+| DebtRatio | 668.0 | -0.153 | +0.211 | raises risk |
+| NumberRealEstateLoansOrLines | 0.0 | -0.241 | +0.161 | raises risk |
+| NumberOfTime60-89DaysPastDueNotWorse | 0.0 | +0.287 | -0.110 | lowers risk |
+| NumberOfDependents | 0.0 | +0.139 | -0.089 | lowers risk |
+| MonthlyIncome | nan | +0.180 | -0.065 | lowers risk |
 
 **Principal (adverse-action) reasons:** NumberOfTimes90DaysLate, RevolvingUtilizationOfUnsecuredLines, NumberOfTime30-59DaysPastDueNotWorse
+
+### SYN-best
+
+**Type:** synthetic · **Actual outcome:** n/a (synthetic composite — constructed from observed feature values; no real outcome)
+
+**Inputs:** RevolvingUtilizationOfUnsecuredLines=50708.0, NumberOfTime30-59DaysPastDueNotWorse=0, NumberOfTimes90DaysLate=0, NumberOfTime60-89DaysPastDueNotWorse=0, MonthlyIncome=3008750.0, NumberRealEstateLoansOrLines=54, NumberOfDependents=0.0, DebtRatio=329664.0
+
+**Governed decision:** SCORE · raw PD 10.71% → **calibrated PD 12.34%** (1.84× portfolio) · grade **CCC** (Distressed)
+
+| Feature | Value | WOE | Contribution | Effect |
+|---|---|--:|--:|---|
+| RevolvingUtilizationOfUnsecuredLines | 50708.0 | -1.454 | +0.947 | raises risk |
+| NumberOfTime30-59DaysPastDueNotWorse | 0.0 | +0.541 | -0.288 | lowers risk |
+| DebtRatio | 329664.0 | -0.153 | +0.211 | raises risk |
+| NumberOfTimes90DaysLate | 0.0 | +0.389 | -0.204 | lowers risk |
+| NumberRealEstateLoansOrLines | 54.0 | -0.251 | +0.168 | raises risk |
+| MonthlyIncome | 3008750.0 | +0.423 | -0.154 | lowers risk |
+| NumberOfTime60-89DaysPastDueNotWorse | 0.0 | +0.287 | -0.110 | lowers risk |
+| NumberOfDependents | 0.0 | +0.139 | -0.089 | lowers risk |
+
+**Principal (adverse-action) reasons:** RevolvingUtilizationOfUnsecuredLines, DebtRatio, NumberRealEstateLoansOrLines
+
+### SYN-worst
+
+**Type:** synthetic · **Actual outcome:** n/a (synthetic composite — constructed from observed feature values; no real outcome)
+
+**Inputs:** RevolvingUtilizationOfUnsecuredLines=0.0, NumberOfTime30-59DaysPastDueNotWorse=98, NumberOfTimes90DaysLate=98, NumberOfTime60-89DaysPastDueNotWorse=98, MonthlyIncome=0.0, NumberRealEstateLoansOrLines=0, NumberOfDependents=20.0, DebtRatio=0.0
+
+**Governed decision:** SCORE · raw PD 63.46% → **calibrated PD 58.65%** (8.75× portfolio) · grade **D** (Default)
+
+| Feature | Value | WOE | Contribution | Effect |
+|---|---|--:|--:|---|
+| NumberOfTimes90DaysLate | 98.0 | -3.039 | +1.595 | raises risk |
+| NumberOfTime60-89DaysPastDueNotWorse | 98.0 | -3.039 | +1.162 | raises risk |
+| NumberOfTime30-59DaysPastDueNotWorse | 98.0 | -1.900 | +1.011 | raises risk |
+| RevolvingUtilizationOfUnsecuredLines | 0.0 | +1.388 | -0.903 | lowers risk |
+| NumberOfDependents | 20.0 | -0.467 | +0.299 | raises risk |
+| DebtRatio | 0.0 | +0.211 | -0.292 | lowers risk |
+| NumberRealEstateLoansOrLines | 0.0 | -0.241 | +0.161 | raises risk |
+| MonthlyIncome | 0.0 | -0.333 | +0.121 | raises risk |
+
+**Principal (adverse-action) reasons:** NumberOfTimes90DaysLate, NumberOfTime60-89DaysPastDueNotWorse, NumberOfTime30-59DaysPastDueNotWorse

@@ -137,15 +137,21 @@ Rejected: A (would overstate regulatory posture), C (over-conservative; blocks a
 ## Acceptance demonstration (required — use-test R2 / transparency EU AI Act Art 13 / ECOA)
 
 Approved WOE-logistic model + `AEGIS_HMEQ_CUTOFF_POLICY.md`. Portfolio default rate 19.95%. PD floored at
-0.03% (Basel CRE32.3). Reason codes = exact WOE decomposition (principal reasons).
+0.03% (Basel CRE32.3). Reason codes = exact WOE decomposition. **Fixed 6-case standard:** 4 real applicants
+(actual outcome shown) + 2 synthetic composites (PD-floor + stress). Strong model — wide tail separation
+(R1 0.9% → R4 90.8%); SYN-best floors at 0.03% AAA.
 
-| Candidate | Calibrated PD | Grade (risk tier) | Principal reasons |
-|---|--:|---|---|
-| **N** | 16.94% | CCC | delinquent credit line, short job tenure, DTI above safe band |
-| **Q** | 22.95% | CC | delinquent line, short job tenure, recent inquiries |
-| **P** | 96.77% | D | multiple delinquencies, derogatory reports, recent inquiries |
+| Candidate | Actual | Calibrated PD | Grade | Decision | Principal reasons |
+|---|---|--:|---|---|---|
+| R1-low-repaid | repaid | 0.89% | AA | SCORE | JOB, LOAN, MORTDUE |
+| R2-mid-repaid | repaid | 9.31% | B | SCORE | LOAN, DEBTINC, MORTDUE |
+| R3-mid-default | defaulted | 9.31% | B | SCORE_FLAGGED | VALUE, LOAN, CLNO |
+| R4-high-default | defaulted | 90.76% | D | SCORE | DEBTINC, DELINQ, VALUE |
+| SYN-best | — | 0.03% | AAA | SCORE | all protective (PD floor hit) |
+| SYN-worst | — | 99.90% | D | SCORE | DELINQ, DEROG, CLNO |
 
-*(Accept/refer/decline threshold is an institution risk-appetite input, not derived here — pricing removed per the decisioning-note revision. Full showcase: `SAMPLE_RUNS_HMEQ.md`.)*
+*(Accept/refer/decline threshold is an institution risk-appetite input, not derived here — no pricing. Honest
+messy-middle: R2 repaid and R3 defaulted share PD 9.31%. Full showcase: `SAMPLE_RUNS_HMEQ.md`.)*
 
 Spans approve / refer / decline with defensible, hand-auditable reasons. Demonstrates the model+policy
 produce governed, explainable decisions — not just a PD. **Acceptance: PASS.**

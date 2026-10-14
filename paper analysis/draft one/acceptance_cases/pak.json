@@ -22,16 +22,16 @@
   "incomplete_policy": "refer",
   "cases": {
     "R1-low-repaid": {
-      "PAYMENT_DAY": 5,
-      "RESIDENCIAL_PHONE_AREA_CODE": 20.0,
-      "OCCUPATION_TYPE": 1.0,
-      "PROFESSIONAL_STATE": null,
+      "PAYMENT_DAY": 1,
+      "RESIDENCIAL_PHONE_AREA_CODE": 58.0,
+      "OCCUPATION_TYPE": 2.0,
+      "PROFESSIONAL_STATE": "RS",
       "QUANT_BANKING_ACCOUNTS": 1,
       "QUANT_SPECIAL_BANKING_ACCOUNTS": 1
     },
     "R2-mid-repaid": {
       "PAYMENT_DAY": 1,
-      "RESIDENCIAL_PHONE_AREA_CODE": 97.0,
+      "RESIDENCIAL_PHONE_AREA_CODE": 58.0,
       "OCCUPATION_TYPE": 0.0,
       "PROFESSIONAL_STATE": null,
       "QUANT_BANKING_ACCOUNTS": 1,
@@ -39,17 +39,17 @@
     },
     "R3-mid-default": {
       "PAYMENT_DAY": 1,
-      "RESIDENCIAL_PHONE_AREA_CODE": 90.0,
+      "RESIDENCIAL_PHONE_AREA_CODE": 66.0,
       "OCCUPATION_TYPE": 0.0,
       "PROFESSIONAL_STATE": null,
       "QUANT_BANKING_ACCOUNTS": 1,
       "QUANT_SPECIAL_BANKING_ACCOUNTS": 1
     },
     "R4-high-default": {
-      "PAYMENT_DAY": 1,
+      "PAYMENT_DAY": 25,
       "RESIDENCIAL_PHONE_AREA_CODE": null,
-      "OCCUPATION_TYPE": 2.0,
-      "PROFESSIONAL_STATE": "SP",
+      "OCCUPATION_TYPE": 4.0,
+      "PROFESSIONAL_STATE": "MS",
       "QUANT_BANKING_ACCOUNTS": 1,
       "QUANT_SPECIAL_BANKING_ACCOUNTS": 1
     },
@@ -74,22 +74,22 @@
     "R1-low-repaid": {
       "kind": "real",
       "actual": 0,
-      "modelled_pd": 0.1833
+      "deployed_pd": 0.2399
     },
     "R2-mid-repaid": {
       "kind": "real",
       "actual": 0,
-      "modelled_pd": 0.2676
+      "deployed_pd": 0.3404
     },
     "R3-mid-default": {
       "kind": "real",
       "actual": 1,
-      "modelled_pd": 0.2676
+      "deployed_pd": 0.3404
     },
     "R4-high-default": {
       "kind": "real",
       "actual": 1,
-      "modelled_pd": 0.3581
+      "deployed_pd": 0.4578
     },
     "SYN-best": {
       "kind": "synthetic",

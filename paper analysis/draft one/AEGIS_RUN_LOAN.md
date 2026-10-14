@@ -91,15 +91,15 @@ origination-only model**, not the 7-col benchmark that contains the circular/ext
 
 | Candidate | Type | Actual | Calibrated PD | Grade | Decision | Principal reasons |
 |---|---|---|--:|---|---|---|
-| R1-low-repaid | real | repaid | 4.46% | BB | SCORE | revol.util |
-| R2-mid-repaid | real | repaid | 15.04% | CCC | SCORE | int.rate, log.annual.inc, fico |
-| R3-mid-default | real | defaulted | 17.42% | CCC | SCORE | fico, int.rate, revol.util |
-| R4-high-default | real | defaulted | 38.52% | C | SCORE | purpose, log.annual.inc, fico |
+| R1-low-repaid | real | repaid | 4.46% | BB | SCORE | all protective |
+| R2-mid-repaid | real | repaid | 15.09% | CCC | SCORE | revol.util, log.annual.inc, fico |
+| R3-mid-default | real | defaulted | 15.79% | CCC | SCORE | revol.util, log.annual.inc, fico |
+| R4-high-default | real | defaulted | 35.00% | C | SCORE | purpose, int.rate, revol.util |
 | SYN-best | synthetic | — | 0.03% | AAA | SCORE | all protective (PD floor hit) |
 | SYN-worst | synthetic | — | 80.00% | D | SCORE | purpose, inq.last.6mths, log.annual.inc |
 
 *(Accept/refer/decline threshold is an institution input, not derived here — no pricing. Honest messy-middle:
-R2 repaid at 15.0% vs R3 defaulted at 17.4% — close but correctly ordered; SYN-best confirms the 0.03% floor.
+R2 repaid at 15.1% vs R3 defaulted at 15.8% — near-identical; SYN-best confirms the 0.03% floor (grade AAA).
 Full showcase: `SAMPLE_RUNS_LOAN.md`; decisioning note: `AEGIS_LOAN_CUTOFF_POLICY.md`.)*
 
 ---

@@ -6,27 +6,105 @@
 
 > **Scope.** This pack reports only methodology/regulation-grounded outputs: calibrated PD, rating grade (risk tier, on the institution's internal master scale), exact WOE reason codes, and the governed completeness decision. The **accept / refer / decline lending decision is set by the institution applying its own risk-appetite PD threshold** — it is exogenous to this methodology and is **not** derived or priced here.
 
+**Case composition (fixed standard):** 4 real applicants (drawn from the dataset, actual outcome shown) + 2 synthetic composites (constructed from observed feature values — no real outcome; a PD-floor check and a stress check). Real cases span the risk range and include both outcomes.
+
 ## Summary
 
-| Candidate | Calibrated PD | vs portfolio | Grade (risk tier) | Governed decision | Principal reasons |
-|---|--:|--:|---|---|---|
-| **A-strong** | 0.03% | 0.00× | AAA (Exceptional) | SCORE | all protective |
-| **B-good** | 19.90% | 0.66× | CCC (Distressed) | SCORE | savings_status, months_duration, credit_history |
-| **C-weaker** | 35.45% | 1.18× | C (Near Default) | SCORE | months_duration, checking_status, savings_status |
-| **D-weak** | 85.71% | 2.86× | D (Default) | SCORE | months_duration, checking_status, purpose |
+| Candidate | Type | Actual outcome | Calibrated PD | vs portfolio | Grade (risk tier) | Governed decision | Principal reasons |
+|---|---|---|--:|--:|---|---|---|
+| **R1-low-repaid** | real | repaid | 3.33% | 0.11× | BBB (Adequate) | SCORE | checking_status |
+| **R2-mid-repaid** | real | repaid | 28.40% | 0.95× | CC (Highly Distressed) | SCORE | checking_status, purpose, savings_status |
+| **R3-mid-default** | real | defaulted | 28.57% | 0.95× | CC (Highly Distressed) | SCORE | checking_status, purpose, credit_history |
+| **R4-high-default** | real | defaulted | 75.87% | 2.53× | D (Default) | SCORE | checking_status, months_duration, purpose |
+| **SYN-best** | synthetic | — | 0.03% | 0.00× | AAA (Exceptional) | SCORE | all protective |
+| **SYN-worst** | synthetic | — | 99.90% | 3.33× | D (Default) | SCORE | credit_history, months_duration, checking_status |
 
 ---
 ## Per-candidate showcase (what a new applicant report looks like)
 
-### A-strong
+### R1-low-repaid
 
-**Inputs:** checking_status=no checking account, credit_history=critical account / other credits elsewhere, months_duration=6, savings_status=≥ 1000 DM, purpose=car (used)
+**Type:** real · **Actual outcome:** repaid
+
+**Inputs:** checking_status=< 0 DM, credit_history=critical account / other credits elsewhere, months_duration=6, savings_status=unknown / none, purpose=radio/television
+
+**Governed decision:** SCORE · raw PD 5.24% → **calibrated PD 3.33%** (0.11× portfolio) · grade **BBB** (Adequate)
+
+| Feature | Value | WOE | Contribution | Effect |
+|---|---|--:|--:|---|
+| months_duration | 6 | +1.246 | -1.240 | lowers risk |
+| checking_status | < 0 DM | -0.818 | +0.667 | raises risk |
+| credit_history | critical account / other credits elsewhere | +0.734 | -0.564 | lowers risk |
+| savings_status | unknown / none | +0.704 | -0.511 | lowers risk |
+| purpose | radio/television | +0.410 | -0.406 | lowers risk |
+
+**Principal (adverse-action) reasons:** checking_status
+
+### R2-mid-repaid
+
+**Type:** real · **Actual outcome:** repaid
+
+**Inputs:** checking_status=< 0 DM, credit_history=critical account / other credits elsewhere, months_duration=9, savings_status=100 ≤ ... < 500 DM, purpose=repairs
+
+**Governed decision:** SCORE · raw PD 29.42% → **calibrated PD 28.40%** (0.95× portfolio) · grade **CC** (Highly Distressed)
+
+| Feature | Value | WOE | Contribution | Effect |
+|---|---|--:|--:|---|
+| checking_status | < 0 DM | -0.818 | +0.667 | raises risk |
+| credit_history | critical account / other credits elsewhere | +0.734 | -0.564 | lowers risk |
+| months_duration | 9 | +0.365 | -0.364 | lowers risk |
+| purpose | repairs | -0.127 | +0.125 | raises risk |
+| savings_status | 100 ≤ ... < 500 DM | -0.140 | +0.101 | raises risk |
+
+**Principal (adverse-action) reasons:** checking_status, purpose, savings_status
+
+### R3-mid-default
+
+**Type:** real · **Actual outcome:** defaulted
+
+**Inputs:** checking_status=< 0 DM, credit_history=existing credits paid duly till now, months_duration=15, savings_status=unknown / none, purpose=domestic appliances
+
+**Governed decision:** SCORE · raw PD 29.82% → **calibrated PD 28.57%** (0.95× portfolio) · grade **CC** (Highly Distressed)
+
+| Feature | Value | WOE | Contribution | Effect |
+|---|---|--:|--:|---|
+| checking_status | < 0 DM | -0.818 | +0.667 | raises risk |
+| savings_status | unknown / none | +0.704 | -0.511 | lowers risk |
+| months_duration | 15 | +0.365 | -0.364 | lowers risk |
+| purpose | domestic appliances | -0.127 | +0.125 | raises risk |
+| credit_history | existing credits paid duly till now | -0.088 | +0.068 | raises risk |
+
+**Principal (adverse-action) reasons:** checking_status, purpose, credit_history
+
+### R4-high-default
+
+**Type:** real · **Actual outcome:** defaulted
+
+**Inputs:** checking_status=< 0 DM, credit_history=delay in past, months_duration=36, savings_status=< 100 DM, purpose=education
+
+**Governed decision:** SCORE · raw PD 78.56% → **calibrated PD 75.87%** (2.53× portfolio) · grade **D** (Default)
+
+| Feature | Value | WOE | Contribution | Effect |
+|---|---|--:|--:|---|
+| checking_status | < 0 DM | -0.818 | +0.667 | raises risk |
+| months_duration | 36 | -0.614 | +0.611 | raises risk |
+| purpose | education | -0.606 | +0.600 | raises risk |
+| savings_status | < 100 DM | -0.271 | +0.197 | raises risk |
+| credit_history | delay in past | -0.085 | +0.065 | raises risk |
+
+**Principal (adverse-action) reasons:** checking_status, months_duration, purpose
+
+### SYN-best
+
+**Type:** synthetic · **Actual outcome:** n/a (synthetic composite — constructed from observed feature values; no real outcome)
+
+**Inputs:** checking_status=no checking account, credit_history=critical account / other credits elsewhere, months_duration=4, savings_status=≥ 1000 DM, purpose=car (used)
 
 **Governed decision:** SCORE · raw PD 0.57% → **calibrated PD 0.03%** (0.00× portfolio) · grade **AAA** (Exceptional)
 
 | Feature | Value | WOE | Contribution | Effect |
 |---|---|--:|--:|---|
-| months_duration | 6 | +1.246 | -1.240 | lowers risk |
+| months_duration | 4 | +1.246 | -1.240 | lowers risk |
 | checking_status | no checking account | +1.176 | -0.959 | lowers risk |
 | savings_status | ≥ 1000 DM | +1.099 | -0.797 | lowers risk |
 | purpose | car (used) | +0.774 | -0.766 | lowers risk |
@@ -34,50 +112,20 @@
 
 **Principal (adverse-action) reasons:** none — all factors protective
 
-### B-good
+### SYN-worst
 
-**Inputs:** checking_status=≥ 200 DM / salary assignment ≥ 1y, credit_history=existing credits paid duly till now, months_duration=18, savings_status=< 100 DM, purpose=car (used)
+**Type:** synthetic · **Actual outcome:** n/a (synthetic composite — constructed from observed feature values; no real outcome)
 
-**Governed decision:** SCORE · raw PD 17.19% → **calibrated PD 19.90%** (0.66× portfolio) · grade **CCC** (Distressed)
+**Inputs:** checking_status=< 0 DM, credit_history=no credits / all paid duly, months_duration=72, savings_status=< 100 DM, purpose=education
 
-| Feature | Value | WOE | Contribution | Effect |
-|---|---|--:|--:|---|
-| purpose | car (used) | +0.774 | -0.766 | lowers risk |
-| checking_status | ≥ 200 DM / salary assignment ≥ 1y | +0.405 | -0.330 | lowers risk |
-| savings_status | < 100 DM | -0.271 | +0.197 | raises risk |
-| months_duration | 18 | -0.101 | +0.100 | raises risk |
-| credit_history | existing credits paid duly till now | -0.088 | +0.068 | raises risk |
-
-**Principal (adverse-action) reasons:** savings_status, months_duration, credit_history
-
-### C-weaker
-
-**Inputs:** checking_status=0 ≤ ... < 200 DM, credit_history=critical account / other credits elsewhere, months_duration=36, savings_status=< 100 DM, purpose=radio/television
-
-**Governed decision:** SCORE · raw PD 33.72% → **calibrated PD 35.45%** (1.18× portfolio) · grade **C** (Near Default)
+**Governed decision:** SCORE · raw PD 92.29% → **calibrated PD 99.90%** (3.33× portfolio) · grade **D** (Default)
 
 | Feature | Value | WOE | Contribution | Effect |
 |---|---|--:|--:|---|
-| months_duration | 36 | -0.614 | +0.611 | raises risk |
-| credit_history | critical account / other credits elsewhere | +0.734 | -0.564 | lowers risk |
-| purpose | radio/television | +0.410 | -0.406 | lowers risk |
-| checking_status | 0 ≤ ... < 200 DM | -0.401 | +0.327 | raises risk |
-| savings_status | < 100 DM | -0.271 | +0.197 | raises risk |
-
-**Principal (adverse-action) reasons:** months_duration, checking_status, savings_status
-
-### D-weak
-
-**Inputs:** checking_status=< 0 DM, credit_history=delay in past, months_duration=48, savings_status=< 100 DM, purpose=education
-
-**Governed decision:** SCORE · raw PD 83.19% → **calibrated PD 85.71%** (2.86× portfolio) · grade **D** (Default)
-
-| Feature | Value | WOE | Contribution | Effect |
-|---|---|--:|--:|---|
-| months_duration | 48 | -0.916 | +0.912 | raises risk |
+| credit_history | no credits / all paid duly | -1.234 | +0.948 | raises risk |
+| months_duration | 72 | -0.916 | +0.912 | raises risk |
 | checking_status | < 0 DM | -0.818 | +0.667 | raises risk |
 | purpose | education | -0.606 | +0.600 | raises risk |
 | savings_status | < 100 DM | -0.271 | +0.197 | raises risk |
-| credit_history | delay in past | -0.085 | +0.065 | raises risk |
 
-**Principal (adverse-action) reasons:** months_duration, checking_status, purpose
+**Principal (adverse-action) reasons:** credit_history, months_duration, checking_status

@@ -12,10 +12,10 @@
 
 | Candidate | Type | Actual outcome | Calibrated PD | vs portfolio | Grade (risk tier) | Governed decision | Principal reasons |
 |---|---|---|--:|--:|---|---|---|
-| **R1-low-repaid** | real | repaid | 4.46% | 0.28× | BB (Speculative) | SCORE | revol.util |
-| **R2-mid-repaid** | real | repaid | 15.04% | 0.94× | CCC (Distressed) | SCORE | int.rate, log.annual.inc, fico |
-| **R3-mid-default** | real | defaulted | 17.42% | 1.09× | CCC (Distressed) | SCORE | fico, int.rate, revol.util |
-| **R4-high-default** | real | defaulted | 38.52% | 2.41× | C (Near Default) | SCORE | purpose, log.annual.inc, fico |
+| **R1-low-repaid** | real | repaid | 4.46% | 0.28× | BB (Speculative) | SCORE | all protective |
+| **R2-mid-repaid** | real | repaid | 15.09% | 0.94× | CCC (Distressed) | SCORE | revol.util, log.annual.inc, fico |
+| **R3-mid-default** | real | defaulted | 15.79% | 0.99× | CCC (Distressed) | SCORE | revol.util, log.annual.inc, fico |
+| **R4-high-default** | real | defaulted | 35.00% | 2.19× | C (Near Default) | SCORE | purpose, int.rate, revol.util |
 | **SYN-best** | synthetic | — | 0.03% | 0.00× | AAA (Exceptional) | SCORE | all protective |
 | **SYN-worst** | synthetic | — | 80.00% | 5.00× | D (Default) | SCORE | purpose, inq.last.6mths, log.annual.inc |
 
@@ -26,81 +26,81 @@
 
 **Type:** real · **Actual outcome:** repaid
 
-**Inputs:** fico=797, int.rate=0.0894, inq.last.6mths=1, credit.policy=1, purpose=credit_card, revol.util=52.7, log.annual.inc=11.60823564
+**Inputs:** fico=727, int.rate=0.0788, inq.last.6mths=0, credit.policy=1, purpose=credit_card, revol.util=51.0, log.annual.inc=11.90496755
 
-**Governed decision:** SCORE · raw PD 5.50% → **calibrated PD 4.46%** (0.28× portfolio) · grade **BB** (Speculative)
+**Governed decision:** SCORE · raw PD 4.49% → **calibrated PD 4.46%** (0.28× portfolio) · grade **BB** (Speculative)
 
 | Feature | Value | WOE | Contribution | Effect |
 |---|---|--:|--:|---|
+| int.rate | 0.0788 | +1.146 | -0.562 | lowers risk |
 | purpose | credit_card | +0.376 | -0.379 | lowers risk |
-| fico | 797 | +1.033 | -0.369 | lowers risk |
-| int.rate | 0.0894 | +0.626 | -0.306 | lowers risk |
-| log.annual.inc | 11.60823564 | +0.086 | -0.087 | lowers risk |
+| inq.last.6mths | 0 | +0.359 | -0.228 | lowers risk |
+| log.annual.inc | 11.90496755 | +0.086 | -0.087 | lowers risk |
 | credit.policy | 1 | +0.230 | -0.062 | lowers risk |
-| revol.util | 52.7 | -0.135 | +0.060 | raises risk |
-| inq.last.6mths | 1 | +0.068 | -0.043 | lowers risk |
+| fico | 727 | +0.169 | -0.060 | lowers risk |
+| revol.util | 51.0 | +0.051 | -0.023 | lowers risk |
 
-**Principal (adverse-action) reasons:** revol.util
+**Principal (adverse-action) reasons:** none — all factors protective
 
 ### R2-mid-repaid
 
 **Type:** real · **Actual outcome:** repaid
 
-**Inputs:** fico=682, int.rate=0.1357, inq.last.6mths=1, credit.policy=1, purpose=debt_consolidation, revol.util=25.6, log.annual.inc=10.37349118
+**Inputs:** fico=717, int.rate=0.0988, inq.last.6mths=1, credit.policy=1, purpose=major_purchase, revol.util=61.0, log.annual.inc=10.30895266
 
-**Governed decision:** SCORE · raw PD 14.58% → **calibrated PD 15.04%** (0.94× portfolio) · grade **CCC** (Distressed)
+**Governed decision:** SCORE · raw PD 14.89% → **calibrated PD 15.09%** (0.94× portfolio) · grade **CCC** (Distressed)
 
 | Feature | Value | WOE | Contribution | Effect |
 |---|---|--:|--:|---|
-| revol.util | 25.6 | +0.290 | -0.130 | lowers risk |
-| int.rate | 0.1357 | -0.207 | +0.101 | raises risk |
+| purpose | major_purchase | +0.067 | -0.067 | lowers risk |
 | credit.policy | 1 | +0.230 | -0.062 | lowers risk |
-| purpose | debt_consolidation | +0.058 | -0.059 | lowers risk |
+| revol.util | 61.0 | -0.135 | +0.060 | raises risk |
 | inq.last.6mths | 1 | +0.068 | -0.043 | lowers risk |
-| log.annual.inc | 10.37349118 | -0.042 | +0.042 | raises risk |
-| fico | 682 | -0.109 | +0.039 | raises risk |
+| log.annual.inc | 10.30895266 | -0.042 | +0.042 | raises risk |
+| int.rate | 0.0988 | +0.080 | -0.039 | lowers risk |
+| fico | 717 | -0.066 | +0.023 | raises risk |
 
-**Principal (adverse-action) reasons:** int.rate, log.annual.inc, fico
+**Principal (adverse-action) reasons:** revol.util, log.annual.inc, fico
 
 ### R3-mid-default
 
 **Type:** real · **Actual outcome:** defaulted
 
-**Inputs:** fico=667, int.rate=0.1496, inq.last.6mths=0, credit.policy=1, purpose=debt_consolidation, revol.util=76.8, log.annual.inc=10.71441777
+**Inputs:** fico=682, int.rate=0.1154, inq.last.6mths=1, credit.policy=1, purpose=debt_consolidation, revol.util=57.7, log.annual.inc=10.70099475
 
-**Governed decision:** SCORE · raw PD 16.81% → **calibrated PD 17.42%** (1.09× portfolio) · grade **CCC** (Distressed)
+**Governed decision:** SCORE · raw PD 15.20% → **calibrated PD 15.79%** (0.99× portfolio) · grade **CCC** (Distressed)
 
 | Feature | Value | WOE | Contribution | Effect |
 |---|---|--:|--:|---|
-| inq.last.6mths | 0 | +0.359 | -0.228 | lowers risk |
-| fico | 667 | -0.443 | +0.158 | raises risk |
-| int.rate | 0.1496 | -0.282 | +0.138 | raises risk |
-| revol.util | 76.8 | -0.153 | +0.068 | raises risk |
 | credit.policy | 1 | +0.230 | -0.062 | lowers risk |
+| revol.util | 57.7 | -0.135 | +0.060 | raises risk |
 | purpose | debt_consolidation | +0.058 | -0.059 | lowers risk |
-| log.annual.inc | 10.71441777 | -0.042 | +0.042 | raises risk |
+| inq.last.6mths | 1 | +0.068 | -0.043 | lowers risk |
+| log.annual.inc | 10.70099475 | -0.042 | +0.042 | raises risk |
+| int.rate | 0.1154 | +0.080 | -0.039 | lowers risk |
+| fico | 682 | -0.109 | +0.039 | raises risk |
 
-**Principal (adverse-action) reasons:** fico, int.rate, revol.util
+**Principal (adverse-action) reasons:** revol.util, log.annual.inc, fico
 
 ### R4-high-default
 
 **Type:** real · **Actual outcome:** defaulted
 
-**Inputs:** fico=662, int.rate=0.1217, inq.last.6mths=2, credit.policy=1, purpose=small_business, revol.util=54.7, log.annual.inc=9.210340372
+**Inputs:** fico=702, int.rate=0.16, inq.last.6mths=1, credit.policy=1, purpose=small_business, revol.util=98.6, log.annual.inc=10.81977828
 
-**Governed decision:** SCORE · raw PD 39.20% → **calibrated PD 38.52%** (2.41× portfolio) · grade **C** (Near Default)
+**Governed decision:** SCORE · raw PD 35.59% → **calibrated PD 35.00%** (2.19× portfolio) · grade **C** (Near Default)
 
 | Feature | Value | WOE | Contribution | Effect |
 |---|---|--:|--:|---|
 | purpose | small_business | -0.703 | +0.708 | raises risk |
-| log.annual.inc | 9.210340372 | -0.436 | +0.438 | raises risk |
-| fico | 662 | -0.443 | +0.158 | raises risk |
-| inq.last.6mths | 2 | +0.132 | -0.084 | lowers risk |
+| int.rate | 0.16 | -0.659 | +0.323 | raises risk |
+| revol.util | 98.6 | -0.388 | +0.173 | raises risk |
 | credit.policy | 1 | +0.230 | -0.062 | lowers risk |
-| revol.util | 54.7 | -0.135 | +0.060 | raises risk |
-| int.rate | 0.1217 | +0.003 | -0.002 | lowers risk |
+| log.annual.inc | 10.81977828 | +0.059 | -0.059 | lowers risk |
+| inq.last.6mths | 1 | +0.068 | -0.043 | lowers risk |
+| fico | 702 | -0.066 | +0.023 | raises risk |
 
-**Principal (adverse-action) reasons:** purpose, log.annual.inc, fico
+**Principal (adverse-action) reasons:** purpose, int.rate, revol.util
 
 ### SYN-best
 

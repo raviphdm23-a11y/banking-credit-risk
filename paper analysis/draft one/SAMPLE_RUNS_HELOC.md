@@ -6,126 +6,198 @@
 
 > **Scope.** This pack reports only methodology/regulation-grounded outputs: calibrated PD, rating grade (risk tier, on the institution's internal master scale), exact WOE reason codes, and the governed completeness decision. The **accept / refer / decline lending decision is set by the institution applying its own risk-appetite PD threshold** — it is exogenous to this methodology and is **not** derived or priced here.
 
+**Case composition (fixed standard):** 4 real applicants (drawn from the dataset, actual outcome shown) + 2 synthetic composites (constructed from observed feature values — no real outcome; a PD-floor check and a stress check). Real cases span the risk range and include both outcomes.
+
 ## Summary
 
-| Candidate | Calibrated PD | vs portfolio | Grade (risk tier) | Governed decision | Principal reasons |
-|---|--:|--:|---|---|---|
-| **HE-strong** | 1.92% | 0.04× | A (Strong) | SCORE | MaxDelq2PublicRecLast12M |
-| **HE-good** | 17.56% | 0.34× | CCC (Distressed) | SCORE | NetFractionRevolvingBurden, MaxDelqEver, ExternalRiskEstimate |
-| **HE-refer** | 22.49% | 0.43× | CC (Highly Distressed) | SCORE | NumRevolvingTradesWBalance, MaxDelqEver, NetFractionRevolvingBurden |
-| **HE-weak** | 90.14% | 1.73× | D (Default) | SCORE | MSinceMostRecentDelq, AverageMInFile, PercentInstallTrades |
+| Candidate | Type | Actual outcome | Calibrated PD | vs portfolio | Grade (risk tier) | Governed decision | Principal reasons |
+|---|---|---|--:|--:|---|---|---|
+| **R1-low-repaid** | real | repaid | 12.12% | 0.23× | CCC (Distressed) | SCORE | NumRevolvingTradesWBalance, MaxDelqEver, PercentInstallTrades |
+| **R2-mid-repaid** | real | repaid | 61.16% | 1.17× | D (Default) | SCORE | MSinceMostRecentInqexcl7days, ExternalRiskEstimate, NumBank2NatlTradesWHighUtilization |
+| **R3-mid-default** | real | defaulted | 61.16% | 1.17× | D (Default) | SCORE | NumRevolvingTradesWBalance, MSinceMostRecentInqexcl7days, NumBank2NatlTradesWHighUtilization |
+| **R4-high-default** | real | defaulted | 90.54% | 1.73× | D (Default) | SCORE | NetFractionRevolvingBurden, MSinceMostRecentDelq, MSinceMostRecentInqexcl7days |
+| **SYN-best** | synthetic | — | 9.77% | 0.19× | B (Vulnerable) | SCORE | MaxDelq2PublicRecLast12M, MaxDelqEver, NumBank2NatlTradesWHighUtilization |
+| **SYN-worst** | synthetic | — | 90.54% | 1.73× | D (Default) | SCORE | NetFractionRevolvingBurden, NumSatisfactoryTrades, AverageMInFile |
 
 ---
 ## Per-candidate showcase (what a new applicant report looks like)
 
-### HE-strong
+### R1-low-repaid
 
-**Inputs:** ExternalRiskEstimate=89, NetFractionRevolvingBurden=2, NumBank2NatlTradesWHighUtilization=0, MSinceMostRecentDelq=-7, AverageMInFile=149, MSinceOldestTradeOpen=273, MaxDelq2PublicRecLast12M=6, MaxDelqEver=7, PercentTradesNeverDelq=100, MSinceMostRecentInqexcl7days=-8, PercentTradesWBalance=57, NumTrades60Ever2DerogPubRec=0, NumTrades90Ever2DerogPubRec=0, NumSatisfactoryTrades=17, NumTotalTrades=69, NumRevolvingTradesWBalance=4, PercentInstallTrades=24
+**Type:** real · **Actual outcome:** repaid
 
-**Governed decision:** SCORE · raw PD 6.59% → **calibrated PD 1.92%** (0.04× portfolio) · grade **A** (Strong)
+**Inputs:** ExternalRiskEstimate=79, NetFractionRevolvingBurden=18, NumBank2NatlTradesWHighUtilization=0, MSinceMostRecentDelq=-7, AverageMInFile=100, MSinceOldestTradeOpen=245, MaxDelq2PublicRecLast12M=7, MaxDelqEver=8, PercentTradesNeverDelq=100, MSinceMostRecentInqexcl7days=4, PercentTradesWBalance=71, NumTrades60Ever2DerogPubRec=0, NumTrades90Ever2DerogPubRec=0, NumSatisfactoryTrades=35, NumTotalTrades=37, NumRevolvingTradesWBalance=6, PercentInstallTrades=43
+
+**Governed decision:** SCORE · raw PD 13.39% → **calibrated PD 12.12%** (0.23× portfolio) · grade **CCC** (Distressed)
 
 | Feature | Value | WOE | Contribution | Effect |
 |---|---|--:|--:|---|
-| MSinceMostRecentInqexcl7days | -8 | +0.839 | -0.622 | lowers risk |
-| ExternalRiskEstimate | 89 | +1.812 | -0.422 | lowers risk |
-| AverageMInFile | 149 | +0.628 | -0.375 | lowers risk |
-| NetFractionRevolvingBurden | 2 | +0.623 | -0.327 | lowers risk |
+| MSinceMostRecentInqexcl7days | 4 | +0.839 | -0.622 | lowers risk |
+| AverageMInFile | 100 | +0.556 | -0.332 | lowers risk |
 | MSinceMostRecentDelq | -7 | +0.405 | -0.293 | lowers risk |
-| NumBank2NatlTradesWHighUtilization | 0 | +0.646 | -0.163 | lowers risk |
-| PercentInstallTrades | 24 | +0.186 | -0.124 | lowers risk |
-| MaxDelqEver | 7 | -0.359 | -0.088 | lowers risk |
-| MSinceOldestTradeOpen | 273 | +0.460 | -0.068 | lowers risk |
-| NumRevolvingTradesWBalance | 4 | +0.089 | -0.063 | lowers risk |
-| NumTrades60Ever2DerogPubRec | 0 | +0.280 | -0.058 | lowers risk |
-| NumTotalTrades | 69 | +0.314 | -0.049 | lowers risk |
-| PercentTradesNeverDelq | 100 | +0.507 | -0.023 | lowers risk |
-| NumSatisfactoryTrades | 17 | +0.024 | -0.019 | lowers risk |
-| PercentTradesWBalance | 57 | +0.302 | -0.019 | lowers risk |
-| MaxDelq2PublicRecLast12M | 6 | -0.085 | +0.015 | raises risk |
-| NumTrades90Ever2DerogPubRec | 0 | +0.194 | -0.014 | lowers risk |
-
-**Principal (adverse-action) reasons:** MaxDelq2PublicRecLast12M
-
-### HE-good
-
-**Inputs:** ExternalRiskEstimate=71, NetFractionRevolvingBurden=43, NumBank2NatlTradesWHighUtilization=0, MSinceMostRecentDelq=-7, AverageMInFile=72, MSinceOldestTradeOpen=152, MaxDelq2PublicRecLast12M=7, MaxDelqEver=8, PercentTradesNeverDelq=100, MSinceMostRecentInqexcl7days=2, PercentTradesWBalance=80, NumTrades60Ever2DerogPubRec=0, NumTrades90Ever2DerogPubRec=0, NumSatisfactoryTrades=53, NumTotalTrades=59, NumRevolvingTradesWBalance=3, PercentInstallTrades=21
-
-**Governed decision:** SCORE · raw PD 19.88% → **calibrated PD 17.56%** (0.34× portfolio) · grade **CCC** (Distressed)
-
-| Feature | Value | WOE | Contribution | Effect |
-|---|---|--:|--:|---|
-| MSinceMostRecentInqexcl7days | 2 | +0.839 | -0.622 | lowers risk |
-| MSinceMostRecentDelq | -7 | +0.405 | -0.293 | lowers risk |
-| NumSatisfactoryTrades | 53 | +0.348 | -0.281 | lowers risk |
-| NetFractionRevolvingBurden | 43 | -0.402 | +0.211 | raises risk |
-| NumBank2NatlTradesWHighUtilization | 0 | +0.646 | -0.163 | lowers risk |
-| PercentInstallTrades | 21 | +0.186 | -0.124 | lowers risk |
-| NumRevolvingTradesWBalance | 3 | +0.173 | -0.123 | lowers risk |
-| MaxDelqEver | 8 | +0.501 | +0.123 | raises risk |
-| MaxDelq2PublicRecLast12M | 7 | +0.570 | -0.100 | lowers risk |
-| ExternalRiskEstimate | 71 | -0.271 | +0.063 | raises risk |
-| NumTrades60Ever2DerogPubRec | 0 | +0.280 | -0.058 | lowers risk |
-| NumTotalTrades | 59 | +0.314 | -0.049 | lowers risk |
-| AverageMInFile | 72 | +0.042 | -0.025 | lowers risk |
-| PercentTradesNeverDelq | 100 | +0.507 | -0.023 | lowers risk |
-| PercentTradesWBalance | 80 | -0.336 | +0.022 | raises risk |
-| NumTrades90Ever2DerogPubRec | 0 | +0.194 | -0.014 | lowers risk |
-| MSinceOldestTradeOpen | 152 | -0.005 | +0.001 | raises risk |
-
-**Principal (adverse-action) reasons:** NetFractionRevolvingBurden, MaxDelqEver, ExternalRiskEstimate
-
-### HE-refer
-
-**Inputs:** ExternalRiskEstimate=73, NetFractionRevolvingBurden=40, NumBank2NatlTradesWHighUtilization=1, MSinceMostRecentDelq=-7, AverageMInFile=113, MSinceOldestTradeOpen=190, MaxDelq2PublicRecLast12M=7, MaxDelqEver=8, PercentTradesNeverDelq=100, MSinceMostRecentInqexcl7days=7, PercentTradesWBalance=68, NumTrades60Ever2DerogPubRec=0, NumTrades90Ever2DerogPubRec=0, NumSatisfactoryTrades=27, NumTotalTrades=30, NumRevolvingTradesWBalance=9, PercentInstallTrades=23
-
-**Governed decision:** SCORE · raw PD 23.43% → **calibrated PD 22.49%** (0.43× portfolio) · grade **CC** (Highly Distressed)
-
-| Feature | Value | WOE | Contribution | Effect |
-|---|---|--:|--:|---|
-| MSinceMostRecentInqexcl7days | 7 | +0.839 | -0.622 | lowers risk |
-| AverageMInFile | 113 | +0.628 | -0.375 | lowers risk |
-| NumRevolvingTradesWBalance | 9 | -0.492 | +0.349 | raises risk |
-| MSinceMostRecentDelq | -7 | +0.405 | -0.293 | lowers risk |
-| NumSatisfactoryTrades | 27 | +0.218 | -0.176 | lowers risk |
-| PercentInstallTrades | 23 | +0.186 | -0.124 | lowers risk |
-| MaxDelqEver | 8 | +0.501 | +0.123 | raises risk |
-| MaxDelq2PublicRecLast12M | 7 | +0.570 | -0.100 | lowers risk |
-| NetFractionRevolvingBurden | 40 | -0.119 | +0.062 | raises risk |
-| NumTrades60Ever2DerogPubRec | 0 | +0.280 | -0.058 | lowers risk |
-| NumBank2NatlTradesWHighUtilization | 1 | -0.212 | +0.053 | raises risk |
-| NumTotalTrades | 30 | +0.184 | -0.029 | lowers risk |
-| PercentTradesNeverDelq | 100 | +0.507 | -0.023 | lowers risk |
-| MSinceOldestTradeOpen | 190 | +0.109 | -0.016 | lowers risk |
-| NumTrades90Ever2DerogPubRec | 0 | +0.194 | -0.014 | lowers risk |
-| ExternalRiskEstimate | 73 | +0.029 | -0.007 | lowers risk |
-| PercentTradesWBalance | 68 | -0.048 | +0.003 | raises risk |
-
-**Principal (adverse-action) reasons:** NumRevolvingTradesWBalance, MaxDelqEver, NetFractionRevolvingBurden
-
-### HE-weak
-
-**Inputs:** ExternalRiskEstimate=59, NetFractionRevolvingBurden=18, NumBank2NatlTradesWHighUtilization=0, MSinceMostRecentDelq=1, AverageMInFile=33, MSinceOldestTradeOpen=118, MaxDelq2PublicRecLast12M=3, MaxDelqEver=5, PercentTradesNeverDelq=87, MSinceMostRecentInqexcl7days=-7, PercentTradesWBalance=60, NumTrades60Ever2DerogPubRec=2, NumTrades90Ever2DerogPubRec=0, NumSatisfactoryTrades=12, NumTotalTrades=15, NumRevolvingTradesWBalance=1, PercentInstallTrades=53
-
-**Governed decision:** SCORE · raw PD 90.20% → **calibrated PD 90.14%** (1.73× portfolio) · grade **D** (Default)
-
-| Feature | Value | WOE | Contribution | Effect |
-|---|---|--:|--:|---|
-| MSinceMostRecentDelq | 1 | -0.994 | +0.720 | raises risk |
-| AverageMInFile | 33 | -0.753 | +0.450 | raises risk |
-| PercentInstallTrades | 53 | -0.619 | +0.413 | raises risk |
-| MSinceMostRecentInqexcl7days | -7 | -0.374 | +0.277 | raises risk |
-| ExternalRiskEstimate | 59 | -1.075 | +0.251 | raises risk |
-| NumSatisfactoryTrades | 12 | -0.255 | +0.206 | raises risk |
-| NumTrades60Ever2DerogPubRec | 2 | -0.862 | +0.180 | raises risk |
+| NumSatisfactoryTrades | 35 | +0.348 | -0.281 | lowers risk |
+| ExternalRiskEstimate | 79 | +0.931 | -0.217 | lowers risk |
+| NumRevolvingTradesWBalance | 6 | -0.282 | +0.200 | raises risk |
 | NumBank2NatlTradesWHighUtilization | 0 | +0.646 | -0.163 | lowers risk |
 | NetFractionRevolvingBurden | 18 | +0.294 | -0.154 | lowers risk |
+| MaxDelqEver | 8 | +0.501 | +0.123 | raises risk |
+| MaxDelq2PublicRecLast12M | 7 | +0.570 | -0.100 | lowers risk |
+| PercentInstallTrades | 43 | -0.109 | +0.073 | raises risk |
+| NumTrades60Ever2DerogPubRec | 0 | +0.280 | -0.058 | lowers risk |
+| MSinceOldestTradeOpen | 245 | +0.268 | -0.040 | lowers risk |
+| NumTotalTrades | 37 | +0.198 | -0.031 | lowers risk |
+| PercentTradesNeverDelq | 100 | +0.507 | -0.023 | lowers risk |
+| NumTrades90Ever2DerogPubRec | 0 | +0.194 | -0.014 | lowers risk |
+| PercentTradesWBalance | 71 | -0.048 | +0.003 | raises risk |
+
+**Principal (adverse-action) reasons:** NumRevolvingTradesWBalance, MaxDelqEver, PercentInstallTrades
+
+### R2-mid-repaid
+
+**Type:** real · **Actual outcome:** repaid
+
+**Inputs:** ExternalRiskEstimate=68, NetFractionRevolvingBurden=28, NumBank2NatlTradesWHighUtilization=2, MSinceMostRecentDelq=31, AverageMInFile=65, MSinceOldestTradeOpen=148, MaxDelq2PublicRecLast12M=6, MaxDelqEver=6, PercentTradesNeverDelq=83, MSinceMostRecentInqexcl7days=0, PercentTradesWBalance=40, NumTrades60Ever2DerogPubRec=0, NumTrades90Ever2DerogPubRec=0, NumSatisfactoryTrades=17, NumTotalTrades=18, NumRevolvingTradesWBalance=2, PercentInstallTrades=44
+
+**Governed decision:** SCORE · raw PD 60.20% → **calibrated PD 61.16%** (1.17× portfolio) · grade **D** (Default)
+
+| Feature | Value | WOE | Contribution | Effect |
+|---|---|--:|--:|---|
+| MSinceMostRecentInqexcl7days | 0 | -0.371 | +0.275 | raises risk |
+| ExternalRiskEstimate | 68 | -0.647 | +0.151 | raises risk |
+| NumBank2NatlTradesWHighUtilization | 2 | -0.519 | +0.131 | raises risk |
+| NumRevolvingTradesWBalance | 2 | +0.173 | -0.123 | lowers risk |
+| AverageMInFile | 65 | -0.195 | +0.117 | raises risk |
+| MaxDelqEver | 6 | -0.308 | -0.076 | lowers risk |
+| PercentInstallTrades | 44 | -0.109 | +0.073 | raises risk |
+| NetFractionRevolvingBurden | 28 | +0.125 | -0.065 | lowers risk |
+| NumTrades60Ever2DerogPubRec | 0 | +0.280 | -0.058 | lowers risk |
+| MSinceMostRecentDelq | 31 | +0.062 | -0.045 | lowers risk |
+| PercentTradesWBalance | 40 | +0.580 | -0.037 | lowers risk |
+| PercentTradesNeverDelq | 83 | -0.829 | +0.037 | raises risk |
+| NumSatisfactoryTrades | 17 | +0.024 | -0.019 | lowers risk |
+| MaxDelq2PublicRecLast12M | 6 | -0.085 | +0.015 | raises risk |
+| NumTrades90Ever2DerogPubRec | 0 | +0.194 | -0.014 | lowers risk |
+| NumTotalTrades | 18 | +0.067 | -0.010 | lowers risk |
+| MSinceOldestTradeOpen | 148 | -0.005 | +0.001 | raises risk |
+
+**Principal (adverse-action) reasons:** MSinceMostRecentInqexcl7days, ExternalRiskEstimate, NumBank2NatlTradesWHighUtilization
+
+### R3-mid-default
+
+**Type:** real · **Actual outcome:** defaulted
+
+**Inputs:** ExternalRiskEstimate=69, NetFractionRevolvingBurden=50, NumBank2NatlTradesWHighUtilization=4, MSinceMostRecentDelq=-7, AverageMInFile=157, MSinceOldestTradeOpen=476, MaxDelq2PublicRecLast12M=6, MaxDelqEver=8, PercentTradesNeverDelq=100, MSinceMostRecentInqexcl7days=0, PercentTradesWBalance=89, NumTrades60Ever2DerogPubRec=4, NumTrades90Ever2DerogPubRec=4, NumSatisfactoryTrades=38, NumTotalTrades=39, NumRevolvingTradesWBalance=14, PercentInstallTrades=36
+
+**Governed decision:** SCORE · raw PD 61.83% → **calibrated PD 61.16%** (1.17× portfolio) · grade **D** (Default)
+
+| Feature | Value | WOE | Contribution | Effect |
+|---|---|--:|--:|---|
+| AverageMInFile | 157 | +0.628 | -0.375 | lowers risk |
+| NumRevolvingTradesWBalance | 14 | -0.492 | +0.349 | raises risk |
+| MSinceMostRecentDelq | -7 | +0.405 | -0.293 | lowers risk |
+| NumSatisfactoryTrades | 38 | +0.348 | -0.281 | lowers risk |
+| MSinceMostRecentInqexcl7days | 0 | -0.371 | +0.275 | raises risk |
+| NumBank2NatlTradesWHighUtilization | 4 | -1.011 | +0.255 | raises risk |
+| NetFractionRevolvingBurden | 50 | -0.402 | +0.211 | raises risk |
+| NumTrades60Ever2DerogPubRec | 4 | -0.883 | +0.184 | raises risk |
+| MaxDelqEver | 8 | +0.501 | +0.123 | raises risk |
+| MSinceOldestTradeOpen | 476 | +0.698 | -0.103 | lowers risk |
+| PercentInstallTrades | 36 | +0.114 | -0.076 | lowers risk |
+| NumTrades90Ever2DerogPubRec | 4 | -0.925 | +0.068 | raises risk |
+| ExternalRiskEstimate | 69 | -0.271 | +0.063 | raises risk |
+| PercentTradesWBalance | 89 | -0.914 | +0.059 | raises risk |
+| NumTotalTrades | 39 | +0.198 | -0.031 | lowers risk |
+| PercentTradesNeverDelq | 100 | +0.507 | -0.023 | lowers risk |
+| MaxDelq2PublicRecLast12M | 6 | -0.085 | +0.015 | raises risk |
+
+**Principal (adverse-action) reasons:** NumRevolvingTradesWBalance, MSinceMostRecentInqexcl7days, NumBank2NatlTradesWHighUtilization
+
+### R4-high-default
+
+**Type:** real · **Actual outcome:** defaulted
+
+**Inputs:** ExternalRiskEstimate=50, NetFractionRevolvingBurden=84, NumBank2NatlTradesWHighUtilization=2, MSinceMostRecentDelq=2, AverageMInFile=76, MSinceOldestTradeOpen=311, MaxDelq2PublicRecLast12M=3, MaxDelqEver=5, PercentTradesNeverDelq=60, MSinceMostRecentInqexcl7days=0, PercentTradesWBalance=88, NumTrades60Ever2DerogPubRec=1, NumTrades90Ever2DerogPubRec=0, NumSatisfactoryTrades=12, NumTotalTrades=15, NumRevolvingTradesWBalance=5, PercentInstallTrades=20
+
+**Governed decision:** SCORE · raw PD 91.15% → **calibrated PD 90.54%** (1.73× portfolio) · grade **D** (Default)
+
+| Feature | Value | WOE | Contribution | Effect |
+|---|---|--:|--:|---|
+| NetFractionRevolvingBurden | 84 | -1.467 | +0.769 | raises risk |
+| MSinceMostRecentDelq | 2 | -0.994 | +0.720 | raises risk |
+| MSinceMostRecentInqexcl7days | 0 | -0.371 | +0.275 | raises risk |
+| ExternalRiskEstimate | 50 | -1.075 | +0.251 | raises risk |
+| NumSatisfactoryTrades | 12 | -0.255 | +0.206 | raises risk |
+| AverageMInFile | 76 | +0.286 | -0.171 | lowers risk |
 | MaxDelq2PublicRecLast12M | 3 | -0.822 | +0.145 | raises risk |
 | MaxDelqEver | 5 | -0.558 | -0.137 | lowers risk |
-| NumRevolvingTradesWBalance | 1 | +0.173 | -0.123 | lowers risk |
-| MSinceOldestTradeOpen | 118 | -0.610 | +0.090 | raises risk |
-| PercentTradesNeverDelq | 87 | -0.471 | +0.021 | raises risk |
-| PercentTradesWBalance | 60 | +0.302 | -0.019 | lowers risk |
+| NumBank2NatlTradesWHighUtilization | 2 | -0.519 | +0.131 | raises risk |
+| PercentInstallTrades | 20 | +0.186 | -0.124 | lowers risk |
+| NumTrades60Ever2DerogPubRec | 1 | -0.465 | +0.097 | raises risk |
+| NumRevolvingTradesWBalance | 5 | -0.111 | +0.079 | raises risk |
+| MSinceOldestTradeOpen | 311 | +0.460 | -0.068 | lowers risk |
+| PercentTradesWBalance | 88 | -0.914 | +0.059 | raises risk |
+| PercentTradesNeverDelq | 60 | -0.829 | +0.037 | raises risk |
 | NumTotalTrades | 15 | -0.104 | +0.016 | raises risk |
 | NumTrades90Ever2DerogPubRec | 0 | +0.194 | -0.014 | lowers risk |
 
-**Principal (adverse-action) reasons:** MSinceMostRecentDelq, AverageMInFile, PercentInstallTrades
+**Principal (adverse-action) reasons:** NetFractionRevolvingBurden, MSinceMostRecentDelq, MSinceMostRecentInqexcl7days
+
+### SYN-best
+
+**Type:** synthetic · **Actual outcome:** n/a (synthetic composite — constructed from observed feature values; no real outcome)
+
+**Inputs:** ExternalRiskEstimate=94, NetFractionRevolvingBurden=-9, NumBank2NatlTradesWHighUtilization=-9, MSinceMostRecentDelq=-9, AverageMInFile=383, MSinceOldestTradeOpen=803, MaxDelq2PublicRecLast12M=9, MaxDelqEver=8, PercentTradesNeverDelq=100, MSinceMostRecentInqexcl7days=24, PercentTradesWBalance=-9, NumTrades60Ever2DerogPubRec=-9, NumTrades90Ever2DerogPubRec=-9, NumSatisfactoryTrades=79, NumTotalTrades=104, NumRevolvingTradesWBalance=-9, PercentInstallTrades=-9
+
+**Governed decision:** SCORE · raw PD 8.40% → **calibrated PD 9.77%** (0.19× portfolio) · grade **B** (Vulnerable)
+
+| Feature | Value | WOE | Contribution | Effect |
+|---|---|--:|--:|---|
+| MSinceMostRecentInqexcl7days | 24 | +0.839 | -0.622 | lowers risk |
+| ExternalRiskEstimate | 94 | +1.812 | -0.422 | lowers risk |
+| AverageMInFile | 383 | +0.628 | -0.375 | lowers risk |
+| NetFractionRevolvingBurden | -9 | +0.623 | -0.327 | lowers risk |
+| MSinceMostRecentDelq | -9 | +0.405 | -0.293 | lowers risk |
+| NumSatisfactoryTrades | 79 | +0.348 | -0.281 | lowers risk |
+| MaxDelq2PublicRecLast12M | 9 | -0.822 | +0.145 | raises risk |
+| PercentInstallTrades | -9 | +0.186 | -0.124 | lowers risk |
+| MaxDelqEver | 8 | +0.501 | +0.123 | raises risk |
+| NumRevolvingTradesWBalance | -9 | +0.173 | -0.123 | lowers risk |
+| MSinceOldestTradeOpen | 803 | +0.698 | -0.103 | lowers risk |
+| NumTotalTrades | 104 | +0.314 | -0.049 | lowers risk |
+| PercentTradesWBalance | -9 | +0.580 | -0.037 | lowers risk |
+| NumBank2NatlTradesWHighUtilization | -9 | -0.110 | +0.028 | raises risk |
+| PercentTradesNeverDelq | 100 | +0.507 | -0.023 | lowers risk |
+| NumTrades60Ever2DerogPubRec | -9 | -0.110 | +0.023 | raises risk |
+| NumTrades90Ever2DerogPubRec | -9 | -0.110 | +0.008 | raises risk |
+
+**Principal (adverse-action) reasons:** MaxDelq2PublicRecLast12M, MaxDelqEver, NumBank2NatlTradesWHighUtilization
+
+### SYN-worst
+
+**Type:** synthetic · **Actual outcome:** n/a (synthetic composite — constructed from observed feature values; no real outcome)
+
+**Inputs:** ExternalRiskEstimate=-9, NetFractionRevolvingBurden=232, NumBank2NatlTradesWHighUtilization=18, MSinceMostRecentDelq=83, AverageMInFile=-9, MSinceOldestTradeOpen=-9, MaxDelq2PublicRecLast12M=-9, MaxDelqEver=-9, PercentTradesNeverDelq=-9, MSinceMostRecentInqexcl7days=-9, PercentTradesWBalance=100, NumTrades60Ever2DerogPubRec=19, NumTrades90Ever2DerogPubRec=19, NumSatisfactoryTrades=-9, NumTotalTrades=-9, NumRevolvingTradesWBalance=32, PercentInstallTrades=100
+
+**Governed decision:** SCORE · raw PD 97.15% → **calibrated PD 90.54%** (1.73× portfolio) · grade **D** (Default)
+
+| Feature | Value | WOE | Contribution | Effect |
+|---|---|--:|--:|---|
+| NetFractionRevolvingBurden | 232 | -1.467 | +0.769 | raises risk |
+| NumSatisfactoryTrades | -9 | -0.568 | +0.459 | raises risk |
+| AverageMInFile | -9 | -0.753 | +0.450 | raises risk |
+| PercentInstallTrades | 100 | -0.619 | +0.413 | raises risk |
+| NumRevolvingTradesWBalance | 32 | -0.492 | +0.349 | raises risk |
+| NumBank2NatlTradesWHighUtilization | 18 | -1.011 | +0.255 | raises risk |
+| ExternalRiskEstimate | -9 | -1.075 | +0.251 | raises risk |
+| NumTrades60Ever2DerogPubRec | 19 | -0.883 | +0.184 | raises risk |
+| MSinceOldestTradeOpen | -9 | -0.610 | +0.090 | raises risk |
+| MSinceMostRecentInqexcl7days | -9 | -0.110 | +0.082 | raises risk |
+| NumTrades90Ever2DerogPubRec | 19 | -0.925 | +0.068 | raises risk |
+| PercentTradesWBalance | 100 | -0.914 | +0.059 | raises risk |
+| NumTotalTrades | -9 | -0.365 | +0.057 | raises risk |
+| MSinceMostRecentDelq | 83 | +0.062 | -0.045 | lowers risk |
+| PercentTradesNeverDelq | -9 | -0.829 | +0.037 | raises risk |
+| MaxDelqEver | -9 | -0.110 | -0.027 | lowers risk |
+| MaxDelq2PublicRecLast12M | -9 | -0.110 | +0.019 | raises risk |
+
+**Principal (adverse-action) reasons:** NetFractionRevolvingBurden, NumSatisfactoryTrades, AverageMInFile

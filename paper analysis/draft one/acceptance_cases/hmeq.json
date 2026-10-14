@@ -25,44 +25,114 @@
   ],
   "incomplete_policy": "refer",
   "cases": {
-    "N": {
-      "LOAN": 25000,
-      "MORTDUE": 80000,
-      "VALUE": 100000,
-      "JOB": "Office",
-      "YOJ": 3,
-      "DEROG": 0,
-      "DELINQ": 1,
-      "CLAGE": 150,
-      "NINQ": 2,
-      "CLNO": 16,
-      "DEBTINC": 41
-    },
-    "Q": {
-      "LOAN": 25000,
-      "MORTDUE": 80000,
-      "VALUE": 100000,
-      "JOB": "Office",
-      "YOJ": 3,
-      "DEROG": 0,
-      "DELINQ": 1,
-      "CLAGE": 150,
-      "NINQ": 3,
-      "CLNO": 16,
-      "DEBTINC": 41
-    },
-    "P": {
-      "LOAN": 15000,
-      "MORTDUE": 68000,
-      "VALUE": 72000,
+    "R1-low-repaid": {
+      "DEBTINC": 31.1772613,
+      "DELINQ": 0.0,
+      "VALUE": 80355.0,
+      "DEROG": 0.0,
+      "CLAGE": 335.0741426,
+      "NINQ": 1.0,
+      "LOAN": 6300,
       "JOB": "Other",
-      "YOJ": 1,
-      "DEROG": 2,
-      "DELINQ": 3,
-      "CLAGE": 90,
-      "NINQ": 5,
-      "CLNO": 10,
-      "DEBTINC": 45
+      "YOJ": 24.0,
+      "CLNO": 46.0,
+      "MORTDUE": 78724.0
+    },
+    "R2-mid-repaid": {
+      "DEBTINC": 42.90999735,
+      "DELINQ": 0.0,
+      "VALUE": 87266.0,
+      "DEROG": 0.0,
+      "CLAGE": 250.6312692,
+      "NINQ": 0.0,
+      "LOAN": 3200,
+      "JOB": "ProfExe",
+      "YOJ": 7.0,
+      "CLNO": 12.0,
+      "MORTDUE": 74864.0
+    },
+    "R3-mid-default": {
+      "DEBTINC": 39.1969854,
+      "DELINQ": 0.0,
+      "VALUE": 36078.0,
+      "DEROG": 0.0,
+      "CLAGE": 302.3587095,
+      "NINQ": 0.0,
+      "LOAN": 5300,
+      "JOB": "Other",
+      "YOJ": null,
+      "CLNO": 8.0,
+      "MORTDUE": 26908.0
+    },
+    "R4-high-default": {
+      "DEBTINC": null,
+      "DELINQ": 1.0,
+      "VALUE": 16020.0,
+      "DEROG": 0.0,
+      "CLAGE": 85.8,
+      "NINQ": 2.0,
+      "LOAN": 4000,
+      "JOB": "Other",
+      "YOJ": 18.0,
+      "CLNO": 23.0,
+      "MORTDUE": 7000.0
+    },
+    "SYN-best": {
+      "DEBTINC": 0.524499215,
+      "DELINQ": 0.0,
+      "VALUE": 855909.0,
+      "DEROG": 0.0,
+      "CLAGE": 1168.233561,
+      "NINQ": 0.0,
+      "LOAN": 89900,
+      "JOB": "Office",
+      "YOJ": 41.0,
+      "CLNO": 71.0,
+      "MORTDUE": 399550.0
+    },
+    "SYN-worst": {
+      "DEBTINC": 203.3121487,
+      "DELINQ": 15.0,
+      "VALUE": 8000.0,
+      "DEROG": 10.0,
+      "CLAGE": 0.0,
+      "NINQ": 17.0,
+      "LOAN": 1100,
+      "JOB": "Sales",
+      "YOJ": 0.0,
+      "CLNO": 0.0,
+      "MORTDUE": 2063.0
+    }
+  },
+  "note": "Fixed 6-case committee standard: 4 REAL applicants (actual outcome shown) spanning the risk range with both outcomes, + 2 SYNTHETIC composites (SYN-best / SYN-worst, built from observed feature-value extremes; no real outcome - a PD-floor check and a stress check). Reproducible via score_acceptance_cases.py.",
+  "case_meta": {
+    "R1-low-repaid": {
+      "kind": "real",
+      "actual": 0,
+      "deployed_pd": 0.0089
+    },
+    "R2-mid-repaid": {
+      "kind": "real",
+      "actual": 0,
+      "deployed_pd": 0.0931
+    },
+    "R3-mid-default": {
+      "kind": "real",
+      "actual": 1,
+      "deployed_pd": 0.0931
+    },
+    "R4-high-default": {
+      "kind": "real",
+      "actual": 1,
+      "deployed_pd": 0.9076
+    },
+    "SYN-best": {
+      "kind": "synthetic",
+      "actual": null
+    },
+    "SYN-worst": {
+      "kind": "synthetic",
+      "actual": null
     }
   }
 }

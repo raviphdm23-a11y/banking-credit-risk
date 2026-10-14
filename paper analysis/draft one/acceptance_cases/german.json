@@ -17,33 +17,78 @@
   "floor_columns": [],
   "incomplete_policy": "refer",
   "cases": {
-    "A-strong": {
-      "checking_status": "no checking account",
+    "R1-low-repaid": {
+      "checking_status": "< 0 DM",
       "credit_history": "critical account / other credits elsewhere",
       "months_duration": 6,
-      "savings_status": "≥ 1000 DM",
-      "purpose": "car (used)"
-    },
-    "B-good": {
-      "checking_status": "≥ 200 DM / salary assignment ≥ 1y",
-      "credit_history": "existing credits paid duly till now",
-      "months_duration": 18,
-      "savings_status": "< 100 DM",
-      "purpose": "car (used)"
-    },
-    "C-weaker": {
-      "checking_status": "0 ≤ ... < 200 DM",
-      "credit_history": "critical account / other credits elsewhere",
-      "months_duration": 36,
-      "savings_status": "< 100 DM",
+      "savings_status": "unknown / none",
       "purpose": "radio/television"
     },
-    "D-weak": {
+    "R2-mid-repaid": {
+      "checking_status": "< 0 DM",
+      "credit_history": "critical account / other credits elsewhere",
+      "months_duration": 9,
+      "savings_status": "100 \u2264 ... < 500 DM",
+      "purpose": "repairs"
+    },
+    "R3-mid-default": {
+      "checking_status": "< 0 DM",
+      "credit_history": "existing credits paid duly till now",
+      "months_duration": 15,
+      "savings_status": "unknown / none",
+      "purpose": "domestic appliances"
+    },
+    "R4-high-default": {
       "checking_status": "< 0 DM",
       "credit_history": "delay in past",
-      "months_duration": 48,
+      "months_duration": 36,
       "savings_status": "< 100 DM",
       "purpose": "education"
+    },
+    "SYN-best": {
+      "checking_status": "no checking account",
+      "credit_history": "critical account / other credits elsewhere",
+      "months_duration": 4,
+      "savings_status": "\u2265 1000 DM",
+      "purpose": "car (used)"
+    },
+    "SYN-worst": {
+      "checking_status": "< 0 DM",
+      "credit_history": "no credits / all paid duly",
+      "months_duration": 72,
+      "savings_status": "< 100 DM",
+      "purpose": "education"
+    }
+  },
+  "note": "Fixed 6-case committee standard: 4 REAL applicants (actual outcome shown) spanning the risk range with both outcomes, + 2 SYNTHETIC composites (SYN-best / SYN-worst, built from observed feature-value extremes; no real outcome - a PD-floor check and a stress check). Reproducible via score_acceptance_cases.py.",
+  "case_meta": {
+    "R1-low-repaid": {
+      "kind": "real",
+      "actual": 0,
+      "deployed_pd": 0.0333
+    },
+    "R2-mid-repaid": {
+      "kind": "real",
+      "actual": 0,
+      "deployed_pd": 0.284
+    },
+    "R3-mid-default": {
+      "kind": "real",
+      "actual": 1,
+      "deployed_pd": 0.2857
+    },
+    "R4-high-default": {
+      "kind": "real",
+      "actual": 1,
+      "deployed_pd": 0.7587
+    },
+    "SYN-best": {
+      "kind": "synthetic",
+      "actual": null
+    },
+    "SYN-worst": {
+      "kind": "synthetic",
+      "actual": null
     }
   }
 }
