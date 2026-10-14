@@ -1,0 +1,101 @@
+{
+  "dataset": "TH02.csv",
+  "target": "target",
+  "title": "TH02 (UK consumer credit; Thomas/Edelman/Crook 2002)",
+  "note": "Fixed 6-case committee standard: 4 REAL applicants (actual outcome shown) + 2 SYNTHETIC composites (observed feature-value extremes; outcome = construction intent, by design). Consumer credit (ECOA fairness live; age YOB retained under EDDSS for literature comparability). BENCHMARK-ONLY: discrimination weak but reliable (Gini ~0.27); calibration imperfect (Hosmer-Lemeshow rejects at 5%) so PDs are INDICATIVE and require recalibration before any use. Not for live lending.",
+  "selected_columns": [
+    "DAINC",
+    "AES",
+    "YOB",
+    "DHVAL",
+    "DMORT",
+    "RES"
+  ],
+  "mandatory_columns": [
+    "DAINC"
+  ],
+  "floor_columns": [],
+  "incomplete_policy": "refer",
+  "cases": {
+    "R1-low-repaid": {
+      "DAINC": 52500.0,
+      "AES": "P",
+      "YOB": 57.0,
+      "DHVAL": 46784.0,
+      "DMORT": 7392.0,
+      "RES": "O"
+    },
+    "R2-mid-repaid": {
+      "DAINC": 22500.0,
+      "AES": "E",
+      "YOB": 52.0,
+      "DHVAL": 0.0,
+      "DMORT": 0.0,
+      "RES": "P"
+    },
+    "R3-mid-default": {
+      "DAINC": 13800.0,
+      "AES": "T",
+      "YOB": 68.0,
+      "DHVAL": 0.0,
+      "DMORT": 0.0,
+      "RES": "P"
+    },
+    "R4-high-default": {
+      "DAINC": 0.0,
+      "AES": "R",
+      "YOB": 16.0,
+      "DHVAL": 0.0,
+      "DMORT": 0.0,
+      "RES": "N"
+    },
+    "SYN-best": {
+      "DAINC": 44280.000000000044,
+      "AES": "V",
+      "YOB": 67.0,
+      "DHVAL": 50464.0,
+      "DMORT": 46464.0,
+      "RES": "F"
+    },
+    "SYN-worst": {
+      "DAINC": 0.0,
+      "AES": "R",
+      "YOB": 28.400000000000006,
+      "DHVAL": 0.0,
+      "DMORT": 0.0,
+      "RES": "N"
+    }
+  },
+  "case_meta": {
+    "R1-low-repaid": {
+      "kind": "real",
+      "actual": 0,
+      "deployed_pd": 0.0003
+    },
+    "R2-mid-repaid": {
+      "kind": "real",
+      "actual": 0,
+      "deployed_pd": 0.1987
+    },
+    "R3-mid-default": {
+      "kind": "real",
+      "actual": 1,
+      "deployed_pd": 0.1987
+    },
+    "R4-high-default": {
+      "kind": "real",
+      "actual": 1,
+      "deployed_pd": 0.999
+    },
+    "SYN-best": {
+      "kind": "synthetic",
+      "actual": null,
+      "design": "repaid"
+    },
+    "SYN-worst": {
+      "kind": "synthetic",
+      "actual": null,
+      "design": "default"
+    }
+  }
+}
