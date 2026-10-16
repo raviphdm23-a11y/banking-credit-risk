@@ -1,0 +1,107 @@
+{
+  "dataset": "LC_nogeo.csv",
+  "target": "target",
+  "selected_columns": [
+    "term",
+    "revol_util",
+    "annual_inc",
+    "inq_last_6mths",
+    "purpose",
+    "funded_amnt",
+    "loan_amnt",
+    "pub_rec"
+  ],
+  "mandatory_columns": [
+    "annual_inc"
+  ],
+  "incomplete_policy": "refer",
+  "title": "LC (LendingClub) \u2014 no-geo primary model",
+  "cases": {
+    "LC-R1 (low-risk, repaid)": {
+      "term": 36.0,
+      "revol_util": 16.0,
+      "annual_inc": 110000.0,
+      "inq_last_6mths": 0.0,
+      "purpose": "major_purchase",
+      "funded_amnt": 3600.0,
+      "loan_amnt": 3600.0,
+      "pub_rec": 0.0
+    },
+    "LC-R2 (mid-risk, repaid)": {
+      "term": 36.0,
+      "revol_util": 46.4,
+      "annual_inc": 45000.0,
+      "inq_last_6mths": 1.0,
+      "purpose": "credit_card",
+      "funded_amnt": 7000.0,
+      "loan_amnt": 7000.0,
+      "pub_rec": 0.0
+    },
+    "LC-R3 (elevated-risk, defaulted)": {
+      "term": 60.0,
+      "revol_util": 0.0,
+      "annual_inc": 45600.0,
+      "inq_last_6mths": 0.0,
+      "purpose": "other",
+      "funded_amnt": 23000.0,
+      "loan_amnt": 23000.0,
+      "pub_rec": 0.0
+    },
+    "LC-R4 (high-risk, defaulted)": {
+      "term": 60.0,
+      "revol_util": 99.0,
+      "annual_inc": 33280.0,
+      "inq_last_6mths": 3.0,
+      "purpose": "debt_consolidation",
+      "funded_amnt": 10000.0,
+      "loan_amnt": 10000.0,
+      "pub_rec": 1.0
+    },
+    "LC-S1 (synthetic best \u2014 PD-floor check)": {
+      "term": 36.0,
+      "revol_util": 2.7,
+      "annual_inc": 142000.0,
+      "inq_last_6mths": 0.0,
+      "purpose": "credit_card",
+      "funded_amnt": 3200.0,
+      "loan_amnt": 3200.0,
+      "pub_rec": 0.0
+    },
+    "LC-S2 (synthetic worst \u2014 stress check)": {
+      "term": 60.0,
+      "revol_util": 97.1,
+      "annual_inc": 24000.0,
+      "inq_last_6mths": 4.0,
+      "purpose": "small_business",
+      "funded_amnt": 25000.0,
+      "loan_amnt": 25000.0,
+      "pub_rec": 2.0
+    }
+  },
+  "case_meta": {
+    "LC-R1 (low-risk, repaid)": {
+      "kind": "real",
+      "actual": 0
+    },
+    "LC-R2 (mid-risk, repaid)": {
+      "kind": "real",
+      "actual": 0
+    },
+    "LC-R3 (elevated-risk, defaulted)": {
+      "kind": "real",
+      "actual": 1
+    },
+    "LC-R4 (high-risk, defaulted)": {
+      "kind": "real",
+      "actual": 1
+    },
+    "LC-S1 (synthetic best \u2014 PD-floor check)": {
+      "kind": "synthetic",
+      "design": "repaid"
+    },
+    "LC-S2 (synthetic worst \u2014 stress check)": {
+      "kind": "synthetic",
+      "design": "default"
+    }
+  }
+}
