@@ -1,28 +1,45 @@
-# AEGIS — German Credit: decisioning note
+# AEGIS decisioning note — GERMAN (UCI Statlog German credit), 5-feature model
 
-**Status:** decisioning note · **Date:** 2026-10-13 (revised — pricing removed) · **Model:** AEGIS-approved
-WOE-logistic 5-column model (AEGIS run `AEGIS_RUN_GERMAN.md`).
+**Run:** GERMAN (fresh re-run) · **Gate:** G5 (deployment governance) · entry_hash `884c20a1`
+**Model:** AEGIS-approved WOE-logistic, **5 features**:
+`checking_status, credit_history, months_duration, savings_status, purpose`.
+**Held-out discrimination:** Gini **0.532** / AUC **0.766** (selection) · **calibration passes** (HL p=0.46/0.21, ECE 0.040).
 
-> **Revision note (research integrity).** An earlier version of this file prescribed specific accept/refer/
-> decline **PD cutoffs** and an **indicative interest rate**, derived from assumed economics (LGD, cost, margin,
-> rate caps). Those parameters had **no literature or empirical basis** and have been **removed**: the
-> accept / refer / decline **lending decision and any pricing are institution risk-appetite inputs, exogenous
-> to this methodology and not derived here.**
+---
 
-## What this methodology produces (grounded, citable)
-For each applicant: a **calibrated PD** (isotonic; floored at 0.03% per Basel CRE32.3; backtested per
-CRE36.122–123), a **rating grade / risk tier** (institution internal master scale), the **exact WOE reason
-codes** (ECOA/Reg B adverse-action), and the **governed completeness decision** (SCORE / REFER / REJECT from
-the mandatory-field + missing-value gate). See `SAMPLE_RUNS_GERMAN.md` for the per-candidate showcase.
+## 1. What this note DOES and DOES NOT set
 
-## What is an institution input (NOT derived here)
-- The **accept / refer / decline PD threshold(s)** — set by the institution's risk appetite and economics.
-- Any **pricing** of the loan.
-The methodology's role is to supply a trustworthy, explainable PD + grade + reasons that *feed* those
-institution-set thresholds; it does not set or price them.
+Governs how an applicant's PD is produced and explained — the calibrated PD, the PD floor/cap (Basel CRE32.3), the
+rating grade, and exact WOE reason codes. **It does NOT invent an accept/decline cutoff or a price**: the lending
+decision is the institution applying its **own risk-appetite PD threshold** — exogenous, not derived here.
 
-## Citations still required before publication
-- **Rating-grade band edges** (PD→grade) — cite the external scale they align to (e.g., S&P/Moody's idealised
-  cumulative default rates) or state them explicitly as the institution's internal scale.
-- **Fairness:** the adverse-impact ratio (AIR ≥ 0.80) uses the EEOC Uniform Guidelines "four-fifths rule"
-  (citable). The 0.05 mean-PD-gap monitor threshold is an operational setting, not a standard — cite or reframe.
+## 2. Scoring configuration (signed at G5)
+
+| Control | Value |
+|---|---|
+| Model | 5-feature (genuine parsimony: 5 of 17) |
+| Mandatory field (blank → refer) | `checking_status` (the dominant predictor, IV 0.666) |
+| Incomplete policy | `refer` |
+| Reason codes | exact additive WOE |
+| PD floor / cap | 0.03% / 99.9% (always-on) |
+| Decisions emitted | SCORE / SCORE_FLAGGED / REFER / REJECT + calibrated PD + reason string |
+
+## 3. Binding conditions (carried from G0–G4 → GF)
+
+- **NEVER-DEPLOY.** Research benchmark only; no model here is fit for a live credit decision.
+- **AGE-IMPACT.** Though `age` was excluded at G0, the model reproduces **age-disparate impact** (approve-rate AIR
+  worst 0.574 for <25) via correlated features — **true-risk-driven, not bias** (young default 48.7% vs 13.3% for 60+;
+  model accurate within each band). AIR is **indicative** (internal master scale; no institution cutoff). Any live use
+  would require a fairness-constrained replication + reject-inference study. **Replicates the LC finding: excluding a
+  protected attribute is necessary but not sufficient to remove disparate impact.**
+- **FW-THIN.** `foreign_worker` fairness **inconclusive** — only 37/1,000 non-foreign (6 in the test split); AIR
+  degenerate on that cell, not a reliable result.
+- **DQ-BB.** Grade BB under-predicts on backtest (observed 14.7% vs predicted 6.2%, n=34); monitor.
+
+*(No licensing/vintage condition — German is a freely-citable UCI benchmark.)*
+
+## 4. Acceptance demonstration
+
+See `SAMPLE_RUNS_GERMAN.md` — 4 real applicants (spanning good/bad across the risk range) + 2 synthetic composites
+(PD-floor check, stress check). Confirms: PD **floor (0.03%) and cap (99.9%) both bind**; reason codes coherent;
+`checking_status` completeness gate enforced. Case PDs: R1 0.03% (AAA) → R2 28.4% (CC) → R3 47.4% (C) → R4 99.9% (D).

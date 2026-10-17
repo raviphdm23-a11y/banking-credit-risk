@@ -1,7 +1,6 @@
 {
-  "dataset": "german_credit_record.csv",
+  "dataset": "german_clean.csv",
   "target": "target",
-  "title": "German Credit",
   "selected_columns": [
     "checking_status",
     "credit_history",
@@ -10,86 +9,77 @@
     "purpose"
   ],
   "mandatory_columns": [
-    "checking_status",
-    "credit_history",
-    "months_duration"
+    "checking_status"
   ],
-  "floor_columns": [],
   "incomplete_policy": "refer",
+  "title": "GERMAN (UCI Statlog German credit) \u2014 5-feature model",
   "cases": {
-    "R1-low-repaid": {
-      "checking_status": "< 0 DM",
+    "DE-R1 (low-risk, good)": {
+      "checking_status": "no checking account",
       "credit_history": "critical account / other credits elsewhere",
-      "months_duration": 6,
-      "savings_status": "unknown / none",
+      "months_duration": 6.0,
+      "savings_status": "100 \u2264 ... < 500 DM",
       "purpose": "radio/television"
     },
-    "R2-mid-repaid": {
+    "DE-R2 (mid-risk, good)": {
       "checking_status": "< 0 DM",
       "credit_history": "critical account / other credits elsewhere",
-      "months_duration": 9,
+      "months_duration": 9.0,
       "savings_status": "100 \u2264 ... < 500 DM",
       "purpose": "repairs"
     },
-    "R3-mid-default": {
-      "checking_status": "< 0 DM",
-      "credit_history": "existing credits paid duly till now",
-      "months_duration": 15,
-      "savings_status": "unknown / none",
-      "purpose": "domestic appliances"
-    },
-    "R4-high-default": {
-      "checking_status": "< 0 DM",
-      "credit_history": "delay in past",
-      "months_duration": 36,
-      "savings_status": "< 100 DM",
-      "purpose": "education"
-    },
-    "SYN-best": {
-      "checking_status": "no checking account",
+    "DE-R3 (elevated-risk, bad)": {
+      "checking_status": "0 \u2264 ... < 200 DM",
       "credit_history": "critical account / other credits elsewhere",
-      "months_duration": 4,
-      "savings_status": "\u2265 1000 DM",
-      "purpose": "car (used)"
+      "months_duration": 30.0,
+      "savings_status": "< 100 DM",
+      "purpose": "car (new)"
     },
-    "SYN-worst": {
+    "DE-R4 (high-risk, bad)": {
       "checking_status": "< 0 DM",
       "credit_history": "no credits / all paid duly",
-      "months_duration": 72,
+      "months_duration": 45.0,
       "savings_status": "< 100 DM",
-      "purpose": "education"
+      "purpose": "business"
+    },
+    "DE-S1 (synthetic best \u2014 PD-floor check)": {
+      "checking_status": "no checking account",
+      "credit_history": "critical account / other credits elsewhere",
+      "savings_status": "\u2265 1000 DM",
+      "purpose": "car (used)",
+      "months_duration": 9.0
+    },
+    "DE-S2 (synthetic worst \u2014 stress check)": {
+      "checking_status": "< 0 DM",
+      "credit_history": "no credits / all paid duly",
+      "savings_status": "< 100 DM",
+      "purpose": "education",
+      "months_duration": 48.0
     }
   },
-  "note": "Fixed 6-case committee standard: 4 REAL applicants (actual outcome shown) spanning the risk range with both outcomes, + 2 SYNTHETIC composites (SYN-best / SYN-worst, built from observed feature-value extremes; no real outcome - a PD-floor check and a stress check). Reproducible via score_acceptance_cases.py.",
   "case_meta": {
-    "R1-low-repaid": {
+    "DE-R1 (low-risk, good)": {
       "kind": "real",
-      "actual": 0,
-      "deployed_pd": 0.0333
+      "actual": 0
     },
-    "R2-mid-repaid": {
+    "DE-R2 (mid-risk, good)": {
       "kind": "real",
-      "actual": 0,
-      "deployed_pd": 0.284
+      "actual": 0
     },
-    "R3-mid-default": {
+    "DE-R3 (elevated-risk, bad)": {
       "kind": "real",
-      "actual": 1,
-      "deployed_pd": 0.2857
+      "actual": 1
     },
-    "R4-high-default": {
+    "DE-R4 (high-risk, bad)": {
       "kind": "real",
-      "actual": 1,
-      "deployed_pd": 0.7587
+      "actual": 1
     },
-    "SYN-best": {
+    "DE-S1 (synthetic best \u2014 PD-floor check)": {
       "kind": "synthetic",
-      "actual": null,
       "design": "repaid"
     },
-    "SYN-worst": {
+    "DE-S2 (synthetic worst \u2014 stress check)": {
       "kind": "synthetic",
-      "actual": null,
       "design": "default"
     }
   }

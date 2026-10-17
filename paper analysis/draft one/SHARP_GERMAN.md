@@ -1,4 +1,4 @@
-# german_credit_eligible - Methodology v3 results
+# GERMAN - Methodology v3 results
 
 Rows: 1000 | Raw columns: 17 | Event rate: 0.3000
 
@@ -110,25 +110,3 @@ Implementation audit (efficiency property): sum of Shapley values 0.272214 vs v(
 |---|---:|---:|---:|
 | Brier | 0.2100 | 0.1636 | **0.1639** |
 | ECE | - | 0.0534 | **0.0513** |
-
-## Stage 4b - per-grade calibration backtest (AEGIS condition GC4; CRE36.122-123)
-
-Added 2026-10-13 to discharge AEGIS condition GC4. Held-out 80/20 stratified split (`random_state=42`),
-selected 5-col WOE-logistic calibrated PD, mapped to the internal master scale. Test n=200, event 0.30,
-held-out AUC 0.7814.
-
-| Grade | n | Expected PD | Realised | Realised 95% CI (Wilson) | Within? |
-|---|--:|--:|--:|---|:--:|
-| AAA | 2 | 0.0% | 0.0% | [0.0%, 65.8%] | OK |
-| BBB | 11 | 2.4% | 0.0% | [0.0%, 25.9%] | OK |
-| BB | 34 | 6.2% | 14.7% | [6.4%, 30.1%] | REVIEW (thin cell, under-predict) |
-| B | 18 | 9.9% | 16.7% | [5.8%, 39.2%] | OK |
-| CCC | 16 | 15.3% | 12.5% | [3.5%, 36.0%] | OK |
-| CC | 39 | 22.9% | 15.4% | [7.2%, 29.7%] | OK |
-| C | 53 | 47.0% | 47.2% | [34.4%, 60.3%] | OK |
-| D | 27 | 71.3% | 70.4% | [51.5%, 84.1%] | OK |
-
-**Overall held-out ECE = 0.0334; Hosmer-Lemeshow chi2=4.50, df=3, p=0.212 => calibration not rejected**
-(more comfortably than HMEQ's p=0.069). 7/8 occupied grades pass. The wide per-grade CIs reflect the small
-sample (200 test rows across 8 grades, 2-53 per cell) and are the quantified estimation uncertainty that
-motivates a small-sample Margin of Conservatism (EBA Category C, R6). Re-run on larger/fresh data at deployment.

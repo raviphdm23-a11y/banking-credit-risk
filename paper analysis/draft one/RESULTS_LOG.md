@@ -13,7 +13,9 @@ classification threshold 0.5 unless stated.
 
 ## 0. Ground truth about the original submission (established 2026-09-06)
 
-**Datasets (canonical copies: `paper analysis/sample datasets/`, registered in the Lab as `paper_*.csv`):**
+**Datasets (canonical copies consolidated into `data/ml_lab/datasets/` on 2026-10-03 — this is now the single
+repository for every dataset used in this project, replacing the old separate `paper analysis/sample datasets/`
+archive; see `german_credit_record.csv`, `Taiwan_UCI_Credit_Card.csv`, `bank_marketing_dataset.csv` for these three):**
 
 | Dataset | Rows | Inputs | Positives | Positive rate | Notes |
 |---|---:|---:|---:|---:|---|
@@ -375,3 +377,29 @@ the 15 IV-survivors → **12/20 raw columns retained** (43 encoded, vs. 61 for t
 - Repeat this four-way ablation on Taiwan and Bank Marketing to see whether the Full regression is German-Credit-specific
   (small n) or general.
 - Re-run the Sanity Ratio (K=100) on at least the Tuned variant (the one isolated improvement), to see whether ρ moves.
+
+---
+
+## SHARP (v3) — clean per-dataset Results-section runs
+
+Canonical, paper-ready SHARP runs. Each has a `SHARP_<DATASET>.md` record and a regenerable JSON under
+`sharp_runs/`. Fixed config: primary `woe_logistic` / secondary `xgboost`, value_fn `auc`, `random_state=42`,
+5-fold stratified CV, grouping ρ-threshold 0.7, shadows 10 / q0.95 / confirm ≥0.80, selection tolerance
+DeLong p≥0.05 AND relative Gini loss ≤5%. These supersede the v2 selection decisions.
+
+| Dataset | Run id | Screened→selected cols | Primary Gini (WOE-logit) | Secondary Gini (XGB) | Selection verdict | Record |
+|---|---|---|---:|---:|---|---|
+| HMEQ | `sharp_20261011_hmeq` | 12 → 11 (drop REASON) | 0.8133 (OOF) / 0.8010 cal. holdout | 0.8817 cal. holdout | Full screened set — no parsimony reduction DeLong-defensible at n≈6k | `SHARP_HMEQ.md` |
+
+**HMEQ highlights:** all 11 screened columns confirmed ≥12.8× the shadow-null bar; permuted noise shadow
+(`__shadow__7_LOAN`, BH p=2.9e-10) correctly rejected; missingness of DEBTINC is a preserved 7.2× signal;
+isotonic calibration cuts ECE 43%/28% with AUC unchanged. Converges on v2's 11-column set by the new
+order-invariant route. Finding F6: WOE can score *missing* as good news on MNAR columns (hiding delinquency/derogatory flips an impaired applicant PD 0.85->0.15); mitigated by scoring-time `adverse_missing_floor` (honest applicants unchanged, omission can no longer lower risk).
+
+**Credit Risk Dataset — `SHARP_CREDIT_RISK.md` (⚠ demonstration, NOT a completed run):** documents a
+data-integrity finding (file's `target` column corrupted — disagrees with `loan_status` on 26% of rows; used
+`loan_status`), the missing-value handling mechanism (training `__missing__` bin + prediction lookup; edge
+case of never-missing columns → WOE 0), and the deployment governance (mandatory gate + adverse fallback) on
+sample applicant E. No Stage 2–3 selection recorded; scoring used all 10 screened features. Key nuance: the
+reject gate is robust, but the adverse-score fallback's penalty scales with feature strength (blank
+`loan_grade` → PD 0.10→0.77; blank weak `loan_amnt` → unchanged) — prefer the gate.
