@@ -1,0 +1,482 @@
+%% SHARP + AEGIS — IEEE Transactions on Artificial Intelligence submission
+%% Build: run build.ps1 (closes Acrobat if it holds the PDF, compiles, reopens).
+%% Manual: latexmk -pdf main.tex
+% DRAFTING setting: 11pt single-column for readable review.
+% SUBMISSION setting (IEEE TAI house style): change the options below to [9pt,journal]
+% (two-column is IEEEtai's default; drop "onecolumn"). Content reflows automatically.
+\documentclass[11pt,journal,onecolumn]{IEEEtai}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath,amssymb}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{url}
+\usepackage{xcolor}
+\usepackage[hidelinks]{hyperref}
+
+% ---- metadata ----
+\title{Governed Feature Selection for Credit-Risk Models: Shapley Attribution with Pre-Registered Parsimony under the AEGIS Decision-Gate Framework}
+
+\author{Ravi\IEEEauthorrefmark{1}
+\thanks{\IEEEauthorrefmark{1}The author is with the Indian Institute of Foreign Trade, New Delhi, India (e-mail: ravi\_phdm23@iift.edu).}
+\thanks{Manuscript prepared \today. This is a working draft for internal review, not a submitted version.}}
+
+\markboth{IEEE Transactions on Artificial Intelligence, Vol.~XX, No.~XX, 2027}%
+{Ravi: Governed Feature Selection for Credit-Risk Models}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+Machine-learning credit-risk models are increasingly accurate but remain hard to
+\emph{govern}: the questions of \emph{which} features are genuinely useful, \emph{how
+parsimonious} a defensible model may be, and \emph{whether} a selection is adequately
+powered and fair are usually answered by analyst judgement rather than a reproducible,
+auditable procedure. We present two coupled contributions. \textbf{SHARP} (Shapley
+Ranking with Parsimony) is a pre-registered feature-selection methodology that separates
+order-invariant \emph{attribution} (sampled Shapley importance against a shadow-feature
+null) from a distinct, fixed \emph{selection} rule (the smallest feature set that is both
+DeLong-indistinguishable from the full model and within a 5\% relative-Gini tolerance),
+followed by always-on isotonic calibration and a regulatory PD floor. \textbf{AEGIS} is a
+hash-chained decision-gate framework (G0--GF) that wraps SHARP with materiality-tiered
+governance, binding every statistical bar to a cited source and separating \emph{governance}
+decisions from \emph{analytics} parameters, which are never re-opened. Across a corpus of
+eleven public and reference credit datasets run under one fixed configuration, we show that
+the same rule yields genuine parsimony at small sample sizes yet near-full feature sets at
+large ones (a large-$N$ sensitivity effect we characterise), that excluding a protected
+attribute is necessary but not sufficient to remove disparate impact, and that signal
+strength---not sample size---sets the achievable discrimination ceiling. We add the Riley
+\emph{et al.} minimum-sample-size calculation alongside events-per-variable as a reported
+sufficiency diagnostic and give a retrospective across the corpus.
+\end{abstract}
+
+\begin{IEEEImpStatement}
+Credit decisions affect access to capital for individuals and firms, and supervisors now
+require model-risk controls (e.g., the U.S.\ interagency guidance superseding SR~11-7, and
+the EU AI Act's treatment of creditworthiness assessment as high-risk). This work shows how
+feature selection---an early, consequential step usually left to discretion---can be made
+\emph{reproducible and auditable} without inventing economic assumptions: thresholds and
+pricing remain institution inputs, and governance gates decide process, not analytics. The
+framework makes a model's parsimony, calibration, fairness, and data-sufficiency claims
+traceable to recorded runs and cited bars, which should lower the cost of independent
+validation and reduce the risk of overstated or unfair models reaching deployment.
+\end{IEEEImpStatement}
+
+\begin{IEEEkeywords}
+Credit risk, feature selection, Shapley values, model governance, calibration, fairness,
+disparate impact, sample size, explainable AI.
+\end{IEEEkeywords}
+
+\section{Introduction}
+\IEEEPARstart{M}{achine}-learning models now dominate credit-risk scoring, but their
+\emph{governance} lags their accuracy. [Stub: motivate the three governance gaps---useful
+features, defensible parsimony, adequacy/fairness---and the discretion problem.]
+
+\textbf{Contributions.}
+\begin{enumerate}
+\item \textbf{SHARP}, a pre-registered methodology separating Shapley \emph{attribution}
+from a fixed \emph{parsimony} selection rule (\S\ref{sec:sharp}).
+\item \textbf{AEGIS}, a hash-chained, materiality-tiered decision-gate framework binding
+every bar to a cited source and separating governance from analytics (\S\ref{sec:aegis}).
+\item An empirical study over eleven datasets under one fixed configuration, including the
+large-$N$ parsimony effect, the ``necessary-but-not-sufficient'' fairness finding, and a
+Riley-\emph{et al.}\ sample-size retrospective (\S\ref{sec:results}).
+\end{enumerate}
+
+\section{Related Work}\label{sec:related}
+[Stub: feature selection and Shapley/SHAP attribution; parsimony and the 1-SE heritage;
+model-risk governance (SR~26-2) and the EU AI Act; fairness and disparate-impact doctrine;
+sample size---EPV \cite{peduzzi1996} vs Riley \cite{riley2020bmj,riley2019sim}.]
+
+\section{The SHARP Methodology}\label{sec:sharp}
+SHARP (Shapley Ranking with Parsimony) deliberately separates two questions that are
+routinely conflated in applied feature selection:
+
+\begin{itemize}
+\item \textbf{Attribution} --- ``How much predictive value is attributable to this feature,
+\emph{order-invariantly}?'' Answered by a Shapley importance measure against an empirical
+null.
+\item \textbf{Selection} --- ``What is the \emph{smallest} feature set whose performance is
+statistically indistinguishable from the full set?'' Answered by a separate, pre-registered
+stopping rule.
+\end{itemize}
+
+The separation is principled, not stylistic. Shapley values are a \emph{fair-attribution}
+solution concept (efficiency, symmetry, dummy, additivity); they do not identify an optimal
+subset. A redundant-but-informative feature still receives a positive share, and a feature
+whose value concentrates in rare coalitions can average below any bar despite being needed.
+Attribution therefore \emph{ranks}; a separately justified rule \emph{selects}. Greedy,
+category-sequential screening---the common alternative---produces order-dependent, artefactual
+retention; an order-invariant importance estimate plus an explicit selection rule avoids it.
+
+\textbf{Inference target.} We estimate population feature importance \emph{with respect to a
+specified learner and value function}: how much cross-validated predictiveness is recoverable
+from a feature set, for a given learner class, on a given population---\emph{not} how much a
+feature ``matters to credit risk'' in the abstract. Formally, with value function $v(S)$ equal
+to the cross-validated predictiveness of the columns in $S$, the importance of feature $j$ is
+the Shapley value
+\begin{equation}
+\phi_j \;=\!\!\sum_{S\subseteq N\setminus\{j\}}\!\!
+\frac{|S|!\,(|N|-|S|-1)!}{|N|!}\,\bigl[v(S\cup\{j\})-v(S)\bigr],
+\label{eq:shapley}
+\end{equation}
+which is the Shapley Population Variable Importance Measure (SPVIM) of Williamson and Feng
+\cite{williamson2020spvim}. This is \emph{not} SAGE \cite{covert2020sage}, which marginalises
+absent features out of a single fitted model; here each coalition $S$ is \emph{refit}.
+
+The pipeline has five stages (0--4). We summarise each; the governance wrapper that signs off
+on their outputs is AEGIS (\S\ref{sec:aegis}).
+
+\subsection{Stage~0: Eligibility and data governance}
+Stage~0 runs \emph{before any statistics} and drops no column; it attaches a per-column
+classification that travels with every downstream result. Each column is tagged
+\texttt{permissible}, \texttt{prohibited} (e.g.\ sex, age, marital status), \texttt{proxy\_risk}
+(e.g.\ geography, education, household composition), or \texttt{unclear}. On these public
+research benchmarks, protected and proxy attributes are \emph{retained with mandatory
+disclosure} so results remain comparable with the large published literature on the same
+datasets; no model here is intended for live use. Stage~0 also records point-in-time
+availability (flagging \texttt{near\_target} and \texttt{external\_score} columns that make a
+model a behavioural or score-recovery exercise rather than an application scorecard), audits
+sentinel codes and shared missingness for leakage, notes the accept-only sampling that
+truncates feature distributions \cite{handhenley1997}, and declares \emph{mandatory} columns
+and a missingness policy that are enforced only at scoring (\S\ref{sec:sharp}-F).
+
+\subsection{Stage~1: Univariate screening}
+Information Value (IV) is the single a-priori screen, at the conventional
+threshold $\mathrm{IV}\ge0.02$ \cite{siddiqi2006}; Cram\'er's $V$, $\chi^2$ and $p$-values are
+reported descriptively and decide nothing. Binning is monotonic Weight-of-Evidence (WOE) with
+a minimum bin size of 5\% of rows,
+\begin{equation}
+\mathrm{WOE}_i=\ln\!\frac{g_i/G}{b_i/B},\qquad
+\mathrm{IV}=\sum_i\Bigl(\tfrac{g_i}{G}-\tfrac{b_i}{B}\Bigr)\mathrm{WOE}_i,
+\label{eq:woe}
+\end{equation}
+where $g_i,b_i$ are goods/bads in bin $i$. Monotonicity is enforced only where it is supported:
+a genuinely U-shaped feature whose IV recovers $\ge20\%$ when the constraint is freed is tagged
+\texttt{shape\_nonmonotonic} and routed to a single-column model check rather than being judged
+on its monotonic IV. A reliability gate ($\chi^2$ minimum expected cell $\ge5$) and a
+bin-count sensitivity check (WOE vs 5/10/20 quantile bins) escalate borderline columns to the
+same model check, whose verdict is a Gini confidence interval excluding zero.
+
+\subsection{Stage~2: Order-invariant attribution}
+The default value function is repeated cross-validated AUC and the default learner is a
+penalised logistic model on monotonic-WOE inputs (\texttt{woe\_logistic})---the credit-scoring
+standard form: deterministic and hyperparameter-insensitive, which removes refit noise from
+the Shapley estimate. XGBoost is run as a robustness learner; material disagreement in the two
+rankings (reported via Kendall's $\tau$) is itself a finding about interaction dependence.
+Class reweighting is \emph{off} by default: on GMSC it inflated the mean predicted probability
+to $0.286$ against a true base rate of $0.067$, and the resulting miscalibration is avoided
+rather than repaired.
+
+Two devices make the attribution both tractable and honest. First, correlated columns are not
+pruned (which would reintroduce a greedy univariate criterion); instead, hierarchical
+clustering on $1-|\rho_{\text{Spearman}}|$ cut at $|\rho|=0.7$ makes \emph{each cluster a single
+Shapley player}, preserving the efficiency property over the full candidate set. Second---the
+central methodological fix---significance testing of Shapley values is replaced by a
+\textbf{shadow-feature null} \cite{kursa2010boruta}: at least ten shadow players (row-permuted
+copies of real columns) are added, the identical Shapley computation is run over the augmented
+set, and a real player is \texttt{importance\_confirmed} only if its value exceeds the
+$95^{\text{th}}$ percentile of the shadow distribution \emph{and} its bootstrap confirmation
+frequency is $\ge0.80$. The bar is a quantile of an empirical null, so no multiple-testing
+correction is needed and fold-dependence does not bias it. Benjamini--Hochberg $p$-values and
+Cohen's $d$ are retained only as reported diagnostics---usefully self-refuting, since on German
+Credit a permuted-noise shadow column received $p=0.0000$ with a \emph{negative} Shapley value,
+which a significance rule would have confirmed and the shadow bar correctly rejected.
+Enumeration is exact when the player count (including shadows) is $\le15$ and sampled otherwise,
+with the Monte Carlo standard error reported per player.
+
+\subsection{Stage~3: Pre-registered parsimony}
+The eligible set is the confirmed players, ranked by $\phi_j$. For $k=1,\dots,K$ the model on
+the top-$k$ players is scored on \emph{out-of-fold} predictions (so every $k$ is evaluated on
+the same rows and DeLong's paired test is valid \cite{delong1988}), and the full parsimony
+curve is a required output. The stopping rule is fixed in advance: choose the smallest $k$ that
+is both statistically indistinguishable from the full-candidate model by DeLong's test at
+$\alpha=0.05$ \emph{and} within a relative-Gini tolerance,
+\begin{equation}
+k^\star=\min\Bigl\{k:\; p_{\text{DeLong}}(k)\ge0.05 \;\wedge\;
+\tfrac{\mathrm{Gini}_{\text{full}}-\mathrm{Gini}_k}{\mathrm{Gini}_{\text{full}}}\le 0.05\Bigr\}.
+\label{eq:stop}
+\end{equation}
+If no $k$ qualifies, that is reported as the result (``no parsimonious subset meets the
+tolerance'')---it is never replaced by the best available $k$. Because the two conditions are
+combined by \emph{and}, the rule behaves very differently across sample sizes (\S\ref{sec:results}):
+at small $N$ both clear together and yield genuine parsimony, whereas at large $N$ DeLong detects
+the loss from dropping even a weak feature and the full set is returned.
+
+\subsection{Stage~4: Calibration, reason codes, and sufficiency diagnostics}
+The selected model is calibrated by cross-validated isotonic regression (always on), and
+calibrated probabilities are used whenever a PD is quoted to a person. Because the learner is
+WOE-logistic, the score is an exact additive decomposition
+$\operatorname{logit}=\beta_0+\sum_j\beta_j\,\mathrm{WOE}_j(x)$, giving faithful per-feature
+\emph{reason codes} with no post-hoc approximation. A regulatory PD floor of $0.03\%$ (Basel
+CRE32.3) and a $99.9\%$ cap are applied at scoring, as are the Stage-0 mandatory-field gate and
+missingness policy. Finally, data sufficiency is reported---never used to auto-reject---through
+two diagnostics side by side: events-per-variable \cite{peduzzi1996,vansmeden2019} and the
+Riley \emph{et al.}\ minimum sample size \cite{riley2020bmj,riley2019sim}, the latter derived
+from the anticipated $C$-statistic and prevalence via the Cox--Snell $R^2$ approximation of
+\cite{rileyvancalster2020}. A shortfall is a disclosed caveat the governance layer weighs, not
+a gate failure---consistent with SHARP's principle that selection parameters are fixed and only
+governance decides disposition.
+
+\section{The AEGIS Governance Framework}\label{sec:aegis}
+SHARP produces a defensible \emph{model}; it does not, by itself, produce a defensible
+\emph{decision to use that model}. A supervisor or internal audit function asks questions the
+analytics cannot answer: who decided the data were adequate, and could they have decided
+otherwise? Who chose this feature set, on what recorded rationale? Who is accountable if the
+model is wrong, and were they independent of the builder? Where is the evidence that each
+regulatory expectation was \emph{met}, not merely claimed? AEGIS (Approval and Evidence-based
+Governance for Internal-ratings Systems) answers these by turning each SHARP stage into a
+\emph{governed decision gate}: the machine emits a recommendation and a full evidence pack, a
+human with the right role and sufficient independence chooses from a closed set of genuinely
+viable options, and the choice is written to a tamper-evident log. This mirrors modern
+model-risk expectations---the U.S.\ interagency guidance SR~26-2 (superseding SR~11-7), the EU
+AI Act's treatment of creditworthiness assessment as high-risk, and Basel CRE36---without
+importing their numeric bars by assumption: every threshold used is tied to a cited source.
+
+\subsection{Design principles}
+Eight principles govern the framework; three are load-bearing. \textbf{(P1) Machine recommends,
+human decides, record proves}: every gate is recommendation + evidence pack + closed options +
+accountable sign-off + log entry. \textbf{(P2) Segregation of duties}: the Develop, Validate,
+and Approve functions are never held by one person for one model. \textbf{(P8) Gates decide
+governance, not analytics}: a gate's option set may \emph{never} re-open a pre-registered SHARP
+parameter (estimator mode, selection tolerances, shadow-bar quantile, confirmation frequency,
+\texttt{random\_state}, CV folds). Those are fixed in the methodology, identical across every
+dataset, and chosen once; gates decide scope, eligibility, fairness treatment, cutoffs, and
+Go/No-Go. P8 is what keeps the method reportable: letting a per-run gate switch the estimator
+would be the dataset-dependent, path-changing behaviour a research methodology must avoid. The
+single failure mode AEGIS is explicitly designed against is \emph{rubber-stamping}---hence the
+anti-strawman rule below and the independence requirements in \S\ref{sec:aegis}-E.
+
+\subsection{The decision gates G0--GF}
+SHARP's stages become gates G0--G5, with a final committee gate GF (Table~\ref{tab:gates}).
+G0--G5 are \emph{stage gates} (a single accountable role signs each); GF is the \emph{committee
+gate}, ruled by the Model Approval Committee. Crucially, GF is last and is decided only after
+G4's per-grade calibration backtest and G5's cutoff policy and acceptance demonstration are
+complete and visible---one does not approve deployment and then check whether the PDs are
+honest and the decisions sensible.
+
+\begin{table}[!t]
+\centering
+\caption{AEGIS decision gates and the SHARP stage each governs.}
+\label{tab:gates}
+\footnotesize
+\begin{tabular}{@{}llp{0.52\linewidth}@{}}
+\toprule
+Gate & SHARP stage & Core question decided \\
+\midrule
+G0 & Stage 0 & Is the dataset fit to build on? (coverage, label integrity, scope) \\
+G1 & Stage 1 & Which features survive screening; is $N$ adequate (EPV + Riley, reported)? \\
+G2 & Stage 2 & Is the attribution stable enough to select on? \\
+G3 & Stage 3 & Which feature set is adopted---parsimonious vs full, and the trade-off? \\
+G4 & Stage 4 & Calibrated, discriminating, and fair enough to approve? (per-grade backtest) \\
+G5 & Scoring & Deployment controls + cutoff policy + acceptance demonstration \\
+GF & whole model & GO / GO-WITH-CONDITIONS / NO-GO (committee) \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+A model is assigned a \emph{materiality tier} (HIGH / MEDIUM / LOW) at G0, after SR~26-2's
+exposure-$\times$-purpose logic; the tier sets \emph{who} signs each gate and \emph{how high the
+pass-bar sits}, but never changes the analytics---every metric is measured identically across
+datasets. Lowering a tier is itself a recorded G0 decision.
+
+\subsection{Anatomy of a gate}
+Each gate produces one Gate Decision Record with five parts: (i) the machine recommendation and
+its numeric basis; (ii) the full evidence pack (the actual numbers, traceable to a run, not a
+summary); (iii) a closed set of 2--4 options, each carrying its own data, rationale, benefits,
+risks, and an explicit \emph{residual-risk acceptance}; (iv) a human sign-off (role, identity,
+exactly one option, free-text rationale, timestamp); and (v) an append-only log entry. The
+\emph{anti-strawman rule} forbids padding: if the machine cannot construct a genuine case for an
+alternative, it presents fewer options and flags ``single viable option; escalate,'' routing the
+decision upward rather than manufacturing fake choices.
+
+Tamper-evidence is a hash chain over the decision records. With a genesis token
+$h_0=\textsf{GEN-}\langle\textsc{tag}\rangle\textsf{0}$, each gate's entry hash is
+\begin{equation}
+h_i=\operatorname{SHA\text{-}256}\!\bigl(h_{i-1}\,\Vert\,c_i\bigr)[0{:}8],
+\label{eq:hash}
+\end{equation}
+where $c_i$ is the gate's decision content and $\Vert$ is concatenation. Any later edit to a
+sealed decision breaks every subsequent link, so a reversal must be a \emph{new} recorded
+decision, never a silent edit---the audit trail is append-only.
+
+\subsection{Roles, segregation of duties, and the committee}
+AEGIS defines seven roles; the hard rule (P2) is that Develop, Validate, and Approve are never
+the same person for one model, mirroring SR~26-2's conflict-of-interest provisions. Validators
+sign G1--G4 and can \emph{return} a gate; \textbf{G4 requires dual sign-off} (Risk Officer
+\emph{and} Validator), because calibration and fairness are where model error becomes capital
+error and conduct risk. The Model Approval Committee---chaired by the CRO or an independent
+delegate, with a quorum that is void without an independent validator present---rules GF. Any
+member who developed the model recuses and is minuted; the developer presents but does not vote.
+Every MAC decision is itself a hash-chained event.
+
+\subsection{The Go/No-Go engine}
+At GF a deterministic engine synthesises six inputs---dataset adequacy, the signed gate
+decisions, residual risk vs appetite, the regulatory checklist, audit expectations, and the
+new-model acceptance bar---into a recommendation the committee rules on:
+\emph{all gates signed and every regulatory criterion satisfied and residual risk within
+appetite} $\Rightarrow$ \textbf{GO}; \emph{remediable partials with conditions} $\Rightarrow$
+\textbf{GO-WITH-CONDITIONS} (the engine lists the conditions); \emph{any gap on a must-have
+criterion, or an unsigned/returned gate, or residual risk outside appetite} $\Rightarrow$
+\textbf{NO-GO} (the engine names the blocking item and the gate to return to). The engine never
+upgrades a NO-GO; the committee may downgrade on judgement and must minute why, but cannot clear
+a hard gap except by resolving it as a new, re-synthesised gate decision.
+
+\section{Experimental Setup}\label{sec:setup}
+\textbf{Datasets.} The corpus is eleven binary-outcome credit datasets (Table~\ref{tab:corpus}):
+widely used public benchmarks---including the UCI German and Taiwan credit datasets, the Home
+Equity (HMEQ) and Give-Me-Some-Credit sets, the FICO HELOC panel, a LendingClub extract, and the
+PAKDD-2009 Brazilian retail-credit set---alongside additional reference portfolios. They span
+$N\in[1{,}000,\,149{,}391]$, prevalence $[6\%,52\%]$, and candidate pools of $9$--$87$ features.
+Per Stage~0, protected and proxy attributes are retained with disclosure so results remain
+comparable with the published literature on these datasets; no model here is intended for live
+use. Full provenance and target definitions are recorded per dataset.
+
+\textbf{Fixed configuration (identical for every dataset, by P8).} Primary learner
+\texttt{woe\_logistic} (XGBoost as a robustness learner); value function cross-validated AUC;
+correlated columns grouped at $|\rho|=0.7$; $\ge10$ shadow players with a $95^{\text{th}}$-percentile
+bar and confirmation frequency $\ge0.80$; exact Shapley when players (including shadows)
+$\le15$, sampled otherwise; selection rule (\ref{eq:stop}); isotonic calibration; PD floor
+$0.03\%$ and cap $99.9\%$. The random seed is $42$ throughout. No gate re-opens any of these.
+
+\textbf{Evaluation protocol.} Splits are stratified $80/20$ taken \emph{before} any resampling,
+with the test set held at its natural base rate; the parsimony curve is scored on out-of-fold
+predictions from stratified $5$-fold cross-validation so DeLong's paired test is valid.
+Discrimination is reported as Gini (primary) with AUC, KS, partial AUC, Brier and ECE; paired
+model comparisons use DeLong \cite{delong1988}; calibration uses Hosmer--Lemeshow \cite{hl1980}
+and a per-grade realised-vs-expected backtest; fairness uses the adverse-impact ratio against
+the four-fifths rule; data sufficiency uses EPV \cite{peduzzi1996} and the Riley minimum-$N$
+\cite{riley2020bmj}.
+
+\textbf{Governance and reproducibility.} Each dataset is run end-to-end through gates G0--GF with
+a human sign-off recorded at every gate and appended to the hash chain (\ref{eq:hash}); the
+materiality tier is set at G0. The pipeline is deterministic: an independent re-run of the German
+dataset reproduced its committed verdict (Gini $0.53$, GO-WITH-CONDITIONS) and hash chain exactly.
+Validation is i.i.d.\ cross-validation only---no dataset has a reliable time field, so no claim of
+out-of-time or production readiness is made---and all accept/decline thresholds and pricing are
+treated as exogenous institution inputs, never derived here.
+
+\section{Results}\label{sec:results}
+We run eleven public and reference credit datasets through the full governed exercise
+(G0--GF) under \emph{one fixed configuration} (seed $42$; selection = smallest $k$ with DeLong
+$p\ge0.05$ and $\le5\%$ relative-Gini loss; sampled Shapley when players $>15$). The corpus
+spans $N$ from $1{,}000$ to $149{,}391$, prevalence from $6\%$ to $52\%$, and candidate pools
+from $9$ to $87$ features. Table~\ref{tab:corpus} and Fig.~\ref{fig:corpus} summarise it; nine
+runs seal GO-WITH-CONDITIONS and two (MSME, PAK) seal NO-GO. Every figure traces to a recorded
+run.
+
+\begin{table}[!t]
+\centering
+\caption{The governed corpus. Pool = features entering SHARP after Stage-0; sel = selected;
+Gini/AUC are out-of-fold at selection. Verdict is the sealed GF decision.}
+\label{tab:corpus}
+\footnotesize
+\begin{tabular}{@{}lrrrrrl@{}}
+\toprule
+Dataset & $N$ & base & pool$\to$sel & Gini & AUC & Verdict \\
+\midrule
+HMEQ       & 5{,}960   & .200 & 12$\to$11 & 0.81 & 0.91 & GO-cond \\
+CREDITRISK & 32{,}581  & .218 & 9$\to$6   & 0.76 & 0.88 & GO-cond \\
+GMSC       & 149{,}391 & .067 & 9$\to$8   & 0.70 & 0.85 & GO-cond \\
+HELOC      & 10{,}459  & .522 & 23$\to$17 & 0.59 & 0.79 & GO-cond \\
+TAIWAN     & 30{,}000  & .221 & 20$\to$14 & 0.54 & 0.77 & GO-cond \\
+GERMAN     & 1{,}000   & .300 & 17$\to$5  & 0.53 & 0.77 & GO-cond \\
+MSME       & 1{,}707   & .060 & 87$\to$15 & 0.43 & 0.72 & \textbf{NO-GO} \\
+LC         & 39{,}717  & .142 & 21$\to$9  & 0.36 & 0.68 & GO-cond \\
+LOAN       & 9{,}578   & .160 & 13$\to$7  & 0.34 & 0.67 & GO-cond \\
+TH02       & 1{,}225   & .264 & 14$\to$6  & 0.27 & 0.64 & GO-cond \\
+PAK        & 50{,}000  & .261 & 39$\to$6  & 0.15 & 0.57 & \textbf{NO-GO} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[!t]
+\centering
+\includegraphics[width=\linewidth]{corpus_gini.pdf}
+\caption{Selection-stage Gini across the governed corpus, coloured by sealed GF verdict.
+Discrimination spans an order of magnitude; the two NO-GO runs are not simply the
+lowest-Gini---MSME is rejected on sufficiency, not discrimination.}
+\label{fig:corpus}
+\end{figure}
+
+\subsection{Parsimony varies with sample size}
+The single fixed stopping rule (\ref{eq:stop}) produces strikingly different parsimony
+depending on $N$, because DeLong's power to detect the loss from dropping a weak feature grows
+with sample size. At \textbf{small $N$} the rule genuinely parsimonises: on German
+($N{=}1{,}000$) it selects $5$ of $17$ features, with both conditions clearing together
+(DeLong $p{=}0.061\ge0.05$ and relative-Gini loss $4.10\%\le5\%$). At \textbf{large $N$} the
+same rule returns a near-full set: on LC ($N{\approx}40{,}000$) it keeps $8$ of $9$ players
+(DeLong $p{=}1.0$, loss $0.0\%$), and on HMEQ ($N{\approx}6{,}000$) DeLong rejects \emph{every}
+proper subset ($k{=}9$ vs full, $p{=}6.1\times10^{-4}$) even though a $5\%$-loss criterion alone
+would admit a six-feature model---so the \emph{and}-rule returns all eleven. This is the
+methodology declining to overstate parsimony when the data can resolve the difference. We call
+the pattern \textsc{sig-}$N$: the same rule, opposite behaviour at the two ends of the
+sample-size range, both honest. A corollary visible in Table~\ref{tab:corpus} is that
+\emph{signal, not volume, sets the ceiling}---German reaches Gini $0.53$ on $1{,}000$ rows while
+LC reaches $0.36$ on $40{,}000$.
+
+\subsection{Fairness: excluding a protected attribute is necessary but not sufficient}
+On two independent datasets, removing the protected attribute did not remove disparate impact,
+because correlated features reconstruct it. On \textbf{LC}, geography (\texttt{addr\_state}) was
+dropped at a cost of only $0.007$ Gini, yet a residual regional approve-rate disparity persisted
+(worst adverse-impact ratio $0.62$, below the four-fifths bar). On \textbf{German}, \texttt{age}
+was excluded at G0, yet the age-band approve-rate AIR was $0.57$ (under-25 default rate $48.7\%$
+vs $13.3\%$ for $60+$); because the model is accurate \emph{within} each band, this is disparate
+\emph{impact driven by true risk}, not proxy bias. Both runs therefore record the same governed
+finding---proxy removal is necessary but not sufficient, and a fairness-constrained replication
+or reject-inference study would be required before any live use---surfaced as a binding GF
+condition rather than discovered post-deployment.
+
+\subsection{Calibration}
+With class reweighting off and isotonic calibration always on, calibrated probabilities are
+tight across the corpus: expected calibration error is $0.020$ on HMEQ, $0.012$ on LC, and
+$0.040$ on German, and Hosmer--Lemeshow is \emph{not} rejected even at the largest $N$ (GMSC,
+LC)---the feared large-$N$ hypersensitivity did not materialise for calibration, only for
+parsimony. Because the learner is WOE-logistic, each PD carries an exact additive reason-code
+decomposition.
+
+\subsection{Sample-size adequacy (EPV and Riley)}
+Table~\ref{tab:riley} reports the two sufficiency diagnostics. Ten of eleven runs meet the Riley
+minimum; the lone shortfall is \textbf{MSME} (requires $3{,}654$, has $1{,}707$), which is
+\emph{also} the only run failing EPV ($6.8<10$) and the only HIGH-tier NO-GO---the two
+diagnostics are concordant, and the single failure is the case already rejected. Riley adds what
+EPV cannot see: \textbf{PAK} has an enormous EPV ($2{,}173$) yet needs $4{,}041$ rows, because
+its weak signal (AUC $0.57\Rightarrow R^2_{cs}{=}0.013$) makes the shrinkage criterion demand
+volume; and \textbf{TH02} passes by only $+55$ rows, a thinness EPV ($54$) does not convey.
+
+\begin{table}[!t]
+\centering
+\caption{Riley minimum-$N$ retrospective (reported diagnostic). $N_{\text{req}}=\max(B1,B3,B4)$.}
+\label{tab:riley}
+\footnotesize
+\begin{tabular}{@{}lrrrl@{}}
+\toprule
+Dataset & $N$ & $N_{\text{req}}$ & EPV & Meets? \\
+\midrule
+HMEQ       & 5{,}960   & 278   & 108   & yes \\
+CREDITRISK & 32{,}581  & 263   & 1185  & yes \\
+GMSC       & 149{,}391 & 570   & 1251  & yes \\
+HELOC      & 10{,}459  & 522   & 321   & yes \\
+TAIWAN     & 30{,}000  & 737   & 474   & yes \\
+GERMAN     & 1{,}000   & 323   & 60    & yes \\
+MSME       & 1{,}707   & 3{,}654 & 6.8 & \textbf{SHORT} \\
+LC         & 39{,}717  & 1{,}581 & 625 & yes \\
+LOAN       & 9{,}578   & 1{,}220 & 219 & yes \\
+TH02       & 1{,}225   & 1{,}170 & 54  & yes ($+55$) \\
+PAK        & 50{,}000  & 4{,}041 & 2173 & yes \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Discussion}\label{sec:discussion}
+[Stub: governance vs analytics; exogenous thresholds/pricing; limitations.]
+
+\section{Conclusion}\label{sec:conclusion}
+[Stub.]
+
+\bibliographystyle{IEEEtran}
+\bibliography{refs}
+
+\end{document}
