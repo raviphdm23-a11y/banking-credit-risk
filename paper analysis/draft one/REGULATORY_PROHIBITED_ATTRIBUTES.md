@@ -78,16 +78,40 @@ UK GDPR mirrors EU Art. 9 special categories.
 
 ---
 
-## 5. India — principles-based, no ECOA-style enumerated credit list
+## 5. India — a short binding FPC non-discrimination clause; no ECOA-style enumerated model-attribute list
 
-- **Constitution, Art. 15** — prohibits discrimination on religion, race, caste, sex, place of birth (a
-  constitutional, not a credit-specific, guarantee).
-- **RBI Guidelines on Digital Lending (2 Sep 2022)** + **Fair Practices Code** (NBFC Master Direction, 19 Oct 2023;
-  bank FPC circulars from 2003) — require fair, transparent, non-exploitative conduct, but **do not publish an
-  enumerated list of prohibited model attributes** comparable to ECOA. More interpretive burden falls on the lender.
-- **Practical consequence for an India-framed paper:** the "which attributes are off-limits" question is governed by
-  constitutional principle + RBI fairness expectations rather than a statutory column list — a genuine gap worth
-  noting in the literature review.
+**Constitutional baseline**
+- **Constitution of India, Art. 15(1)** — the State shall not discriminate against any citizen on grounds only of
+  religion, race, caste, sex, place of birth (or any of them). A guarantee against *State* action framing the
+  policy backdrop — not a credit-specific rule binding private lenders directly.
+
+**The explicit RBI non-discrimination clause (binding supervisory guidance)**
+- **RBI, *Guidelines on Fair Practices Code for Lenders***, DBOD. Leg. No.BC. 104/09.07.007/2002-03, **5 May 2003**,
+  addressed to all Scheduled Commercial Banks / All-India Financial Institutions. Clause **2(v)(b)** ("General"),
+  **verbatim**:
+  > "Lenders must not discriminate on grounds of sex, caste and religion in the matter of lending. However, this
+  > does not preclude lenders from participating in credit-linked schemes framed for weaker sections of the society."
+  - This is the **nearest Indian analogue to an ECOA prohibited-basis list — but far shorter**: only **three grounds
+    (sex, caste, religion)**, no enumeration of age / marital status / disability / national origin, and **no
+    disparate-impact "effects test"** machinery. It is carried forward into the consolidated Fair Practices Code
+    instructions for banks (Master Circular on Loans and Advances) and NBFCs (NBFC FPC Master Direction; NBFC
+    versions often render "sex" as "gender"). Confirm the current consolidated wording before submission.
+
+**Conduct + AI-governance layer (process fairness, not an attribute list)**
+- **RBI Guidelines on Digital Lending (2 Sep 2022)** — fair, transparent, non-exploitative digital-lending conduct
+  and disclosure of the basis of credit assessment; process fairness, not a prohibited-column list.
+- **RBI FREE-AI report** — *Framework for Responsible and Ethical Enablement of Artificial Intelligence*, committee
+  report **released 13 Aug 2025**. Seven guiding principles ("Sutras") including **Fairness & Equity, Accountability,
+  and Understandable-by-Design**; recommends that AI used in credit/underwriting be **explainable, auditable and free
+  of discriminatory bias**. **Status: a committee report / recommendations, not (yet) binding regulation** — cite as
+  direction-of-travel, not an enforceable rule.
+
+**Practical consequence for an India-framed paper**
+- "Which attributes are off-limits" is governed by a **short binding FPC clause (sex, caste, religion)** +
+  constitutional principle + emerging AI-governance expectations — **not** an ECOA-style enumerated model-attribute
+  list with a disparate-impact test. The interpretive burden on the lender is correspondingly higher, and the
+  proxy / disparate-impact analysis AEGIS runs at G4 is therefore **voluntary rigor** in the Indian setting rather
+  than a statutory requirement — worth flagging explicitly in the literature review.
 
 ---
 
@@ -108,7 +132,7 @@ governed by doctrine, not a lookup:
 
 | SHARP tag | Legal grounding |
 |---|---|
-| **prohibited** (sex, age/YOB, marital/spouse-income, race) | ECOA §1002.6(b); UK Equality Act s.4; GDPR Art. 9; India Art. 15 |
+| **prohibited** (sex, age/YOB, marital/spouse-income, race) | ECOA §1002.6(b); UK Equality Act s.4; GDPR Art. 9; India — Constitution Art. 15(1) + RBI FPC for Lenders cl. 2(v)(b) (sex, caste, religion only) |
 | **proxy_risk** (geography, education, dependents, housing tenure) | redlining doctrine + disparate-impact / LDA test (FHA, EU, UK) |
 | **permissible** (income, balances, utilisation, inquiries) | no prohibited-basis match; legitimate risk factors |
 
@@ -124,4 +148,7 @@ disclosure and a **never-deploy** flag — never an endorsement of live use.
 - GDPR Art. 9 — [Fraunhofer FOKUS GDPR Art. 9](https://pie.fokus.fraunhofer.de/regulations/gdpr-article-9) · primary: Regulation (EU) 2016/679, Art. 9 (EUR-Lex).
 - EU AI Act Annex III 5(b) — [Openlayer credit-scoring compliance guide](https://www.openlayer.com/blog/credit-scoring-eu-ai-act-compliance-guide) · primary: Regulation (EU) 2024/1689, Annex III (EUR-Lex); confirm operative date (Digital Omnibus).
 - UK — [legislation.gov.uk Equality Act 2010 s.4] (confirm) · secondary: [Oxford SPI summary](https://dspi.web.ox.ac.uk/node/4251826).
-- India — [RBI Digital Lending Guidelines overview (Khaitan)](https://www.khaitanco.com/thought-leaderships/RBI-issues-guidelines-for-digital-lending-sector) · primary: RBI circular 2 Sep 2022; NBFC FPC Master Direction 19 Oct 2023; Constitution Art. 15.
+- India — **primary (verbatim, read in full):** RBI *Guidelines on Fair Practices Code for Lenders*, DBOD. Leg.
+  No.BC. 104/09.07.007/2002-03, 5 May 2003, clause 2(v)(b) — [RBI PDF](https://www.rbi.org.in/commonman/Upload/English/Notification/PDFs/36102.pdf).
+  Also: RBI Digital Lending Guidelines (2 Sep 2022); NBFC FPC Master Direction; RBI *FREE-AI* report (13 Aug 2025,
+  committee report — [RBI/MediaNama PDF](https://www.medianama.com/wp-content/uploads/2025/08/Framework-for-Responsible-and-Ethical-Enablement-of-Artificial-Intelligence-FREE-AI-RBI-Report.pdf)); Constitution of India, Art. 15(1).
