@@ -70,9 +70,41 @@ disparate impact, sample size, explainable AI.
 \end{IEEEkeywords}
 
 \section{Introduction}
-\IEEEPARstart{M}{achine}-learning models now dominate credit-risk scoring, but their
-\emph{governance} lags their accuracy. [Stub: motivate the three governance gaps---useful
-features, defensible parsimony, adequacy/fairness---and the discretion problem.]
+\IEEEPARstart{M}{achine}-learning models now dominate credit-risk scoring, yet their
+\emph{governance} has not kept pace with their accuracy. A modern scorecard is the product of
+dozens of consequential choices made before any headline metric is reported---which raw columns
+to admit, how to bin and screen them, which to keep, how small a model is defensible, and whether
+the data are even adequate to support it. In practice these choices are made by analyst
+judgement and documented, if at all, after the fact. That is precisely where model risk
+concentrates, and precisely what supervisors now scrutinise: the U.S.\ interagency guidance
+SR~26-2 (superseding SR~11-7) demands effective, independent challenge of model development; the
+EU AI Act classifies creditworthiness assessment as high-risk; and Basel CRE36 requires a use
+test and a per-grade calibration backtest. None of these tells a practitioner \emph{how} to make
+the early modelling steps reproducible and auditable.
+
+We identify three governance gaps in the feature-selection stage. First, \textbf{which features
+are genuinely useful}: greedy, order-dependent screening produces artefactual retention, and
+Shapley-style attribution---increasingly the default interpretability tool---fairly apportions
+importance but does not, by itself, select a subset. Second, \textbf{how parsimonious a model may
+defensibly be}: small differences in discrimination are routinely presented as wins or losses
+with no inferential test, and the ``right'' number of features is asserted rather than derived.
+Third, \textbf{whether the data are adequate and the model fair}: sample-size justification
+rarely goes beyond a rule of thumb, and the removal of a protected attribute is often assumed to
+remove disparate impact. Each gap is an opening for an overstated or unfair model to reach
+deployment with a clean-looking paper trail.
+
+We address these with two coupled artefacts. \textbf{SHARP} (Shapley Ranking with Parsimony) is a
+pre-registered methodology that cleanly separates order-invariant \emph{attribution} from a fixed
+\emph{selection} rule, tests feature signal against an empirical shadow-feature null, calibrates
+by construction, and reports both events-per-variable and the Riley minimum sample size as
+governed sufficiency diagnostics. \textbf{AEGIS} (Approval and Evidence-based Governance for
+Internal-ratings Systems) wraps SHARP in a materiality-tiered sequence of decision gates, each
+closing with an accountable human sign-off written to a tamper-evident hash chain, and---by
+design---never lets a per-run governance decision re-open a pre-registered analytical parameter.
+Evaluated as a single fixed configuration across eleven credit datasets, the pair exposes
+behaviour that discretion would hide: the same selection rule yields genuine parsimony at small
+$N$ but near-full feature sets at large $N$; excluding a protected attribute does not remove
+disparate impact; and signal strength, not sample size, bounds achievable discrimination.
 
 \textbf{Contributions.}
 \begin{enumerate}
@@ -86,9 +118,48 @@ Riley-\emph{et al.}\ sample-size retrospective (\S\ref{sec:results}).
 \end{enumerate}
 
 \section{Related Work}\label{sec:related}
-[Stub: feature selection and Shapley/SHAP attribution; parsimony and the 1-SE heritage;
-model-risk governance (SR~26-2) and the EU AI Act; fairness and disparate-impact doctrine;
-sample size---EPV \cite{peduzzi1996} vs Riley \cite{riley2020bmj,riley2019sim}.]
+\textbf{Feature importance and selection.} Classical selection splits into filter methods
+(e.g.\ Information Value, the credit-scoring standard \cite{siddiqi2006}), wrapper methods, and
+embedded penalisation (LASSO, elastic net). Shapley-based attribution has become the dominant
+interpretability tool: SHAP \cite{lundberg2017shap} gives local, per-prediction attributions,
+while global measures such as SAGE \cite{covert2020sage} and the Shapley Population Variable
+Importance Measure (SPVIM) \cite{williamson2020spvim} attribute model-level predictiveness. A
+recurring confusion---which SHARP is built to avoid---is treating these attributions as a
+\emph{selection} criterion: a Shapley value fairly \emph{apportions} predictiveness but does not
+identify a minimal sufficient subset, so an importance ranking must be paired with an explicit
+selection rule. Boruta's shadow-feature device \cite{kursa2010boruta} and stability selection
+\cite{meinshausen2010stability} address the related problem of distinguishing real signal from
+noise; SHARP adopts the shadow-null idea as its retention test.
+
+\textbf{Parsimony and equivalence.} Preferring the smallest model statistically consistent with
+the best one has a long heritage---the one-standard-error rule of CART \cite{breiman1984cart}
+and its treatment in the statistical-learning literature \cite{hastie2009}. SHARP operationalises
+this with a paired-AUC equivalence test \cite{delong1988} plus a relative-Gini tolerance, rather
+than an information criterion, because discrimination is the quantity credit practice cares about
+\cite{lessmann2015,siddiqi2006}.
+
+\textbf{Model-risk governance.} Supervisory expectations for model risk---the U.S.\ interagency
+guidance SR~26-2 (superseding SR~11-7), Basel CRE36 (use test, per-grade calibration backtest),
+the EU AI Act's high-risk regime for creditworthiness assessment, and the EBA's Margin-of-
+Conservatism guidance---specify \emph{what} must be validated, documented, and independently
+challenged, but not a concrete, reproducible procedure that couples feature selection to signed,
+tamper-evident approval. AEGIS fills that gap by turning each analytical stage into a governed
+gate with a hash-chained decision log.
+
+\textbf{Fairness and disparate impact.} Anti-discrimination practice distinguishes disparate
+\emph{treatment} from disparate \emph{impact}, the latter commonly screened with the four-fifths
+rule (EEOC). A substantial fairness-in-ML literature formalises group-fairness criteria
+\cite{hardt2016eoo}; a consistent empirical lesson, which our runs reproduce, is that removing a
+protected attribute is necessary but not sufficient, because correlated features reconstruct it.
+
+\textbf{Sample-size adequacy.} Credit-scoring studies rarely report a sample-size justification
+beyond the events-per-variable rule of thumb \cite{peduzzi1996}. Recent work shows EPV is too
+coarse \cite{vansmeden2019} and derives signal-aware minimum sample sizes for prediction models
+\cite{riley2019sim,riley2020bmj}, with a C-statistic-to-$R^2$ route for forward use
+\cite{rileyvancalster2020}. SHARP reports both EPV and the Riley minimum-$N$ as governed
+diagnostics. In sum, each ingredient exists in isolation; SHARP+AEGIS contribute their coupling
+into one pre-registered, reproducible, and auditable pipeline, evaluated here as a fixed-config
+corpus.
 
 \section{The SHARP Methodology}\label{sec:sharp}
 SHARP (Shapley Ranking with Parsimony) deliberately separates two questions that are
@@ -471,10 +542,48 @@ PAK        & 50{,}000  & 4{,}041 & 2173 & yes \\
 \end{table}
 
 \section{Discussion}\label{sec:discussion}
-[Stub: governance vs analytics; exogenous thresholds/pricing; limitations.]
+\textbf{Governance without contaminating the analytics.} The central design choice---that gates
+decide scope, eligibility, fairness treatment and disposition but never the analytical method
+(P8)---is what makes the corpus comparable at all. Because the estimator, tolerances, shadow bar
+and seed are fixed across every dataset, a difference in outcome is a property of the data, not
+of a per-run tuning decision. The governance layer buys traceability and accountability; it does
+not buy, and must not buy, the freedom to change the method until the answer improves.
+
+\textbf{What the findings mean for practice.} The \textsc{sig-}$N$ effect is not a defect of the
+rule but a faithful consequence of it: at large $N$ a paired-AUC test can resolve the loss from
+dropping even a weak feature, so an honest equivalence criterion returns a fuller model.
+Practitioners should therefore expect genuine parsimony mainly at modest sample sizes and treat a
+large-$N$ ``parsimonious'' claim with suspicion. The fairness result sharpens a familiar warning:
+because correlated features reconstruct an excluded attribute, proxy removal is a floor, not a
+remedy, and the responsible posture is to \emph{measure and disclose} residual disparate impact
+(here as an indicative adverse-impact ratio, with the accept/decline cutoff left exogenous) and
+bind a fairness-constrained follow-up, rather than to claim fairness by omission.
+
+\textbf{Limitations.} This study validates a \emph{procedure}, not a performance claim: we do not
+yet assert that SHARP selects better subsets than established alternatives---that requires the
+pre-specified benchmark against LASSO, elastic net, RFE, Boruta and TreeSHAP, which is
+implemented but not run across the corpus. Validation is i.i.d.\ cross-validation; no dataset has
+a reliable time field, so no out-of-time or production-readiness claim is made. All datasets are
+accept-only samples, so feature effects are subject to range restriction \cite{handhenley1997}.
+The governance roles are exercised by a single researcher in this methodological setting; AEGIS
+specifies the \emph{structure} of independent challenge rather than demonstrating a multi-party
+deployment. Finally, the Riley diagnostic uses the selected-feature count as its parameter count
+and a closed-form approximation that can under-state the requirement at very high $C$; neither
+affects any verdict here, but both are disclosed.
 
 \section{Conclusion}\label{sec:conclusion}
-[Stub.]
+We have presented SHARP and AEGIS: a pre-registered feature-selection methodology that separates
+Shapley attribution from an explicit parsimony rule and reports its own calibration, fairness and
+sample-size adequacy, wrapped in a hash-chained, materiality-tiered governance framework that
+records who decided what, on what evidence, and under which cited bar. Run as one fixed
+configuration across eleven credit datasets, the pair surfaces findings that analyst discretion
+would obscure---sample-size-dependent parsimony, disparate impact that survives protected-attribute
+removal, and the primacy of signal over volume---while inventing no economic assumptions:
+thresholds and pricing remain institution inputs. Future work is the pre-specified benchmark
+study, out-of-time and reject-inference extensions, and a multi-party deployment that exercises
+the governance roles AEGIS defines. We hope the reproducible, auditable discipline demonstrated
+here lowers the cost of independent model validation and raises the bar for what counts as a
+defensible credit model.
 
 \bibliographystyle{IEEEtran}
 \bibliography{refs}
