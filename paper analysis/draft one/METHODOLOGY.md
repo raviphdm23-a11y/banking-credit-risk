@@ -1,4 +1,4 @@
-# SHARP — Shapley Ranking with Parsimony (Column-Usefulness Methodology, v3, operative)
+# SHARP — Shapley Ranking with Parsimony (Column-Usefulness Methodology, v3.1, operative)
 
 **Name:** The methodology is called **SHARP** (**Sha**pley **R**anking with **P**arsimony), reflecting its
 two-stage core: order-invariant Shapley *attribution* ranks features, and a separate, pre-declared
@@ -6,9 +6,14 @@ two-stage core: order-invariant Shapley *attribution* ranks features, and a sepa
 revision of SHARP, not a different method.
 
 Standing methodology for deciding which raw columns are useful for predicting a binary credit-risk target.
-**This is the operative document.** It is now v3, revised 2026-10-10 in response to external methodological
-review, and **it is implemented in code** — the module map in §2 is authoritative and the code and this
-document are meant to stay in step.
+**This is the operative document.** It is now **v3.1**, revised 2026-10-17 (v3 was 2026-10-10, in response to
+external methodological review), and **it is implemented in code** — the module map in §2 is authoritative and
+the code and this document are meant to stay in step.
+
+**v3.1 change (2026-10-17):** added the **Riley et al. minimum-sample-size calculation** as a *reported*
+data-sufficiency diagnostic alongside EPV (§4.6; AEGIS G1). It is reported, never an auto-reject — a shortfall
+is a disclosed caveat the MAC weighs. Engine: `backend/riley_minsize.py`; retrospective across all runs:
+`RILEY_SAMPLE_SIZE.md`. No selection parameter changed; v3 runs are unaffected and reproduce identically.
 
 **History and companion documents** *(moved to `archive/` — see `archive/PROVENANCE.md` for the full
 methodology-evolution narrative and file index)*
@@ -253,6 +258,34 @@ strong one must be escalated) vs **rare-but-real event** (bias direction undeter
 
 Gini with a bootstrap confidence interval; the CI must exclude zero for a "real" verdict. v2 eyeballed AUC
 against 0.5.
+
+### 4.6 Data-sufficiency diagnostics — EPV + Riley minimum-N [NEW in v3.1]
+
+Two sufficiency diagnostics are computed on the dataset entering Stage 1 and **reported together** (they are
+surfaced at AEGIS **G1**; both are *reported*, neither auto-rejects — a shortfall is a disclosed caveat):
+
+1. **EPV** (events per variable) = events ÷ P, guideline **≥ 10** (Peduzzi 1996; van Smeden 2019). Familiar,
+   but blind to signal strength.
+2. **Riley minimum-N** (Riley 2019 Part II; Riley 2020 BMJ m441) — ties the required sample size to the
+   model's *anticipated discrimination*, so a weak-signal model is told it needs more rows even at generous
+   EPV. Required N = **max** of three binary criteria, each against a fixed target:
+   - **B1** overall-risk precision — 95% CI half-width ≤ 0.05 — `n = (1.96/0.05)²·φ(1−φ)`;
+   - **B3** shrinkage ≥ 0.90 — `n = P / [(S−1)·ln(1 − R²cs/S)]`, S = 0.9;
+   - **B4** optimism ≤ 0.05 in Nagelkerke R² — `n = P / [(S₄−1)·ln(1 − R²cs/S₄)]`, S₄ = R²nag/(R²nag+0.05).
+
+   where `max(R²cs) = 1 − exp(2·[φ·lnφ + (1−φ)·ln(1−φ)])` and `R²nag = R²cs/max(R²cs)`. The anticipated R²cs is
+   obtained from the anticipated C-statistic + prevalence by the Riley–Van Calster–Collins (2020) seeded
+   simulation (forward-consistent: at G1 no model is yet fit, so only an expected C is available).
+   **P = selected-feature count** (β count for WOE-logistic); the stricter candidate-pool P is acknowledged.
+
+   Engine `backend/riley_minsize.py`, validated against the BMJ m441 worked examples (Example 1 →
+   N=5,249/events=263/EPP=8.75) and the pmsampsize C→R²cs pairing (C=0.89, φ=0.174 → R²cs 0.291 vs 0.288).
+   Retrospective across all governed runs (one SHORT — MSME, concordant with its EPV failure and NO-GO):
+   `RILEY_SAMPLE_SIZE.md`.
+
+**Comparability discipline.** Both diagnostics are computed identically and version-tagged (v3.1) so the
+retrospective is comparable across datasets; the method is fixed (P8) and neither diagnostic changes any
+selection or gate-pass analytics.
 
 ---
 

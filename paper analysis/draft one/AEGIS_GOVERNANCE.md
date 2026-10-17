@@ -71,7 +71,7 @@ SHARP's stages become AEGIS gates **G0–GF**. Each gate has the same anatomy (�
 | Gate | Name | SHARP stage it governs | Core question decided |
 |---|---|---|---|
 | **G0** | Data & Scope Adequacy | Stage 0 (data assembly, label definition) | Is the dataset fit to build a model on? (coverage, label integrity, history length, representativeness) |
-| **G1** | Screening | Stage 1 (IV/correlation screening, grouping) | Which candidate features survive screening, and what is dropped and why? |
+| **G1** | Screening | Stage 1 (IV/correlation screening, grouping); data sufficiency — EPV + Riley min-N (reported) | Which candidate features survive screening, and what is dropped and why? Is the dataset large enough (EPV + Riley)? |
 | **G2** | Attribution | Stage 2 (Shapley ranking, shadow/Boruta confirmation) | Is the attribution stable and trustworthy enough to select on? |
 | **G3** | Selection | Stage 3 (parsimony selection under DeLong + Gini-loss tolerance) | Which feature set is adopted — parsimonious vs full, and the trade-off accepted? |
 | **G4** | Calibration & Fairness | Stage 4 (isotonic calibration, backtest, fairness gap) | Is the model well-calibrated, discriminating, and fair enough to approve? **G4 requires the per-grade realised-vs-expected calibration backtest** (CRE36.122–123) — proof the PDs are honest grade by grade, since the whole cutoff policy rests on it; on small data, flag the wide CIs and set a Margin of Conservatism. |
@@ -108,6 +108,7 @@ risk-proportionate principle (R9). No numeric bar is asserted from memory.
 | Criterion | Threshold | Source |
 |---|---|---|
 | Data adequacy — events per variable (EPV) | ≥ 10 EPV (guideline, not law) | Peduzzi et al., *J. Clin. Epidemiol.* 49(12), 1996; van Smeden et al., *BMC Med. Res. Methodol.* 16, 2016; Riley et al., *Statistics in Medicine* 38, 2019 |
+| Data adequacy — Riley minimum-N (**reported, not auto-reject**) | N ≥ max(B1,B3,B4): shrinkage ≥0.9, optimism ≤0.05, risk-precision ±0.05 | Riley et al., *BMJ* 368:m441, 2020; Riley et al., *Stat. Med.* 38(7), 2019; Riley, Van Calster & Collins, *Stat. Med.* 39(21), 2020 (C→R²cs). Engine `backend/riley_minsize.py`; retrospective `RILEY_SAMPLE_SIZE.md` |
 | Discrimination — AUC interpretation bands | 0.7–0.8 acceptable; ≥0.8 excellent | Hosmer, Lemeshow & Sturdivant, *Applied Logistic Regression*, 3rd ed., Wiley 2013 |
 | Discrimination — ROC CI & paired comparison | DeLong CI / DeLong test | DeLong, DeLong & Clarke-Pearson, *Biometrics* 44(3), 1988 |
 | Calibration — goodness-of-fit | Hosmer-Lemeshow p > 0.05 | Hosmer & Lemeshow, *Commun. Stat. Theory Methods* 9(10), 1980 |
@@ -123,6 +124,7 @@ risk-proportionate principle (R9). No numeric bar is asserted from memory.
 | | LOW | MEDIUM | HIGH |
 |---|---|---|---|
 | EPV ≥ 10 (Peduzzi/Riley) | waived **with** documented MoC (EBA) | preferred; if < 10 → mandatory MoC + not-for-capital | **required** |
+| Riley minimum-N (BMJ m441) — *reported diagnostic* | reported | reported alongside EPV; shortfall → disclosed caveat | reported; shortfall → disclosed caveat + MoC |
 | AUC floor (HLS 2013) | none (benchmark) | ≥ 0.70 (acceptable) | ≥ 0.80 (excellent) or justified |
 | HL (HL 1980) + per-grade backtest (CRE36.122) | run; MoC for sparse grades | must **not** be rejected; adequate grade n | must pass; no thinly-populated (n ≲ 20) grades |
 | Use test (CRE36.60) | n/a (benchmark) | required if deployed | required |

@@ -114,6 +114,17 @@ This table is the heart of the methodology-evolution story (source: `03_.../EXPE
 
 ---
 
+## SHARP v3 → v3.1 (2026-10-17) — Riley minimum-N added as a reported G1 diagnostic
+- Added the **Riley et al. minimum-sample-size calculation** alongside EPV as a *reported* data-sufficiency
+  diagnostic at Stage 1 / AEGIS G1 (never auto-reject). No selection parameter changed; all v3 runs reproduce
+  identically. Engine `backend/riley_minsize.py` (Python/venv310; validated against BMJ m441 worked examples
+  and the pmsampsize C→R²cs pairing). Reference artifact `RILEY_SAMPLE_SIZE.md` + regenerable
+  `sharp_runs/riley_retro.json` hold the retrospective across all 11 governed runs. Finding: one SHORT (MSME,
+  needs 3,654 vs 1,707) — concordant with its EPV failure (6.8) and its existing NO-GO·HIGH verdict; TH02
+  passes thinly (+55). Spec edits: `METHODOLOGY.md` §4.6 + header v3.1; `AEGIS_GOVERNANCE.md` G1 row +
+  per-criterion/composition tables. Citations: Riley 2019 (Stat. Med. 38(7)), Riley 2020 (BMJ 368:m441),
+  Riley–Van Calster–Collins 2020 (Stat. Med. 39(21)), van Smeden 2019 (Stat. Methods Med. Res. 28(8)).
+
 ## Kept in the main folder (NOT archived — still forward-useful)
 - `METHODOLOGY.md`, `AEGIS_GOVERNANCE.md`, `USER_JOURNEY.md` — operative framework.
 - `SHARP_*.md`, `AEGIS_RUN_*.md`, `AEGIS_*_CUTOFF_POLICY.md`, `SAMPLE_RUNS_*.md`, `acceptance_cases/`,
