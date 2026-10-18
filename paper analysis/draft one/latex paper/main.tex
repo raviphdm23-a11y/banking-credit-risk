@@ -142,9 +142,10 @@ than an information criterion, because discrimination is the quantity credit pra
 \cite{lessmann2015,siddiqi2006}.
 
 \textbf{Model-risk governance.} Supervisory expectations for model risk---the U.S.\ interagency
-guidance SR~26-2 (superseding SR~11-7), Basel CRE36 (use test, per-grade calibration backtest),
-the EU AI Act's high-risk regime for creditworthiness assessment, and the EBA's Margin-of-
-Conservatism guidance---specify \emph{what} must be validated, documented, and independently
+guidance SR~26-2 \cite{sr26_2} (superseding SR~11-7), Basel CRE36 \cite{bcbs_cre} (use test,
+per-grade calibration backtest), the EU AI Act's \cite{euaiact2024} high-risk regime for
+creditworthiness assessment, and the EBA's Margin-of-Conservatism guidance---specify \emph{what}
+must be validated, documented, and independently
 challenged, but not a concrete, reproducible procedure that couples feature selection to signed,
 tamper-evident approval. Our governance framework fills that gap by turning each analytical stage into a governed
 gate with a hash-chained decision log. Documentation artefacts such as model cards
@@ -155,7 +156,7 @@ by-product of signed gate decisions.
 
 \textbf{Fairness and disparate impact.} Anti-discrimination practice distinguishes disparate
 \emph{treatment} from disparate \emph{impact}, the latter commonly screened with the four-fifths
-rule (EEOC). A substantial fairness-in-ML literature formalises group-fairness criteria
+rule (EEOC \cite{eeoc1978}). A substantial fairness-in-ML literature formalises group-fairness criteria
 \cite{hardt2016eoo}; a consistent empirical lesson, which our runs reproduce, is that removing a
 protected attribute is necessary but not sufficient, because correlated features reconstruct it.
 
@@ -314,7 +315,7 @@ same model check, whose verdict is a Gini confidence interval excluding zero.
 The default value function is repeated cross-validated AUC and the default learner is a
 penalised logistic model on monotonic-WOE inputs (\texttt{woe\_logistic})---the credit-scoring
 standard form: deterministic and hyperparameter-insensitive, which removes refit noise from
-the Shapley estimate. XGBoost is run as a robustness learner; material disagreement in the two
+the Shapley estimate. XGBoost \cite{chen2016xgboost} is run as a robustness learner; material disagreement in the two
 rankings (reported via Kendall's $\tau$) is itself a finding about interaction dependence.
 Class reweighting is \emph{off} by default: on GMSC it inflated the mean predicted probability
 to $0.286$ against a true base rate of $0.067$, and the resulting miscalibration is avoided
@@ -330,8 +331,8 @@ copies of real columns) are added, the identical Shapley computation is run over
 set, and a real player is \texttt{importance\_confirmed} only if its value exceeds the
 $95^{\text{th}}$ percentile of the shadow distribution \emph{and} its bootstrap confirmation
 frequency is $\ge0.80$. The bar is a quantile of an empirical null, so no multiple-testing
-correction is needed and fold-dependence does not bias it. Benjamini--Hochberg $p$-values and
-Cohen's $d$ are retained only as reported diagnostics---usefully self-refuting, since on German
+correction is needed and fold-dependence does not bias it. Benjamini--Hochberg \cite{bh1995} $p$-values and
+Cohen's $d$ \cite{cohen1988} are retained only as reported diagnostics---usefully self-refuting, since on German
 Credit a permuted-noise shadow column received $p=0.0000$ with a \emph{negative} Shapley value,
 which a significance rule would have confirmed and the shadow bar correctly rejected.
 Enumeration is exact when the player count (including shadows) is $\le15$ and sampled otherwise,
@@ -356,7 +357,7 @@ at small $N$ both clear together and yield genuine parsimony, whereas at large $
 the loss from dropping even a weak feature and the full set is returned.
 
 \subsection{Stage~4: Calibration, reason codes, and sufficiency diagnostics}
-The selected model is calibrated by cross-validated isotonic regression (always on), and
+The selected model is calibrated by cross-validated isotonic regression \cite{zadrozny2002,niculescu2005} (always on), and
 calibrated probabilities are used whenever a PD is quoted to a person. Because the learner is
 WOE-logistic, the score is an exact additive decomposition
 $\operatorname{logit}=\beta_0+\sum_j\beta_j\,\mathrm{WOE}_j(x)$, giving faithful per-feature
@@ -496,9 +497,11 @@ a hard gap except by resolving it as a new, re-synthesised gate decision.
 
 \section{Experimental Setup}\label{sec:setup}
 \textbf{Datasets.} The corpus is eleven binary-outcome credit datasets (Table~\ref{tab:corpus}):
-widely used public benchmarks---including the UCI German and Taiwan credit datasets, the Home
-Equity (HMEQ) and Give-Me-Some-Credit sets, the FICO HELOC panel, a LendingClub extract, and the
-PAKDD-2009 Brazilian retail-credit set---alongside additional reference portfolios. They span
+widely used public benchmarks---including the UCI German \cite{german1994,uci2019} and Taiwan
+\cite{yeh2009} credit datasets, the Home Equity (HMEQ) \cite{baesens2016} and Give-Me-Some-Credit
+\cite{gmsc2011} sets, the FICO HELOC panel \cite{fico2018}, a LendingClub extract \cite{lendingclub},
+and the PAKDD-2009 Brazilian retail-credit set \cite{pakdd2009}---alongside additional reference
+portfolios. They span
 $N\in[1{,}000,\,149{,}391]$, prevalence $[6\%,52\%]$, and candidate pools of $9$--$87$ features.
 Per Stage~0, protected and proxy attributes are retained with disclosure so results remain
 comparable with the published literature on these datasets; no model here is intended for live
@@ -514,7 +517,7 @@ $0.03\%$ and cap $99.9\%$. The random seed is $42$ throughout. No gate re-opens 
 \textbf{Evaluation protocol.} Splits are stratified $80/20$ taken \emph{before} any resampling,
 with the test set held at its natural base rate; the parsimony curve is scored on out-of-fold
 predictions from stratified $5$-fold cross-validation so DeLong's paired test is valid.
-Discrimination is reported as Gini (primary) with AUC, KS, partial AUC, Brier and ECE; paired
+Discrimination is reported as Gini (primary) with AUC, KS, partial AUC, Brier and ECE \cite{naeini2015}; paired
 model comparisons use DeLong \cite{delong1988}; calibration uses Hosmer--Lemeshow \cite{hl1980}
 and a per-grade realised-vs-expected backtest; fairness uses the adverse-impact ratio against
 the four-fifths rule; data sufficiency uses EPV \cite{peduzzi1996} and the Riley minimum-$N$
