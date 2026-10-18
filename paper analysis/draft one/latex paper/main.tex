@@ -708,6 +708,29 @@ deployment. Finally, the Riley diagnostic uses the selected-feature count as its
 and a closed-form approximation that can under-state the requirement at very high $C$; neither
 affects any verdict here, but both are disclosed.
 
+\section{Future Work}\label{sec:future}
+Several directions follow directly from the limitations above.
+\emph{Comparative evaluation.} The pre-specified benchmark against LASSO, elastic net, recursive
+feature elimination, Boruta and TreeSHAP---implemented but not yet run across the corpus---will
+test whether the methodology selects \emph{better} subsets than established alternatives,
+upgrading the present ``defensible'' claim to a comparative one.
+\emph{Temporal validation.} Applying the pipeline to a dataset with a reliable time index would
+enable out-of-time validation and a survival / competing-risks extension, replacing the current
+i.i.d.\ cross-validation scope and supporting a production-readiness claim.
+\emph{Reject inference.} Because all datasets are accept-only, incorporating reject inference would
+correct the range restriction that attenuates feature effects, and would sharpen the fairness
+analysis in particular.
+\emph{Fairness-constrained selection.} Since excluding a protected attribute does not remove
+disparate impact, a natural extension searches for a less-discriminatory alternative---through
+fairness-constrained selection or a penalised objective---and reports the discrimination cost of
+each constraint, making the fairness trade-off an explicit, governed decision.
+\emph{Multi-party governance.} Exercising the role separation with genuinely independent signers,
+integrated with a live model-risk workflow, would let us measure the governance overhead and the
+framework's effect on validation turnaround.
+\emph{Sample-size refinement.} For high-discrimination settings where the closed-form Riley bound
+can under-state the requirement, a simulation-based minimum sample size and a candidate-pool
+parameter count would tighten the reported sufficiency diagnostic.
+
 \section{Conclusion}\label{sec:conclusion}
 We have presented a pre-registered feature-selection methodology that separates
 Shapley attribution from an explicit parsimony rule and reports its own calibration, fairness and
@@ -716,9 +739,7 @@ records who decided what, on what evidence, and under which cited bar. Run as on
 configuration across eleven credit datasets, the pair surfaces findings that analyst discretion
 would obscure---sample-size-dependent parsimony, disparate impact that survives protected-attribute
 removal, and the primacy of signal over volume---while inventing no economic assumptions:
-thresholds and pricing remain institution inputs. Future work is the pre-specified benchmark
-study, out-of-time and reject-inference extensions, and a multi-party deployment that exercises
-the governance roles the framework defines. We hope the reproducible, auditable discipline demonstrated
+thresholds and pricing remain institution inputs. We hope the reproducible, auditable discipline demonstrated
 here lowers the cost of independent model validation and raises the bar for what counts as a
 defensible credit model.
 
