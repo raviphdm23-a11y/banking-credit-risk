@@ -423,8 +423,11 @@ the four-fifths rule; data sufficiency uses EPV \cite{peduzzi1996} and the Riley
 
 \textbf{Governance and reproducibility.} Each dataset is run end-to-end through gates G0--GF with
 a human sign-off recorded at every gate and appended to the hash chain (\ref{eq:hash}); the
-materiality tier is set at G0. The pipeline is deterministic: an independent re-run of the German
-dataset reproduced its committed verdict (Gini $0.53$, GO-WITH-CONDITIONS) and hash chain exactly.
+materiality tier is set at G0. The pipeline is deterministic: independent re-runs of two datasets
+reproduced their committed results exactly---German (Gini $0.53$, GO-WITH-CONDITIONS) including its
+hash chain, and CREDITRISK (selection Gini $0.76$), the latter re-run on a \emph{cleaned} copy of the
+file (its corrupt label column removed) yet returning the identical screen, attribution, and
+$k{=}6$ selection, confirming that the result depends only on the modelling inputs.
 Validation is i.i.d.\ cross-validation only---no dataset has a reliable time field, so no claim of
 out-of-time or production readiness is made---and all accept/decline thresholds and pricing are
 treated as exogenous institution inputs, never derived here.
