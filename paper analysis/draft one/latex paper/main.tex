@@ -15,6 +15,8 @@
 \usepackage{xcolor}
 \usepackage{tikz}
 \usetikzlibrary{arrows.meta,positioning,calc}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
 \usepackage[hidelinks]{hyperref}
 
 % ---- metadata ----
@@ -242,8 +244,36 @@ which is the Shapley Population Variable Importance Measure (SPVIM) of Williamso
 \cite{williamson2020spvim}. This is \emph{not} SAGE \cite{covert2020sage}, which marginalises
 absent features out of a single fitted model; here each coalition $S$ is \emph{refit}.
 
-The pipeline has five stages (0--4). We summarise each; the governance framework that signs off
-on their outputs is described in \S\ref{sec:aegis}.
+The pipeline has five stages (0--4), summarised in Algorithm~\ref{alg:main}; the governance
+framework that signs off on their outputs is described in \S\ref{sec:aegis}.
+
+\begin{algorithm}[!t]
+\caption{Governed feature selection (one dataset, fixed configuration)}
+\label{alg:main}
+\small
+\begin{algorithmic}[1]
+\Require data $(X,y)$; learner; value function $v$; shadows $m\!\ge\!10$;
+tolerance $\tau{=}0.05$; level $\alpha{=}0.05$; confirmation threshold $c{=}0.80$; seed
+\State screen features by $\mathrm{IV}\!\ge\!0.02$ with monotonic WOE binning \Comment{Stage 1}
+\State group columns at $|\rho|\!\ge\!0.7$ into coalitional players $P$ \Comment{Stage 2}
+\State add $m$ shadow players: row-permuted copies of real columns
+\If{$|P|+m \le 15$}
+  \State compute exact Shapley values $\phi$ for all players
+\Else
+  \State estimate $\phi$ by sampled permutations to a target MC s.e.
+\EndIf
+\State $b \gets$ 95th percentile of the shadow players' $\phi$ \Comment{empirical null}
+\State $C \gets \{\,p : \phi_p > b \ \text{and bootstrap confirm.\ freq} \ge c\,\}$
+\State rank $C$ by $\phi$ descending \Comment{Stage 3}
+\For{$k=1,\dots,|C|$}
+  \State fit top-$k$ on out-of-fold folds; record $\mathrm{Gini}_k$ and DeLong $p_k$ vs full
+\EndFor
+\State $k^\star \gets \min\{\,k : p_k\!\ge\!\alpha \ \text{and}\
+  (\mathrm{Gini}_{\text{full}}\!-\!\mathrm{Gini}_k)/\mathrm{Gini}_{\text{full}}\!\le\!\tau\,\}$
+\State calibrate the top-$k^\star$ model (isotonic); apply PD floor/cap \Comment{Stage 4}
+\Ensure selected set (top-$k^\star$ of $C$), calibrated model, additive reason codes
+\end{algorithmic}
+\end{algorithm}
 
 \subsection{Stage~0: Eligibility and data governance}
 Stage~0 runs \emph{before any statistics} and drops no column; it attaches a per-column
@@ -574,7 +604,19 @@ tight across the corpus: expected calibration error is $0.020$ on HMEQ, $0.012$ 
 $0.040$ on German, and Hosmer--Lemeshow is \emph{not} rejected even at the largest $N$ (GMSC,
 LC)---the feared large-$N$ hypersensitivity did not materialise for calibration, only for
 parsimony. Because the learner is WOE-logistic, each PD carries an exact additive reason-code
-decomposition.
+decomposition. Fig.~\ref{fig:reliability} illustrates the per-grade reliability on CREDITRISK,
+whose model spans the full AAA--D range: observed default rates track the predicted probabilities
+closely across nearly two orders of magnitude.
+
+\begin{figure}[!t]
+\centering
+\includegraphics[width=0.74\linewidth]{reliability.pdf}
+\caption{Per-grade calibration reliability on the CREDITRISK held-out set (rating grades AAA--D;
+marker area $\propto$ grade population). Points lie close to the diagonal across the full risk
+range; Hosmer--Lemeshow is not rejected ($p{=}0.44$, ECE $0.011$). The one mild outlier is the
+small \textsc{ccc} grade, which over-predicts (a conservative direction).}
+\label{fig:reliability}
+\end{figure}
 
 \subsection{Sample-size adequacy (EPV and Riley)}
 Table~\ref{tab:riley} reports the two sufficiency diagnostics. Ten of eleven runs meet the Riley
