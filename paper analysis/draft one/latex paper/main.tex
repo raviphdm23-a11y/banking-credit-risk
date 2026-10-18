@@ -1,4 +1,4 @@
-%% SHARP + AEGIS — IEEE Transactions on Artificial Intelligence submission
+%% Governed feature selection for credit-risk models — IEEE TAI submission
 %% Build: run build.ps1 (closes Acrobat if it holds the PDF, compiles, reopens).
 %% Manual: latexmk -pdf main.tex
 % DRAFTING setting: 11pt single-column for readable review.
@@ -17,7 +17,7 @@
 \usepackage[hidelinks]{hyperref}
 
 % ---- metadata ----
-\title{Governed Feature Selection for Credit-Risk Models: Shapley Attribution with Pre-Registered Parsimony under the AEGIS Decision-Gate Framework}
+\title{Governed Feature Selection for Credit-Risk Models: Shapley Attribution with Pre-Registered Parsimony under a Decision-Gate Governance Framework}
 
 \author{Ravi\IEEEauthorrefmark{1}
 \thanks{\IEEEauthorrefmark{1}The author is with the Indian Institute of Foreign Trade, New Delhi, India (e-mail: ravi\_phdm23@iift.edu).}
@@ -34,15 +34,15 @@ Machine-learning credit-risk models are increasingly accurate but remain hard to
 \emph{govern}: the questions of \emph{which} features are genuinely useful, \emph{how
 parsimonious} a defensible model may be, and \emph{whether} a selection is adequately
 powered and fair are usually answered by analyst judgement rather than a reproducible,
-auditable procedure. We present two coupled contributions. \textbf{SHARP} (Shapley
-Ranking with Parsimony) is a pre-registered feature-selection methodology that separates
-order-invariant \emph{attribution} (sampled Shapley importance against a shadow-feature
-null) from a distinct, fixed \emph{selection} rule (the smallest feature set that is both
-DeLong-indistinguishable from the full model and within a 5\% relative-Gini tolerance),
-followed by always-on isotonic calibration and a regulatory PD floor. \textbf{AEGIS} is a
-hash-chained decision-gate framework (G0--GF) that wraps SHARP with materiality-tiered
-governance, binding every statistical bar to a cited source and separating \emph{governance}
-decisions from \emph{analytics} parameters, which are never re-opened. Across a corpus of
+auditable procedure. We present two coupled contributions. The first is a pre-registered
+feature-selection methodology that separates order-invariant \emph{attribution} (sampled
+Shapley importance against a shadow-feature null) from a distinct, fixed \emph{selection}
+rule (the smallest feature set that is both DeLong-indistinguishable from the full model and
+within a 5\% relative-Gini tolerance), followed by always-on isotonic calibration and a
+regulatory PD floor. The second is a hash-chained decision-gate governance framework
+(G0--GF) that wraps it with materiality-tiered rigour, binding every statistical bar to a
+cited source and separating \emph{governance} decisions from \emph{analytics} parameters,
+which are never re-opened. Across a corpus of
 eleven public and reference credit datasets run under one fixed configuration, we show that
 the same rule yields genuine parsimony at small sample sizes yet near-full feature sets at
 large ones (a large-$N$ sensitivity effect we characterise), that excluding a protected
@@ -93,14 +93,14 @@ rarely goes beyond a rule of thumb, and the removal of a protected attribute is 
 remove disparate impact. Each gap is an opening for an overstated or unfair model to reach
 deployment with a clean-looking paper trail.
 
-We address these with two coupled artefacts. \textbf{SHARP} (Shapley Ranking with Parsimony) is a
-pre-registered methodology that cleanly separates order-invariant \emph{attribution} from a fixed
-\emph{selection} rule, tests feature signal against an empirical shadow-feature null, calibrates
-by construction, and reports both events-per-variable and the Riley minimum sample size as
-governed sufficiency diagnostics. \textbf{AEGIS} (Approval and Evidence-based Governance for
-Internal-ratings Systems) wraps SHARP in a materiality-tiered sequence of decision gates, each
-closing with an accountable human sign-off written to a tamper-evident hash chain, and---by
-design---never lets a per-run governance decision re-open a pre-registered analytical parameter.
+We address these with two coupled artefacts. The first is a \emph{pre-registered
+feature-selection methodology} that cleanly separates order-invariant \emph{attribution} from a
+fixed \emph{selection} rule, tests feature signal against an empirical shadow-feature null,
+calibrates by construction, and reports both events-per-variable and the Riley minimum sample
+size as governed sufficiency diagnostics. The second is a \emph{decision-gate governance
+framework} that wraps the methodology in a materiality-tiered sequence of gates, each closing
+with an accountable human sign-off written to a tamper-evident hash chain, and---by design---never
+lets a per-run governance decision re-open a pre-registered analytical parameter.
 Evaluated as a single fixed configuration across eleven credit datasets, the pair exposes
 behaviour that discretion would hide: the same selection rule yields genuine parsimony at small
 $N$ but near-full feature sets at large $N$; excluding a protected attribute does not remove
@@ -108,9 +108,9 @@ disparate impact; and signal strength, not sample size, bounds achievable discri
 
 \textbf{Contributions.}
 \begin{enumerate}
-\item \textbf{SHARP}, a pre-registered methodology separating Shapley \emph{attribution}
-from a fixed \emph{parsimony} selection rule (\S\ref{sec:sharp}).
-\item \textbf{AEGIS}, a hash-chained, materiality-tiered decision-gate framework binding
+\item A \textbf{pre-registered feature-selection methodology} separating Shapley
+\emph{attribution} from a fixed \emph{parsimony} selection rule (\S\ref{sec:sharp}).
+\item A \textbf{hash-chained, materiality-tiered decision-gate governance framework} binding
 every bar to a cited source and separating governance from analytics (\S\ref{sec:aegis}).
 \item An empirical study over eleven datasets under one fixed configuration, including the
 large-$N$ parsimony effect, the ``necessary-but-not-sufficient'' fairness finding, and a
@@ -124,16 +124,16 @@ embedded penalisation (LASSO, elastic net). Shapley-based attribution has become
 interpretability tool: SHAP \cite{lundberg2017shap} gives local, per-prediction attributions,
 while global measures such as SAGE \cite{covert2020sage} and the Shapley Population Variable
 Importance Measure (SPVIM) \cite{williamson2020spvim} attribute model-level predictiveness. A
-recurring confusion---which SHARP is built to avoid---is treating these attributions as a
+recurring confusion---which our methodology is built to avoid---is treating these attributions as a
 \emph{selection} criterion: a Shapley value fairly \emph{apportions} predictiveness but does not
 identify a minimal sufficient subset, so an importance ranking must be paired with an explicit
 selection rule. Boruta's shadow-feature device \cite{kursa2010boruta} and stability selection
 \cite{meinshausen2010stability} address the related problem of distinguishing real signal from
-noise; SHARP adopts the shadow-null idea as its retention test.
+noise; our methodology adopts the shadow-null idea as its retention test.
 
 \textbf{Parsimony and equivalence.} Preferring the smallest model statistically consistent with
 the best one has a long heritage---the one-standard-error rule of CART \cite{breiman1984cart}
-and its treatment in the statistical-learning literature \cite{hastie2009}. SHARP operationalises
+and its treatment in the statistical-learning literature \cite{hastie2009}. Our methodology operationalises
 this with a paired-AUC equivalence test \cite{delong1988} plus a relative-Gini tolerance, rather
 than an information criterion, because discrimination is the quantity credit practice cares about
 \cite{lessmann2015,siddiqi2006}.
@@ -143,7 +143,7 @@ guidance SR~26-2 (superseding SR~11-7), Basel CRE36 (use test, per-grade calibra
 the EU AI Act's high-risk regime for creditworthiness assessment, and the EBA's Margin-of-
 Conservatism guidance---specify \emph{what} must be validated, documented, and independently
 challenged, but not a concrete, reproducible procedure that couples feature selection to signed,
-tamper-evident approval. AEGIS fills that gap by turning each analytical stage into a governed
+tamper-evident approval. Our governance framework fills that gap by turning each analytical stage into a governed
 gate with a hash-chained decision log.
 
 \textbf{Fairness and disparate impact.} Anti-discrimination practice distinguishes disparate
@@ -156,13 +156,13 @@ protected attribute is necessary but not sufficient, because correlated features
 beyond the events-per-variable rule of thumb \cite{peduzzi1996}. Recent work shows EPV is too
 coarse \cite{vansmeden2019} and derives signal-aware minimum sample sizes for prediction models
 \cite{riley2019sim,riley2020bmj}, with a C-statistic-to-$R^2$ route for forward use
-\cite{rileyvancalster2020}. SHARP reports both EPV and the Riley minimum-$N$ as governed
-diagnostics. In sum, each ingredient exists in isolation; SHARP+AEGIS contribute their coupling
+\cite{rileyvancalster2020}. Our methodology reports both EPV and the Riley minimum-$N$ as governed
+diagnostics. In sum, each ingredient exists in isolation; our contribution is their coupling
 into one pre-registered, reproducible, and auditable pipeline, evaluated here as a fixed-config
 corpus.
 
-\section{The SHARP Methodology}\label{sec:sharp}
-SHARP (Shapley Ranking with Parsimony) deliberately separates two questions that are
+\section{The Feature-Selection Methodology}\label{sec:sharp}
+The proposed methodology deliberately separates two questions that are
 routinely conflated in applied feature selection:
 
 \begin{itemize}
@@ -197,8 +197,8 @@ which is the Shapley Population Variable Importance Measure (SPVIM) of Williamso
 \cite{williamson2020spvim}. This is \emph{not} SAGE \cite{covert2020sage}, which marginalises
 absent features out of a single fitted model; here each coalition $S$ is \emph{refit}.
 
-The pipeline has five stages (0--4). We summarise each; the governance wrapper that signs off
-on their outputs is AEGIS (\S\ref{sec:aegis}).
+The pipeline has five stages (0--4). We summarise each; the governance framework that signs off
+on their outputs is described in \S\ref{sec:aegis}.
 
 \subsection{Stage~0: Eligibility and data governance}
 Stage~0 runs \emph{before any statistics} and drops no column; it attaches a per-column
@@ -288,17 +288,17 @@ two diagnostics side by side: events-per-variable \cite{peduzzi1996,vansmeden201
 Riley \emph{et al.}\ minimum sample size \cite{riley2020bmj,riley2019sim}, the latter derived
 from the anticipated $C$-statistic and prevalence via the Cox--Snell $R^2$ approximation of
 \cite{rileyvancalster2020}. A shortfall is a disclosed caveat the governance layer weighs, not
-a gate failure---consistent with SHARP's principle that selection parameters are fixed and only
+a gate failure---consistent with the principle that selection parameters are fixed and only
 governance decides disposition.
 
-\section{The AEGIS Governance Framework}\label{sec:aegis}
-SHARP produces a defensible \emph{model}; it does not, by itself, produce a defensible
+\section{The Governance Framework}\label{sec:aegis}
+The methodology of \S\ref{sec:sharp} produces a defensible \emph{model}; it does not, by itself, produce a defensible
 \emph{decision to use that model}. A supervisor or internal audit function asks questions the
 analytics cannot answer: who decided the data were adequate, and could they have decided
 otherwise? Who chose this feature set, on what recorded rationale? Who is accountable if the
 model is wrong, and were they independent of the builder? Where is the evidence that each
-regulatory expectation was \emph{met}, not merely claimed? AEGIS (Approval and Evidence-based
-Governance for Internal-ratings Systems) answers these by turning each SHARP stage into a
+regulatory expectation was \emph{met}, not merely claimed? The governance framework answers these
+by turning each methodology stage into a
 \emph{governed decision gate}: the machine emits a recommendation and a full evidence pack, a
 human with the right role and sufficient independence chooses from a closed set of genuinely
 viable options, and the choice is written to a tamper-evident log. This mirrors modern
@@ -311,17 +311,17 @@ Eight principles govern the framework; three are load-bearing. \textbf{(P1) Mach
 human decides, record proves}: every gate is recommendation + evidence pack + closed options +
 accountable sign-off + log entry. \textbf{(P2) Segregation of duties}: the Develop, Validate,
 and Approve functions are never held by one person for one model. \textbf{(P8) Gates decide
-governance, not analytics}: a gate's option set may \emph{never} re-open a pre-registered SHARP
-parameter (estimator mode, selection tolerances, shadow-bar quantile, confirmation frequency,
+governance, not analytics}: a gate's option set may \emph{never} re-open a pre-registered
+analytical parameter (estimator mode, selection tolerances, shadow-bar quantile, confirmation frequency,
 \texttt{random\_state}, CV folds). Those are fixed in the methodology, identical across every
 dataset, and chosen once; gates decide scope, eligibility, fairness treatment, cutoffs, and
 Go/No-Go. P8 is what keeps the method reportable: letting a per-run gate switch the estimator
 would be the dataset-dependent, path-changing behaviour a research methodology must avoid. The
-single failure mode AEGIS is explicitly designed against is \emph{rubber-stamping}---hence the
+single failure mode the framework is explicitly designed against is \emph{rubber-stamping}---hence the
 anti-strawman rule below and the independence requirements in \S\ref{sec:aegis}-E.
 
 \subsection{The decision gates G0--GF}
-SHARP's stages become gates G0--G5, with a final committee gate GF (Table~\ref{tab:gates}).
+The methodology's stages become gates G0--G5, with a final committee gate GF (Table~\ref{tab:gates}).
 G0--G5 are \emph{stage gates} (a single accountable role signs each); GF is the \emph{committee
 gate}, ruled by the Model Approval Committee. Crucially, GF is last and is decided only after
 G4's per-grade calibration backtest and G5's cutoff policy and acceptance demonstration are
@@ -330,12 +330,12 @@ honest and the decisions sensible.
 
 \begin{table}[!t]
 \centering
-\caption{AEGIS decision gates and the SHARP stage each governs.}
+\caption{The decision gates and the methodology stage each governs.}
 \label{tab:gates}
 \footnotesize
 \begin{tabular}{@{}llp{0.52\linewidth}@{}}
 \toprule
-Gate & SHARP stage & Core question decided \\
+Gate & Stage & Core question decided \\
 \midrule
 G0 & Stage 0 & Is the dataset fit to build on? (coverage, label integrity, scope) \\
 G1 & Stage 1 & Which features survive screening; is $N$ adequate (EPV + Riley, reported)? \\
@@ -374,7 +374,7 @@ sealed decision breaks every subsequent link, so a reversal must be a \emph{new}
 decision, never a silent edit---the audit trail is append-only.
 
 \subsection{Roles, segregation of duties, and the committee}
-AEGIS defines seven roles; the hard rule (P2) is that Develop, Validate, and Approve are never
+The framework defines seven roles; the hard rule (P2) is that Develop, Validate, and Approve are never
 the same person for one model, mirroring SR~26-2's conflict-of-interest provisions. Validators
 sign G1--G4 and can \emph{return} a gate; \textbf{G4 requires dual sign-off} (Risk Officer
 \emph{and} Validator), because calibration and fairness are where model error becomes capital
@@ -443,7 +443,7 @@ run.
 
 \begin{table}[!t]
 \centering
-\caption{The governed corpus. Pool = features entering SHARP after Stage-0; sel = selected;
+\caption{The governed corpus. Pool = features entering the pipeline after Stage-0; sel = selected;
 Gini/AUC are out-of-fold at selection. Verdict is the sealed GF decision.}
 \label{tab:corpus}
 \footnotesize
@@ -486,7 +486,7 @@ same rule returns a near-full set: on LC ($N{\approx}40{,}000$) it keeps $8$ of 
 proper subset ($k{=}9$ vs full, $p{=}6.1\times10^{-4}$) even though a $5\%$-loss criterion alone
 would admit a six-feature model---so the \emph{and}-rule returns all eleven. This is the
 methodology declining to overstate parsimony when the data can resolve the difference. We call
-the pattern \textsc{sig-}$N$: the same rule, opposite behaviour at the two ends of the
+this a \emph{large-sample significance effect}: the same rule, opposite behaviour at the two ends of the
 sample-size range, both honest. A corollary visible in Table~\ref{tab:corpus} is that
 \emph{signal, not volume, sets the ceiling}---German reaches Gini $0.53$ on $1{,}000$ rows while
 LC reaches $0.36$ on $40{,}000$.
@@ -552,7 +552,7 @@ and seed are fixed across every dataset, a difference in outcome is a property o
 of a per-run tuning decision. The governance layer buys traceability and accountability; it does
 not buy, and must not buy, the freedom to change the method until the answer improves.
 
-\textbf{What the findings mean for practice.} The \textsc{sig-}$N$ effect is not a defect of the
+\textbf{What the findings mean for practice.} This large-sample effect is not a defect of the
 rule but a faithful consequence of it: at large $N$ a paired-AUC test can resolve the loss from
 dropping even a weak feature, so an honest equivalence criterion returns a fuller model.
 Practitioners should therefore expect genuine parsimony mainly at modest sample sizes and treat a
@@ -563,19 +563,19 @@ remedy, and the responsible posture is to \emph{measure and disclose} residual d
 bind a fairness-constrained follow-up, rather than to claim fairness by omission.
 
 \textbf{Limitations.} This study validates a \emph{procedure}, not a performance claim: we do not
-yet assert that SHARP selects better subsets than established alternatives---that requires the
+yet assert that the methodology selects better subsets than established alternatives---that requires the
 pre-specified benchmark against LASSO, elastic net, RFE, Boruta and TreeSHAP, which is
 implemented but not run across the corpus. Validation is i.i.d.\ cross-validation; no dataset has
 a reliable time field, so no out-of-time or production-readiness claim is made. All datasets are
 accept-only samples, so feature effects are subject to range restriction \cite{handhenley1997}.
-The governance roles are exercised by a single researcher in this methodological setting; AEGIS
-specifies the \emph{structure} of independent challenge rather than demonstrating a multi-party
+The governance roles are exercised by a single researcher in this methodological setting; the
+framework specifies the \emph{structure} of independent challenge rather than demonstrating a multi-party
 deployment. Finally, the Riley diagnostic uses the selected-feature count as its parameter count
 and a closed-form approximation that can under-state the requirement at very high $C$; neither
 affects any verdict here, but both are disclosed.
 
 \section{Conclusion}\label{sec:conclusion}
-We have presented SHARP and AEGIS: a pre-registered feature-selection methodology that separates
+We have presented a pre-registered feature-selection methodology that separates
 Shapley attribution from an explicit parsimony rule and reports its own calibration, fairness and
 sample-size adequacy, wrapped in a hash-chained, materiality-tiered governance framework that
 records who decided what, on what evidence, and under which cited bar. Run as one fixed
@@ -584,7 +584,7 @@ would obscure---sample-size-dependent parsimony, disparate impact that survives 
 removal, and the primacy of signal over volume---while inventing no economic assumptions:
 thresholds and pricing remain institution inputs. Future work is the pre-specified benchmark
 study, out-of-time and reject-inference extensions, and a multi-party deployment that exercises
-the governance roles AEGIS defines. We hope the reproducible, auditable discipline demonstrated
+the governance roles the framework defines. We hope the reproducible, auditable discipline demonstrated
 here lowers the cost of independent model validation and raises the bar for what counts as a
 defensible credit model.
 
