@@ -13,6 +13,8 @@
 \usepackage{array}
 \usepackage{url}
 \usepackage{xcolor}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,calc}
 \usepackage[hidelinks]{hyperref}
 
 % ---- metadata ----
@@ -160,9 +162,53 @@ diagnostics. In sum, each ingredient exists in isolation; our contribution is th
 into one pre-registered, reproducible, and auditable pipeline, evaluated here as a fixed-config
 corpus.
 
+\begin{figure*}[!t]
+\centering
+\footnotesize
+\begin{tikzpicture}[
+  >={Stealth[length=1.8mm]},
+  stage/.style={draw, rounded corners=2pt, minimum height=8.5mm, text width=19mm,
+                align=center, fill=blue!5, inner sep=2pt},
+  final/.style={draw, rounded corners=2pt, minimum height=8.5mm, text width=19mm,
+                align=center, fill=green!8, inner sep=2pt},
+  gate/.style={draw, circle, minimum size=6.2mm, inner sep=0pt, fill=blue!15,
+               font=\scriptsize\bfseries},
+  gatef/.style={draw, circle, minimum size=6.6mm, inner sep=0pt, fill=green!25,
+               font=\scriptsize\bfseries}]
+% pipeline stages
+\node[stage] (s0) {\textbf{Stage 0}\\eligibility \& governance};
+\node[stage, right=5mm of s0] (s1) {\textbf{Stage 1}\\screen \& sufficiency};
+\node[stage, right=5mm of s1] (s2) {\textbf{Stage 2}\\Shapley attribution};
+\node[stage, right=5mm of s2] (s3) {\textbf{Stage 3}\\parsimony selection};
+\node[stage, right=5mm of s3] (s4) {\textbf{Stage 4}\\calibration \& PD floor};
+\node[final, right=5mm of s4] (dep) {deployment governance};
+\node[final, right=5mm of dep, fill=green!14] (gf) {\textbf{Go / No-Go}};
+\foreach \a/\b in {s0/s1,s1/s2,s2/s3,s3/s4,s4/dep,dep/gf} \draw[->] (\a)--(\b);
+% governance gates above each stage
+\node[gate, above=5mm of s0] (g0){G0};
+\node[gate, above=5mm of s1] (g1){G1};
+\node[gate, above=5mm of s2] (g2){G2};
+\node[gate, above=5mm of s3] (g3){G3};
+\node[gate, above=5mm of s4] (g4){G4};
+\node[gate, above=5mm of dep] (g5){G5};
+\node[gatef, above=5mm of gf] (gfg){GF};
+\foreach \g/\s in {g0/s0,g1/s1,g2/s2,g3/s3,g4/s4,g5/dep,gfg/gf} \draw[->] (\g)--(\s);
+% hash-chained decision log linking the gates
+\draw[dashed,->] (g0)--(g1)--(g2)--(g3)--(g4)--(g5)--(gfg);
+\node[font=\scriptsize] at ($(g2)!0.5!(g3)+(0,5mm)$) {append-only hash chain (SHA-256): each human sign-off links to the previous};
+\end{tikzpicture}
+\caption{The governed pipeline. The feature-selection methodology (blue, Stages~0--4) runs under a
+sequence of governance gates (G0--G5), each closed by an accountable human sign-off that is written
+to an append-only hash chain; the committee gate GF rules the final Go/No-Go with all gate evidence
+visible. Gates decide scope, eligibility, fairness treatment, cut-offs and disposition---never the
+pre-registered analytical parameters (P8).}
+\label{fig:pipeline}
+\end{figure*}
+
 \section{The Feature-Selection Methodology}\label{sec:sharp}
 The proposed methodology deliberately separates two questions that are
-routinely conflated in applied feature selection:
+routinely conflated in applied feature selection (the full pipeline and its governance gates are
+shown in Fig.~\ref{fig:pipeline}):
 
 \begin{itemize}
 \item \textbf{Attribution} --- ``How much predictive value is attributable to this feature,
@@ -473,6 +519,26 @@ Discrimination spans an order of magnitude; the two NO-GO runs are not simply th
 lowest-Gini---MSME is rejected on sufficiency, not discrimination.}
 \label{fig:corpus}
 \end{figure}
+
+\subsection{A worked run: German credit, G0 to GF}
+To make the pipeline concrete, we trace one dataset end-to-end. On German credit
+($N{=}1{,}000$, $30\%$ default rate), \textbf{G0} excludes the three protected attributes
+(age, sex/marital status, foreign-worker status) and sets a \textsc{medium} materiality tier,
+leaving a 17-feature pool. \textbf{G1} accepts the univariate screen---12 of 17 features pass,
+and both sufficiency diagnostics are met (EPV ${\approx}17.6$; Riley minimum $323$ vs $1{,}000$
+available)---with \texttt{checking\_status} dominant (IV $0.67$). \textbf{G2} confirms 10 of 12
+players above the shadow-feature null; the U-shaped \texttt{credit\_amount}, which a monotonic
+IV screen under-rates, is vindicated at the model check. \textbf{G3} selects $k{=}5$ features
+(\texttt{checking\_status}, \texttt{credit\_history}, \texttt{months\_duration},
+\texttt{savings\_status}, \texttt{purpose}), Gini $0.53$---the smallest $k$ at which the
+equivalence test ($p{=}0.06$) and the $5\%$ tolerance ($4.1\%$) clear \emph{together}.
+\textbf{G4} finds calibration sound (Hosmer--Lemeshow $p{=}0.46$, ECE $0.04$) and fairness
+mixed: the sex adverse-impact ratio is clean ($0.99$) while the age ratio fails four-fifths
+($0.57$) \emph{despite age being excluded}---a true-risk-driven disparity reconstructed through
+correlated features. \textbf{G5} fixes the scoring controls (mandatory \texttt{checking\_status};
+exact reason codes; PD floor), and \textbf{GF} rules GO-WITH-CONDITIONS. Every decision is
+signed and appended to the hash chain, which seals at a final digest; an independent re-run
+reproduced every gate and the chain exactly (\S\ref{sec:setup}).
 
 \subsection{Parsimony varies with sample size}
 The single fixed stopping rule (\ref{eq:stop}) produces strikingly different parsimony
