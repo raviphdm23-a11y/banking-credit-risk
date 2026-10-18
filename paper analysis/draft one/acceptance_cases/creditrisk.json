@@ -1,8 +1,6 @@
 {
   "dataset": "credit_risk_dataset.csv",
-  "target": "loan_status",
-  "title": "CREDITRISK (Kaggle Credit Risk Dataset, laotse)",
-  "note": "Fixed 6-case committee standard: 4 REAL applicants (actual outcome shown) + 2 SYNTHETIC composites (observed extremes). Label is the VERIFIED loan_status (corrupted target column rejected at G0). Scored with the 6-col benchmark; loan_grade + loan_int_rate are availability-flagged (prior-decision artifacts) - the deployable application-time model is the 4-col origination-only variant (CR-orig, Gini 0.591).",
+  "target": "target",
   "selected_columns": [
     "loan_percent_income",
     "loan_grade",
@@ -15,87 +13,81 @@
     "loan_percent_income",
     "person_income"
   ],
-  "floor_columns": [],
   "incomplete_policy": "refer",
+  "title": "CREDITRISK (cleaned) - 6-feature benchmark model",
   "cases": {
-    "R1-low-repaid": {
+    "CR-R1 (low-risk, repaid)": {
+      "loan_percent_income": 0.06,
+      "loan_grade": "B",
+      "person_income": 117000.0,
+      "loan_int_rate": 10.74,
+      "person_home_ownership": "OWN",
+      "loan_intent": "VENTURE"
+    },
+    "CR-R2 (mid-risk, repaid)": {
+      "loan_percent_income": 0.26,
+      "loan_grade": "C",
+      "person_income": 76464.0,
+      "loan_int_rate": 13.22,
+      "person_home_ownership": "RENT",
+      "loan_intent": "MEDICAL"
+    },
+    "CR-R3 (elevated-risk, default)": {
+      "loan_percent_income": 0.33,
+      "loan_grade": "A",
+      "person_income": 36500.0,
+      "loan_int_rate": 7.51,
+      "person_home_ownership": "RENT",
+      "loan_intent": "EDUCATION"
+    },
+    "CR-R4 (high-risk, default)": {
+      "loan_percent_income": 0.39,
+      "loan_grade": "D",
+      "person_income": 19680.0,
+      "loan_int_rate": 14.83,
+      "person_home_ownership": "RENT",
+      "loan_intent": "MEDICAL"
+    },
+    "CR-S1 (synthetic best - PD-floor check)": {
+      "loan_grade": "A",
+      "person_home_ownership": "OWN",
+      "loan_intent": "VENTURE",
       "loan_percent_income": 0.05,
-      "loan_grade": "A",
-      "person_income": 38400,
-      "loan_int_rate": null,
-      "person_home_ownership": "MORTGAGE",
-      "loan_intent": "VENTURE"
+      "person_income": 110004.0,
+      "loan_int_rate": 6.91
     },
-    "R2-mid-repaid": {
-      "loan_percent_income": 0.08,
-      "loan_grade": "F",
-      "person_income": 300000,
-      "loan_int_rate": 19.41,
-      "person_home_ownership": "OWN",
-      "loan_intent": "EDUCATION"
-    },
-    "R3-mid-default": {
-      "loan_percent_income": 0.04,
-      "loan_grade": "C",
-      "person_income": 36000,
-      "loan_int_rate": 13.16,
-      "person_home_ownership": "RENT",
-      "loan_intent": "EDUCATION"
-    },
-    "R4-high-default": {
-      "loan_percent_income": 0.35,
-      "loan_grade": "C",
-      "person_income": 11389,
-      "loan_int_rate": 12.84,
-      "person_home_ownership": "OTHER",
-      "loan_intent": "EDUCATION"
-    },
-    "SYN-best": {
-      "loan_percent_income": 0.0,
-      "loan_grade": "A",
-      "person_income": 6000000,
-      "loan_int_rate": 5.42,
-      "person_home_ownership": "OWN",
-      "loan_intent": "VENTURE"
-    },
-    "SYN-worst": {
-      "loan_percent_income": 0.83,
+    "CR-S2 (synthetic worst - stress check)": {
       "loan_grade": "G",
-      "person_income": 4000,
-      "loan_int_rate": 23.22,
       "person_home_ownership": "RENT",
-      "loan_intent": "DEBTCONSOLIDATION"
+      "loan_intent": "DEBTCONSOLIDATION",
+      "loan_percent_income": 0.38,
+      "person_income": 28590.0,
+      "loan_int_rate": 16.32
     }
   },
   "case_meta": {
-    "R1-low-repaid": {
+    "CR-R1 (low-risk, repaid)": {
       "kind": "real",
-      "actual": 0,
-      "deployed_pd": 0.0203
+      "actual": 0
     },
-    "R2-mid-repaid": {
+    "CR-R2 (mid-risk, repaid)": {
       "kind": "real",
-      "actual": 0,
-      "deployed_pd": 0.0878
+      "actual": 0
     },
-    "R3-mid-default": {
+    "CR-R3 (elevated-risk, default)": {
       "kind": "real",
-      "actual": 1,
-      "deployed_pd": 0.0878
+      "actual": 1
     },
-    "R4-high-default": {
+    "CR-R4 (high-risk, default)": {
       "kind": "real",
-      "actual": 1,
-      "deployed_pd": 0.8912
+      "actual": 1
     },
-    "SYN-best": {
+    "CR-S1 (synthetic best - PD-floor check)": {
       "kind": "synthetic",
-      "actual": null,
       "design": "repaid"
     },
-    "SYN-worst": {
+    "CR-S2 (synthetic worst - stress check)": {
       "kind": "synthetic",
-      "actual": null,
       "design": "default"
     }
   }

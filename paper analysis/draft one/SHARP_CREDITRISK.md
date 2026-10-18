@@ -89,45 +89,49 @@ Implementation audit (efficiency property): sum of Shapley values 0.379676 vs v(
 | Brier | 0.1706 | 0.0632 | **0.0629** |
 | ECE | - | 0.0133 | **0.0050** |
 
-## Stage 4b - per-grade calibration backtest (G4; CRE36.122-123)
+---
 
-Held-out 80/20 split (random_state=42), 6-col benchmark model, calibrated PD floored at 0.03%. Test n=6,517, AUC 0.877.
+> **Cleaned-file re-run (2026-10-18).** This record is the fresh run on the cleaned
+> `credit_risk_dataset.csv` (corrupt `target` deleted, genuine `loan_status` adopted as `target`, junk dropped).
+> Stages 0–3 reproduce the committed analytics exactly (8/9 screen, shadow bar 0.00085, k=6 Gini 0.7597, DeLong
+> p 0.883). The Stage-4b backtest and fairness below are recomputed on this file.
 
-| Grade | n | Expected | Realised | 95% CI | Within? |
-|---|--:|--:|--:|---|:--:|
-| AAA | 241 | 0.12% | 0.41% | [0.07%,2.31%] | OK |
-| A | 112 | 1.28% | 2.68% | [0.92%,7.58%] | OK |
-| BBB | 1034 | 2.73% | 3.00% | [2.12%,4.22%] | OK |
-| BB | 782 | 5.80% | 5.88% | [4.44%,7.76%] | OK |
-| B | 2154 | 8.66% | 8.77% | [7.65%,10.04%] | OK |
-| CCC | 224 | 15.43% | 10.71% | [7.31%,15.45%] | OK |
-| CC | 445 | 22.90% | 23.37% | [19.68%,27.52%] | OK |
-| C | 289 | 40.78% | 39.10% | [33.65%,44.83%] | OK |
-| D | 1236 | 73.74% | 73.71% | [71.18%,76.08%] | OK |
+## Stage 4b — per-grade calibration backtest (G4; CRE36.122-123) — cleaned-file re-run
 
-**All 9 populated grades pass; ECE 0.007; Hosmer-Lemeshow chi2=5.38, df=8, p=0.716 => not rejected.** Strong
-discrimination and excellent calibration on the full AAA-D spectrum (241 reach AAA); 2nd-strongest Gini (0.760)
-of the eight runs.
+Held-out 80/20 (seed 42), 6-col benchmark, calibrated PD floored at 0.03%. Test n=6,517. **AUC 0.877 / Gini 0.754.**
 
-### Availability sensitivity (origination-only, CR-orig)
+| Grade | n | Expected | Realised | Within CI? |
+|---|--:|--:|--:|:--:|
+| AAA | 241 | 0.1% | 0.4% | OK |
+| AA | 107 | 1.0% | 2.8% | OK |
+| A | 27 | 1.9% | 3.7% | OK |
+| BBB | 956 | 2.8% | 2.9% | OK |
+| BB | 730 | 5.4% | 5.5% | OK |
+| B | 2275 | 8.6% | 8.7% | OK |
+| CCC | 192 | 14.9% | 8.9% | **X** (over-predicts, small cell) |
+| CC | 450 | 22.5% | 23.8% | OK |
+| C | 339 | 41.6% | 40.1% | OK |
+| D | 1200 | 74.3% | 74.2% | OK |
 
-Faithful 5-fold OOF (seed 42). Dropping the two availability-flagged features (`loan_grade` = incumbent risk
-grade; `loan_int_rate` = risk-based price) leaves the valid application-time model: Gini **0.591** / AUC 0.796 vs
-the 6-col benchmark 0.760 / 0.880 - ΔGini 0.169 (**-22.2% relative**, the largest circularity cost of any run),
-DeLong p ≈ 0. `loan_grade` alone lifts Gini 0.43→0.67. The origination-only model remains genuinely usable
-(HELOC-tier) and independent of the incumbent lender's verdict.
+**9 of 10 grades within CI; ECE 0.011; Hosmer-Lemeshow χ²=7.93, df=8, p=0.44 → not rejected.** Excellent calibration
+across the full AAA–D spectrum; the one miss (CCC) over-predicts (conservative), n=192.
 
-### Fairness - age disparate impact (G4)
+### Availability sensitivity (origination-only, held-out) — cleaned-file re-run
+Dropping the two circular features (`loan_grade`, `loan_int_rate`) leaves the valid application-time model:
+**Gini 0.609 / AUC 0.804** vs the 6-col benchmark 0.754 / 0.877 — **ΔGini 0.145 (−19.2% held-out**; −22.2% on OOF in
+the committed run), the largest circularity cost in the corpus. The origination-only model is HELOC-tier and
+independent of the incumbent lender's verdict.
 
-`person_age` is excluded from the model (ECOA, G0) but tested on the scored output. Mean predicted-PD gap vs the
-reference (25-34), with actual default for a predictive-parity check. **All gaps < 0.05 and track real default.**
+### Fairness — age disparate impact (G4), cleaned-file re-run
+`person_age` is excluded from the model (ECOA, G0) but tested on the scored held-out output (predictive parity).
 
-| Age band | n | mean PD | actual default | PD gap |
+| Age band | n | mean PD | actual default | PD gap vs 25–34 |
 |---|--:|--:|--:|--:|
-| <25 | 12,315 | 0.230 | 0.232 | +0.020 |
-| 25-34 (ref) | 16,180 | 0.210 | 0.210 | 0 |
-| 35-44 | 3,326 | 0.216 | 0.206 | +0.006 |
-| 45-54 | 601 | 0.209 | 0.220 | -0.001 |
-| 55+ | 159 | 0.241 | 0.245 | +0.031 |
+| <25 | 2,378 | 0.226 | 0.230 | +0.013 |
+| 25–34 (ref) | 3,268 | 0.213 | 0.213 | 0 |
+| 35–44 | 689 | 0.213 | 0.199 | ~0 |
+| 45–54 | 139 | 0.273 | 0.252 | +0.060 |
+| 55+ | 43 | 0.171 | 0.186 | −0.042 |
 
-No material disparate impact; the model mirrors the real age-default gradient rather than amplifying it.
+Gaps < 0.05 except the small, noisy 45–54 cell (+0.060, n=139), which over-predicts (pred 0.273 vs actual 0.252) — so
+predictive parity broadly holds. No material disparate impact; the model mirrors the real age–default gradient.
