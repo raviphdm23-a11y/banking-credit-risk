@@ -147,7 +147,11 @@ the EU AI Act's high-risk regime for creditworthiness assessment, and the EBA's 
 Conservatism guidance---specify \emph{what} must be validated, documented, and independently
 challenged, but not a concrete, reproducible procedure that couples feature selection to signed,
 tamper-evident approval. Our governance framework fills that gap by turning each analytical stage into a governed
-gate with a hash-chained decision log.
+gate with a hash-chained decision log. Documentation artefacts such as model cards
+\cite{mitchell2019modelcards} and datasheets for datasets \cite{gebru2021datasheets} standardise
+\emph{what} to report about a model or data source, but they are descriptive records rather than a
+gated, append-only decision process; our framework is complementary, producing such records as a
+by-product of signed gate decisions.
 
 \textbf{Fairness and disparate impact.} Anti-discrimination practice distinguishes disparate
 \emph{treatment} from disparate \emph{impact}, the latter commonly screened with the four-fifths
@@ -446,7 +450,27 @@ h_i=\operatorname{SHA\text{-}256}\!\bigl(h_{i-1}\,\Vert\,c_i\bigr)[0{:}8],
 \end{equation}
 where $c_i$ is the gate's decision content and $\Vert$ is concatenation. Any later edit to a
 sealed decision breaks every subsequent link, so a reversal must be a \emph{new} recorded
-decision, never a silent edit---the audit trail is append-only.
+decision, never a silent edit---the audit trail is append-only. Table~\ref{tab:gdr} shows a
+representative decision record: the closed, viable option set at the selection gate for CREDITRISK,
+each option carrying the residual risk the signer explicitly accepts.
+
+\begin{table}[!t]
+\centering
+\caption{Example gate decision record---the closed, viable option set at G3 (selection) for
+CREDITRISK, each with the residual risk the signer accepts. The machine must defend every option;
+unviable ``strawman'' options are not presented.}
+\label{tab:gdr}
+\footnotesize
+\begin{tabular}{@{}p{0.235\linewidth}p{0.345\linewidth}p{0.32\linewidth}@{}}
+\toprule
+Option & Key data & Residual risk accepted \\
+\midrule
+\textbf{A} (chosen): ratify $k{=}6$ benchmark & Gini $0.76$; DeLong $p{=}0.88$; rel.\ loss $-0.01\%$ & benchmark carries circular features; not origination-valid \\
+\textbf{B}: origination-only 4-feature model & Gini $0.61$ ($-19\%$); independent of incumbent & lower discrimination for application-time use \\
+\textbf{C}: \textsc{no-go} & --- & delay; a solid independent signal exists, so unwarranted \\
+\bottomrule
+\end{tabular}
+\end{table}
 
 \subsection{Roles, segregation of duties, and the committee}
 The framework defines seven roles; the hard rule (P2) is that Develop, Validate, and Approve are never
@@ -694,6 +718,40 @@ study, out-of-time and reject-inference extensions, and a multi-party deployment
 the governance roles the framework defines. We hope the reproducible, auditable discipline demonstrated
 here lowers the cost of independent model validation and raises the bar for what counts as a
 defensible credit model.
+
+\section*{Appendix: Reproducibility}
+The configuration is fixed across every dataset and chosen once (Table~\ref{tab:config}); no
+governance gate re-opens any of it (P8). Tamper-evidence is an append-only hash chain over the
+signed gate records: with genesis token $h_0$, each entry is $h_i=\operatorname{SHA\text{-}256}
+(h_{i-1}\,\Vert\,c_i)[0{:}8]$ for decision content $c_i$ (Eq.~\ref{eq:hash}). The sealed chain for
+the German run passes from genesis \texttt{GEN-GERMAN0} through \texttt{b1d70c29},
+\texttt{5139746d}, \texttt{2d292965}, \texttt{49559806}, \texttt{403d8a81}, \texttt{884c20a1} to
+the final digest \texttt{a6adf8b1}; any later edit to a sealed record changes its digest and breaks
+every subsequent link, and an independent re-run reproduced the chain exactly.
+
+\begin{table}[!t]
+\centering
+\caption{The fixed configuration (identical for every dataset; seed $42$).}
+\label{tab:config}
+\footnotesize
+\begin{tabular}{@{}p{0.42\linewidth}p{0.5\linewidth}@{}}
+\toprule
+Parameter & Value \\
+\midrule
+Primary / robustness learner & WOE-logistic / XGBoost \\
+Value function & cross-validated AUC \\
+Correlation grouping & single player at $|\rho|\ge0.7$ \\
+Shadow players & $\ge10$; bar $=$ 95th percentile \\
+Confirmation frequency & $\ge0.80$ \\
+Exact vs sampled Shapley & exact if players $\le15$, else sampled \\
+Selection rule & smallest $k$: DeLong $p\ge0.05$ \emph{and} rel.\ Gini loss $\le5\%$ \\
+Calibration & isotonic, 5-fold \\
+PD floor / cap & $0.03\%$ / $99.9\%$ \\
+Split & stratified $80/20$ pre-resampling; 5-fold OOF \\
+Random seed & $42$ \\
+\bottomrule
+\end{tabular}
+\end{table}
 
 \bibliographystyle{IEEEtran}
 \bibliography{refs}
