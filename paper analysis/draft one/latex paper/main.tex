@@ -632,8 +632,17 @@ would admit a six-feature model---so the \emph{and}-rule returns all eleven. Thi
 methodology declining to overstate parsimony when the data can resolve the difference. We call
 this a \emph{large-sample significance effect}: the same rule, opposite behaviour at the two ends of the
 sample-size range, both honest. A corollary visible in Table~\ref{tab:corpus} is that
-\emph{signal, not volume, sets the ceiling}---German reaches Gini $0.53$ on $1{,}000$ rows while
-LC reaches $0.36$ on $40{,}000$.
+\emph{signal, not volume, sets the ceiling} (Fig.~\ref{fig:signalvol})---German reaches Gini
+$0.53$ on $1{,}000$ rows while LC reaches $0.36$ on $40{,}000$.
+
+\begin{figure}[!t]
+\centering
+\includegraphics[width=0.84\linewidth]{fig_signal_volume.pdf}
+\caption{Signal, not volume, sets the ceiling: each dataset's selection-stage Gini against its
+sample size (log scale), coloured by sealed verdict. More rows do not raise the achievable
+discrimination---German ($1{,}000$ rows) outscores LC ($40{,}000$) and GMSC ($149{,}391$).}
+\label{fig:signalvol}
+\end{figure}
 
 \subsection{Fairness: excluding a protected attribute is necessary but not sufficient}
 Fairness is identified by a fixed \emph{proxy-leakage} procedure: we partition the held-out set by a
@@ -648,9 +657,19 @@ dropped at a cost of only $0.007$ Gini, yet a residual regional approve-rate dis
 was excluded at G0, yet the age-band approve-rate AIR was $0.57$ (under-25 default rate $48.7\%$
 vs $13.3\%$ for $60+$); because the model is accurate \emph{within} each band, this is disparate
 \emph{impact driven by true risk}, not proxy bias. Both runs therefore record the same governed
-finding---proxy removal is necessary but not sufficient, and a fairness-constrained replication
-or reject-inference study would be required before any live use---surfaced as a binding GF
-condition rather than discovered post-deployment.
+finding (Fig.~\ref{fig:air})---proxy removal is necessary but not sufficient, and a
+fairness-constrained replication or reject-inference study would be required before any live
+use---surfaced as a binding GF condition rather than discovered post-deployment.
+
+\begin{figure}[!t]
+\centering
+\includegraphics[width=0.84\linewidth]{fig_fairness_air.pdf}
+\caption{Adverse-impact ratio after the protected attribute is excluded, against the four-fifths
+bar ($0.80$). Sex is clean; age (German) and geography (LC, SBA) fail despite the attribute being
+excluded---disparate impact reconstructed through correlated features, true-risk-driven in each
+case.}
+\label{fig:air}
+\end{figure}
 
 \subsection{Calibration}
 With class reweighting off and isotonic calibration always on, calibrated probabilities are
@@ -680,6 +699,16 @@ diagnostics are concordant, and the single failure is the case already rejected.
 EPV cannot see: \textbf{PAK} has an enormous EPV ($2{,}173$) yet needs $4{,}041$ rows, because
 its weak signal (AUC $0.57\Rightarrow R^2_{cs}{=}0.013$) makes the shrinkage criterion demand
 volume; and \textbf{TH02} passes by only $+55$ rows, a thinness EPV ($54$) does not convey.
+Fig.~\ref{fig:riley} shows the headroom as rows available over rows required.
+
+\begin{figure}[!t]
+\centering
+\includegraphics[width=0.84\linewidth]{fig_riley_headroom.pdf}
+\caption{Sample-size headroom: rows available divided by the Riley minimum required (log scale;
+dashed line is the $1\times$ meets-the-minimum point). Only MSME falls short ($0.47\times$); PAK
+clears by $12\times$ despite a huge EPV, because its weak signal raises the requirement.}
+\label{fig:riley}
+\end{figure}
 
 \begin{table}[!t]
 \centering
