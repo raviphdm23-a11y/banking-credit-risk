@@ -70,7 +70,7 @@ SHARP's stages become AEGIS gates **G0–GF**. Each gate has the same anatomy (�
 
 | Gate | Name | SHARP stage it governs | Core question decided |
 |---|---|---|---|
-| **G0** | Data & Scope Adequacy | Stage 0 (data assembly, label definition) | Is the dataset fit to build a model on? (coverage, label integrity, history length, representativeness) |
+| **G0** | Data & Scope Adequacy | Stage 0 (data assembly, label definition); ineligible-column exclusions (leakage / identifier / constant / junk) by computable precondition — METHODOLOGY §3.7 | Is the dataset fit to build a model on? (coverage, label integrity, history length, representativeness); which columns are ineligible to model, and why? |
 | **G1** | Screening | Stage 1 (IV/correlation screening, grouping); data sufficiency — EPV + Riley min-N (reported) | Which candidate features survive screening, and what is dropped and why? Is the dataset large enough (EPV + Riley)? |
 | **G2** | Attribution | Stage 2 (Shapley ranking, shadow/Boruta confirmation) | Is the attribution stable and trustworthy enough to select on? |
 | **G3** | Selection | Stage 3 (parsimony selection under DeLong + Gini-loss tolerance) | Which feature set is adopted — parsimonious vs full, and the trade-off accepted? |

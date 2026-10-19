@@ -281,8 +281,11 @@ tolerance $\tau{=}0.05$; level $\alpha{=}0.05$; confirmation threshold $c{=}0.80
 \end{algorithm}
 
 \subsection{Stage~0: Eligibility and data governance}
-Stage~0 runs \emph{before any statistics} and drops no column; it attaches a per-column
-classification that travels with every downstream result. Each column is tagged
+Stage~0 runs \emph{before any statistics}: it attaches a per-column classification that travels
+with every downstream result, and excludes columns that cannot be modelled---leakage,
+identifiers, constants and junk---each by a \emph{computable precondition} recorded with its
+measured value (Table~\ref{tab:g0excl}), so every exclusion is reproducible. Protected and proxy
+attributes, by contrast, are tagged rather than dropped: each is labelled
 \texttt{permissible}, \texttt{prohibited} (e.g.\ sex, age, marital status), \texttt{proxy\_risk}
 (e.g.\ geography, education, household composition), or \texttt{unclear}. On these public
 research benchmarks, protected and proxy attributes are \emph{retained with mandatory
@@ -293,6 +296,25 @@ model a behavioural or score-recovery exercise rather than an application scorec
 sentinel codes and shared missingness for leakage, notes the accept-only sampling that
 truncates feature distributions \cite{handhenley1997}, and declares \emph{mandatory} columns
 and a missingness policy that are enforced only at scoring (\S\ref{sec:sharp}-F).
+
+\begin{table}[!t]
+\centering
+\caption{Stage-0 eligibility exclusions. Each is driven by a computable precondition; the
+semantic categories pair that signal with a recorded rationale, never a silent drop. Examples
+from the SBA run.}
+\label{tab:g0excl}
+\footnotesize
+\begin{tabular}{@{}p{0.17\linewidth}p{0.47\linewidth}p{0.24\linewidth}@{}}
+\toprule
+Category & Computable precondition & Example (SBA) \\
+\midrule
+Constant & $\mathrm{nunique}\le1$ (zero variance) & \texttt{State}, \texttt{BalanceGross} \\
+Identifier / PII & cardinality $\to n$ (a key), or high-cardinality free text & \texttt{LoanNr} (2102/2102), \texttt{Name} \\
+Leakage & target agreement $\to 1$, or sentinel event-rate lift $\ge 3\times$; confirmed post-outcome by meaning & \texttt{MIS\_Status} ($100\%$), \texttt{ChgOffPrinGr} ($99.5\%$) \\
+Junk & $\mathrm{isna().all()}$ (all-blank), or absent from the data dictionary & \texttt{xx} \\
+\bottomrule
+\end{tabular}
+\end{table}
 
 \subsection{Stage~1: Univariate screening}
 Information Value (IV) is the single a-priori screen, at the conventional

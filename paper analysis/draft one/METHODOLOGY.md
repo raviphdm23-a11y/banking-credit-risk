@@ -201,6 +201,30 @@ to deployment (§7.8):
 
 Neither decision drops or alters any training row; both configure the scoring-time governance in §7.8.
 
+### 3.7 Eligibility exclusion taxonomy — computable preconditions [documented]
+
+Beyond the protected/proxy tagging (§3.1, which flags but does **not** drop), Stage 0 excludes four
+kinds of **non-modellable** columns before screening. Each exclusion is driven by a **computable
+precondition** (a deterministic test or a measured threshold) and is written to the G0 record with
+its measured value, so every call is reproducible and a reviewer can re-derive it. The deterministic
+tests (constant, all-blank, key cardinality) need no judgement; the leakage / PII / undocumented-junk
+calls pair the computed signal with a recorded rationale — a documented judgement, never a silent drop.
+
+| Category | Computable precondition (the test) | Judgement component | Examples |
+|---|---|---|---|
+| **Constant / zero-variance** | `nunique() ≤ 1` | none (fully deterministic) | SBA `State` (all `CA`), `BalanceGross` (all 0) |
+| **Identifier / key / PII** | cardinality `nunique/n → 1` (a key), or high-cardinality free text | "is a record key / name / PII" — carries no generalisable signal | SBA `LoanNr_ChkDgt` (2102/2102 unique), `Name` (2005), `Zip` (814) |
+| **Leakage (post-outcome)** | near-perfect **target agreement** (→ 1), or sentinel **event-rate lift ≥ 3×** (`sentinel_lift`, §3.5) | "defined only after the outcome" (point-in-time, §3.3) | SBA `MIS_Status` (100% = the label), `ChgOffPrinGr`/`ChgOffDate` (99.5%) |
+| **Junk / undocumented** | `isna().all()` (all-blank) → auto-drop | non-blank but **absent from the data dictionary** → excluded pending documentation | CREDITRISK `Unnamed:12–16` (all-blank); SBA `xx` (undocumented) |
+
+**How it is computed in practice.** The variance (`nunique`), cardinality ratio (`nunique/n`),
+all-blank (`isna().all()`) and sentinel-lift (`sentinel_lift`, ≥3×) tests are deterministic and run on
+the raw frame. The leakage **target-agreement** figure is `mean((col-derived indicator) == y)` — e.g.
+SBA `MIS_Status=='CHGOFF'` vs `Default==1` → 100%; `ChgOffPrinGr>0` vs `Default==1` → 99.5%. The
+computed test *flags the candidate*; where meaning decides the call (PII, post-outcome, undocumented),
+the exclusion records both the number and the one-line rationale (consistent with §3.3, §3.5, §3.6 and
+the "documented manual judgement, not inferred" principle).
+
 ---
 
 ## 4. Stage 1 — Univariate screening
