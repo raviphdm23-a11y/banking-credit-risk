@@ -636,6 +636,11 @@ sample-size range, both honest. A corollary visible in Table~\ref{tab:corpus} is
 LC reaches $0.36$ on $40{,}000$.
 
 \subsection{Fairness: excluding a protected attribute is necessary but not sufficient}
+Fairness is identified by a fixed \emph{proxy-leakage} procedure: we partition the held-out set by a
+protected attribute the model \emph{does not use}, take the model's favourable-decision rate per group
+on the internal master scale (indicative---no institution cutoff), and report the adverse-impact ratio
+against the four-fifths rule; where a group fails, we test whether the model is accurate \emph{within}
+each group, which separates true-risk-driven disparity from proxy bias.
 On two independent datasets, removing the protected attribute did not remove disparate impact,
 because correlated features reconstruct it. On \textbf{LC}, geography (\texttt{addr\_state}) was
 dropped at a cost of only $0.007$ Gini, yet a residual regional approve-rate disparity persisted

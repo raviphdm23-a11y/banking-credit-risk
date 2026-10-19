@@ -126,8 +126,11 @@ Counts as implemented (`classify_columns`): PAK 19 ineligible of 51; Taiwan 4 of
 `RESIDENCIAL_PHONE_AREA_CODE` is `proxy_risk` and was in PAK's v2 final keep-list** — exactly the case the
 warning exists to surface.
 
-**[DEFERRED]** A fairness-constrained replication (pipeline re-run with `prohibited` + `proxy_risk`
-excluded) and the resulting Gini delta — the "cost of compliance" — plus adverse-impact-ratio testing.
+**Fairness testing [SPECIFIED — see §7.10].** The adverse-impact-ratio identification procedure (proxy-leakage
+AIR on excluded protected/proxy attributes + the true-risk-driven interpretation test) is **documented in §7.10
+and applied at G4 on every run**. Still **[DEFERRED]**: the fairness-constrained replication (pipeline re-run with
+`prohibited` + `proxy_risk` excluded) and the resulting Gini delta — the "cost of compliance" / less-
+discriminatory-alternative study.
 
 ### 3.2 Accept-only sample disclosure (review M5)
 
@@ -559,6 +562,34 @@ challenge (**SR 26-2** — which superseded SR 11-7 on 17 Apr 2026), and EU AI A
 (hash-chained `gov_audit_events`, six-pillar validation sign-offs, state-derived `regulatory_mapping`), the
 missing-value controls of §7.8, and the `trainer.py` promotion gate. See `AEGIS_GOVERNANCE.md` for the gate
 anatomy, RACI, committee constitution, Go/No-Go engine, and the full verified criteria table.
+
+### 7.10 Fairness identification procedure (G4) [documented]
+
+Fairness is tested at **G4** as a **proxy-leakage test** on the attributes *excluded from the model* at G0
+(the `prohibited`, and where relevant `proxy_risk`, columns). Testing an attribute the model does **not** use is
+what distinguishes disparate *impact* (reconstructed via correlated features) from disparate *treatment* (direct
+use). The procedure is fixed and reported identically across datasets:
+
+1. **Groups.** Partition the held-out test set by the protected attribute's natural bands (e.g. age
+   <25 / 25–39 / 40–59 / 60+; sex; foreign-worker yes/no; geography by state/region). A **minimum cell size of
+   ≥ 20–25 test rows** is required for a reliable ratio; smaller cells are reported **inconclusive** (e.g. German
+   `foreign_worker`; thin SBA state cells).
+2. **Decision rate.** Score each applicant, map the calibrated PD to a rating grade, and take the model's
+   **favourable (APPROVE) rate** on the internal master scale. This rate is **indicative only** — the real
+   accept/decline cutoff is an exogenous institution input and is not set here.
+3. **Adverse-impact ratio.** `AIR = (min group favourable rate) / (max group favourable rate)`, tested against the
+   **four-fifths rule** (EEOC, ≥ 0.80). Where decision-rate cells are thin, report the **predictive-parity**
+   variant instead: each group's mean predicted PD vs a reference group, shown alongside its actual default rate.
+4. **True-risk-driven test (the interpretation step).** If AIR < 0.80, compare each group's mean predicted PD
+   with its **actual** default rate. If the model is accurate within each group (predicted ≈ observed) and the
+   disparity tracks real outcome-rate differences, the disparate impact is **true-risk-driven, not proxy bias**;
+   if predictions are systematically off for a group, that is a bias signal. (Observed true-risk-driven: German
+   age, LC/CREDITRISK geography, SBA `BankState`.)
+5. **Disposition.** Excluding a protected attribute is **necessary but not sufficient** — correlated features
+   reconstruct it. A failing-but-true-risk-driven AIR is recorded as a **binding GF condition** (indicative, no
+   live use); any live deployment requires a **fairness-constrained replication / less-discriminatory-alternative
+   (LDA) search and reject inference** (§3.1 cost-of-compliance study, still future work). Anchors: four-fifths =
+   EEOC 29 CFR 1607; the 0.05 mean-PD-gap monitor is operational (`drift_monitor.py`), not a reported bar.
 
 ---
 
