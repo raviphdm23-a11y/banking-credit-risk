@@ -1,9 +1,11 @@
-# AEGIS decisioning note — GERMAN (UCI Statlog German credit), 5-feature model
+# AEGIS decisioning note — GERMAN (South German Credit, Grömping 2019 corrected), 5-feature model
 
-**Run:** GERMAN (fresh re-run) · **Gate:** G5 (deployment governance) · entry_hash `884c20a1`
+**Run:** GERMAN (South German Credit, UCI #522 — error-corrected recoding of Statlog; supersedes the archived Statlog run) · **Gate:** G5 (deployment governance) · entry_hash `496d214e` · **GF** `a92fa411`
 **Model:** AEGIS-approved WOE-logistic, **5 features**:
-`checking_status, credit_history, months_duration, savings_status, purpose`.
-**Held-out discrimination:** Gini **0.532** / AUC **0.766** (selection) · **calibration passes** (HL p=0.46/0.21, ECE 0.040).
+`checking_status, credit_history, months_duration, savings_status, credit_amount`.
+**Discrimination:** Gini **0.542** / AUC **0.771** (out-of-fold) · **calibration passes** (HL g=10 p=0.112, g=5 p=0.194; ECE 0.033; per-grade backtest 8/8 in Wilson CI).
+
+> **Gate decisions emitted by `ml_models/aegis_gates.py`** (deterministic option sets + GF engine), not authored by hand.
 
 ---
 
@@ -28,18 +30,19 @@ decision is the institution applying its **own risk-appetite PD threshold** — 
 
 - **NEVER-DEPLOY.** Research benchmark only; no model here is fit for a live credit decision.
 - **AGE-IMPACT.** Though `age` was excluded at G0, the model reproduces **age-disparate impact** (approve-rate AIR
-  worst 0.574 for <25) via correlated features — **true-risk-driven, not bias** (young default 48.7% vs 13.3% for 60+;
+  worst **0.340** for <25) via correlated features — **true-risk-driven, not bias** (young default 41.3% vs 25.5% for 60+;
   model accurate within each band). AIR is **indicative** (internal master scale; no institution cutoff). Any live use
   would require a fairness-constrained replication + reject-inference study. **Replicates the LC finding: excluding a
   protected attribute is necessary but not sufficient to remove disparate impact.**
-- **FW-THIN.** `foreign_worker` fairness **inconclusive** — only 37/1,000 non-foreign (6 in the test split); AIR
-  degenerate on that cell, not a reliable result.
-- **DQ-BB.** Grade BB under-predicts on backtest (observed 14.7% vs predicted 6.2%, n=34); monitor.
+- **FW-FRAGILE.** `foreign_worker` fairness **effectively inconclusive** — the 37-row minority cell carries only 2
+  approvals, so the AIR (0.730) is statistically fragile, not a reliable result.
+- **SPARSE-A.** Grade A holds only n=4; its backtest CI is wide — carry an EBA category-A Margin of Conservatism.
 
-*(No licensing/vintage condition — German is a freely-citable UCI benchmark.)*
+*(No licensing/vintage condition — freely-citable UCI benchmark, CC BY 4.0.)*
 
 ## 4. Acceptance demonstration
 
-See `SAMPLE_RUNS_GERMAN.md` — 4 real applicants (spanning good/bad across the risk range) + 2 synthetic composites
-(PD-floor check, stress check). Confirms: PD **floor (0.03%) and cap (99.9%) both bind**; reason codes coherent;
-`checking_status` completeness gate enforced. Case PDs: R1 0.03% (AAA) → R2 28.4% (CC) → R3 47.4% (C) → R4 99.9% (D).
+See `SAMPLE_RUNS_GERMAN.md` — 4 real applicants (spanning repaid/defaulted across the risk range) + 2 synthetic
+composites (PD-floor check, cap/stress check). Confirms: PD **floor (0.03%) and cap (99.9%) both bind**; reason codes
+coherent; `checking_status` completeness gate enforced. Case PDs: DE-R1 1.79% (A) → DE-R4 70.83% (D); synthetic best
+0.03% (AAA, floor binds) → synthetic worst 99.90% (D, cap binds).

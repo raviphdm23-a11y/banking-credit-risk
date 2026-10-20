@@ -1,84 +1,84 @@
 {
-  "dataset": "german_clean.csv",
+  "dataset": "south_german_credit_en.csv",
   "target": "target",
   "selected_columns": [
     "checking_status",
     "credit_history",
     "months_duration",
     "savings_status",
-    "purpose"
+    "credit_amount"
   ],
   "mandatory_columns": [
     "checking_status"
   ],
   "incomplete_policy": "refer",
-  "title": "GERMAN (UCI Statlog German credit) \u2014 5-feature model",
+  "title": "GERMAN (South German Credit, Groemping 2019 corrected) — 5-feature model",
   "cases": {
-    "DE-R1 (low-risk, good)": {
-      "checking_status": "no checking account",
-      "credit_history": "critical account / other credits elsewhere",
-      "months_duration": 6.0,
-      "savings_status": "100 \u2264 ... < 500 DM",
-      "purpose": "radio/television"
+    "DE-R1 (low-risk, repaid)": {
+      "checking_status": 4,
+      "credit_history": 4,
+      "months_duration": 24,
+      "savings_status": 4,
+      "credit_amount": 1940
     },
-    "DE-R2 (mid-risk, good)": {
-      "checking_status": "< 0 DM",
-      "credit_history": "critical account / other credits elsewhere",
-      "months_duration": 9.0,
-      "savings_status": "100 \u2264 ... < 500 DM",
-      "purpose": "repairs"
+    "DE-R2 (mid-risk, repaid)": {
+      "checking_status": 4,
+      "credit_history": 2,
+      "months_duration": 42,
+      "savings_status": 5,
+      "credit_amount": 7166
     },
-    "DE-R3 (elevated-risk, bad)": {
-      "checking_status": "0 \u2264 ... < 200 DM",
-      "credit_history": "critical account / other credits elsewhere",
-      "months_duration": 30.0,
-      "savings_status": "< 100 DM",
-      "purpose": "car (new)"
+    "DE-R3 (mid-risk, defaulted)": {
+      "checking_status": 2,
+      "credit_history": 2,
+      "months_duration": 30,
+      "savings_status": 1,
+      "credit_amount": 2150
     },
-    "DE-R4 (high-risk, bad)": {
-      "checking_status": "< 0 DM",
-      "credit_history": "no credits / all paid duly",
-      "months_duration": 45.0,
-      "savings_status": "< 100 DM",
-      "purpose": "business"
+    "DE-R4 (high-risk, defaulted)": {
+      "checking_status": 2,
+      "credit_history": 0,
+      "months_duration": 36,
+      "savings_status": 1,
+      "credit_amount": 1953
     },
-    "DE-S1 (synthetic best \u2014 PD-floor check)": {
-      "checking_status": "no checking account",
-      "credit_history": "critical account / other credits elsewhere",
-      "savings_status": "\u2265 1000 DM",
-      "purpose": "car (used)",
-      "months_duration": 9.0
+    "DE-S1 (synthetic best — PD-floor check)": {
+      "checking_status": 4,
+      "credit_history": 4,
+      "savings_status": 4,
+      "months_duration": 6,
+      "credit_amount": 570
     },
-    "DE-S2 (synthetic worst \u2014 stress check)": {
-      "checking_status": "< 0 DM",
-      "credit_history": "no credits / all paid duly",
-      "savings_status": "< 100 DM",
-      "purpose": "education",
-      "months_duration": 48.0
+    "DE-S2 (synthetic worst — stress/cap check)": {
+      "checking_status": 1,
+      "credit_history": 0,
+      "savings_status": 1,
+      "months_duration": 48,
+      "credit_amount": 12169
     }
   },
   "case_meta": {
-    "DE-R1 (low-risk, good)": {
+    "DE-R1 (low-risk, repaid)": {
       "kind": "real",
       "actual": 0
     },
-    "DE-R2 (mid-risk, good)": {
+    "DE-R2 (mid-risk, repaid)": {
       "kind": "real",
       "actual": 0
     },
-    "DE-R3 (elevated-risk, bad)": {
+    "DE-R3 (mid-risk, defaulted)": {
       "kind": "real",
       "actual": 1
     },
-    "DE-R4 (high-risk, bad)": {
+    "DE-R4 (high-risk, defaulted)": {
       "kind": "real",
       "actual": 1
     },
-    "DE-S1 (synthetic best \u2014 PD-floor check)": {
+    "DE-S1 (synthetic best — PD-floor check)": {
       "kind": "synthetic",
       "design": "repaid"
     },
-    "DE-S2 (synthetic worst \u2014 stress check)": {
+    "DE-S2 (synthetic worst — stress/cap check)": {
       "kind": "synthetic",
       "design": "default"
     }

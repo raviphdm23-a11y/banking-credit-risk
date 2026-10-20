@@ -1,0 +1,86 @@
+{
+  "dataset": "german_clean.csv",
+  "target": "target",
+  "selected_columns": [
+    "checking_status",
+    "credit_history",
+    "months_duration",
+    "savings_status",
+    "purpose"
+  ],
+  "mandatory_columns": [
+    "checking_status"
+  ],
+  "incomplete_policy": "refer",
+  "title": "GERMAN (UCI Statlog German credit) \u2014 5-feature model",
+  "cases": {
+    "DE-R1 (low-risk, good)": {
+      "checking_status": "no checking account",
+      "credit_history": "critical account / other credits elsewhere",
+      "months_duration": 6.0,
+      "savings_status": "100 \u2264 ... < 500 DM",
+      "purpose": "radio/television"
+    },
+    "DE-R2 (mid-risk, good)": {
+      "checking_status": "< 0 DM",
+      "credit_history": "critical account / other credits elsewhere",
+      "months_duration": 9.0,
+      "savings_status": "100 \u2264 ... < 500 DM",
+      "purpose": "repairs"
+    },
+    "DE-R3 (elevated-risk, bad)": {
+      "checking_status": "0 \u2264 ... < 200 DM",
+      "credit_history": "critical account / other credits elsewhere",
+      "months_duration": 30.0,
+      "savings_status": "< 100 DM",
+      "purpose": "car (new)"
+    },
+    "DE-R4 (high-risk, bad)": {
+      "checking_status": "< 0 DM",
+      "credit_history": "no credits / all paid duly",
+      "months_duration": 45.0,
+      "savings_status": "< 100 DM",
+      "purpose": "business"
+    },
+    "DE-S1 (synthetic best \u2014 PD-floor check)": {
+      "checking_status": "no checking account",
+      "credit_history": "critical account / other credits elsewhere",
+      "savings_status": "\u2265 1000 DM",
+      "purpose": "car (used)",
+      "months_duration": 9.0
+    },
+    "DE-S2 (synthetic worst \u2014 stress check)": {
+      "checking_status": "< 0 DM",
+      "credit_history": "no credits / all paid duly",
+      "savings_status": "< 100 DM",
+      "purpose": "education",
+      "months_duration": 48.0
+    }
+  },
+  "case_meta": {
+    "DE-R1 (low-risk, good)": {
+      "kind": "real",
+      "actual": 0
+    },
+    "DE-R2 (mid-risk, good)": {
+      "kind": "real",
+      "actual": 0
+    },
+    "DE-R3 (elevated-risk, bad)": {
+      "kind": "real",
+      "actual": 1
+    },
+    "DE-R4 (high-risk, bad)": {
+      "kind": "real",
+      "actual": 1
+    },
+    "DE-S1 (synthetic best \u2014 PD-floor check)": {
+      "kind": "synthetic",
+      "design": "repaid"
+    },
+    "DE-S2 (synthetic worst \u2014 stress check)": {
+      "kind": "synthetic",
+      "design": "default"
+    }
+  }
+}

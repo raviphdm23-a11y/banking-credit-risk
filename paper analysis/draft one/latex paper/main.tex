@@ -519,7 +519,7 @@ a hard gap except by resolving it as a new, re-synthesised gate decision.
 
 \section{Experimental Setup}\label{sec:setup}
 \textbf{Datasets.} The corpus is twelve binary-outcome credit datasets (Table~\ref{tab:corpus}):
-widely used public benchmarks---including the UCI German \cite{german1994,uci2019} and Taiwan
+widely used public benchmarks---including the UCI German \cite{groemping2019,uci2019} and Taiwan
 \cite{yeh2009} credit datasets, the Home Equity (HMEQ) \cite{baesens2016} and Give-Me-Some-Credit
 \cite{gmsc2011} sets, the FICO HELOC panel \cite{fico2018}, a LendingClub extract \cite{lendingclub},
 the PAKDD-2009 Brazilian retail-credit set \cite{pakdd2009}, and the US Small Business
@@ -548,7 +548,7 @@ the four-fifths rule; data sufficiency uses EPV \cite{peduzzi1996} and the Riley
 \textbf{Governance and reproducibility.} Each dataset is run end-to-end through gates G0--GF with
 a human sign-off recorded at every gate and appended to the hash chain (\ref{eq:hash}); the
 materiality tier is set at G0. The pipeline is deterministic: independent re-runs of two datasets
-reproduced their committed results exactly---German (Gini $0.53$, GO-WITH-CONDITIONS) including its
+reproduced their committed results exactly---German (Gini $0.54$, GO-WITH-CONDITIONS) including its
 hash chain, and CREDITRISK (selection Gini $0.76$), the latter re-run on a \emph{cleaned} copy of the
 file (its corrupt label column removed) yet returning the identical screen, attribution, and
 $k{=}6$ selection, confirming that the result depends only on the modelling inputs.
@@ -581,7 +581,7 @@ CREDITRISK & 32{,}581  & .218 & 9$\to$6   & 0.76 & 0.88 & GO-cond \\
 GMSC       & 149{,}391 & .067 & 9$\to$8   & 0.70 & 0.85 & GO-cond \\
 HELOC      & 10{,}459  & .522 & 23$\to$17 & 0.59 & 0.79 & GO-cond \\
 TAIWAN     & 30{,}000  & .221 & 20$\to$14 & 0.54 & 0.77 & GO-cond \\
-GERMAN     & 1{,}000   & .300 & 17$\to$5  & 0.53 & 0.77 & GO-cond \\
+GERMAN     & 1{,}000   & .300 & 17$\to$5  & 0.54 & 0.77 & GO-cond \\
 MSME       & 1{,}707   & .060 & 87$\to$15 & 0.43 & 0.72 & \textbf{NO-GO} \\
 LC         & 39{,}717  & .142 & 21$\to$9  & 0.36 & 0.68 & GO-cond \\
 LOAN       & 9{,}578   & .160 & 13$\to$7  & 0.34 & 0.67 & GO-cond \\
@@ -606,15 +606,16 @@ To make the pipeline concrete, we trace one dataset end-to-end. On German credit
 (age, sex/marital status, foreign-worker status) and sets a \textsc{medium} materiality tier,
 leaving a 17-feature pool. \textbf{G1} accepts the univariate screen---12 of 17 features pass,
 and both sufficiency diagnostics are met (EPV ${\approx}17.6$; Riley minimum $323$ vs $1{,}000$
-available)---with \texttt{checking\_status} dominant (IV $0.67$). \textbf{G2} confirms 10 of 12
+available)---with \texttt{checking\_status} dominant (IV $0.67$). \textbf{G2} confirms all 12
 players above the shadow-feature null; the U-shaped \texttt{credit\_amount}, which a monotonic
-IV screen under-rates, is vindicated at the model check. \textbf{G3} selects $k{=}5$ features
+IV screen under-rates, is vindicated at the model check and enters the selected set. \textbf{G3}
+selects $k{=}5$ features
 (\texttt{checking\_status}, \texttt{credit\_history}, \texttt{months\_duration},
-\texttt{savings\_status}, \texttt{purpose}), Gini $0.53$---the smallest $k$ at which the
-equivalence test ($p{=}0.06$) and the $5\%$ tolerance ($4.1\%$) clear \emph{together}.
-\textbf{G4} finds calibration sound (Hosmer--Lemeshow $p{=}0.46$, ECE $0.04$) and fairness
-mixed: the sex adverse-impact ratio is clean ($0.99$) while the age ratio fails four-fifths
-($0.57$) \emph{despite age being excluded}---a true-risk-driven disparity reconstructed through
+\texttt{savings\_status}, \texttt{credit\_amount}), Gini $0.54$---the smallest $k$ at which the
+equivalence test ($p{=}0.11$) and the $5\%$ tolerance ($4.6\%$) clear \emph{together}.
+\textbf{G4} finds calibration sound (Hosmer--Lemeshow $p{=}0.11$, ECE $0.03$) and fairness
+mixed: the sex adverse-impact ratio is clean ($0.93$) while the age ratio fails four-fifths
+($0.34$) \emph{despite age being excluded}---a true-risk-driven disparity reconstructed through
 correlated features. \textbf{G5} fixes the scoring controls (mandatory \texttt{checking\_status};
 exact reason codes; PD floor), and \textbf{GF} rules GO-WITH-CONDITIONS. Every decision is
 signed and appended to the hash chain, which seals at a final digest; an independent re-run
@@ -625,7 +626,7 @@ The single fixed stopping rule (\ref{eq:stop}) produces strikingly different par
 depending on $N$, because DeLong's power to detect the loss from dropping a weak feature grows
 with sample size. At \textbf{small $N$} the rule genuinely parsimonises: on German
 ($N{=}1{,}000$) it selects $5$ of $17$ features, with both conditions clearing together
-(DeLong $p{=}0.061\ge0.05$ and relative-Gini loss $4.10\%\le5\%$). At \textbf{large $N$} the
+(DeLong $p{=}0.107\ge0.05$ and relative-Gini loss $4.56\%\le5\%$). At \textbf{large $N$} the
 same rule returns a near-full set: on LC ($N{\approx}40{,}000$) it keeps $8$ of $9$ players
 (DeLong $p{=}1.0$, loss $0.0\%$), and on HMEQ ($N{\approx}6{,}000$) DeLong rejects \emph{every}
 proper subset ($k{=}9$ vs full, $p{=}6.1\times10^{-4}$) even though a $5\%$-loss criterion alone
@@ -634,7 +635,7 @@ methodology declining to overstate parsimony when the data can resolve the diffe
 this a \emph{large-sample significance effect}: the same rule, opposite behaviour at the two ends of the
 sample-size range, both honest. A corollary visible in Table~\ref{tab:corpus} is that
 \emph{signal, not volume, sets the ceiling} (Fig.~\ref{fig:signalvol})---German reaches Gini
-$0.53$ on $1{,}000$ rows while LC reaches $0.36$ on $40{,}000$.
+$0.54$ on $1{,}000$ rows while LC reaches $0.36$ on $40{,}000$.
 
 \begin{figure}[!t]
 \centering
@@ -655,8 +656,8 @@ On two independent datasets, removing the protected attribute did not remove dis
 because correlated features reconstruct it. On \textbf{LC}, geography (\texttt{addr\_state}) was
 dropped at a cost of only $0.007$ Gini, yet a residual regional approve-rate disparity persisted
 (worst adverse-impact ratio $0.62$, below the four-fifths bar). On \textbf{German}, \texttt{age}
-was excluded at G0, yet the age-band approve-rate AIR was $0.57$ (under-25 default rate $48.7\%$
-vs $13.3\%$ for $60+$); because the model is accurate \emph{within} each band, this is disparate
+was excluded at G0, yet the age-band approve-rate AIR was $0.34$ (under-25 default rate $41.3\%$
+vs $25.5\%$ for $60+$); because the model is accurate \emph{within} each band, this is disparate
 \emph{impact driven by true risk}, not proxy bias. Both runs therefore record the same governed
 finding (Fig.~\ref{fig:air})---proxy removal is necessary but not sufficient, and a
 fairness-constrained replication or reject-inference study would be required before any live
@@ -675,7 +676,7 @@ case.}
 \subsection{Calibration}
 With class reweighting off and isotonic calibration always on, calibrated probabilities are
 tight across the corpus: expected calibration error is $0.020$ on HMEQ, $0.012$ on LC, and
-$0.040$ on German, and Hosmer--Lemeshow is \emph{not} rejected even at the largest $N$ (GMSC,
+$0.033$ on German, and Hosmer--Lemeshow is \emph{not} rejected even at the largest $N$ (GMSC,
 LC)---the feared large-$N$ hypersensitivity did not materialise for calibration, only for
 parsimony. Because the learner is WOE-logistic, each PD carries an exact additive reason-code
 decomposition. Fig.~\ref{fig:reliability} illustrates the per-grade reliability on CREDITRISK,

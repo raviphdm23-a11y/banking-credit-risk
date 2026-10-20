@@ -125,6 +125,26 @@ This table is the heart of the methodology-evolution story (source: `03_.../EXPE
   per-criterion/composition tables. Citations: Riley 2019 (Stat. Med. 38(7)), Riley 2020 (BMJ 368:m441),
   Riley–Van Calster–Collins 2020 (Stat. Med. 39(21)), van Smeden 2019 (Stat. Methods Med. Res. 28(8)).
 
+## German run superseded: Statlog → South German (corrected), 2026-10-20
+- The German corpus run was **re-based from the Statlog German Credit data onto its error-corrected recoding**,
+  **South German Credit** (Grömping 2019, UCI #522; CC BY 4.0) — same 1,000 loans, 30.0% bad rate, 20 variables,
+  with Grömping's category-coding errors fixed. Treated as a **draft-stage input correction**, NOT reported as a
+  finding in the paper (the paper is unpublished/unversioned; a before/after note would only confuse readers).
+- **Result reproduces the committed verdict:** GO-WITH-CONDITIONS, k=5, Gini 0.542 (was 0.5317), sex AIR clean
+  (0.933), age AIR fails four-fifths but true-risk-driven (0.340). Only *improvement* from the corrected coding:
+  grade BB no longer fails its backtest (8/8 vs 7/8), so the old `DQ-BB` condition drops. Selected 5th feature is
+  now `credit_amount` (was `purpose`) — a near-tie reshuffle. New code-sealed chain
+  `GEN-GERMAN0 → eeaa6cd7 → 670b8e1a → f8a3cfab → 0c9b65dd → 1ac12b5e → 496d214e → GF a92fa411`
+  (gates emitted by `ml_models/aegis_gates.py`).
+- **Archived here** (`archive/german_statlog_superseded/`): the Statlog run records — `AEGIS_RUN_GERMAN.md`,
+  `SHARP_GERMAN.md`, `AEGIS_GERMAN_CUTOFF_POLICY.md`, `SAMPLE_RUNS_GERMAN.md`, `german.json`. **Datasets archived**
+  to `data/ml_lab/datasets/archive/`: `german_clean.csv`, `german_credit_record.csv` (the Statlog copies; old
+  Sanity-Ratio ML-Lab lineage in `RESULTS_LOG.md` references these archived paths).
+- **New canonical files** (main folder): corrected `SHARP_GERMAN.md`, `AEGIS_RUN_GERMAN.md`,
+  `AEGIS_GERMAN_CUTOFF_POLICY.md`, `SAMPLE_RUNS_GERMAN.md`, `acceptance_cases/german.json`; new dataset
+  `data/ml_lab/datasets/south_german_credit_en.csv` (English-renamed) from source `south_german_credit.csv`.
+  Paper citation updated Statlog `german1994` → `groemping2019`.
+
 ## Kept in the main folder (NOT archived — still forward-useful)
 - `METHODOLOGY.md`, `AEGIS_GOVERNANCE.md`, `USER_JOURNEY.md` — operative framework.
 - `SHARP_*.md`, `AEGIS_RUN_*.md`, `AEGIS_*_CUTOFF_POLICY.md`, `SAMPLE_RUNS_*.md`, `acceptance_cases/`,
