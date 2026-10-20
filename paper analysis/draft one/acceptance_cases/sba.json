@@ -1,0 +1,129 @@
+{
+  "dataset": "sba_loans.csv",
+  "target": "Default",
+  "selected_columns": [
+    "RealEstate",
+    "Term",
+    "daysterm",
+    "ApprovalFY",
+    "Portion",
+    "DisbursementGross",
+    "GrAppv",
+    "SBA_Appv",
+    "FranchiseCode",
+    "RevLineCr",
+    "NAICS"
+  ],
+  "mandatory_columns": [
+    "Term",
+    "GrAppv"
+  ],
+  "incomplete_policy": "refer",
+  "title": "SBA (US Small Business Administration loans) - 7-player benchmark",
+  "cases": {
+    "SBA-R1 (low-risk, repaid)": {
+      "RealEstate": 1,
+      "Term": 300.0,
+      "daysterm": 9000.0,
+      "ApprovalFY": 1997.0,
+      "Portion": 0.75,
+      "DisbursementGross": 200000.0,
+      "GrAppv": 200000.0,
+      "SBA_Appv": 150000.0,
+      "FranchiseCode": 69560,
+      "RevLineCr": "0",
+      "NAICS": 532111
+    },
+    "SBA-R2 (mid-risk, repaid)": {
+      "RealEstate": 0,
+      "Term": 84.0,
+      "daysterm": 2520.0,
+      "ApprovalFY": 2006.0,
+      "Portion": 0.5,
+      "DisbursementGross": 252539.0,
+      "GrAppv": 50000.0,
+      "SBA_Appv": 25000.0,
+      "FranchiseCode": 0,
+      "RevLineCr": "Y",
+      "NAICS": 531210
+    },
+    "SBA-R3 (elevated-risk, default)": {
+      "RealEstate": 0,
+      "Term": 9.0,
+      "daysterm": 270.0,
+      "ApprovalFY": 2002.0,
+      "Portion": 0.5,
+      "DisbursementGross": 122489.0,
+      "GrAppv": 50000.0,
+      "SBA_Appv": 25000.0,
+      "FranchiseCode": 1,
+      "RevLineCr": "N",
+      "NAICS": 531210
+    },
+    "SBA-R4 (high-risk, default)": {
+      "RealEstate": 0,
+      "Term": 37.0,
+      "daysterm": 1110.0,
+      "ApprovalFY": 2008.0,
+      "Portion": 0.85,
+      "DisbursementGross": 20000.0,
+      "GrAppv": 20000.0,
+      "SBA_Appv": 17000.0,
+      "FranchiseCode": 0,
+      "RevLineCr": "N",
+      "NAICS": 531210
+    },
+    "SBA-S1 (synthetic best - PD-floor check)": {
+      "RealEstate": 1,
+      "FranchiseCode": 1,
+      "RevLineCr": "0",
+      "NAICS": 531190,
+      "Term": 300.0,
+      "daysterm": 9000.0,
+      "ApprovalFY": 1999.0,
+      "Portion": 1.0,
+      "DisbursementGross": 17044.30000000001,
+      "GrAppv": 12500.0,
+      "SBA_Appv": 573750.0
+    },
+    "SBA-S2 (synthetic worst - stress check)": {
+      "RealEstate": 0,
+      "FranchiseCode": 0,
+      "RevLineCr": "T",
+      "NAICS": 531320,
+      "Term": 36.0,
+      "daysterm": 1080.0,
+      "ApprovalFY": 2007.0,
+      "Portion": 0.5,
+      "DisbursementGross": 700000.0,
+      "GrAppv": 700000.0,
+      "SBA_Appv": 7500.0
+    }
+  },
+  "case_meta": {
+    "SBA-R1 (low-risk, repaid)": {
+      "kind": "real",
+      "actual": 0
+    },
+    "SBA-R2 (mid-risk, repaid)": {
+      "kind": "real",
+      "actual": 0
+    },
+    "SBA-R3 (elevated-risk, default)": {
+      "kind": "real",
+      "actual": 1
+    },
+    "SBA-R4 (high-risk, default)": {
+      "kind": "real",
+      "actual": 1
+    },
+    "SBA-S1 (synthetic best - PD-floor check)": {
+      "kind": "synthetic",
+      "design": "repaid"
+    },
+    "SBA-S2 (synthetic worst - stress check)": {
+      "kind": "synthetic",
+      "design": "default"
+    }
+  }
+}
