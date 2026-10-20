@@ -802,14 +802,13 @@ here lowers the cost of independent model validation and raises the bar for what
 defensible credit model.
 
 \section*{Appendix: Reproducibility}
-The configuration is fixed across every dataset and chosen once (Table~\ref{tab:config}); no
-governance gate re-opens any of it (P8). Tamper-evidence is an append-only hash chain over the
-signed gate records: with genesis token $h_0$, each entry is $h_i=\operatorname{SHA\text{-}256}
-(h_{i-1}\,\Vert\,c_i)[0{:}8]$ for decision content $c_i$ (Eq.~\ref{eq:hash}). The sealed chain for
-the German run passes from genesis \texttt{GEN-GERMAN0} through \texttt{b1d70c29},
-\texttt{5139746d}, \texttt{2d292965}, \texttt{49559806}, \texttt{403d8a81}, \texttt{884c20a1} to
-the final digest \texttt{a6adf8b1}; any later edit to a sealed record changes its digest and breaks
-every subsequent link, and an independent re-run reproduced the chain exactly.
+The configuration is fixed across every dataset and chosen once (Table~\ref{tab:config}), with the
+random seed $42$ throughout, and no governance gate re-opens any of it (P8). Reproducibility rests
+on this fixed configuration together with the determinism of the pipeline: independent re-runs of
+two datasets reproduced their committed results exactly (\S\ref{sec:setup}). Each gate decision is
+additionally recorded in an append-only, hash-chained log (\S\ref{sec:aegis}, Eq.~\ref{eq:hash})
+so that any later edit to a sealed record is detectable; the per-run decision logs accompany the
+paper's artefact.
 
 \begin{table}[!t]
 \centering
