@@ -46,7 +46,7 @@ regulatory PD floor. The second is a hash-chained decision-gate governance frame
 (G0--GF) that wraps it with materiality-tiered rigour, binding every statistical bar to a
 cited source and separating \emph{governance} decisions from \emph{analytics} parameters,
 which are never re-opened. Across a corpus of
-eleven public and reference credit datasets run under one fixed configuration, we show that
+twelve public and reference credit datasets run under one fixed configuration, we show that
 the same rule yields genuine parsimony at small sample sizes yet near-full feature sets at
 large ones (a large-$N$ sensitivity effect we characterise), that excluding a protected
 attribute is necessary but not sufficient to remove disparate impact, and that signal
@@ -104,7 +104,7 @@ size as governed sufficiency diagnostics. The second is a \emph{decision-gate go
 framework} that wraps the methodology in a materiality-tiered sequence of gates, each closing
 with an accountable human sign-off written to a tamper-evident hash chain, and---by design---never
 lets a per-run governance decision re-open a pre-registered analytical parameter.
-Evaluated as a single fixed configuration across eleven credit datasets, the pair exposes
+Evaluated as a single fixed configuration across twelve credit datasets, the pair exposes
 behaviour that discretion would hide: the same selection rule yields genuine parsimony at small
 $N$ but near-full feature sets at large $N$; excluding a protected attribute does not remove
 disparate impact; and signal strength, not sample size, bounds achievable discrimination.
@@ -115,7 +115,7 @@ disparate impact; and signal strength, not sample size, bounds achievable discri
 \emph{attribution} from a fixed \emph{parsimony} selection rule (\S\ref{sec:sharp}).
 \item A \textbf{hash-chained, materiality-tiered decision-gate governance framework} binding
 every bar to a cited source and separating governance from analytics (\S\ref{sec:aegis}).
-\item An empirical study over eleven datasets under one fixed configuration, including the
+\item An empirical study over twelve datasets under one fixed configuration, including the
 large-$N$ parsimony effect, the ``necessary-but-not-sufficient'' fairness finding, and a
 Riley-\emph{et al.}\ sample-size retrospective (\S\ref{sec:results}).
 \end{enumerate}
@@ -518,12 +518,12 @@ upgrades a NO-GO; the committee may downgrade on judgement and must minute why, 
 a hard gap except by resolving it as a new, re-synthesised gate decision.
 
 \section{Experimental Setup}\label{sec:setup}
-\textbf{Datasets.} The corpus is eleven binary-outcome credit datasets (Table~\ref{tab:corpus}):
+\textbf{Datasets.} The corpus is twelve binary-outcome credit datasets (Table~\ref{tab:corpus}):
 widely used public benchmarks---including the UCI German \cite{german1994,uci2019} and Taiwan
 \cite{yeh2009} credit datasets, the Home Equity (HMEQ) \cite{baesens2016} and Give-Me-Some-Credit
 \cite{gmsc2011} sets, the FICO HELOC panel \cite{fico2018}, a LendingClub extract \cite{lendingclub},
-and the PAKDD-2009 Brazilian retail-credit set \cite{pakdd2009}---alongside additional reference
-portfolios. They span
+the PAKDD-2009 Brazilian retail-credit set \cite{pakdd2009}, and the US Small Business
+Administration (SBA) loan set \cite{li2018sba}---alongside additional reference portfolios. They span
 $N\in[1{,}000,\,149{,}391]$, prevalence $[6\%,52\%]$, and candidate pools of $9$--$87$ features.
 Per Stage~0, protected and proxy attributes are retained with disclosure so results remain
 comparable with the published literature on these datasets; no model here is intended for live
@@ -557,11 +557,11 @@ out-of-time or production readiness is made---and all accept/decline thresholds 
 treated as exogenous institution inputs, never derived here.
 
 \section{Results}\label{sec:results}
-We run eleven public and reference credit datasets through the full governed exercise
+We run twelve public and reference credit datasets through the full governed exercise
 (G0--GF) under \emph{one fixed configuration} (seed $42$; selection = smallest $k$ with DeLong
 $p\ge0.05$ and $\le5\%$ relative-Gini loss; sampled Shapley when players $>15$). The corpus
 spans $N$ from $1{,}000$ to $149{,}391$, prevalence from $6\%$ to $52\%$, and candidate pools
-from $9$ to $87$ features. Table~\ref{tab:corpus} and Fig.~\ref{fig:corpus} summarise it; nine
+from $9$ to $87$ features. Table~\ref{tab:corpus} and Fig.~\ref{fig:corpus} summarise it; ten
 runs seal GO-WITH-CONDITIONS and two (MSME, PAK) seal NO-GO. Every figure traces to a recorded
 run.
 
@@ -575,6 +575,7 @@ Gini/AUC are out-of-fold at selection. Verdict is the sealed GF decision.}
 \toprule
 Dataset & $N$ & base & pool$\to$sel & Gini & AUC & Verdict \\
 \midrule
+SBA        & 2{,}102   & .326 & 19$\to$11 & 0.86 & 0.93 & GO-cond \\
 HMEQ       & 5{,}960   & .200 & 12$\to$11 & 0.81 & 0.91 & GO-cond \\
 CREDITRISK & 32{,}581  & .218 & 9$\to$6   & 0.76 & 0.88 & GO-cond \\
 GMSC       & 149{,}391 & .067 & 9$\to$8   & 0.70 & 0.85 & GO-cond \\
@@ -692,7 +693,7 @@ small \textsc{ccc} grade, which over-predicts (a conservative direction).}
 \end{figure}
 
 \subsection{Sample-size adequacy (EPV and Riley)}
-Table~\ref{tab:riley} reports the two sufficiency diagnostics. Ten of eleven runs meet the Riley
+Table~\ref{tab:riley} reports the two sufficiency diagnostics. Eleven of twelve runs meet the Riley
 minimum; the lone shortfall is \textbf{MSME} (requires $3{,}654$, has $1{,}707$), which is
 \emph{also} the only run failing EPV ($6.8<10$) and the only HIGH-tier NO-GO---the two
 diagnostics are concordant, and the single failure is the case already rejected. Riley adds what
@@ -719,6 +720,7 @@ clears by $12\times$ despite a huge EPV, because its weak signal raises the requ
 \toprule
 Dataset & $N$ & $N_{\text{req}}$ & EPV & Meets? \\
 \midrule
+SBA        & 2{,}102   & 338   & 62    & yes \\
 HMEQ       & 5{,}960   & 278   & 108   & yes \\
 CREDITRISK & 32{,}581  & 263   & 1185  & yes \\
 GMSC       & 149{,}391 & 570   & 1251  & yes \\
@@ -792,7 +794,7 @@ We have presented a pre-registered feature-selection methodology that separates
 Shapley attribution from an explicit parsimony rule and reports its own calibration, fairness and
 sample-size adequacy, wrapped in a hash-chained, materiality-tiered governance framework that
 records who decided what, on what evidence, and under which cited bar. Run as one fixed
-configuration across eleven credit datasets, the pair surfaces findings that analyst discretion
+configuration across twelve credit datasets, the pair surfaces findings that analyst discretion
 would obscure---sample-size-dependent parsimony, disparate impact that survives protected-attribute
 removal, and the primacy of signal over volume---while inventing no economic assumptions:
 thresholds and pricing remain institution inputs. We hope the reproducible, auditable discipline demonstrated
