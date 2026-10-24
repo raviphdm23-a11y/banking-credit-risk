@@ -46,7 +46,7 @@ regulatory PD floor. The second is a hash-chained decision-gate governance frame
 (G0--GF) that wraps it with materiality-tiered rigour, binding every statistical bar to a
 cited source and separating \emph{governance} decisions from \emph{analytics} parameters,
 which are never re-opened. Across a corpus of
-twelve public and reference credit datasets run under one fixed configuration, we show that
+fourteen public and reference credit datasets run under one fixed configuration, we show that
 the same rule yields genuine parsimony at small sample sizes yet near-full feature sets at
 large ones (a large-$N$ sensitivity effect we characterise), that excluding a protected
 attribute is necessary but not sufficient to remove disparate impact, and that signal
@@ -104,7 +104,7 @@ size as governed sufficiency diagnostics. The second is a \emph{decision-gate go
 framework} that wraps the methodology in a materiality-tiered sequence of gates, each closing
 with an accountable human sign-off written to a tamper-evident hash chain, and---by design---never
 lets a per-run governance decision re-open a pre-registered analytical parameter.
-Evaluated as a single fixed configuration across twelve credit datasets, the pair exposes
+Evaluated as a single fixed configuration across fourteen credit datasets, the pair exposes
 behaviour that discretion would hide: the same selection rule yields genuine parsimony at small
 $N$ but near-full feature sets at large $N$; excluding a protected attribute does not remove
 disparate impact; and signal strength, not sample size, bounds achievable discrimination.
@@ -115,7 +115,7 @@ disparate impact; and signal strength, not sample size, bounds achievable discri
 \emph{attribution} from a fixed \emph{parsimony} selection rule (\S\ref{sec:sharp}).
 \item A \textbf{hash-chained, materiality-tiered decision-gate governance framework} binding
 every bar to a cited source and separating governance from analytics (\S\ref{sec:aegis}).
-\item An empirical study over twelve datasets under one fixed configuration, including the
+\item An empirical study over fourteen datasets under one fixed configuration, including the
 large-$N$ parsimony effect, the ``necessary-but-not-sufficient'' fairness finding, and a
 Riley-\emph{et al.}\ sample-size retrospective (\S\ref{sec:results}).
 \end{enumerate}
@@ -518,13 +518,15 @@ upgrades a NO-GO; the committee may downgrade on judgement and must minute why, 
 a hard gap except by resolving it as a new, re-synthesised gate decision.
 
 \section{Experimental Setup}\label{sec:setup}
-\textbf{Datasets.} The corpus is twelve binary-outcome credit datasets (Table~\ref{tab:corpus}):
+\textbf{Datasets.} The corpus is fourteen binary-outcome credit datasets (Table~\ref{tab:corpus}):
 widely used public benchmarks---including the UCI German \cite{groemping2019,uci2019} and Taiwan
 \cite{yeh2009} credit datasets, the Home Equity (HMEQ) \cite{baesens2016} and Give-Me-Some-Credit
 \cite{gmsc2011} sets, the FICO HELOC panel \cite{fico2018}, a LendingClub extract \cite{lendingclub},
 the PAKDD-2009 Brazilian retail-credit set \cite{pakdd2009}, and the US Small Business
-Administration (SBA) loan set \cite{li2018sba}---alongside additional reference portfolios. They span
-$N\in[1{,}000,\,149{,}391]$, prevalence $[6\%,52\%]$, and candidate pools of $9$--$87$ features.
+Administration (SBA) loan set \cite{li2018sba}---alongside additional reference portfolios, the Polish
+companies bankruptcy set \cite{zieba2016} and a US mortgage performance panel \cite{baesens2016} (the latter
+reshaped from $622{,}489$ loan-period rows to one origination-time row per loan). They span
+$N\in[1{,}000,\,149{,}391]$, prevalence $[4\%,52\%]$, and candidate pools of $9$--$87$ features.
 Per Stage~0, protected and proxy attributes are retained with disclosure so results remain
 comparable with the published literature on these datasets; no model here is intended for live
 use. Full provenance and target definitions are recorded per dataset.
@@ -557,11 +559,11 @@ out-of-time or production readiness is made---and all accept/decline thresholds 
 treated as exogenous institution inputs, never derived here.
 
 \section{Results}\label{sec:results}
-We run twelve public and reference credit datasets through the full governed exercise
+We run fourteen public and reference credit datasets through the full governed exercise
 (G0--GF) under \emph{one fixed configuration} (seed $42$; selection = smallest $k$ with DeLong
 $p\ge0.05$ and $\le5\%$ relative-Gini loss; sampled Shapley when players $>15$). The corpus
-spans $N$ from $1{,}000$ to $149{,}391$, prevalence from $6\%$ to $52\%$, and candidate pools
-from $9$ to $87$ features. Table~\ref{tab:corpus} and Fig.~\ref{fig:corpus} summarise it; ten
+spans $N$ from $1{,}000$ to $149{,}391$, prevalence from $4\%$ to $52\%$, and candidate pools
+from $9$ to $87$ features. Table~\ref{tab:corpus} and Fig.~\ref{fig:corpus} summarise it; twelve
 runs seal GO-WITH-CONDITIONS and two (MSME, PAK) seal NO-GO. Every figure traces to a recorded
 run.
 
@@ -577,11 +579,13 @@ Dataset & $N$ & base & pool$\to$sel & Gini & AUC & Verdict \\
 \midrule
 SBA        & 2{,}102   & .326 & 19$\to$11 & 0.86 & 0.93 & GO-cond \\
 HMEQ       & 5{,}960   & .200 & 12$\to$11 & 0.81 & 0.91 & GO-cond \\
+POLISH     & 7{,}027   & .039 & 64$\to$37 & 0.78 & 0.89 & GO-cond \\
 CREDITRISK & 32{,}581  & .218 & 9$\to$6   & 0.76 & 0.88 & GO-cond \\
 GMSC       & 149{,}391 & .067 & 9$\to$8   & 0.70 & 0.85 & GO-cond \\
 HELOC      & 10{,}459  & .522 & 23$\to$17 & 0.59 & 0.79 & GO-cond \\
 TAIWAN     & 30{,}000  & .221 & 20$\to$14 & 0.54 & 0.77 & GO-cond \\
 GERMAN     & 1{,}000   & .300 & 17$\to$5  & 0.54 & 0.77 & GO-cond \\
+MORTGAGE   & 50{,}049  & .303 & 10$\to$6  & 0.46 & 0.73 & GO-cond \\
 MSME       & 1{,}707   & .060 & 87$\to$15 & 0.43 & 0.72 & \textbf{NO-GO} \\
 LC         & 39{,}717  & .142 & 21$\to$9  & 0.36 & 0.68 & GO-cond \\
 LOAN       & 9{,}578   & .160 & 13$\to$7  & 0.34 & 0.67 & GO-cond \\
@@ -675,10 +679,14 @@ case.}
 
 \subsection{Calibration}
 With class reweighting off and isotonic calibration always on, calibrated probabilities are
-tight across the corpus: expected calibration error is $0.020$ on HMEQ, $0.012$ on LC, and
-$0.033$ on German, and Hosmer--Lemeshow is \emph{not} rejected even at the largest $N$ (GMSC,
-LC)---the feared large-$N$ hypersensitivity did not materialise for calibration, only for
-parsimony. Because the learner is WOE-logistic, each PD carries an exact additive reason-code
+tight across the corpus: expected calibration error is $0.020$ on HMEQ, $0.012$ on LC,
+$0.033$ on German and $0.007$ on MORTGAGE, and Hosmer--Lemeshow is \emph{not} rejected even at the
+largest $N$ (GMSC $149{,}391$, LC). The one exception is the origination-only MORTGAGE model
+($N{=}50{,}049$), where HL \emph{is} rejected at $g{=}10$ ($p{\approx}0$) but passes at $g{=}5$
+($p{=}0.34$) with the per-grade backtest clean ($8/8$ grades inside the Wilson interval): the
+large-$N$ hypersensitivity that dominates parsimony surfaces for calibration only on the coarsest-
+fitting model, and there the per-grade realised-vs-expected backtest---not HL---is the governing
+test (as recorded at G4 for that run). Because the learner is WOE-logistic, each PD carries an exact additive reason-code
 decomposition. Fig.~\ref{fig:reliability} illustrates the per-grade reliability on CREDITRISK,
 whose model spans the full AAA--D range: observed default rates track the predicted probabilities
 closely across nearly two orders of magnitude.
@@ -694,13 +702,16 @@ small \textsc{ccc} grade, which over-predicts (a conservative direction).}
 \end{figure}
 
 \subsection{Sample-size adequacy (EPV and Riley)}
-Table~\ref{tab:riley} reports the two sufficiency diagnostics. Eleven of twelve runs meet the Riley
-minimum; the lone shortfall is \textbf{MSME} (requires $3{,}654$, has $1{,}707$), which is
-\emph{also} the only run failing EPV ($6.8<10$) and the only HIGH-tier NO-GO---the two
-diagnostics are concordant, and the single failure is the case already rejected. Riley adds what
-EPV cannot see: \textbf{PAK} has an enormous EPV ($2{,}173$) yet needs $4{,}041$ rows, because
-its weak signal (AUC $0.57\Rightarrow R^2_{cs}{=}0.013$) makes the shrinkage criterion demand
-volume; and \textbf{TH02} passes by only $+55$ rows, a thinness EPV ($54$) does not convey.
+Table~\ref{tab:riley} reports the two sufficiency diagnostics. Thirteen of fourteen runs meet the Riley
+minimum; the lone shortfall is \textbf{MSME} (requires $3{,}654$, has $1{,}707$), which is also the
+only run failing \emph{both} diagnostics and the only HIGH-tier NO-GO---so the single failure is the
+case already rejected. The two diagnostics diverge in both directions, which is exactly Riley's value
+over EPV. Below EPV $10$ sit \emph{two} runs---MSME ($6.8$) and \textbf{POLISH} ($7.3$)---yet only MSME
+also fails Riley: POLISH's strong signal (Gini $0.78$) clears the shrinkage criterion despite thin
+events ($271$), so it meets Riley with room to spare. The converse is \textbf{PAK}, which has an
+enormous EPV ($2{,}173$) yet needs $4{,}041$ rows because its weak signal (AUC
+$0.57\Rightarrow R^2_{cs}{=}0.013$) makes shrinkage demand volume; and \textbf{TH02} passes by only
+$+55$ rows, a thinness EPV ($54$) does not convey.
 Fig.~\ref{fig:riley} shows the headroom as rows available over rows required.
 
 \begin{figure}[!t]
@@ -723,11 +734,13 @@ Dataset & $N$ & $N_{\text{req}}$ & EPV & Meets? \\
 \midrule
 SBA        & 2{,}102   & 338   & 62    & yes \\
 HMEQ       & 5{,}960   & 278   & 108   & yes \\
+POLISH     & 7{,}027   & 5{,}141 & 7.3 & yes ($+1{,}886$)\textsuperscript{\dag} \\
 CREDITRISK & 32{,}581  & 263   & 1185  & yes \\
 GMSC       & 149{,}391 & 570   & 1251  & yes \\
 HELOC      & 10{,}459  & 522   & 321   & yes \\
 TAIWAN     & 30{,}000  & 737   & 474   & yes \\
 GERMAN     & 1{,}000   & 323   & 60    & yes \\
+MORTGAGE   & 50{,}049  & 358   & 2526  & yes \\
 MSME       & 1{,}707   & 3{,}654 & 6.8 & \textbf{SHORT} \\
 LC         & 39{,}717  & 1{,}581 & 625 & yes \\
 LOAN       & 9{,}578   & 1{,}220 & 219 & yes \\
@@ -735,6 +748,11 @@ TH02       & 1{,}225   & 1{,}170 & 54  & yes ($+55$) \\
 PAK        & 50{,}000  & 4{,}041 & 2173 & yes \\
 \bottomrule
 \end{tabular}
+
+\vspace{2pt}
+{\footnotesize \dag~POLISH meets the Riley minimum but its EPV $7.3<10$ (events per selected column; its
+record also reports $4.2$ on the $64$-candidate screening pool)---strong signal clears the shrinkage
+criterion despite thin events, the mirror image of PAK. MSME alone fails both diagnostics.\par}
 \end{table}
 
 \section{Discussion}\label{sec:discussion}
@@ -795,7 +813,7 @@ We have presented a pre-registered feature-selection methodology that separates
 Shapley attribution from an explicit parsimony rule and reports its own calibration, fairness and
 sample-size adequacy, wrapped in a hash-chained, materiality-tiered governance framework that
 records who decided what, on what evidence, and under which cited bar. Run as one fixed
-configuration across twelve credit datasets, the pair surfaces findings that analyst discretion
+configuration across fourteen credit datasets, the pair surfaces findings that analyst discretion
 would obscure---sample-size-dependent parsimony, disparate impact that survives protected-attribute
 removal, and the primacy of signal over volume---while inventing no economic assumptions:
 thresholds and pricing remain institution inputs. We hope the reproducible, auditable discipline demonstrated
