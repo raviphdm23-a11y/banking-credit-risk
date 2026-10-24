@@ -178,12 +178,19 @@ def score_report(y_true, proba, base_rate=None, n_boot=500, random_state=42,
 # ===========================================================================
 
 def oof_predictions(X, y, columns, learner='woe_logistic', cv_folds=5,
-                    random_state=42, hp=None):
+                    random_state=42, hp=None, groups=None):
     """One honest out-of-fold prediction per row, for the given column subset.
 
     Using OOF predictions means every candidate subset is scored on exactly the
     same rows, which is what makes DeLong's paired test applicable across the
     parsimony curve.
+
+    `groups` is the panel/entity key (panel_adapter). When given, folds are cut
+    with StratifiedGroupKFold so every row of an entity stays inside one fold -
+    the leakage guard for panel (hazard-framed) data. When None (the default and
+    every cross-sectional / snapshot run), the split is the unchanged
+    StratifiedKFold path - byte-for-byte identical to before, so existing results
+    reproduce exactly.
     """
     X = pd.DataFrame(X).reset_index(drop=True)
     y = pd.Series(np.asarray(y)).reset_index(drop=True)
@@ -191,9 +198,16 @@ def oof_predictions(X, y, columns, learner='woe_logistic', cv_folds=5,
     if not columns:
         return np.full(len(y), float(y.mean()))
     Xs = X[list(columns)]
-    skf = StratifiedKFold(n_splits=cv_folds, shuffle=True, random_state=random_state)
+    if groups is not None:
+        from sklearn.model_selection import StratifiedGroupKFold
+        splitter = StratifiedGroupKFold(n_splits=cv_folds, shuffle=True,
+                                        random_state=random_state)
+        split_iter = splitter.split(Xs, y, groups=np.asarray(groups))
+    else:
+        skf = StratifiedKFold(n_splits=cv_folds, shuffle=True, random_state=random_state)
+        split_iter = skf.split(Xs, y)
     fn = LEARNERS[learner]
-    for tr, te in skf.split(Xs, y):
+    for tr, te in split_iter:
         kwargs = {'random_state': random_state}
         if learner == 'xgboost':
             kwargs['hp'] = hp
@@ -203,11 +217,13 @@ def oof_predictions(X, y, columns, learner='woe_logistic', cv_folds=5,
 
 def parsimony_curve(X, y, ranked_players, player_columns, learner='woe_logistic',
                     cv_folds=5, random_state=42, hp=None, n_boot=500,
-                    progress=True):
+                    progress=True, groups=None):
     """Metrics for the top-k players, k = 1..K, plus the full-candidate model.
 
     ranked_players: player names in descending importance order.
     player_columns: {player_name: [columns]}.
+    groups: optional panel/entity key passed through to every OOF split (see
+        `oof_predictions`); None preserves the cross-sectional behaviour.
 
     Returns (curve_df, extras) where extras carries the OOF predictions so the
     caller can run further paired tests without refitting.
@@ -217,7 +233,7 @@ def parsimony_curve(X, y, ranked_players, player_columns, learner='woe_logistic'
     all_cols = [c for p in ranked_players for c in player_columns[p]]
 
     oof_full = oof_predictions(X, y, all_cols, learner=learner, cv_folds=cv_folds,
-                               random_state=random_state, hp=hp)
+                               random_state=random_state, hp=hp, groups=groups)
     full = score_report(y, oof_full, n_boot=n_boot, random_state=random_state)
 
     rows, oofs = [], {}
@@ -225,7 +241,7 @@ def parsimony_curve(X, y, ranked_players, player_columns, learner='woe_logistic'
     for k, p in enumerate(ranked_players, start=1):
         cols_so_far = cols_so_far + list(player_columns[p])
         oof_k = oof_predictions(X, y, cols_so_far, learner=learner, cv_folds=cv_folds,
-                                random_state=random_state, hp=hp)
+                                random_state=random_state, hp=hp, groups=groups)
         oofs[k] = oof_k
         rep = score_report(y, oof_k, n_boot=n_boot, random_state=random_state)
         dl = delong_test(y, oof_k, oof_full)

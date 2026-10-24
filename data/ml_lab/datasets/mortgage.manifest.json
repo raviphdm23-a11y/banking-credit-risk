@@ -1,0 +1,29 @@
+{
+  "dataset": "mortgage.csv",
+  "title": "US mortgage performance panel (origination snapshot)",
+  "data_shape": "panel",
+  "segment": "retail",
+  "entity_id": ["id", "orig_time"],
+  "time_col": "time",
+  "target": "default_time",
+  "framing": "snapshot",
+  "snapshot": {
+    "as_of": "first",
+    "target_policy": "ever",
+    "feature_cols": [
+      "FICO_orig_time",
+      "LTV_orig_time",
+      "Interest_Rate_orig_time",
+      "balance_orig_time",
+      "hpi_orig_time",
+      "REtype_CO_orig_time",
+      "REtype_PU_orig_time",
+      "REtype_SF_orig_time",
+      "investor_orig_time"
+    ],
+    "derived_features": [
+      {"name": "term_orig", "op": "sub", "a": "mat_time", "b": "orig_time"}
+    ]
+  },
+  "notes": "Entity key is COMPOSITE (id, orig_time): a bare id is reused across refinances (e.g. id 1997 has two originations at orig_time 9 and 18), so id alone would merge two distinct loans' outcomes. Composite key -> 50,049 loans, 30.3% ever-default. Snapshot framing: one row per loan, features = origination characteristics taken from the first observed period (a few financial fields drift slightly within a loan's life and are taken as the as-of reading) plus a derived origination term, target = loan EVER defaults over its observed life. Rows are independent by construction, so existing stratified CV is leakage-safe. Time-varying columns (balance_time, LTV_time, interest_rate_time, hpi_time, gdp_time, uer_time) and co-outcomes (payoff_time, status_time) are deliberately excluded from the origination scorecard; they belong to the hazard framing. Sufficiency (G1) must count loans/defaulting-loans, not the 622k loan-periods."
+}

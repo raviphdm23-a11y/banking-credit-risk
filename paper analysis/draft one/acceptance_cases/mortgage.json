@@ -1,0 +1,99 @@
+{
+ "title": "US mortgage (origination snapshot)",
+ "dataset": "mortgage_snapshot.csv",
+ "target": "default_time",
+ "selected_columns": [
+  "hpi_orig_time",
+  "Interest_Rate_orig_time",
+  "FICO_orig_time",
+  "LTV_orig_time",
+  "balance_orig_time",
+  "term_orig"
+ ],
+ "mandatory_columns": [],
+ "floor_columns": [
+  "hpi_orig_time",
+  "Interest_Rate_orig_time",
+  "FICO_orig_time",
+  "LTV_orig_time",
+  "balance_orig_time",
+  "term_orig"
+ ],
+ "incomplete_policy": "reject",
+ "cases": {
+  "MG-R1_low_repaid": {
+   "hpi_orig_time": 179.45,
+   "Interest_Rate_orig_time": 3.375,
+   "FICO_orig_time": 776,
+   "LTV_orig_time": 51.9,
+   "balance_orig_time": 149600.0,
+   "term_orig": 100.0
+  },
+  "MG-R2_adequate_repaid": {
+   "hpi_orig_time": 225.1,
+   "Interest_Rate_orig_time": 7.0,
+   "FICO_orig_time": 697,
+   "LTV_orig_time": 80.0,
+   "balance_orig_time": 125828.0,
+   "term_orig": 118.0
+  },
+  "MG-R3_default_scored": {
+   "hpi_orig_time": 161.27,
+   "Interest_Rate_orig_time": 0.0,
+   "FICO_orig_time": 645,
+   "LTV_orig_time": 95.0,
+   "balance_orig_time": 175275.0,
+   "term_orig": 121.0
+  },
+  "MG-R4_high_default": {
+   "hpi_orig_time": 225.1,
+   "Interest_Rate_orig_time": 10.05,
+   "FICO_orig_time": 561,
+   "LTV_orig_time": 80.0,
+   "balance_orig_time": 457600.0,
+   "term_orig": 121.0
+  },
+  "MG-S1_floor_check": {
+   "hpi_orig_time": 87.03,
+   "Interest_Rate_orig_time": 5.75,
+   "FICO_orig_time": 788,
+   "LTV_orig_time": 52.5,
+   "balance_orig_time": 45000.0,
+   "term_orig": 115.0
+  },
+  "MG-S2_stress_check": {
+   "hpi_orig_time": 226.29,
+   "Interest_Rate_orig_time": 9.2,
+   "FICO_orig_time": 558,
+   "LTV_orig_time": 80.0,
+   "balance_orig_time": 212000.0,
+   "term_orig": 121.0
+  }
+ },
+ "case_meta": {
+  "MG-R1_low_repaid": {
+   "kind": "real",
+   "actual": 0
+  },
+  "MG-R2_adequate_repaid": {
+   "kind": "real",
+   "actual": 0
+  },
+  "MG-R3_default_scored": {
+   "kind": "real",
+   "actual": 1
+  },
+  "MG-R4_high_default": {
+   "kind": "real",
+   "actual": 1
+  },
+  "MG-S1_floor_check": {
+   "kind": "synthetic",
+   "design": "repaid"
+  },
+  "MG-S2_stress_check": {
+   "kind": "synthetic",
+   "design": "default"
+  }
+ }
+}
