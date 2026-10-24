@@ -641,6 +641,73 @@ def load_and_merge(use_transaction_level=False, bank_ids=None, exposure_class=No
 
 # ── Step 4: Train ─────────────────────────────────────────────────────────────
 
+_XGBOOST_GPU_AVAILABLE_CACHE = None  # hardware/CUDA-build capability, probed once per process
+
+# Benchmarked 2026-10-08 on this project's dev machine (RTX 4070 Laptop, 8GB VRAM,
+# XGBoost 3.2.0) - see paper analysis/draft one/gpu_cpu_benchmark_results.json
+# (1D: rows varied, 30 cols fixed) and gpu_cpu_benchmark_2d_results.json (rows and
+# cols varied independently) for the raw numbers behind these two thresholds.
+#
+# 1D sweep: GPU loses below ~50K rows (0.62x-1.03x), wins clearly by 200K rows
+# (1.85x) and 1M rows (2.67x) - crossover sits roughly between 50K-200K rows.
+#
+# 2D grid proved total cells (rows x cols) alone is NOT sufficient: two configs
+# with identical 5,000,000 cells gave different speedups (100K rows x 50 cols =
+# 1.38x vs. 500K rows x 10 cols = 1.96x) - row count carries more weight toward
+# GPU's advantage than column count at matched total size. The two thresholds
+# below (either one tripping is enough) approximate that asymmetry; this is a
+# deliberately simple heuristic from a small, single-run benchmark - revisit
+# with a larger benchmark if GPU selection starts mattering in practice.
+GPU_WORTHWHILE_TOTAL_CELLS = 2_000_000
+GPU_WORTHWHILE_ROWS = 200_000
+
+
+def _gpu_available():
+    """Probe GPU/CUDA-build availability once per process (cached) - a fixed
+    hardware fact, unlike worthwhile-ness below, which depends on data size."""
+    global _XGBOOST_GPU_AVAILABLE_CACHE
+    if _XGBOOST_GPU_AVAILABLE_CACHE is None:
+        try:
+            probe = XGBClassifier(n_estimators=1, max_depth=1, device='cuda', tree_method='hist', verbosity=0)
+            probe.fit(np.zeros((4, 1)), np.array([0, 1, 0, 1]))
+            _XGBOOST_GPU_AVAILABLE_CACHE = True
+        except Exception:
+            _XGBOOST_GPU_AVAILABLE_CACHE = False
+    return _XGBOOST_GPU_AVAILABLE_CACHE
+
+
+def _gpu_worthwhile(n_rows, n_cols):
+    """Is this dataset big enough that GPU should actually be faster, per the
+    benchmark above? Unknown size (n_rows=None) stays conservative (False) -
+    never assume GPU helps without evidence."""
+    if n_rows is None:
+        return False
+    total_cells = n_rows * max(n_cols or 1, 1)
+    return total_cells >= GPU_WORTHWHILE_TOTAL_CELLS or n_rows >= GPU_WORTHWHILE_ROWS
+
+
+def _resolve_xgboost_device(hp, n_rows=None, n_cols=None):
+    """Decide 'cuda' or 'cpu' for XGBoost's `device` param.
+
+    Reads the top-level 'xgboost_device' hyperparameter key:
+    - 'cuda' / 'cpu': explicit override, used as-is regardless of data size.
+    - 'auto' (default): 'cuda' only if the GPU probe succeeds AND the dataset
+      (n_rows x n_cols, when known) clears the benchmarked worthwhile threshold
+      above - otherwise 'cpu'. Passing n_rows=None (size unknown at this call
+      site) always falls back to 'cpu' under 'auto', never silently guesses.
+
+    Must default to 'cpu' on any failure/unknown: this app also runs on Cloud
+    Run, which has no GPU - a hardcoded/blind 'cuda' would break production
+    training outright.
+    """
+    configured = hp.get('xgboost_device', 'auto')
+    if configured in ('cuda', 'cpu'):
+        return configured
+    if not _gpu_available():
+        return 'cpu'
+    return 'cuda' if _gpu_worthwhile(n_rows, n_cols) else 'cpu'
+
+
 def _build_xgboost(X_train, y_train, hp):
     """Build XGBoost classifier."""
     model_hp = hp.get('models', {}).get('xgboost', hp.get('model', {}))
@@ -648,6 +715,19 @@ def _build_xgboost(X_train, y_train, hp):
     n_neg = int((y_train == 0).sum())
     n_pos = int((y_train == 1).sum())
     auto_spw = round(n_neg / n_pos, 2) if n_pos > 0 else 1.0
+
+    # METHODOLOGY v3 item m8: scale_pos_weight is now OPT-IN (default off).
+    # Class-prior reweighting has at best a modest effect on ranking (AUC is
+    # invariant to monotone score transforms), but it systematically inflates
+    # predicted probabilities away from true odds, which v2 then had to repair
+    # with post-hoc calibration. Two datasets' raw models ended up with a Brier
+    # score WORSE than always predicting the base rate. Turning it off removes
+    # the damage at source. Set 'use_scale_pos_weight': true in
+    # hyperparameters.json (or per-model) to restore the old behaviour, and
+    # record the ablation if you do.
+    use_spw = bool(hp.get('use_scale_pos_weight',
+                          model_hp.get('use_scale_pos_weight', False)))
+    spw = auto_spw if use_spw else float(model_hp.get('scale_pos_weight_when_off', 1.0))
 
     model = XGBClassifier(
         n_estimators      = int(model_hp.get('n_estimators', 200)),
@@ -659,7 +739,7 @@ def _build_xgboost(X_train, y_train, hp):
         gamma             = float(model_hp.get('gamma', 0.1)),
         reg_alpha         = float(model_hp.get('reg_alpha', 0.1)),
         reg_lambda        = float(model_hp.get('reg_lambda', 1.0)),
-        scale_pos_weight  = auto_spw,
+        scale_pos_weight  = spw,
         random_state      = int(model_hp.get('random_state', 42)),
         eval_metric       = 'logloss',
         # Lets XGBoost split on a pandas 'category' dtype column internally
@@ -667,6 +747,7 @@ def _build_xgboost(X_train, y_train, hp):
         # native-categorical path); a no-op when every column is numeric.
         enable_categorical = True,
         tree_method       = 'hist',
+        device            = _resolve_xgboost_device(hp, n_rows=X_train.shape[0], n_cols=X_train.shape[1]),
         verbosity         = 0,
         n_jobs            = -1,
     )
@@ -924,6 +1005,102 @@ def cross_validate_model(X, y, hp, model_type, groups=None, n_splits=5):
         'std_auc': round(float(np.std(fold_aucs)), 4),
         'note': None,
     }
+
+
+# ── Probability calibration ─────────────────────────────────────────────────
+# Every model in this project is trained with XGBoost's `scale_pos_weight` to
+# handle class imbalance (see _build_xgboost) - this improves ranking/AUC but
+# systematically inflates raw predict_proba output away from true real-world
+# odds, since the model is effectively trained on a rebalanced view of the
+# data. Confirmed directly: GMSC's final model has a WORSE Brier score (0.1419)
+# than the trivial "always predict the 6.7% base rate" baseline (~0.0625) -
+# a model that ranks well (AUC 0.865) but is not probability-calibrated.
+# Research backing this (see paper analysis/draft one/CALIBRATION_NOTES.md for
+# the full literature review): XGBoost specifically tends to need post-hoc
+# calibration more than simpler models (Vienna TU thesis on Austrian corporate
+# defaults; a 2025 arXiv German Credit study found calibration cut ECE by 76%
+# for XGBoost), and isotonic regression is the better-supported choice for
+# tree-based models specifically (a mortgage-default thesis found isotonic
+# worked better for trees, Platt scaling better for logistic regression).
+
+def expected_calibration_error(y_true, y_proba, n_bins=10):
+    """Mean |predicted probability - observed frequency|, weighted by bin size,
+    across n_bins equal-width bins of predicted probability. Standard metric
+    for "is this model's output trustworthy as a real probability," distinct
+    from AUC (which only measures ranking, not absolute probability accuracy)."""
+    y_true = np.asarray(y_true)
+    y_proba = np.asarray(y_proba)
+    bin_edges = np.linspace(0.0, 1.0, n_bins + 1)
+    bin_idx = np.clip(np.digitize(y_proba, bin_edges[1:-1], right=True), 0, n_bins - 1)
+    ece = 0.0
+    for b in range(n_bins):
+        mask = bin_idx == b
+        if mask.sum() == 0:
+            continue
+        bin_conf = y_proba[mask].mean()
+        bin_acc = y_true[mask].mean()
+        ece += (mask.sum() / len(y_proba)) * abs(bin_conf - bin_acc)
+    return float(ece)
+
+
+def calibrate_model(estimator, X_train, y_train, method='isotonic', cv=5):
+    """Wrap a fitted-style XGBoost estimator in sklearn's CalibratedClassifierCV,
+    refitting internally via cv-fold cross-validation so the calibration curve
+    is learned on held-out predictions, never the same rows the base model saw
+    (avoiding the obvious leakage of calibrating on training-set predictions).
+    `estimator` should be an UNFITTED XGBClassifier with the desired params
+    (CalibratedClassifierCV clones and fits it internally per fold)."""
+    from sklearn.calibration import CalibratedClassifierCV
+    calibrated = CalibratedClassifierCV(estimator, method=method, cv=cv)
+    calibrated.fit(X_train, y_train)
+    return calibrated
+
+
+def evaluate_calibration(raw_model, X_train, y_train, X_test, y_test, hp, model_type='xgboost',
+                          method='isotonic', cv=5):
+    """Compare Brier score + ECE before vs. after isotonic calibration, on the
+    same held-out test set, for an already-fitted `raw_model`. Returns a dict
+    report; also returns the fitted calibrated model so it can be reused."""
+    raw_proba = raw_model.predict_proba(X_test)[:, 1]
+    raw_brier = float(brier_score_loss(y_test, raw_proba))
+    raw_ece = expected_calibration_error(y_test, raw_proba)
+    baseline_brier = float(brier_score_loss(y_test, np.full(len(y_test), y_train.mean())))
+
+    if model_type == 'xgboost':
+        model_hp = hp.get('models', {}).get('xgboost', hp.get('model', {}))
+        n_neg = int((y_train == 0).sum()); n_pos = int((y_train == 1).sum())
+        auto_spw = round(n_neg / n_pos, 2) if n_pos > 0 else 1.0
+        from xgboost import XGBClassifier
+        unfitted = XGBClassifier(
+            n_estimators=int(model_hp.get('n_estimators', 200)), max_depth=int(model_hp.get('max_depth', 4)),
+            learning_rate=float(model_hp.get('learning_rate', 0.05)), subsample=float(model_hp.get('subsample', 0.8)),
+            colsample_bytree=float(model_hp.get('colsample_bytree', 0.8)),
+            min_child_weight=int(model_hp.get('min_child_weight', 5)), gamma=float(model_hp.get('gamma', 0.1)),
+            reg_alpha=float(model_hp.get('reg_alpha', 0.1)), reg_lambda=float(model_hp.get('reg_lambda', 1.0)),
+            scale_pos_weight=auto_spw, random_state=int(model_hp.get('random_state', 42)), eval_metric='logloss',
+            enable_categorical=True, tree_method='hist',
+            device=_resolve_xgboost_device(hp, n_rows=X_train.shape[0], n_cols=X_train.shape[1]),
+            verbosity=0, n_jobs=-1,
+        )
+    else:
+        raise ValueError(f"evaluate_calibration only supports model_type='xgboost' currently, got {model_type!r}")
+
+    calibrated = calibrate_model(unfitted, X_train, y_train, method=method, cv=cv)
+    cal_proba = calibrated.predict_proba(X_test)[:, 1]
+    cal_brier = float(brier_score_loss(y_test, cal_proba))
+    cal_ece = expected_calibration_error(y_test, cal_proba)
+    cal_auc = float(roc_auc_score(y_test, cal_proba))
+
+    return {
+        'baseline_brier_always_base_rate': round(baseline_brier, 4),
+        'raw_brier': round(raw_brier, 4),
+        'raw_ece': round(raw_ece, 4),
+        'calibrated_brier': round(cal_brier, 4),
+        'calibrated_ece': round(cal_ece, 4),
+        'calibrated_auc': round(cal_auc, 4),
+        'method': method,
+        'cv': cv,
+    }, calibrated
 
 
 # ── Trustworthiness diagnostics ────────────────────────────────────────────────
