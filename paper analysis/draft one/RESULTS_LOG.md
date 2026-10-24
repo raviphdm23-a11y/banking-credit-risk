@@ -390,11 +390,27 @@ DeLong p≥0.05 AND relative Gini loss ≤5%. These supersede the v2 selection d
 | Dataset | Run id | Screened→selected cols | Primary Gini (WOE-logit) | Secondary Gini (XGB) | Selection verdict | Record |
 |---|---|---|---:|---:|---|---|
 | HMEQ | `sharp_20261011_hmeq` | 12 → 11 (drop REASON) | 0.8133 (OOF) / 0.8010 cal. holdout | 0.8817 cal. holdout | Full screened set — no parsimony reduction DeLong-defensible at n≈6k | `SHARP_HMEQ.md` |
+| Mortgage (origination snapshot, **panel**) | `panel_adapter` snapshot · commit `7c2a709` · `mortgage_snapshot.csv` | 10 → 6 (drop 4 property-type/investor dummies, IV<0.01) | 0.4635 (OOF) | 0.524 (XGB cal. holdout; AUC 0.762) | k=6 of 6 — PARSIMONY-NULL: DeLong distinguishes every k<6 at n=50,049, so full candidate set adopted | `SHARP_MORTGAGE.md` · `AEGIS_RUN_MORTGAGE.md` |
 
 **HMEQ highlights:** all 11 screened columns confirmed ≥12.8× the shadow-null bar; permuted noise shadow
 (`__shadow__7_LOAN`, BH p=2.9e-10) correctly rejected; missingness of DEBTINC is a preserved 7.2× signal;
 isotonic calibration cuts ECE 43%/28% with AUC unchanged. Converges on v2's 11-column set by the new
 order-invariant route. Finding F6: WOE can score *missing* as good news on MNAR columns (hiding delinquency/derogatory flips an impaired applicant PD 0.85->0.15); mitigated by scoring-time `adverse_missing_floor` (honest applicants unchanged, omission can no longer lower risk).
+
+**Mortgage highlights (first PANEL dataset):** handled by `ml_models/panel_adapter.py` (snapshot framing) in
+front of the unchanged SHARP pipeline — no sharp_runs/ JSON (run via `v3.run_pipeline` on the collapsed
+frame, not the sharp_runs harness); reproducible from `mortgage_snapshot.csv` + `mortgage.manifest.json`
+(regenerable from the untracked 65M `mortgage.csv` via `panel_adapter.prepare`). 622,489 loan-period rows →
+50,049 loans under the **composite key `(id, orig_time)`** (a bare `id` is reused across refinances — a real
+data-structure finding). Origination-only snapshot (target = ever-default, 30.28%); the time-varying
+covariates are out of scope and belong to the deferred hazard framing, which is why Gini 0.464 is the honest
+origination-only ceiling, not the dataset's achievable maximum. All 6 confirmed players span exactly 6
+columns (compact — contrast Polish's 6 players = 37 collinear columns). `hpi_orig_time` dominates (IV 0.52,
+Shapley ~143× the shadow bar). Calibration: ECE 0.0074, per-grade backtest **8/8** inside Wilson CI; HL g=10
+rejected only as a large-n artefact (g=5 p=0.341) — per-grade backtest governs (SBA pattern); isotonic was
+neutral-to-slightly-negative and ceilings PD at ≈0.68 (99.9% cap never binds). Governed end-to-end →
+**GO-WITH-CONDITIONS** (`AEGIS_RUN_MORTGAGE.md`), with the recorded contrast that natural-person borrowers
+put EU AI Act Annex III / ECOA back **in scope** (R12/R14), where Polish firms were N/A.
 
 **Credit Risk Dataset — `SHARP_CREDIT_RISK.md` (⚠ demonstration, NOT a completed run):** documents a
 data-integrity finding (file's `target` column corrupted — disagrees with `loan_status` on 26% of rows; used
