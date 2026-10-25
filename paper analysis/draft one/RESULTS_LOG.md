@@ -392,6 +392,7 @@ DeLong p≥0.05 AND relative Gini loss ≤5%. These supersede the v2 selection d
 | HMEQ | `sharp_20261011_hmeq` | 12 → 11 (drop REASON) | 0.8133 (OOF) / 0.8010 cal. holdout | 0.8817 cal. holdout | Full screened set — no parsimony reduction DeLong-defensible at n≈6k | `SHARP_HMEQ.md` |
 | Mortgage (origination snapshot, **panel**) | `panel_adapter` snapshot · commit `7c2a709` · `mortgage_snapshot.csv` | 10 → 6 (drop 4 property-type/investor dummies, IV<0.01) | 0.4635 (OOF) | 0.524 (XGB cal. holdout; AUC 0.762) | k=6 of 6 — PARSIMONY-NULL: DeLong distinguishes every k<6 at n=50,049, so full candidate set adopted | `SHARP_MORTGAGE.md` · `AEGIS_RUN_MORTGAGE.md` |
 | Mortgage (discrete-time **hazard**, panel) | `panel_adapter` hazard · commit `e1bf2e9` · `mortgage_hazard.manifest.json` | 15 → 11 (drop 4 property-type/investor dummies, IV<0.02) | 0.4742 (grouped OOF); **OOT 0.3194** | 0.535 (XGB cal. holdout; AUC 0.767) | k=9 of 9 — PARSIMONY-NULL (cluster-robust DeLong confirms) | `SHARP_MORTGAGE_HAZARD.md` · `AEGIS_RUN_MORTGAGE_HAZARD.md` |
+| Polish bankruptcy 1yr-ahead (**staged** governed run) | `POLISH_1YR` · `sharp_runs_staged/POLISH_1YR` · chain `209136ae` · `polish_bankruptcy_1yr_ahead.csv` | 64 → 63 screened → 4 players / 25 cols | 0.8260 (OOF, k=4; full 0.8379; CI 0.7966-0.8568) | not run | k=4 of 19 players, DeLong p 0.2554, loss 1.41% — decision-parsimonious, not column-parsimonious | `SHARP_POLISH_1YR.md` · `AEGIS_RUN_POLISH_1YR.md` |
 
 **HMEQ highlights:** all 11 screened columns confirmed ≥12.8× the shadow-null bar; permuted noise shadow
 (`__shadow__7_LOAN`, BH p=2.9e-10) correctly rejected; missingness of DEBTINC is a preserved 7.2× signal;
@@ -412,6 +413,8 @@ rejected only as a large-n artefact (g=5 p=0.341) — per-grade backtest governs
 neutral-to-slightly-negative and ceilings PD at ≈0.68 (99.9% cap never binds). Governed end-to-end →
 **GO-WITH-CONDITIONS** (`AEGIS_RUN_MORTGAGE.md`), with the recorded contrast that natural-person borrowers
 put EU AI Act Annex III / ECOA back **in scope** (R12/R14), where Polish firms were N/A.
+
+**Polish 1yr-ahead highlights (first run under the staged SHARP+AEGIS protocol):** 5,910 firms, 410 bankrupt (6.94%), 64 ratios; EPV 6.4 on the candidate pool (selected model 16.4, Riley met 5.22x). 63 screened; 19 players all confirmed (shadow bar 0.00161); k=4 selected (21-column profitability group + `sales_n_to_sales_n_minus_1` + a 2-column liabilities group + `working_capital`), Gini 0.8260. Deployed-model backtest 9/10 grades (grade B under-predicts: 16.7% vs 8.3%), HL g=10 p 0.072 but g=5 p 0.0185. **Unfavourable finding:** `sales_n_to_sales_n_minus_1` is blank for 103 firms, 99 of them bankrupt (96.1%); scored as-is they get grade-D PDs; ~0.025 in-sample AUC rests on this pattern (0.9195 all rows vs 0.8949 complete rows; not out-of-fold); controlled by a mandatory-field REFER gate. PD cap never binds on complete-data firms (max 51.43%). Attr24 look-ahead and the 2000-2012 vs 2007-2013 sampling windows remain open. Governed → **GO-WITH-CONDITIONS** (`209136ae`; R1, R4, R6, R7, R8, R10 partial). H1 (1yr vs 5yr) is **not** tested by this run.
 
 **Mortgage hazard highlights:** all 622,489 loan-periods (50,049 loans), target = per-period default (2.44%),
 group-aware CV through Stages 2–4; 11 features (3 time-varying + 3 macro + 5 origination), dominant

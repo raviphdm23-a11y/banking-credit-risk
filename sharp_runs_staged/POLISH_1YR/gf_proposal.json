@@ -1,0 +1,83 @@
+{
+ "checklist": [
+  {
+   "id": "R1",
+   "status": "PARTIAL",
+   "must_have": true,
+   "gate": "G0",
+   "note": "data history: source states bankrupt firms sampled 2000-2012, operating 2007-2013, but the file has no dates and no per-firm history, so >=5 years is not verifiable here"
+  },
+  {
+   "id": "R2",
+   "status": "SATISFIED",
+   "must_have": true,
+   "gate": "G5",
+   "note": "use test: governed decision + 8-case acceptance pack (research benchmark, not a live decision flow)"
+  },
+  {
+   "id": "R3",
+   "status": "SATISFIED",
+   "must_have": true,
+   "gate": "G3",
+   "note": "Gini 0.826 (CI 0.797-0.857), AUC 0.913 vs floor 0.70; 10 grades populated, largest grade AA 25.8% of held-out firms"
+  },
+  {
+   "id": "R4",
+   "status": "PARTIAL",
+   "must_have": true,
+   "gate": "G4",
+   "note": "grade B fails Wilson CI (9/54 = 16.7% vs 8.3% expected, under-prediction); 9/10 pass; HL g=10 p=0.072 but g=5 p=0.0185"
+  },
+  {
+   "id": "R5",
+   "status": "SATISFIED",
+   "must_have": true,
+   "gate": "G5",
+   "note": "blank mandatory sales-growth field -> REFER (103 firms); PD floor/cap; override policy per cutoff note"
+  },
+  {
+   "id": "R6",
+   "status": "PARTIAL",
+   "must_have": true,
+   "gate": "G4",
+   "note": "EPV 6.4 on 64-column pool (selected model 16.4; Riley met 5.2x); MoC required but not quantified in this run"
+  },
+  {
+   "id": "R7",
+   "status": "PARTIAL",
+   "must_have": true,
+   "gate": "GF",
+   "note": "all gates G0-G5 signed by one person in the designated roles; no separate independent validator on record"
+  },
+  {
+   "id": "R8",
+   "status": "PARTIAL",
+   "must_have": true,
+   "gate": "GF",
+   "note": "RACI roles exist in the engine but MAC/CRO/validator are not independent people in this run"
+  },
+  {
+   "id": "R9",
+   "status": "SATISFIED",
+   "must_have": true,
+   "gate": "G0",
+   "note": "MEDIUM tier (research benchmark)"
+  },
+  {
+   "id": "R10",
+   "status": "PARTIAL",
+   "must_have": false,
+   "gate": "G0",
+   "note": "completeness: 48.7% of firms (2,879 of 5,910) have >=1 blank among 64 ratios; 844 in the 25 selected; blank sales-growth is 96% bankrupt, cause unknown"
+  }
+ ],
+ "verdict": "GO-WITH-CONDITIONS",
+ "conditions": [
+  "R1: data history: source states bankrupt firms sampled 2000-2012, operating 2007-2013, but the file has no dates and no per-firm history, so >=5 years is not verifiable here",
+  "R4: grade B fails Wilson CI (9/54 = 16.7% vs 8.3% expected, under-prediction); 9/10 pass; HL g=10 p=0.072 but g=5 p=0.0185",
+  "R6: EPV 6.4 on 64-column pool (selected model 16.4; Riley met 5.2x); MoC required but not quantified in this run",
+  "R7: all gates G0-G5 signed by one person in the designated roles; no separate independent validator on record",
+  "R8: RACI roles exist in the engine but MAC/CRO/validator are not independent people in this run",
+  "R10: completeness: 48.7% of firms (2,879 of 5,910) have >=1 blank among 64 ratios; 844 in the 25 selected; blank sales-growth is 96% bankrupt, cause unknown"
+ ]
+}

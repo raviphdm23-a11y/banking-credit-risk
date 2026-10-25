@@ -363,6 +363,53 @@ not active citations.
 
 ---
 
+## 11. Staged execution protocol (SHARP and AEGIS run together)
+
+*Adopted 2026-10-25. Applies to every dataset run from this date. Earlier runs were executed
+one-shot (all SHARP stages, then the gates) and are not re-opened; their records stay as sealed.*
+
+Each SHARP stage runs, then **stops at its gate**. The next stage starts only after the
+stakeholder has chosen an option and given a rationale of at least 20 characters, and the
+entry is sealed in the hash chain. Implemented by `ml_models/staged_run.py` (a stage raises
+if the previous gate is unsealed; a gate cannot be sealed before its stage has run).
+
+| SHARP stage that runs first | Gate | Gate decides | Signer (MEDIUM) | Input taken from |
+|---|---|---|---|---|
+| Stage 0 governance (eligibility, sentinel check, counts, EPV) | G0 | Scope and tier | Data Steward | none |
+| Stage 1 screening (IV, WOE shape, Riley minimum N) | G1 | Which columns advance; sufficiency | Model Validator | G0 column list |
+| Stage 2 importance (Shapley, shadow-null) | G2 | Which players are accepted | Model Validator | G1 candidate pool |
+| Stage 3 selection (parsimony curve, DeLong) | G3 | Model size | Model Validator | G2 confirmed players |
+| Stage 4 calibration (isotonic, deployed-model backtest, HL, fairness, OOT if panel) | G4 | Calibration and fairness | Risk Officer | G3 chosen set |
+| Deliverables (scoring controls, cutoff policy, sample runs) | G5 | Controls and deliverables | Model Owner | G4 sealed |
+| none (engine reads sealed gates) | GF | Go / No-Go | MAC Chair + CRO | all gates |
+
+**Change of direction.** A gate that changes the data or feature set (G0-G3) means re-running
+from the stage it governs: `reopen(gate, reason)` voids that entry and every later entry (kept
+in the audit trail as voided), discards downstream stage output, and later gates are re-sealed
+on the new run. G4/G5/GF changes need no SHARP re-run. Pre-registered parameters are never
+re-opened at a gate (P8).
+
+**Information standard.** At each gate the decision maker is shown, in the conversation, the
+full output of the stage just run - not a summary: the complete stage tables (screening table;
+players table including shadow rows; full parsimony curve; full per-grade backtest and
+Hosmer-Lemeshow; out-of-time table where present), the gate's evidence, every code-emitted
+option with its data, rationale, benefits, risks and residual, one-line definitions of each
+statistic, every flag, unfavourable result and open question, and the re-run cost of each
+direction. A gate is not presented until this is on screen.
+
+**Equivalence.** The staged runner calls the same primitives with the same arguments and seed
+as `v3_pipeline.run_pipeline`; `testing/test_staged_equivalence.py` checks that an
+all-approved staged run reproduces the one-shot run (candidates, selected columns, curve,
+shadow bar, calibration, backtest, markdown report). `run_pipeline` is unchanged.
+
+**Two differences from the one-shot flow, both disclosed at the gate where they bite.**
+(1) G1 sufficiency: the Riley minimum N needs an anticipated C-statistic. The one-shot records
+used the full-model C-statistic from Stage 3 (confirmed players only), which does not exist at
+G1. The staged runner uses the out-of-fold C-statistic of all Stage-1 candidates (one cheap
+fit), with P = number of candidates. (2) G2 "borderline" watch list: confirmed players with
+confirmation frequency below 0.90 (midway between the pre-registered 0.80 minimum and 1.0)
+add a watch-item option; it is a reporting convention and decides nothing.
+
 ## Appendix A — Source links
 
 - Basel CRE36: https://www.bis.org/basel_framework/chapter/CRE/36.htm

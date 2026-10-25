@@ -1,0 +1,62 @@
+{
+ "genesis": "GEN-POLISH_1YR_0",
+ "chain": [
+  {
+   "gate": "G0",
+   "option": "A",
+   "signer": "Data Steward",
+   "rationale": "scope adopted; working_capital sentinel is one row and a plausible amount; Attr24 look-ahead and period confound disclosed",
+   "prev": "GEN-POLISH_1YR_0",
+   "entry_hash": "0c3d2aea"
+  },
+  {
+   "gate": "G1",
+   "option": "A",
+   "signer": "Model Validator",
+   "rationale": "advance 63/64; Riley minimum met 2.1x (2839 vs 5910); EPV 6.4 below 10 disclosed, to be carried to GF",
+   "prev": "0c3d2aea",
+   "entry_hash": "307ce809"
+  },
+  {
+   "gate": "G2",
+   "option": "A",
+   "signer": "Model Validator",
+   "rationale": "19/19 clear shadow bar, weakest 1.7x; P1 and Attr24 look-ahead carried as watch item to G3",
+   "prev": "307ce809",
+   "entry_hash": "7b8190c9"
+  },
+  {
+   "gate": "G3",
+   "option": "A",
+   "signer": "Model Validator",
+   "rationale": "k=4 of 19, Gini 0.826, DeLong p 0.255, loss 1.41%; 25 columns, EPV 16.4, Riley met 5.2x; Attr24 watch item carried",
+   "prev": "7b8190c9",
+   "entry_hash": "6fcb33a6"
+  },
+  {
+   "gate": "G4",
+   "option": "B",
+   "signer": "Model Validator",
+   "rationale": "AUC 0.913 clears 0.70; grade B 9/54 vs expected 8.3% disclosed as condition; HL g=5 p=0.019 noted; fairness N/A",
+   "prev": "6fcb33a6",
+   "entry_hash": "baa1f4ca"
+  },
+  {
+   "gate": "G5",
+   "option": "A",
+   "signer": "Model Validator",
+   "rationale": "mandatory sales-growth gate refers 103 blank firms (99 bankrupt); cap untested, R5 miss and missingness signal disclosed to GF",
+   "prev": "baa1f4ca",
+   "entry_hash": "e9a2f3ff"
+  },
+  {
+   "gate": "GF",
+   "option": "GO-WITH-CONDITIONS",
+   "signer": "MAC Chair + CRO",
+   "rationale": "GO-WITH-CONDITIONS: no must-have GAP; R1,R4,R6,R7,R8,R10 partials and standing scope (never-deploy, missingness, Attr24) accepted",
+   "prev": "e9a2f3ff",
+   "entry_hash": "209136ae"
+  }
+ ],
+ "voided": []
+}
