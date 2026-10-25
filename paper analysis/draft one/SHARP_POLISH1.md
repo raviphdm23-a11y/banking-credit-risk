@@ -266,3 +266,14 @@ the reason codes: it is the most frequent principal reason in the acceptance pac
 - **Sampling caveat (from the source):** bankrupt firms were drawn from 2000–2012, still-operating firms from
   2007–2013 — the classes come from different calendar windows. Part of the separation may reflect the
   period, not only the firm. Not testable here (no date field); disclosed.
+
+## Addendum — dataset headers renamed (2026-10-25; results unchanged)
+
+The shared CSVs `polish_bankruptcy_{1..5}year.csv` now carry descriptive column names derived from the UCI
+definitions (mapping in `data/ml_lab/datasets/polish_bankruptcy.dictionary.json` → `column_names`; e.g.
+`Attr27` → `operating_profit_to_financial_expenses`, `Attr24` → `gross_profit_in_3_years_to_total_assets`).
+**This record keeps the original `AttrN` labels** because the sealed run and its hash chain were produced on
+them; the original Year-1 data is preserved at `data/ml_lab/datasets/archive/polish_bankruptcy_1year_Attr.csv`
+and `acceptance_cases/polish1.json` points to it. Equivalence was verified: header-only change (data bytes
+identical); the 37-column selected model reproduces OOF Gini 0.7832 on the renamed file; the regenerated
+acceptance pack is identical to `SAMPLE_RUNS_POLISH1.md`; all 64 columns remain `permissible`.

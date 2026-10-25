@@ -206,7 +206,7 @@ each dataset's own run record / onboarding map; confirm before use rather than g
 | `MSME_Credit_Data.csv` | MSME portfolio (a NO-GO: sufficiency) | — |
 | `TH02.csv` | Thai retail credit | — |
 | `PAK.csv` | PAKDD-2009 Brazilian retail credit (a NO-GO) | — |
-| `polish_bankruptcy_{1..5}year.csv` | Polish bankruptcy, 1–5 year horizons | — (not yet run) |
+| `polish_bankruptcy_{1..5}year.csv` | Polish bankruptcy, 1–5 year horizons (descriptive column names per `polish_bankruptcy.dictionary.json`; Year-1 governed run used the original `AttrN` labels — original kept at `archive/polish_bankruptcy_1year_Attr.csv`) | Year 1 governed (`AEGIS_RUN_POLISH1.md`); Years 2–5 not yet run |
 | `south_german_credit.csv` | raw German-named source of the `_en` file | — |
 | `archive/german_clean.csv`, `archive/german_credit_record.csv` | superseded Statlog German | archived |
 
