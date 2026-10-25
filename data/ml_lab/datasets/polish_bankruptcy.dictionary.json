@@ -1,5 +1,5 @@
 {
-  "dataset": "Polish companies bankruptcy (polish_bankruptcy_{1..5}year.csv)",
+  "dataset": "Polish companies bankruptcy (polish_bankruptcy_{1..5}yr_ahead.csv)",
   "source": "UCI Machine Learning Repository, dataset 365 - https://archive.ics.uci.edu/dataset/365/polish+companies+bankruptcy+data",
   "citation": "Tomczak, S. (2016). Polish Companies Bankruptcy [Dataset]. UCI Machine Learning Repository. https://doi.org/10.24432/C5F600",
   "license": "CC BY 4.0",
@@ -9,31 +9,46 @@
       "features_from": "1st year of the forecasting period",
       "bankruptcy_status_after": "5 years",
       "n": 7027,
-      "bankrupt": 271
+      "bankrupt": 271,
+      "years_ahead": 5,
+      "current_filename": "polish_bankruptcy_5yr_ahead.csv",
+      "uci_name": "1stYear"
     },
     "2year": {
       "features_from": "2nd year",
       "bankruptcy_status_after": "4 years",
       "n": 10173,
-      "bankrupt": 400
+      "bankrupt": 400,
+      "years_ahead": 4,
+      "current_filename": "polish_bankruptcy_4yr_ahead.csv",
+      "uci_name": "2ndYear"
     },
     "3year": {
       "features_from": "3rd year",
       "bankruptcy_status_after": "3 years",
       "n": 10503,
-      "bankrupt": 495
+      "bankrupt": 495,
+      "years_ahead": 3,
+      "current_filename": "polish_bankruptcy_3yr_ahead.csv",
+      "uci_name": "3rdYear"
     },
     "4year": {
       "features_from": "4th year",
       "bankruptcy_status_after": "2 years",
       "n": 9792,
-      "bankrupt": 515
+      "bankrupt": 515,
+      "years_ahead": 2,
+      "current_filename": "polish_bankruptcy_2yr_ahead.csv",
+      "uci_name": "4thYear"
     },
     "5year": {
       "features_from": "5th year",
       "bankruptcy_status_after": "1 year",
       "n": 5910,
-      "bankrupt": 410
+      "bankrupt": 410,
+      "years_ahead": 1,
+      "current_filename": "polish_bankruptcy_1yr_ahead.csv",
+      "uci_name": "5thYear"
     }
   },
   "sampling_note": "Per the source: bankrupt companies were analysed over 2000-2012; still-operating companies over 2007-2013. The two classes were drawn from DIFFERENT calendar windows. The source describes the firms only as 'Polish companies' (no sector given on the UCI page).",
@@ -177,7 +192,7 @@
     "Attr63": "sales_to_short_term_liabilities",
     "Attr64": "sales_to_fixed_assets"
   },
-  "column_names_note": "APPLIED 2026-10-25: the CSV headers polish_bankruptcy_{1..5}year.csv now use these names (AttrN -> name below); only the header line was changed, data rows are byte-identical. Compact snake_case derived from the verbatim UCI definition in \"features\"; verbatim text is not usable as a header because XGBoost rejects [ ] < (Attr5 contains brackets) and 20-column group labels would exceed 1,000 characters. 64 unique, [a-z0-9_] only, max 66 chars; token-checked against the definitions (0 mismatches). Abbreviations only in Attr5/40/57: stl=short-term liabilities, recv=receivables, inv=inventory, ca=current assets, gp=gross profit, depr=depreciation, opex=operating expenses, sec=short-term securities; operating_profit = profit on operating activities; sales_profit = profit on sales. ORIGINAL LABELS: the Year-1 original (AttrN headers) is kept at data/ml_lab/datasets/archive/polish_bankruptcy_1year_Attr.csv; the sealed Year-1 records (SHARP_POLISH1, AEGIS_RUN_POLISH1, SAMPLE_RUNS_POLISH1, polish1.json) use the AttrN labels and that file. Years 2-5 originals are in git history before the header commit.",
+  "column_names_note": "APPLIED 2026-10-25: the CSV headers polish_bankruptcy_{1..5}yr_ahead.csv now use these names (AttrN -> name below); only the header line was changed, data rows are byte-identical. Compact snake_case derived from the verbatim UCI definition in \"features\"; verbatim text is not usable as a header because XGBoost rejects [ ] < (Attr5 contains brackets) and 20-column group labels would exceed 1,000 characters. 64 unique, [a-z0-9_] only, max 66 chars; token-checked against the definitions (0 mismatches). Abbreviations only in Attr5/40/57: stl=short-term liabilities, recv=receivables, inv=inventory, ca=current assets, gp=gross profit, depr=depreciation, opex=operating expenses, sec=short-term securities; operating_profit = profit on operating activities; sales_profit = profit on sales. ORIGINAL LABELS: the Year-1 original (AttrN headers) is kept at data/ml_lab/datasets/archive/polish_bankruptcy_5yr_ahead_Attr_class.csv; the sealed Year-1 records (SHARP_POLISH1, AEGIS_RUN_POLISH1, SAMPLE_RUNS_POLISH1, polish1.json) use the AttrN labels and that file. Years 2-5 originals are in git history before the header commit.",
   "target": {
     "column": "target",
     "renamed_from": "class",
@@ -185,6 +200,7 @@
       "1": "bankrupt within the file horizon",
       "0": "did not go bankrupt"
     },
-    "note": "Renamed class -> target on 2026-10-25 in all five CSVs (header-only change; data bytes identical; positives 271/400/495/515/410 match UCI). The archived Year-1 original (archive/polish_bankruptcy_1year_Attr.csv) and the sealed Year-1 records still use the label `class`."
-  }
+    "note": "Renamed class -> target on 2026-10-25 in all five CSVs (header-only change; data bytes identical; positives 271/400/495/515/410 match UCI). The archived Year-1 original (archive/polish_bankruptcy_5yr_ahead_Attr_class.csv) and the sealed Year-1 records still use the label `class`."
+  },
+  "file_naming": "Files are named by how far AHEAD the outcome is checked (renamed 2026-10-25). The UCI names count the year of the 5-year window the ratios come from, which runs the opposite way: UCI 1stYear = 5yr_ahead, 2ndYear = 4yr_ahead, 3rdYear = 3yr_ahead, 4thYear = 2yr_ahead, 5thYear = 1yr_ahead."
 }

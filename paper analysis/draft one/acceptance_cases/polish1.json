@@ -1,6 +1,6 @@
 {
  "title": "Polish bankruptcy (Year-1 horizon)",
- "dataset": "archive/polish_bankruptcy_1year_Attr.csv",
+ "dataset": "archive/polish_bankruptcy_5yr_ahead_Attr_class.csv",
  "target": "class",
  "selected_columns": [
   "Attr27",

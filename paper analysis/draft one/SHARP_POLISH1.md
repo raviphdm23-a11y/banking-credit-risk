@@ -269,16 +269,24 @@ the reason codes: it is the most frequent principal reason in the acceptance pac
 
 ## Addendum — dataset headers renamed (2026-10-25; results unchanged)
 
-The shared CSVs `polish_bankruptcy_{1..5}year.csv` now carry descriptive column names derived from the UCI
+The shared CSVs `polish_bankruptcy_{1..5}yr_ahead.csv` now carry descriptive column names derived from the UCI
 definitions (mapping in `data/ml_lab/datasets/polish_bankruptcy.dictionary.json` → `column_names`; e.g.
 `Attr27` → `operating_profit_to_financial_expenses`, `Attr24` → `gross_profit_in_3_years_to_total_assets`).
 **This record keeps the original `AttrN` labels** because the sealed run and its hash chain were produced on
-them; the original Year-1 data is preserved at `data/ml_lab/datasets/archive/polish_bankruptcy_1year_Attr.csv`
+them; the original Year-1 data is preserved at `data/ml_lab/datasets/archive/polish_bankruptcy_5yr_ahead_Attr_class.csv`
 and `acceptance_cases/polish1.json` points to it. Equivalence was verified: header-only change (data bytes
 identical); the 37-column selected model reproduces OOF Gini 0.7832 on the renamed file; the regenerated
 acceptance pack is identical to `SAMPLE_RUNS_POLISH1.md`; all 64 columns remain `permissible`.
 
 **Target column.** The target was also renamed `class` → `target` in the shared CSVs (all five years; header-only,
 positives 271/400/495/515/410 match UCI). This record and the sealed Year-1 chain keep the label `class`, as does
-the archived original `archive/polish_bankruptcy_1year_Attr.csv`. On the renamed file the selected model still
+the archived original `archive/polish_bankruptcy_5yr_ahead_Attr_class.csv`. On the renamed file the selected model still
 reproduces OOF Gini 0.7832 with `target='target'`.
+
+## Addendum — files renamed by years-ahead (2026-10-25; results unchanged)
+
+The Polish files were renamed so the name states how far ahead the outcome is checked. **POLISH1 (this run) is the
+`polish_bankruptcy_5yr_ahead.csv` file** (formerly `polish_bankruptcy_1year.csv`; UCI "1stYear": ratios from year 1,
+bankruptcy status 5 years later). Mapping: old `1year` → `5yr_ahead`, `2year` → `4yr_ahead`, `3year` → `3yr_ahead`,
+`4year` → `2yr_ahead`, `5year` → `1yr_ahead`. The run id POLISH1 and its hash chain are unchanged. File contents are
+byte-identical (sha1 verified). The archived original is now `archive/polish_bankruptcy_5yr_ahead_Attr_class.csv`.

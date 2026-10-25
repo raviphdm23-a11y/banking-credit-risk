@@ -5,7 +5,7 @@ financial ratios observed in the 1st year of the forecasting period, bankruptcy 
 following 5 years (the longest / hardest horizon of the five files). 7,027 firms · 3.86% bad rate (271
 bankruptcies) · 64 anonymised financial ratios (`Attr1–Attr64`).
 **Materiality tier:** MEDIUM (immaterial public research benchmark). **Fairness NOT live** — all features are
-firm financial ratios; no protected attributes exist. Source CSV: `data/ml_lab/datasets/polish_bankruptcy_1year.csv`
+firm financial ratios; no protected attributes exist. Source CSV: `data/ml_lab/datasets/polish_bankruptcy_5yr_ahead.csv` (formerly `polish_bankruptcy_1year.csv`; renamed 2026-10-25)
 (target `class`). Seed 42.
 
 > **Gate option sets and the GF verdict are emitted by `ml_models/aegis_gates.py`** (deterministic §4 GDR
@@ -100,3 +100,9 @@ high-risk credit-scoring and ECOA adverse-action do not bind (they did for the c
 - **New G0-relevant fact from the source:** bankrupt firms were sampled over 2000–2012 and operating firms
   over 2007–2013, i.e. the two classes come from different calendar windows. It is a period confound that
   cannot be tested without dates. It is recorded here as a disclosure and does not alter GF.
+
+## Addendum — file names (2026-10-25; chain unchanged)
+
+"Year-1" in this record means the file whose outcome is **5 years ahead**. The data file is now
+`polish_bankruptcy_5yr_ahead.csv` (formerly `polish_bankruptcy_1year.csv`); the run id POLISH1 is unchanged. Full mapping
+in the `SHARP_POLISH1.md` addendum and `polish_bankruptcy.dictionary.json` (`file_naming`).
