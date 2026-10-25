@@ -410,6 +410,35 @@ fit), with P = number of candidates. (2) G2 "borderline" watch list: confirmed p
 confirmation frequency below 0.90 (midway between the pre-registered 0.80 minimum and 1.0)
 add a watch-item option; it is a reporting convention and decides nothing.
 
+### 11.1 Revision of 2026-10-25: one merged flow (runs after this date)
+
+*Adopted after POLISH_1YR, the first run under the staged flow. Applies to runs started after
+this date; earlier records are not re-opened. No pre-registered parameter changes (seed 42,
+IV >= 0.02 monotonic WOE, 10 shadows / 95th percentile / frequency >= 0.80, the Shapley rule,
+the selection rule, isotonic calibration, PD floor/cap, 5-fold OOF, |rho| = 0.7). Every change
+below adds a report or moves an assessment earlier; none adds a pass/fail threshold on the data.*
+
+Principle: each SHARP stage ends in one evidence pack that its gate reads, and the Section 8
+checklist (R1-R10) fills in as the run goes, so GF reads a checklist that already exists
+instead of making a fresh judgement.
+
+| # | Change | Where | Why (POLISH_1YR evidence) |
+|---|---|---|---|
+| 1 | **Blank-vs-outcome scan** - per column with blanks: share blank, event rate among blanks and among filled rows, lift, Fisher exact p, Bonferroni reference. Report only; no column is excluded by it. | G0 | The dominant column was blank for 103 firms, 99 bankrupt (96.1%); this surfaced at G5, after four gates were signed on figures that included it. |
+| 2 | **Look-ahead review** - definitions are scanned for temporal phrases (reporting only); a human reads each hit and records a verdict. | G0 | Attr24 ("gross profit in 3 years") was carried unresolved from G0 to GF. |
+| 3 | **EPV and Riley at every gate where the column set changes**, on each basis (columns, players, selected model), in one table. | G1, G2, G3 | The player-basis recalculation had to be requested at G2. |
+| 4 | **Running checklist** - rows R1-R10 derived from the evidence as it appears and shown at each gate; statuses are proposals the signer may override with a note. GF reads the finished checklist. | G0-GF | R1, R7, R8 and R10 were first assessed at GF. The derived checklist reproduces the six POLISH_1YR GF partials (R1, R4, R6, R7, R8, R10). |
+| 5 | **Acceptance coverage** - every row is scored through the deployable scorer and the pack reports which controls the data exercises (PD floor, PD cap, mandatory-field referral) and which are NOT EXERCISED. | G5 | The 99.9% cap never bound (R5 would otherwise read as demonstrated). |
+| 6 | **Role holders declared at G0** - who holds which signing role; a person holding several roles is shown at G0, and the seal records `person` and `rationale_by` (`signer` or `assistant-drafted`) outside the hash. | G0, every seal | One person signed every gate, so R7/R8 came out PARTIAL only at GF; and every rationale was assistant-drafted. |
+
+Not adopted in this revision: a single generated record per run, and a new name for the merged
+flow. The method keeps the name SHARP; the governance keeps AEGIS.
+
+Implemented in `ml_models/staged_run.py` (`missingness_scan`, `lookahead_scan`,
+`StagedRun.sufficiency`, `role_report`, `checklist`, `set_checklist`, `record_g5`,
+`acceptance_coverage`, `gf_verdict`) and covered by `testing/test_staged_equivalence.py`.
+The hash format is unchanged, so sealed chains verify as before.
+
 ## Appendix A — Source links
 
 - Basel CRE36: https://www.bis.org/basel_framework/chapter/CRE/36.htm

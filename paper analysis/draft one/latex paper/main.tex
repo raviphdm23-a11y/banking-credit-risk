@@ -296,6 +296,12 @@ model a behavioural or score-recovery exercise rather than an application scorec
 sentinel codes and shared missingness for leakage, notes the accept-only sampling that
 truncates feature distributions \cite{handhenley1997}, and declares \emph{mandatory} columns
 and a missingness policy that are enforced only at scoring (\S\ref{sec:sharp}-F).
+Two further Stage-0 \emph{reports} were added with the staged protocol (\S\ref{sec:staged}); neither
+excludes a column or adds a pass/fail bar. A \emph{blank-versus-outcome scan} gives, for every column
+with blanks, the share blank, the event rate among blank and among filled rows, and a Fisher exact
+$p$-value against a Bonferroni reference. A \emph{look-ahead scan} flags column definitions containing
+a temporal phrase (e.g.\ ``in 3 years'') so that a human reads them against the question of whether
+they could use information after the statement date, and records a verdict.
 
 \begin{table}[!t]
 \centering
@@ -455,6 +461,29 @@ exposure-$\times$-purpose logic; the tier sets \emph{who} signs each gate and \e
 pass-bar sits}, but never changes the analytics---every metric is measured identically across
 datasets. Lowering a tier is itself a recorded G0 decision.
 
+\subsection{Staged execution: each stage stops at its gate}\label{sec:staged}
+The gates of Table~\ref{tab:gates} could be walked after the whole pipeline has run, which is how the
+fourteen corpus runs were executed (\S\ref{sec:setup}). That order has a cost: if an early gate changes
+direction, the later stages have already been computed, and the signer has seen downstream numbers
+before deciding upstream gates. The staged protocol removes both problems. Each methodology stage
+runs, then \emph{stops at its gate}; the next stage starts only after the accountable role has chosen
+an option, given a rationale of at least twenty characters, and the entry has been appended to the hash
+chain. A gate cannot be sealed before its stage has run, and a stage refuses to run while the previous
+gate is unsealed. A gate that changes direction at G0--G3 voids its own entry and every later one (kept
+in the audit trail) and re-runs from the stage it governs; a change at G4, G5 or GF needs no re-run of the
+methodology. The staged run calls the same primitives with the same arguments and seed as the one-shot
+pipeline, and an all-approved staged run reproduces the one-shot candidates, selected columns, parsimony
+curve, shadow bar, calibration and backtest (an automated equivalence test). Consequently P8 is unaffected:
+staging changes \emph{when} a human decides, never \emph{what} is computed.
+
+Three further changes move an assessment earlier rather than adding a bar. Events-per-variable and the
+Riley minimum $N$ are reported on every basis reached (candidate columns, confirmed players, selected
+model) at G1, G2 and G3. The regulatory acceptance checklist (rows R1--R10) is derived as evidence
+appears, so the final gate reads a completed checklist; derived statuses are proposals that the signer
+may override with a recorded note. And the holders of the signing roles are declared at G0, so that one
+person holding several roles is visible when it occurs and not only at GF. At G5 the acceptance pack is
+accompanied by a coverage report of which scoring controls the data actually exercises.
+
 \subsection{Anatomy of a gate}
 Each gate produces one Gate Decision Record with five parts: (i) the machine recommendation and
 its numeric basis; (ii) the full evidence pack (the actual numbers, traceable to a run, not a
@@ -524,7 +553,7 @@ widely used public benchmarks---including the UCI German \cite{groemping2019,uci
 \cite{gmsc2011} sets, the FICO HELOC panel \cite{fico2018}, a LendingClub extract \cite{lendingclub},
 the PAKDD-2009 Brazilian retail-credit set \cite{pakdd2009}, and the US Small Business
 Administration (SBA) loan set \cite{li2018sba}---alongside additional reference portfolios, the Polish
-companies bankruptcy set \cite{zieba2016} and a US mortgage performance panel \cite{baesens2016} (the latter
+companies bankruptcy set \cite{zieba2016} (the corpus uses the file whose outcome is checked five years ahead; UCI numbers it ``Year~1'') and a US mortgage performance panel \cite{baesens2016} (the latter
 reshaped from $622{,}489$ loan-period rows to one origination-time row per loan). They span
 $N\in[1{,}000,\,149{,}391]$, prevalence $[4\%,52\%]$, and candidate pools of $9$--$87$ features.
 Per Stage~0, protected and proxy attributes are retained with disclosure so results remain
@@ -547,15 +576,18 @@ and a per-grade realised-vs-expected backtest; fairness uses the adverse-impact 
 the four-fifths rule; data sufficiency uses EPV \cite{peduzzi1996} and the Riley minimum-$N$
 \cite{riley2020bmj}.
 
-\textbf{Governance and reproducibility.} Each dataset is run end-to-end through gates G0--GF with
+\textbf{Governance and reproducibility.} Each corpus dataset passes through gates G0--GF with
 a human sign-off recorded at every gate and appended to the hash chain (\ref{eq:hash}); the
-materiality tier is set at G0. The pipeline is deterministic: independent re-runs of two datasets
+materiality tier is set at G0. The fourteen corpus runs were executed \emph{one-shot}: every
+methodology stage was run and the gates were then walked in order. The staged protocol
+(\S\ref{sec:staged}) was adopted afterwards and is used for the Polish horizon series reported separately
+in \S\ref{sec:polish1}; the corpus runs were not re-executed under it. The pipeline is deterministic: independent re-runs of two datasets
 reproduced their committed results exactly---German (Gini $0.54$, GO-WITH-CONDITIONS) including its
 hash chain, and CREDITRISK (selection Gini $0.76$), the latter re-run on a \emph{cleaned} copy of the
 file (its corrupt label column removed) yet returning the identical screen, attribution, and
 $k{=}6$ selection, confirming that the result depends only on the modelling inputs.
-Validation is i.i.d.\ cross-validation only---no dataset has a reliable time field, so no claim of
-out-of-time or production readiness is made---and all accept/decline thresholds and pricing are
+Validation of the corpus runs is i.i.d.\ cross-validation only---no corpus run is evaluated out of time,
+so no claim of out-of-time or production readiness is made---and all accept/decline thresholds and pricing are
 treated as exogenous institution inputs, never derived here.
 
 \section{Results}\label{sec:results}
@@ -565,7 +597,8 @@ $p\ge0.05$ and $\le5\%$ relative-Gini loss; sampled Shapley when players $>15$).
 spans $N$ from $1{,}000$ to $149{,}391$, prevalence from $4\%$ to $52\%$, and candidate pools
 from $9$ to $87$ features. Table~\ref{tab:corpus} and Fig.~\ref{fig:corpus} summarise it; twelve
 runs seal GO-WITH-CONDITIONS and two (MSME, PAK) seal NO-GO. Every figure traces to a recorded
-run.
+run. The Polish set appears once, as the five-year-ahead file (POLISH-5y); the one-year-ahead file is
+run separately under the staged protocol (\S\ref{sec:polish1}).
 
 \begin{table}[!t]
 \centering
@@ -579,7 +612,7 @@ Dataset & $N$ & base & pool$\to$sel & Gini & AUC & Verdict \\
 \midrule
 SBA        & 2{,}102   & .326 & 19$\to$11 & 0.86 & 0.93 & GO-cond \\
 HMEQ       & 5{,}960   & .200 & 12$\to$11 & 0.81 & 0.91 & GO-cond \\
-POLISH     & 7{,}027   & .039 & 64$\to$37 & 0.78 & 0.89 & GO-cond \\
+POLISH-5y  & 7{,}027   & .039 & 64$\to$37 & 0.78 & 0.89 & GO-cond \\
 CREDITRISK & 32{,}581  & .218 & 9$\to$6   & 0.76 & 0.88 & GO-cond \\
 GMSC       & 149{,}391 & .067 & 9$\to$8   & 0.70 & 0.85 & GO-cond \\
 HELOC      & 10{,}459  & .522 & 23$\to$17 & 0.59 & 0.79 & GO-cond \\
@@ -686,8 +719,12 @@ largest $N$ (GMSC $149{,}391$, LC). The one exception is the origination-only MO
 ($p{=}0.34$) with the per-grade backtest clean ($8/8$ grades inside the Wilson interval): the
 large-$N$ hypersensitivity that dominates parsimony surfaces for calibration only on the coarsest-
 fitting model, and there the per-grade realised-vs-expected backtest---not HL---is the governing
-test (as recorded at G4 for that run). Because the learner is WOE-logistic, each PD carries an exact additive reason-code
-decomposition. Fig.~\ref{fig:reliability} illustrates the per-grade reliability on CREDITRISK,
+test (as recorded at G4 for that run). \emph{Which backtest.} The per-grade backtests sealed for the fourteen corpus runs were computed on
+out-of-fold predictions. A stricter variant, which fits the isotonic calibrator on one part of the data
+and tests the \emph{deployed} calibrated model on a held-out part, was introduced later (first with
+the mortgage hazard framing) and is used in \S\ref{sec:polish1}; the earlier runs have not yet been
+re-verified under it, so the two are not directly comparable. Because the learner is WOE-logistic, each
+PD carries an exact additive reason-code decomposition. Fig.~\ref{fig:reliability} illustrates the per-grade reliability on CREDITRISK,
 whose model spans the full AAA--D range: observed default rates track the predicted probabilities
 closely across nearly two orders of magnitude.
 
@@ -706,7 +743,7 @@ Table~\ref{tab:riley} reports the two sufficiency diagnostics. Thirteen of fourt
 minimum; the lone shortfall is \textbf{MSME} (requires $3{,}654$, has $1{,}707$), which is also the
 only run failing \emph{both} diagnostics and the only HIGH-tier NO-GO---so the single failure is the
 case already rejected. The two diagnostics diverge in both directions, which is exactly Riley's value
-over EPV. Below EPV $10$ sit \emph{two} runs---MSME ($6.8$) and \textbf{POLISH} ($7.3$)---yet only MSME
+over EPV. Below EPV $10$ sit \emph{two} runs---MSME ($6.8$) and \textbf{POLISH-5y} ($7.3$)---yet only MSME
 also fails Riley: POLISH's strong signal (Gini $0.78$) clears the shrinkage criterion despite thin
 events ($271$), so it meets Riley with room to spare. The converse is \textbf{PAK}, which has an
 enormous EPV ($2{,}173$) yet needs $4{,}041$ rows because its weak signal (AUC
@@ -734,7 +771,7 @@ Dataset & $N$ & $N_{\text{req}}$ & EPV & Meets? \\
 \midrule
 SBA        & 2{,}102   & 338   & 62    & yes \\
 HMEQ       & 5{,}960   & 278   & 108   & yes \\
-POLISH     & 7{,}027   & 5{,}141 & 7.3 & yes ($+1{,}886$)\textsuperscript{\dag} \\
+POLISH-5y  & 7{,}027   & 5{,}141 & 7.3 & yes ($+1{,}886$)\textsuperscript{\dag} \\
 CREDITRISK & 32{,}581  & 263   & 1185  & yes \\
 GMSC       & 149{,}391 & 570   & 1251  & yes \\
 HELOC      & 10{,}459  & 522   & 321   & yes \\
@@ -750,10 +787,38 @@ PAK        & 50{,}000  & 4{,}041 & 2173 & yes \\
 \end{tabular}
 
 \vspace{2pt}
-{\footnotesize \dag~POLISH meets the Riley minimum but its EPV $7.3<10$ (events per selected column; its
+{\footnotesize \dag~POLISH-5y meets the Riley minimum but its EPV $7.3<10$ (events per selected column; its
 record also reports $4.2$ on the $64$-candidate screening pool)---strong signal clears the shrinkage
 criterion despite thin events, the mirror image of PAK. MSME alone fails both diagnostics.\par}
 \end{table}
+
+\subsection{A staged run: Polish bankruptcy, one year ahead}\label{sec:polish1}
+The Polish file whose outcome is checked one year ahead (5{,}910 firms, 410 bankruptcies, 6.94\%; 64
+financial ratios; seed $42$, same fixed configuration) was the first dataset run under the staged
+protocol, with every gate signed before the next stage ran. It is not part of Table~\ref{tab:corpus}:
+its firms and event rate differ from the five-year-ahead file, so the two are not a paired comparison, and
+no test of whether discrimination falls with horizon has been made.
+
+Screening passes $63$ of $64$ ratios (the dominant ratio, sales growth, has information value $2.19$).
+Attribution confirms $19$ players above the shadow bar ($0.00161$; weakest $1.74\times$). Selection
+chooses $k{=}4$ players spanning $25$ columns: Gini $0.826$ (95\% CI $0.797$--$0.857$) against $0.838$ for
+the full set, DeLong $p{=}0.255$, relative loss $1.4\%$. EPV is $6.4$ on the candidate pool and $16.4$ on the
+selected model, which meets the Riley minimum with a $5.2\times$ margin. The deployed-model backtest passes
+$9$ of $10$ grades on $1{,}182$ held-out firms; grade~B under-predicts risk ($16.7\%$ realised against
+$8.3\%$ expected), and Hosmer--Lemeshow does not reject with ten groups ($p{=}0.072$) but rejects with five
+($p{=}0.019$). The sealed verdict is GO-WITH-CONDITIONS.
+
+The run also shows what the staged reports are for. The ratio `sales growth' is blank for $103$ firms,
+$99$ of them bankrupt ($96.1\%$; Fisher $p<10^{-100}$), so a model that scores a blank as a value assigns
+those firms near-certain default. The pattern is a data-collection artefact of unknown cause, not a financial
+ratio, and it was noticed only at the deployment gate because the blank-versus-outcome scan did not yet
+exist; with the scan it appears at G0. The deployed control refers a blank application instead of scoring it.
+On complete rows the in-sample AUC is $0.895$ against $0.920$ on all rows (descriptive, not out-of-fold), so part of the
+reported discrimination rests on the pattern. Two further items stay open: one profitability ratio is defined
+over `gross profit in 3 years', and the source does not say whether those years follow the statement date; and
+bankrupt and operating firms were sampled in different calendar windows. The acceptance pack exercised the PD floor
+but never the $99.9\%$ cap (the highest PD among scored firms is well below it), and one real bankrupt firm is
+rated in the best grade.
 
 \section{Discussion}\label{sec:discussion}
 \textbf{Governance without contaminating the analytics.} The central design choice---that gates
@@ -776,12 +841,16 @@ bind a fairness-constrained follow-up, rather than to claim fairness by omission
 \textbf{Limitations.} This study validates a \emph{procedure}, not a performance claim: we do not
 yet assert that the methodology selects better subsets than established alternatives---that requires the
 pre-specified benchmark against LASSO, elastic net, RFE, Boruta and TreeSHAP, which is
-implemented but not run across the corpus. Validation is i.i.d.\ cross-validation; no dataset has
-a reliable time field, so no out-of-time or production-readiness claim is made. All datasets are
+implemented but not run across the corpus. Validation of the corpus runs is i.i.d.\ cross-validation; none is evaluated out of time, so no
+out-of-time or production-readiness claim is made. All datasets are
 accept-only samples, so feature effects are subject to range restriction \cite{handhenley1997}.
 The governance roles are exercised by a single researcher in this methodological setting; the
 framework specifies the \emph{structure} of independent challenge rather than demonstrating a multi-party
-deployment. Finally, the Riley diagnostic uses the selected-feature count as its parameter count
+deployment. In the staged Polish run the researcher chose every option, but the rationale text was drafted
+by an AI assistant, shown before sealing, and recorded as such; the independence rows of the acceptance
+checklist (R7, R8) are therefore partial. The Polish run also leaves two data questions open (a possible
+look-ahead in one ratio and a sampling-window confound between bankrupt and operating firms), and its
+discrimination partly rests on a blank-value pattern whose cause is unknown (\S\ref{sec:polish1}). Finally, the Riley diagnostic uses the selected-feature count as its parameter count
 and a closed-form approximation that can under-state the requirement at very high $C$; neither
 affects any verdict here, but both are disclosed.
 
@@ -791,8 +860,10 @@ Several directions follow directly from the limitations above.
 feature elimination, Boruta and TreeSHAP---implemented but not yet run across the corpus---will
 test whether the methodology selects \emph{better} subsets than established alternatives,
 upgrading the present ``defensible'' claim to a comparative one.
-\emph{Temporal validation.} Applying the pipeline to a dataset with a reliable time index would
-enable out-of-time validation and a survival / competing-risks extension, replacing the current
+\emph{Temporal validation.} An exploratory discrete-time (hazard) analysis of the mortgage panel
+with an out-of-time split exists outside the reported corpus; extending it, and applying the pipeline to
+other datasets with a reliable time index, would support out-of-time validation and a survival /
+competing-risks extension, replacing the current
 i.i.d.\ cross-validation scope and supporting a production-readiness claim.
 \emph{Reject inference.} Because all datasets are accept-only, incorporating reject inference would
 correct the range restriction that attenuates feature effects, and would sharpen the fairness
@@ -827,7 +898,8 @@ on this fixed configuration together with the determinism of the pipeline: indep
 two datasets reproduced their committed results exactly (\S\ref{sec:setup}). Each gate decision is
 additionally recorded in an append-only, hash-chained log (\S\ref{sec:aegis}, Eq.~\ref{eq:hash})
 so that any later edit to a sealed record is detectable; the per-run decision logs accompany the
-paper's artefact.
+paper's artefact. For staged runs the artefact also holds the chain and the stage outputs of each run, and an
+automated test checks that the staged runner reproduces the one-shot pipeline.
 
 \begin{table}[!t]
 \centering

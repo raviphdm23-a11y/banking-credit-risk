@@ -15,6 +15,7 @@ sys.path.insert(0, os.path.join(ROOT, 'backend'))
 import numpy as np
 import pandas as pd
 import v3_pipeline as v3
+import staged_run as sr
 from staged_run import StagedRun
 
 fails = []
@@ -29,7 +30,9 @@ def check(label, ok):
 df = pd.read_csv(os.path.join(ROOT, 'data', 'ml_lab', 'datasets', 'south_german_credit_en.csv'))
 one = v3.run_pipeline(df, target='target', dataset_name='EQ', verbose=False)
 
-run = StagedRun(df, 'target', 'EQ', tempfile.mkdtemp(prefix='staged_eq_'), verbose=False)
+run = StagedRun(df, 'target', 'EQ', tempfile.mkdtemp(prefix='staged_eq_'), verbose=False,
+                roles={'Data Steward': 'A', 'Model Validator': 'A', 'Risk Officer': 'B'},
+                dictionary={'x': 'profit in 3 years', 'y': 'ratio of assets'})
 
 # --- order guards -----------------------------------------------------------
 try:
@@ -81,11 +84,58 @@ for g in ('G0', 'G1', 'G2', 'G3', 'G4'):
     except Exception as e:     # noqa: BLE001
         check('%s card builds (%r)' % (g, e), False)
 
+
+# --- revision 2026-10-25 additions (report-only diagnostics + running checklist) ----------
+# synthetic frame: column 'b' is blank mostly for events, column 'n' blank at random
+rng = np.random.RandomState(0)
+sy = rng.binomial(1, 0.2, 2000)
+sdf = pd.DataFrame({'a': rng.randn(2000), 'b': rng.randn(2000), 'n': rng.randn(2000), 'target': sy})
+sdf.loc[(sy == 1) & (rng.rand(2000) < 0.6), 'b'] = np.nan
+sdf.loc[rng.rand(2000) < 0.05, 'n'] = np.nan
+ms = sr.missingness_scan(sdf, 'target')
+check('missingness scan ranks the outcome-linked blank column first', ms.iloc[0]['column'] == 'b')
+check('missingness scan: random blanks not below Bonferroni',
+      not bool(ms[ms['column'] == 'n']['below_bonferroni'].iloc[0]))
+check('look-ahead scan hits only the temporal definition',
+      list(sr.lookahead_scan({'x': 'profit in 3 years', 'y': 'ratio of assets'})) == ['x'])
+check('stage0 stores missingness + lookahead', 'missingness' in run.state['stage0']
+      and list(run.state['stage0']['lookahead']) == ['x'])
+suf = run.sufficiency()
+check('sufficiency has G1, G2 and G3 rows', list(suf['stage']) == ['G1', 'G2', 'G3'])
+check('role report flags the multi-role person',
+      run.role_report()['multi_role_persons'] == {'A': ['Data Steward', 'Model Validator']})
+check('seal records person and rationale_by outside the hash',
+      run.chain[0]['person'] == 'A' and 'rationale_by' in run.chain[0])
+check('hash format unchanged',
+      run.chain[0]['entry_hash'] == __import__('hashlib').sha256(
+          (run.genesis + 'G0|A|' + run.chain[0]['signer'] + '|' + R).encode()).hexdigest()[:8])
+cl = {r['id']: r for r in run.checklist()}
+check('checklist derives R3/R4/R6/R9 and R7/R8 from roles',
+      all(k in cl for k in ('R1', 'R3', 'R4', 'R6', 'R7', 'R8', 'R9', 'R10'))
+      and cl['R7']['status'] == 'PARTIAL')
+run.set_checklist('R1', 'SATISFIED', 'ten-year window confirmed by the data steward', 'A')
+check('checklist override is recorded',
+      {r['id']: r for r in run.checklist()}['R1']['source'].startswith('override'))
+try:
+    run.set_checklist('R1', 'SATISFIED', 'short', 'A')
+    check('override with a short note refused', False)
+except ValueError:
+    check('override with a short note refused', True)
+cov = sr.acceptance_coverage(df, 'target', run.state['stage3']['selected_columns'])
+check('acceptance coverage reports cap/floor exercise',
+      'cap_exercised' in cov and isinstance(cov['not_exercised'], list))
+run.record_g5(True, True, True, cov)
+check('G5 facts fill R2 and R5', all(k in {r['id'] for r in run.checklist()} for k in ('R2', 'R5')))
+run.seal('G5', 'A', R)
+run.seal('GF', 'GO-WITH-CONDITIONS', R)
+check('gf_verdict runs from the running checklist', run.gf_verdict().verdict in
+      ('GO', 'GO-WITH-CONDITIONS', 'NO-GO'))
+
 # --- reopen voids this gate and later ones, keeps the audit trail -----------
 n = run.reopen('G2', 'test: a G2 player is challenged as a leak')
 check('reopen(G2) -> re-run stage 2', n == 2)
-check('G2..G4 voided, G0/G1 kept',
-      [e['gate'] for e in run.chain] == ['G0', 'G1'] and len(run.voided) == 3)
+check('G2..GF voided (5 entries), G0/G1 kept',
+      [e['gate'] for e in run.chain] == ['G0', 'G1'] and len(run.voided) == 5)
 try:
     run.stage3()
     check('stage3 refused after reopen', False)

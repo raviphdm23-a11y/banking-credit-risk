@@ -660,3 +660,22 @@ Then, separately, select: walk the parsimony curve and take the smallest feature
 indistinguishable from the full candidate model by DeLong's test and within a pre-declared 5% relative Gini
 tolerance — reporting honestly when no subset qualifies. Calibrate the result, report Gini first, and test
 every comparison.
+
+---
+
+## 11. Governed execution - the merged SHARP-AEGIS flow (added 2026-10-25)
+
+The stages above are run one at a time under AEGIS. Each stage ends at its gate; the next stage
+starts only after the signer has chosen an option and the entry is sealed in the hash chain
+(`ml_models/staged_run.py`; `AEGIS_GOVERNANCE.md` Section 11 and 11.1). The merged flow adds
+four reports and one running checklist to the stages, with **no change to any pre-registered
+parameter**:
+
+- Stage 0 also reports a blank-vs-outcome table (Fisher exact, Bonferroni reference) and a
+  look-ahead scan of the column definitions. Both are reports; neither excludes a column.
+- Stages 1-3 report EPV and the Riley minimum N on every basis reached (candidate columns,
+  confirmed players, selected model) in one table.
+- Stage 5 (deliverables) reports which scoring controls the data actually exercises.
+- The Section 8 checklist (R1-R10) is derived as evidence appears, so the final Go/No-Go reads it.
+
+Earlier runs were executed one-shot and are not re-run under this flow.
