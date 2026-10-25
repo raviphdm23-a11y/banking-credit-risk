@@ -217,3 +217,52 @@ Implementation audit (efficiency property): sum of Shapley values 0.387564 vs v(
 |---|---:|---:|---:|
 | Brier | 0.0369 | 0.0188 | **0.0170** |
 | ECE | - | 0.0055 | **0.0041** |
+
+---
+
+## Addendum — feature dictionary annotation (2026-10-25; results unchanged)
+
+The CSV labels are anonymised (`Attr1`–`Attr64`), but the source publishes the definitions. They are now
+recorded verbatim in `data/ml_lab/datasets/polish_bankruptcy.dictionary.json` (UCI dataset 365,
+DOI 10.24432/C5F600, CC BY 4.0). The mapping `AttrN` = published `XN` was verified: all five files' row and
+bankruptcy counts match the source exactly, and value behaviour matches the definitions. **No number in this
+record changes** — the method operates on values, not names.
+
+**The six selected players, named** (economic family in bold is our reading, not the source's):
+
+| Player | Members (definitions) | Family |
+|---|---|---|
+| `Attr27` | profit on operating activities / financial expenses | **interest cover** |
+| 20-ratio group | net profit, EBIT, gross profit and operating profit scaled by total assets, sales, liabilities or inventory (`Attr1, 7, 11–14, 16, 18, 19, 22–24, 26, 31, 35, 39, 42, 45, 48, 49`) | **profitability** |
+| `grp[Attr46+Attr5]` | (current assets − inventory) / short-term liabilities; cash-interval measure (`Attr5`) | **liquidity** |
+| 7-ratio group | total liabilities / total assets, equity / total assets, total assets / total liabilities, short-term liabilities / total assets, constant capital / total assets, (equity − share capital) / total assets, equity / total liabilities | **leverage / capital structure** |
+| 6-ratio group | working capital / total assets, current ratio, current assets / total liabilities, working capital / fixed assets, equity / fixed assets, constant capital / fixed assets | **working-capital and fixed-asset coverage** |
+| `Attr21` | sales (n) / sales (n−1) | **sales growth** |
+
+**Plausibility reading (effective challenge, now possible):** each correlation-clustered player is a
+coherent ratio family, and together they span the classic solvency dimensions — profitability, liquidity,
+leverage, coverage, growth, interest cover. The clustering grouped economically related ratios without being
+told what they were. The rejected `Attr37` is (current assets − inventories) / long-term liabilities, ~44%
+missing — undefined for firms with no long-term liabilities, which plausibly explains the missingness.
+
+**Open definitional question — `Attr24`:** defined as "gross profit (in 3 years) / total assets". The source
+does not say whether this is cumulative over the *preceding* three years or the *following* three. If it were
+forward-looking it would carry outcome information (leakage). It sits in the selected profitability group and
+is the most frequent principal reason code in `SAMPLE_RUNS_POLISH1.md`. Unresolved here; it needs the
+original paper (Zięba, Tomczak & Tomczak 2016) or the data author before Attr24 is treated as clean.
+
+*Leave-Attr24-out bound (run 2026-10-25, same config, seed 42):* selected 37 columns → OOF Gini 0.7832
+(reproduces the record); without Attr24 (36) → **0.7766** (−0.0065, −0.83% relative; DeLong p = 0.177,
+not distinguishable). So **the selected model's discrimination does not depend on Attr24** and the Year-1
+conclusions hold either way. Attr24 is individually strong (IV 1.02; Gini 0.43 alone), which is consistent
+with genuine profitability signal but does not rule leakage out. If it were leakage, the residual exposure is
+the reason codes: it is the most frequent principal reason in the acceptance pack.
+
+**Corrections from the dictionary:**
+- `Attr55` is **working capital as an absolute amount**, not a ratio. Its Stage-0 "sentinel" flag (values
+  −999 and 98, one firm each) was a false positive of the generic sentinel heuristic, whose candidate codes
+  collide with plausible real amounts. The G0 dismissal was right; the reason is now clearer.
+- Not all 64 columns are ratios: `Attr29` is log(total assets) and `Attr55` an absolute amount.
+- **Sampling caveat (from the source):** bankrupt firms were drawn from 2000–2012, still-operating firms from
+  2007–2013 — the classes come from different calendar windows. Part of the separation may reflect the
+  period, not only the firm. Not testable here (no date field); disclosed.

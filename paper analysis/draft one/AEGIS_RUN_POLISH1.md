@@ -78,3 +78,25 @@ refer). Standing scope conditions: **NEVER-DEPLOY** (research benchmark) and **P
 37 columns). **R12 / R14 are N/A** — borrowers are firms, not natural persons, so EU AI Act Annex III
 high-risk credit-scoring and ECOA adverse-action do not bind (they did for the consumer-credit runs). Verdict
 **GO-WITH-CONDITIONS**; no blockers, no return.
+
+---
+
+## Addendum — G0 evidence annotated with the published feature dictionary (2026-10-25; chain unchanged)
+
+*Append-only; no gate decision is altered.* Definitions now recorded in
+`data/ml_lab/datasets/polish_bankruptcy.dictionary.json` (UCI 365, verified; see `SHARP_POLISH1.md` addendum).
+
+- **`Attr55` flag:** `Attr55` is *working capital* (an absolute amount), so −999 and 98 are plausible real
+  values, not codes. The G0 dismissal stands; the flag was a false positive of the sentinel heuristic.
+- **"All 64 ratios"** (G0 wording) is loose: `Attr29` is log(total assets) and `Attr55` an absolute amount.
+- **Leakage review, now possible by name:** the selected features are financial-statement ratios
+  (profitability, liquidity, leverage, coverage, growth, interest cover). **One open item:** `Attr24` =
+  "gross profit (in 3 years) / total assets" — the source does not say whether the 3 years precede or follow
+  the statement date. If they follow, it is outcome leakage. It is in the selected profitability group and is
+  the most frequent reason code in the acceptance pack. **Definition unresolved** (needs the original paper
+  / data author), **but bounded:** dropping Attr24 moves selected-model OOF Gini 0.7832 → 0.7766 (−0.83%,
+  DeLong p 0.177 — not distinguishable), so no gate outcome depends on it; the residual exposure is the
+  reason codes. No other selected definition suggests post-statement information.
+- **New G0-relevant fact from the source:** bankrupt firms were sampled over 2000–2012 and operating firms
+  over 2007–2013, i.e. the two classes come from different calendar windows. It is a period confound that
+  cannot be tested without dates. It is recorded here as a disclosure and does not alter GF.
