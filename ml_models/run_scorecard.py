@@ -122,16 +122,15 @@ def build(run, air=None):
     hl = bt['hl']
     pt = boot['point']
     # PRIMARY-MODEL figures: the out-of-fold predictions of the selected WOE-logistic model, plus the
-    # held-out deployed-model ECE from the backtest. NOTE: the Stage-4 calibration block of the pipeline
-    # (`v3_pipeline._calibrate`) trains an XGBoost model on the selected columns, so its Brier / ECE /
-    # AUC describe the secondary (robustness) learner, not the primary. It is kept separately below.
+    # held-out deployed-model ECE from the backtest. Runs recorded before 2026-10-25 carry a Stage-4
+    # calibration block from an XGBoost model (legacy); the block's 'learner' field says which it is.
     acc = {'brier_baseline_always_base_rate': round(float(y.mean() * (1 - y.mean())), 4),
            'brier_skill_oof': round(pt['brier_skill_oof'], 4), 'ece_oof': round(pt['ece_oof'], 4),
            'ece_heldout_raw': float(bt['ece_raw']), 'ece_heldout_calibrated': float(bt['ece_cal']),
            'calibration_slope_oof': round(slope, 3), 'calibration_intercept_oof': round(intercept, 3),
            'hl_p_g10': float(hl[10]['p_value']) if 10 in hl else None,
            'hl_p_g5': float(hl[5]['p_value']) if 5 in hl else None}
-    xgb_step = {'learner': 'xgboost (secondary, trained on the selected columns, 80/20 split)',
+    xgb_step = {'learner': cal.get('learner', 'xgboost (legacy record: secondary learner on an 80/20 split)'),
                 'brier_baseline': float(cal['baseline_brier_always_base_rate']),
                 'brier_raw': float(cal['raw_brier']), 'brier_calibrated': float(cal['calibrated_brier']),
                 'ece_raw': float(cal['raw_ece']), 'ece_calibrated': float(cal['calibrated_ece']),
@@ -210,7 +209,7 @@ def build(run, air=None):
     bars = [{'bar': b, 'cleared': c, 'source': s} for b, c, s in bars]
     applicable = [b for b in bars if b['cleared'] is not None]
     return {'run': run.name, 'tier': run.tier, 'n': n, 'events': events, 'prevalence': round(events / n, 4),
-            'ranking': rank, 'uncertainty': boot, 'accuracy': acc, 'xgboost_calibration_step': xgb_step, 'grades': grade, 'sufficiency': sufficiency,
+            'ranking': rank, 'uncertainty': boot, 'accuracy': acc, 'calibration_step': xgb_step, 'grades': grade, 'sufficiency': sufficiency,
             'stability': stab, 'integrity': integrity, 'bars': bars,
             'bars_cleared': sum(1 for b in applicable if b['cleared']), 'bars_applicable': len(applicable),
             'note': 'Describes the model and its data together; not a ranking of methods. '
@@ -242,9 +241,9 @@ def markdown(sc):
           '| Deployed-model ECE on held-out firms, before to after isotonic | %s to %s |' % (f(a['ece_heldout_raw']), f(a['ece_heldout_calibrated'])),
           '| Calibration slope (95%% CI) / intercept | %s (%s to %s) / %s |' % (f(a['calibration_slope_oof'], 3), f(U['ci']['calibration_slope_oof'][0], 3), f(U['ci']['calibration_slope_oof'][1], 3), f(a['calibration_intercept_oof'], 3)),
           '| Hosmer-Lemeshow p (10 groups / 5 groups) | %s / %s |' % (f(a['hl_p_g10']), f(a['hl_p_g5'])),
-          '', '_Pipeline calibration step (XGBoost secondary learner, not the primary): Brier baseline / raw / calibrated %s / %s / %s; ECE raw / calibrated %s / %s; calibrated AUC %s._' % (
-              f(sc['xgboost_calibration_step']['brier_baseline']), f(sc['xgboost_calibration_step']['brier_raw']), f(sc['xgboost_calibration_step']['brier_calibrated']),
-              f(sc['xgboost_calibration_step']['ece_raw']), f(sc['xgboost_calibration_step']['ece_calibrated']), f(sc['xgboost_calibration_step']['auc_calibrated'])),
+          '', '_Pipeline calibration step (%s): Brier baseline / raw / calibrated %s / %s / %s; ECE raw / calibrated %s / %s; calibrated AUC %s._' % (
+              sc['calibration_step']['learner'], f(sc['calibration_step']['brier_baseline']), f(sc['calibration_step']['brier_raw']), f(sc['calibration_step']['brier_calibrated']),
+              f(sc['calibration_step']['ece_raw']), f(sc['calibration_step']['ece_calibrated']), f(sc['calibration_step']['auc_calibrated'])),
           '', '## 3. Grade reliability (deployed-model backtest, held-out n = %d)' % g['n_heldout'], '',
           '| Metric | Value |', '|---|---|',
           '| Grades inside Wilson 95%% | %d of %d |' % (g['grades_passed'], g['grades_total']),

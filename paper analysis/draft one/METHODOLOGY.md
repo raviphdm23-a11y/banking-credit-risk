@@ -336,7 +336,7 @@ importance rankings (`benchmarks.rank_concordance`). If τ is low, the loss-base
 | `learner` | Role |
 |---|---|
 | `woe_logistic` (**default**) | Penalised logistic on monotonic-WOE inputs — credit-scoring standard form, deterministic, hyperparameter-insensitive. Removes v2's refit-noise objection. |
-| `xgboost` | Secondary/robustness; captures interactions a linear-in-WOE model cannot. |
+| `xgboost` | Available in the learner registry; **not used in the governed process** (since 2026-10-25 every stage, including calibration, uses `woe_logistic`). |
 
 Report both rankings and their Kendall's τ; material disagreement is itself a finding (the feature's value
 is interaction-dependent), not something to average away.
@@ -450,7 +450,9 @@ review.
 
 ### 7.1 Calibration [RETAINED, with changes]
 
-Isotonic regression via cross-validated `CalibratedClassifierCV` (map learned on held-out predictions).
+Isotonic regression on the **deployed WOE-logistic scorer** (map learned on 5-fold out-of-fold scores; Brier and ECE
+before and after are measured on a held-out 20%). Until 2026-10-25 this step trained an XGBoost model instead, so earlier
+Stage-4 tables describe the secondary learner (labelled legacy).
 Report Brier, ECE and a reliability diagram for **both** selected and full-pool models. With
 `scale_pos_weight` now off (§5.2), re-measure: much of v2's ECE damage was self-inflicted. Under the
 `brier_skill` value function, calibration enters selection directly and this stage becomes confirmation
@@ -678,6 +680,7 @@ parameter**:
   entered Stage 1 after outcome-blind eligibility) is the governing basis; the others are
   informational because they follow outcome-dependent selection (`RILEY_SAMPLE_SIZE.md` section 8).
 - Stage 5 (deliverables) reports which scoring controls the data actually exercises.
+- One learner (`woe_logistic`) is used for every stage including calibration; XGBoost is no longer part of the governed process.
 - The Section 8 checklist (R1-R10) is derived as evidence appears, so the final Go/No-Go reads it.
 - Every run ends in a model reliability scorecard (`ml_models/run_scorecard.py`): six dimensions of
   out-of-fold or held-out metrics and a count of the existing cited bars cleared. There is no composite

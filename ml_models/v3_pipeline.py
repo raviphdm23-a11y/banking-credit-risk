@@ -473,7 +473,51 @@ def run_pipeline(df, target='target', dataset_name='dataset', *,
 
 
 def _calibrate(df, target, columns, random_state=42, groups=None):
-    """Stage 4: isotonic calibration of the selected model (v3 s7).
+    """Stage 4: isotonic calibration of the PRIMARY (WOE-logistic) model on a held-out split.
+
+    Changed 2026-10-25. Earlier versions (kept as `_calibrate_xgboost_legacy`) trained an XGBoost
+    model here, so the Stage-4 calibration table described the secondary learner, not the model that
+    is selected, backtested and deployed. This version fits exactly the deployed scorer
+    (`missing_governance.build_scorer`: WOE encoder + L2 logistic + isotonic map learned on 5-fold
+    out-of-fold scores) on the training part of an 80/20 split and reports Brier and ECE before and
+    after isotonic on the held-out part. `groups` makes the split group-aware (GroupShuffleSplit)
+    so no entity straddles train and test. The returned keys are unchanged.
+    """
+    import missing_governance as mg
+    X = df[list(columns)].copy()
+    y = df[target].astype(int)
+    if groups is None:
+        from sklearn.model_selection import train_test_split
+        tr, te = train_test_split(np.arange(len(df)), test_size=0.2, stratify=y,
+                                  random_state=random_state)
+    else:
+        from sklearn.model_selection import GroupShuffleSplit
+        gss = GroupShuffleSplit(n_splits=1, test_size=0.2, random_state=random_state)
+        tr, te = next(gss.split(X, y, groups=np.asarray(groups)))
+    train = df.iloc[tr][list(columns) + [target]]
+    sc, _ = mg.build_scorer(train, target, list(columns), random_state=random_state)
+    Xte, yte = df.iloc[te][list(columns)], y.iloc[te].values
+    W = sc.encoder.transform(sc._prep(Xte)).values.astype(float)
+    raw = 1.0 / (1.0 + np.exp(-(sc.intercept + W @ sc.coef)))
+    cal = np.asarray(sc.iso.transform(raw), dtype=float)
+    from sklearn.metrics import brier_score_loss, roc_auc_score
+    base = float(brier_score_loss(yte, np.full(len(yte), float(y.iloc[tr].mean()))))
+    return {
+        'baseline_brier_always_base_rate': round(base, 4),
+        'raw_brier': round(float(brier_score_loss(yte, raw)), 4),
+        'raw_ece': round(sel.expected_calibration_error(yte, raw), 4),
+        'calibrated_brier': round(float(brier_score_loss(yte, cal)), 4),
+        'calibrated_ece': round(sel.expected_calibration_error(yte, cal), 4),
+        'calibrated_auc': round(float(roc_auc_score(yte, cal)), 4),
+        'method': 'isotonic', 'cv': 5, 'learner': 'woe_logistic (deployed scorer)',
+        'n_heldout': int(len(te)),
+    }
+
+
+def _calibrate_xgboost_legacy(df, target, columns, random_state=42, groups=None):
+    """LEGACY (before 2026-10-25): isotonic calibration of an XGBoost model on the selected columns.
+    Not called by the pipeline any more; kept only so older Stage-4 tables can be regenerated.
+    It describes the secondary learner, not the deployed WOE-logistic model.
 
     `groups` (panel/entity key) makes the calibration holdout split group-aware
     (GroupShuffleSplit) so no entity straddles train/test; None keeps the
@@ -582,7 +626,7 @@ def build_report(dataset_name, df, target, s0, s1_table, candidates, s2, curve,
         L.append('')
 
     if calib:
-        L.append('## Stage 4 - calibration')
+        L.append('## Stage 4 - calibration (%s)' % calib.get('learner', 'XGBoost, legacy record'))
         L.append('')
         L.append('| | Baseline (base rate) | Raw | Calibrated |')
         L.append('|---|---:|---:|---:|')

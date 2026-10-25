@@ -147,8 +147,13 @@ check('capture rates rise with the percentile',
 check('Brier skill CI brackets the point value',
       card['uncertainty']['ci']['brier_skill_oof'][0] <= card['accuracy']['brier_skill_oof']
       <= card['uncertainty']['ci']['brier_skill_oof'][1])
-check('XGBoost calibration step is kept separate from the primary accuracy block',
-      'xgboost_calibration_step' in card and 'brier_calibrated' not in card['accuracy'])
+check('Stage-4 calibration describes the deployed WOE-logistic model (not XGBoost)',
+      run.state['stage4']['calibration']['learner'].startswith('woe_logistic')
+      and card['calibration_step']['learner'].startswith('woe_logistic'))
+check('calibration block keeps its keys',
+      all(k in run.state['stage4']['calibration'] for k in
+          ('baseline_brier_always_base_rate', 'raw_brier', 'raw_ece', 'calibrated_brier',
+           'calibrated_ece', 'calibrated_auc', 'method', 'cv')))
 check('bars cleared <= applicable and fairness bar n/a without an AIR',
       card['bars_cleared'] <= card['bars_applicable'] == 8)
 check('integrity block says governed', card['integrity']['governed'] is True)

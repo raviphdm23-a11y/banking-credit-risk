@@ -297,3 +297,9 @@ The primary model's figures, from its out-of-fold predictions (scorecard, 95% bo
 0.369 (0.325 to 0.410), ECE 0.0068 (0.0051 to 0.0129), calibration slope 0.954 (0.889 to 1.026); held-out
 deployed-model ECE 0.0157 before and 0.0169 after isotonic. The sealed G4 decision (option B) rested on the AUC,
 the per-grade backtest (grade B), and Hosmer-Lemeshow, all of which are primary-model figures, so the seal stands.
+
+Recomputed with the corrected Stage-4 function (deployed WOE-logistic scorer, same 80/20 split, held-out n = 1,182;
+not written back into the sealed state): Brier baseline / raw / isotonic 0.0646 / 0.0426 / 0.0427; ECE raw / isotonic
+0.0217 / 0.0158; AUC after isotonic 0.8895. Isotonic therefore lowered ECE here and left Brier unchanged on this split;
+the held-out figures in the per-grade backtest (0.0157 to 0.0169) use a different split of the out-of-fold scores.
+Neither changes a gate outcome.

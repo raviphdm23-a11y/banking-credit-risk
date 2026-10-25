@@ -387,7 +387,7 @@ Canonical, paper-ready SHARP runs. Each has a `SHARP_<DATASET>.md` record and a 
 5-fold stratified CV, grouping ρ-threshold 0.7, shadows 10 / q0.95 / confirm ≥0.80, selection tolerance
 DeLong p≥0.05 AND relative Gini loss ≤5%. These supersede the v2 selection decisions.
 
-| Dataset | Run id | Screened→selected cols | Primary Gini (WOE-logit) | Secondary Gini (XGB) | Selection verdict | Record |
+| Dataset | Run id | Screened→selected cols | Primary Gini (WOE-logit) | Secondary Gini (XGB, legacy) | Selection verdict | Record |
 |---|---|---|---:|---:|---|---|
 | HMEQ | `sharp_20261011_hmeq` | 12 → 11 (drop REASON) | 0.8133 (OOF) / 0.8010 cal. holdout | 0.8817 cal. holdout | Full screened set — no parsimony reduction DeLong-defensible at n≈6k | `SHARP_HMEQ.md` |
 | Mortgage (origination snapshot, **panel**) | `panel_adapter` snapshot · commit `7c2a709` · `mortgage_snapshot.csv` | 10 → 6 (drop 4 property-type/investor dummies, IV<0.01) | 0.4635 (OOF) | 0.524 (XGB cal. holdout; AUC 0.762) | k=6 of 6 — PARSIMONY-NULL: DeLong distinguishes every k<6 at n=50,049, so full candidate set adopted | `SHARP_MORTGAGE.md` · `AEGIS_RUN_MORTGAGE.md` |
@@ -440,3 +440,5 @@ case of never-missing columns → WOE 0), and the deployment governance (mandato
 sample applicant E. No Stage 2–3 selection recorded; scoring used all 10 screened features. Key nuance: the
 reject gate is robust, but the adverse-score fallback's penalty scales with feature strength (blank
 `loan_grade` → PD 0.10→0.77; blank weak `loan_amnt` → unchanged) — prefer the gate.
+
+> **Note (2026-10-25).** The "Secondary Gini (XGB)" column is produced by the legacy Stage-4 calibration step, which trained an XGBoost model on a random 80/20 split. That step now calibrates the deployed WOE-logistic scorer instead, so the column is discontinued for later runs; existing values are kept as recorded and are not out-of-fold figures.

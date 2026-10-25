@@ -343,9 +343,9 @@ same model check, whose verdict is a Gini confidence interval excluding zero.
 The default value function is repeated cross-validated AUC and the default learner is a
 penalised logistic model on monotonic-WOE inputs (\texttt{woe\_logistic})---the credit-scoring
 standard form: deterministic and hyperparameter-insensitive, which removes refit noise from
-the Shapley estimate. XGBoost \cite{chen2016xgboost} is run as a robustness learner; material disagreement in the two
-rankings (reported via Kendall's $\tau$) is itself a finding about interaction dependence.
-Class reweighting is \emph{off} by default: on GMSC it inflated the mean predicted probability
+the Shapley estimate. No second learner is run in the governed process: the same learner is used for screening,
+attribution, selection, calibration and deployment, so the model that is selected is the model that is calibrated and
+scored. Class reweighting is \emph{off} by default: on GMSC it inflated the mean predicted probability
 to $0.286$ against a true base rate of $0.067$, and the resulting miscalibration is avoided
 rather than repaired.
 
@@ -561,7 +561,7 @@ comparable with the published literature on these datasets; no model here is int
 use. Full provenance and target definitions are recorded per dataset.
 
 \textbf{Fixed configuration (identical for every dataset, by P8).} Primary learner
-\texttt{woe\_logistic} (XGBoost as a robustness learner); value function cross-validated AUC;
+\texttt{woe\_logistic} (the one learner for every stage); value function cross-validated AUC;
 correlated columns grouped at $|\rho|=0.7$; $\ge10$ shadow players with a $95^{\text{th}}$-percentile
 bar and confirmation frequency $\ge0.80$; exact Shapley when players (including shadows)
 $\le15$, sampled otherwise; selection rule (\ref{eq:stop}); isotonic calibration; PD floor
@@ -921,7 +921,7 @@ automated test checks that the staged runner reproduces the one-shot pipeline.
 \toprule
 Parameter & Value \\
 \midrule
-Primary / robustness learner & WOE-logistic / XGBoost \\
+Learner (all stages) & WOE-logistic \\
 Value function & cross-validated AUC \\
 Correlation grouping & single player at $|\rho|\ge0.7$ \\
 Shadow players & $\ge10$; bar $=$ 95th percentile \\
