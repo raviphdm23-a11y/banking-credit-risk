@@ -148,6 +148,23 @@ def validate(df, m):
     return m
 
 
+def temporal_split(df, time_col, test_frac=0.3):
+    """Train-past / test-future split by calendar time, for out-of-time (OOT)
+    validation. Rows at or before the (1-test_frac) quantile of `time_col` are
+    train; later rows are test. Returns (train_mask, test_mask, t_cut).
+
+    This is what remediates the TIME-LEAKAGE limitation that group-aware CV
+    cannot: grouped CV keeps an entity's rows together but still lets the model
+    see every calendar period in training, so macro covariates shared across
+    entities per period leak across folds. A train-past / test-future split is
+    the realistic forward-prediction test of whether the model generalises in
+    time (e.g. whether it survives a shift in the macro regime / default rate).
+    """
+    t = df[time_col].to_numpy()
+    t_cut = float(pd.Series(t).quantile(1 - test_frac))
+    return (t <= t_cut), (t > t_cut), t_cut
+
+
 def _key_cols(m):
     """Entity key as a list of columns (supports a composite key).
 
@@ -292,7 +309,8 @@ def frame_snapshot(df, m):
             'entity_key': keys, 'n_entities': int(len(frame)),
             'feature_cols': list(feat) + derived_names,
             'features_varying_within_entity': varying,
-            'event_rate': float(frame[ev].mean())}
+            'event_rate': float(frame[ev].mean()),
+            '_time': asof[tcol].to_numpy()}   # as-of (vintage) time per entity row
     return frame, groups, meta
 
 
@@ -334,7 +352,8 @@ def frame_hazard(df, m):
             'n_entities': int(g.groupby(keys).ngroups),
             'n_rows': int(len(frame)), 'feature_cols': list(feat),
             'event_rate': float(frame[ev].mean()),
-            'max_obs_per_entity': cap}
+            'max_obs_per_entity': cap,
+            '_time': g[tcol].to_numpy()}   # calendar time per row, for OOT validation
     return frame, groups, meta
 
 
@@ -369,7 +388,7 @@ def prepare(source, manifest=None, verbose=True):
         tgt = m.get('target')
         if verbose:
             print('[panel_adapter] cross_section passthrough (%d rows)' % len(df), flush=True)
-        return {'frame': df, 'target': tgt, 'groups': None,
+        return {'frame': df, 'target': tgt, 'groups': None, 'time': None,
                 'data_shape': 'cross_section', 'segment': m.get('segment'),
                 'framing': None, 'meta': {'n_rows': int(len(df))}}
 
@@ -389,6 +408,8 @@ def prepare(source, manifest=None, verbose=True):
               'event rate %.4f'
               % (framing, m.get('segment', '?'), meta.get('n_entities', -1),
                  len(frame), meta['event_rate']), flush=True)
+    time_values = meta.pop('_time', None)   # row-aligned calendar time (for OOT)
     return {'frame': frame, 'target': m['target'], 'groups': groups,
+            'time': time_values,
             'data_shape': 'panel', 'segment': m.get('segment'),
             'framing': framing, 'meta': meta}

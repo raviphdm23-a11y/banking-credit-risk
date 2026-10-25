@@ -54,10 +54,11 @@ players rejected (top shadow freq 0.85). The hazard framing genuinely extracts t
 ## G3 — Parsimony Selection · A · `ba6d95cb`
 **PARSIMONY-NULL**: k = 9 of 9 (11 columns). At n = 622,489 DeLong distinguishes every smaller model from the
 full set (k=1..8 all p ≈ 0), so the full confirmed set is adopted. Gini **0.474**, rel loss 0%. Same pattern
-as the snapshot (k=6 of 6). **Caveat recorded for the methodology:** the DeLong test is over-powered by the
-clustered loan-periods (pseudo-replication), so this PARSIMONY-NULL is partly an artefact — a cluster-robust
-DeLong (future upgrade) may recover genuine parsimony (k=2, `interest_rate_time`+`LTV_time`, already reaches
-92% of full Gini).
+as the snapshot (k=6 of 6). **Checked after the seal (see addendum):** a cluster-robust DeLong
+(`selection.cluster_delong_test`, resampling whole loans) was built to test whether the i.i.d. DeLong was
+over-powered by the clustered loan-periods. It was not: k=2/3/5 all remain distinguishable from the full set
+(p ≈ 0; even the 0.006 AUC gap at k=5 is ~10 cluster-robust SEs), so PARSIMONY-NULL is genuine at 50,049
+loans. (An earlier version of this section called it "partly an artefact"; that was wrong and is corrected.)
 
 ## G4 — Calibration (fairness N/A) · A · `a877b2b0`
 **Discrimination:** AUC 0.737 / Gini 0.474 (grouped OOF; MEDIUM floor 0.70 — clears). **Calibration — tested
@@ -86,3 +87,52 @@ into a methodology upgrade, not a defect. Standing scope conditions: **NEVER-DEP
 **Headline:** the full time-varying + macro hazard model (Gini 0.474) barely out-discriminates the simple
 6-feature origination snapshot (0.464) — the simple scorecard is preferable; the hazard run's lasting value
 was forcing the cluster-robust / deployed-model calibration fix. Verdict **GO-WITH-CONDITIONS**; no blockers.
+
+---
+
+## Post-GF addendum — R7 out-of-time validation (2026-10-25; chain unchanged at `dca8af15`)
+
+*Append-only. The sealed gates and hash chain are not modified; this records evidence produced after GF.*
+
+R7 (MORTGAGE-HZ-TIME) was carried because grouped CV removes entity leakage but not time leakage and no
+out-of-time (OOT) validation had been done. It has now been run: `ml_models/oot_validation.py`
+(`panel_adapter.temporal_split`; wired into Stage 4 as an optional diagnostic when a time vector is
+supplied). Fit on the past, score the future; isotonic calibrator fit on the past, assessed on the future
+with the cluster-robust per-grade backtest. Diagnostic only — no threshold is invented.
+
+| Cut (test_frac) | Train → test default rate | OOT Gini | OOT AUC | vs in-time 0.4742 | Per-grade | HL g10 (adj.) |
+|---|---|--:|--:|--:|--:|--:|
+| t ≤ 47 (0.2) | 2.70% → 1.29% | 0.3151 | 0.6575 | −33.6% | 0/6 | p ≈ 0 |
+| **t ≤ 42 (0.3)** | 2.70% → 1.75% | **0.3194** | 0.6597 | −32.7% | 3/7 | p ≈ 0 |
+| t ≤ 37 (0.4) | 2.59% → 2.19% | 0.2989 | 0.6495 | −37.0% | 1/7 | p ≈ 0 |
+
+The primary cut (0.3) is a fixed convention, not tuned; the other two show the result does not depend on it.
+At t=42 the test set has 14,295 loans, 2,020 of them not seen in training.
+
+**What the evidence supports**
+1. **Forward discrimination is about a third below the in-time score at every cut** (Gini 0.30–0.32 vs
+   0.474). The in-time grouped-CV number overstated forward performance. OOT AUC (0.650–0.660) is below the
+   0.70 MEDIUM floor that G4 applied to the in-time AUC; the floor is applied to in-time OOF across the
+   corpus, so this is recorded as an observation, not a re-ruling.
+2. **Calibration does not carry forward.** Calibrated on the past, 0/6–3/7 grades pass on the future and HL
+   rejects at every cut. Direction: realised below expected in the higher-risk grades (e.g. grade B at t=42:
+   expected 8.4%, realised 4.1%), consistent with the falling base rate (2.70% → 1.75%) — a level shift that a
+   calibrator fit on the past cannot anticipate.
+3. **Time-varying covariates do carry forward signal.** At t=42: 8 features without the three contemporaneous
+   macro series → Gini 0.347; static origination only (5) → 0.256.
+
+**What it does NOT establish (stated so it is not over-read)**
+- *Cause of the drop is not isolated.* Removing `gdp_time`, `hpi_time`, `uer_time` raises OOT Gini only from
+  0.319 to 0.347 (+0.028 of a ~0.155 drop), so contemporaneous macro overfit explains a minor part. A strong
+  untested candidate for the rest is **loan-age mix shift**: mean loan age is 10.0 months in the training
+  period vs 28.8 in the test period (only 2,386 test rows under 12 months old vs 301,385 in training), and
+  the model has no loan-age feature. The OOT degradation is therefore confounded by seasoning, not purely
+  time leakage.
+- *No hazard-vs-snapshot comparison follows from these numbers.* The earlier statement that the simple
+  origination scorecard is "preferable" compared Ginis on different targets (per-period vs ever-default) and
+  is not established by either run; the snapshot has not itself had OOT validation. Retracted here.
+
+**Effect on conditions.** R7 stays PARTIAL but its content changes from "not performed" to "performed;
+forward Gini −33%, calibration fails OOT, cause partly unisolated". NEVER-DEPLOY is reinforced. GF (`dca8af15`)
+was ruled on in-time evidence for R3/R4; whether the MAC wishes to reconvene on this evidence is a governance
+decision not taken here.

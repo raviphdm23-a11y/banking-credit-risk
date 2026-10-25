@@ -40,10 +40,13 @@ PD threshold** — exogenous, not derived here.
 - **TIME-LEAKAGE / NO-OUT-OF-TIME (the governing limitation of this run).** Group-aware CV (StratifiedGroup
   KFold by loan) removes **entity** leakage — no loan's rows straddle train/test. It does **not** remove
   **time** leakage: the macro covariates (`gdp_time`, `uer_time`, `hpi_time`) are shared across all loans at
-  the same calendar period, so there is cross-sectional (vintage) correlation an i.i.d. CV cannot see. **No
-  out-of-time / vintage validation was performed.** Any real use would require a train-past / test-future
-  split. Contemporaneous time-varying covariates are a standard discrete-time-hazard design (covariate
-  observed at period start), not leakage.
+  the same calendar period, so there is cross-sectional (vintage) correlation an i.i.d. CV cannot see.
+  **Out-of-time validation was added after GF** (train t ≤ 42, test t > 42): forward Gini **0.32** vs 0.47
+  in-time (−33%), OOT AUC 0.66, calibrated-on-past per-grade 3/7 with HL rejected; the same at cuts 0.2 and
+  0.4. The cause is only partly the macro covariates (dropping them recovers +0.03 Gini) and is confounded
+  by loan-age mix shift (untested), so it is not attributable to time leakage alone. The model must not be
+  used forward without re-validation. Contemporaneous time-varying covariates are a standard
+  discrete-time-hazard design (covariate observed at period start), not leakage.
 - **CALIBRATION — cluster-robust, deployed-model (resolved, not a defect).** The raw WOE-logistic OOF PDs
   carried small per-grade bias and, on 622k clustered rows, both HL and the per-grade backtest over-rejected
   (1/7, HL p≈0). This was investigated and resolved: (a) the governing test must assess the **deployed**
@@ -73,8 +76,8 @@ by the time-varying `interest_rate_time` / `LTV_time`. Case PDs: MH-R1 0.03% (AA
 
 ## 5. Headline finding (why this run matters)
 
-The full time-varying + macro hazard model (Gini 0.474) **does not materially out-discriminate** the simple
-6-feature origination snapshot (Gini 0.464) — the extra 622k rows, dynamic covariates and macro series buy
-almost nothing here (the two are not strictly comparable: per-period vs ever-default). The simple
-origination scorecard is the preferable model; the hazard run's lasting value was surfacing (and fixing) the
-cluster-robust / deployed-model calibration-testing requirement.
+The hazard run's lasting value is methodological: it surfaced and fixed the cluster-robust / deployed-model
+calibration-testing requirement, confirmed (cluster-robust DeLong) that PARSIMONY-NULL is genuine at 50,049
+loans, and — via out-of-time validation — showed the in-time Gini (0.474) overstates forward performance
+(OOT 0.32). The hazard Gini (per-period default) and the snapshot Gini (0.464, ever-default) are on different
+targets and are **not** comparable, so no claim is made that either model is preferable to the other.

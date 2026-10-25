@@ -302,7 +302,7 @@ def run_pipeline(df, target='target', dataset_name='dataset', *,
                  mandatory_columns=None, incomplete_policy='reject',
                  eligibility_overrides=None, availability_overrides=None,
                  run_model_checks=True, random_state=42, verbose=True, groups=None,
-                 shapley_row_subsample=None):
+                 shapley_row_subsample=None, time_values=None, oot_test_frac=0.3):
     """Stages 0-4 end to end. Returns a dict including a markdown report.
 
     missing_policy: 'as_learned' (default) keeps each column's learned WOE,
@@ -406,6 +406,33 @@ def run_pipeline(df, target='target', dataset_name='dataset', *,
             if verbose:
                 print('[stage4] backtest skipped: %r' % _e, flush=True)
 
+    # Out-of-time (train-past / test-future) validation, reported next to the
+    # in-time score whenever a calendar-time vector is supplied (panel runs).
+    # Diagnostic only: decides nothing, invents no threshold. Substantiates or
+    # retires a TIME-LEAKAGE condition at the gates (R7).
+    oot = None
+    if selected_cols and time_values is not None:
+        try:
+            import oot_validation as _oot
+            import rating_masterscale as _rms2
+            _k = len(decision.get('selected_players') or [])
+            _row = curve[curve['k'] == _k]
+            _in_gini = float(_row['gini'].iloc[0]) if len(_row) else None
+            oot = _oot.out_of_time_validation(
+                df[selected_cols], df[target].values, selected_cols, time_values,
+                groups=groups, learner=learner, test_frac=oot_test_frac,
+                grade_fn=lambda pd_: _rms2.pd_to_grade(pd_)['grade'],
+                grade_order=['AAA', 'AA', 'A', 'BBB', 'BB', 'B', 'CCC', 'CC', 'C', 'D'],
+                in_time_gini=_in_gini, random_state=random_state)
+            if verbose and oot.get('ok'):
+                print('[stage4] out-of-time: Gini %.4f (in-time %s); per-grade %s/%s'
+                      % (oot['gini'],
+                         ('%.4f' % oot['in_time_gini']) if oot['in_time_gini'] is not None else 'n/a',
+                         oot.get('grades_passed', '?'), oot.get('grades_total', '?')), flush=True)
+        except Exception as _e:   # diagnostic; never break the run
+            if verbose:
+                print('[stage4] out-of-time skipped: %r' % _e, flush=True)
+
     # resolve the omission-floor set once, shared by the report artifact and scorer
     resolved_floor = None
     if missing_policy == 'adverse_floor':
@@ -433,12 +460,13 @@ def run_pipeline(df, target='target', dataset_name='dataset', *,
                           curve, decision, selected_cols, offenders, avail_flags,
                           calib, learner=learner, value_fn=value_fn,
                           missing_floor=missing_floor, governance=governance,
-                          backtest=backtest)
+                          backtest=backtest, oot=oot)
     return {'dataset': dataset_name, 'stage0': s0, 'stage1': s1_table,
             'candidates': candidates, 'stage2': s2, 'curve': curve,
             'decision': decision, 'selected_columns': selected_cols,
             'ineligible_retained': offenders, 'availability_flags': avail_flags,
-            'calibration': calib, 'backtest': backtest, 'missing_policy': missing_policy,
+            'calibration': calib, 'backtest': backtest, 'oot': oot,
+            'missing_policy': missing_policy,
             'missing_floor': missing_floor, 'incomplete_policy': incomplete_policy,
             'mandatory_columns': mand, 'governance': governance,
             'scorer': scorer, 'report': report}
@@ -479,7 +507,7 @@ def _calibrate(df, target, columns, random_state=42, groups=None):
 def build_report(dataset_name, df, target, s0, s1_table, candidates, s2, curve,
                  decision, selected_cols, offenders, avail_flags, calib,
                  learner='woe_logistic', value_fn='auc', missing_floor=None,
-                 governance=None, backtest=None):
+                 governance=None, backtest=None, oot=None):
     tags = s0['tags']
     L = []
     L.append('# ' + dataset_name + ' - Methodology v3 results')
@@ -569,6 +597,13 @@ def build_report(dataset_name, df, target, s0, s1_table, candidates, s2, curve,
         bmd = _cgof.backtest_markdown(backtest)
         if bmd:
             L.append(bmd)
+            L.append('')
+
+    if oot:
+        import oot_validation as _ootm
+        omd = _ootm.oot_markdown(oot)
+        if omd:
+            L.append(omd)
             L.append('')
 
     if missing_floor and missing_floor.get('changes'):

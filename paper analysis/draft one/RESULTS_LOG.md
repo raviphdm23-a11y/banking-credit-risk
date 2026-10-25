@@ -391,6 +391,7 @@ DeLong p≥0.05 AND relative Gini loss ≤5%. These supersede the v2 selection d
 |---|---|---|---:|---:|---|---|
 | HMEQ | `sharp_20261011_hmeq` | 12 → 11 (drop REASON) | 0.8133 (OOF) / 0.8010 cal. holdout | 0.8817 cal. holdout | Full screened set — no parsimony reduction DeLong-defensible at n≈6k | `SHARP_HMEQ.md` |
 | Mortgage (origination snapshot, **panel**) | `panel_adapter` snapshot · commit `7c2a709` · `mortgage_snapshot.csv` | 10 → 6 (drop 4 property-type/investor dummies, IV<0.01) | 0.4635 (OOF) | 0.524 (XGB cal. holdout; AUC 0.762) | k=6 of 6 — PARSIMONY-NULL: DeLong distinguishes every k<6 at n=50,049, so full candidate set adopted | `SHARP_MORTGAGE.md` · `AEGIS_RUN_MORTGAGE.md` |
+| Mortgage (discrete-time **hazard**, panel) | `panel_adapter` hazard · commit `e1bf2e9` · `mortgage_hazard.manifest.json` | 15 → 11 (drop 4 property-type/investor dummies, IV<0.02) | 0.4742 (grouped OOF); **OOT 0.3194** | 0.535 (XGB cal. holdout; AUC 0.767) | k=9 of 9 — PARSIMONY-NULL (cluster-robust DeLong confirms) | `SHARP_MORTGAGE_HAZARD.md` · `AEGIS_RUN_MORTGAGE_HAZARD.md` |
 
 **HMEQ highlights:** all 11 screened columns confirmed ≥12.8× the shadow-null bar; permuted noise shadow
 (`__shadow__7_LOAN`, BH p=2.9e-10) correctly rejected; missingness of DEBTINC is a preserved 7.2× signal;
@@ -411,6 +412,19 @@ rejected only as a large-n artefact (g=5 p=0.341) — per-grade backtest governs
 neutral-to-slightly-negative and ceilings PD at ≈0.68 (99.9% cap never binds). Governed end-to-end →
 **GO-WITH-CONDITIONS** (`AEGIS_RUN_MORTGAGE.md`), with the recorded contrast that natural-person borrowers
 put EU AI Act Annex III / ECOA back **in scope** (R12/R14), where Polish firms were N/A.
+
+**Mortgage hazard highlights:** all 622,489 loan-periods (50,049 loans), target = per-period default (2.44%),
+group-aware CV through Stages 2–4; 11 features (3 time-varying + 3 macro + 5 origination), dominant
+`interest_rate_time` / `LTV_time`. Grouped-CV Gini 0.4742; PARSIMONY-NULL (k=9 of 9), and a cluster-robust
+DeLong confirmed it is genuine (not row-inflation). Calibration: the raw OOF failed the old i.i.d. per-grade
+backtest (1/7, HL p≈0); the deployed (isotonic) model passes **7/7** under the cluster-robust backtest and HL is
+not rejected (p 0.11 raw / 0.65 design-effect adj.) — fix shipped as `calibration_gof.deployment_backtest`.
+**Out-of-time (added post-GF):** train t ≤ 42 / test t > 42 → Gini **0.319** (−33% vs in-time), AUC 0.660,
+calibrated-on-past per-grade 3/7, HL rejected; Gini 0.315/0.319/0.299 at cuts 0.2/0.3/0.4. Dropping the macro
+covariates recovers only +0.028 Gini; loan-age mix shifts 10 → 29 months across the cut and the model has no
+age feature, so the drop is **confounded, not attributable to time leakage alone**. The hazard (per-period) and
+snapshot (ever-default) Ginis are on different targets and are not compared. Governed → **GO-WITH-CONDITIONS**
+(`AEGIS_RUN_MORTGAGE_HAZARD.md`; R7 content updated by an append-only addendum, chain unchanged).
 
 **Credit Risk Dataset — `SHARP_CREDIT_RISK.md` (⚠ demonstration, NOT a completed run):** documents a
 data-integrity finding (file's `target` column corrupted — disagrees with `loan_status` on 26% of rows; used

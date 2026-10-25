@@ -39,10 +39,10 @@ time-varying covariates — signal the origination snapshot cannot access.
 ## Stage 3 — parsimony (PARSIMONY-NULL)
 k = 9 of 9 (**11 columns**). At n = 622,489 DeLong distinguishes every k<9 from the full set (all p ≈ 0),
 so the full confirmed set is adopted. Gini **0.474**. Curve: k1 (interest_rate) 0.276 → k2 (+LTV_time) 0.437
-→ k3 (+FICO) 0.453 → k5 (+gdp) 0.463 → k9 (full) 0.474. **Caveat:** the DeLong test is over-powered by the
-clustered loan-periods, so PARSIMONY-NULL here is partly a pseudo-replication artefact — k=2
-(`interest_rate_time`+`LTV_time`) already reaches 92% of full Gini. A cluster-robust DeLong is the indicated
-upgrade.
+→ k3 (+FICO) 0.453 → k5 (+gdp) 0.463 → k9 (full) 0.474. **Checked afterwards:** a cluster-robust DeLong
+(`selection.cluster_delong_test`, cluster bootstrap over loans) does not rescue parsimony — k=2/3/5 stay
+distinguishable from the full set (p ≈ 0; the 0.006 AUC gap at k=5 is ~10 cluster SEs). PARSIMONY-NULL is
+genuine at 50,049 loans (k=2 reaches 92% of full Gini but at 7.8% relative loss, over the 5% bar).
 
 ## Stage 4 — calibration (deployed model, cluster-robust)
 Discrimination AUC 0.737 / Gini 0.474 (grouped OOF). Calibration assessed on the **deployed**
@@ -63,10 +63,15 @@ isotonic step, and the interval must be cluster-robust. Fix shipped as `ml_model
 + design-effect HL, auto-triggered by the groups vector. Now standard for every panel run.
 
 ## Honest findings
-- **The richer hazard model (Gini 0.474) barely out-discriminates the simple origination snapshot (0.464).**
-  The extra 622k rows, time-varying covariates and macro series buy almost nothing in discrimination (targets
-  are not strictly comparable: per-period vs ever-default). The simple scorecard is preferable.
-- **Two methodology upgrades were forced by this run:** (1) the deployed-model, cluster-robust calibration
-  backtest (shipped); (2) a cluster-robust DeLong for parsimony (indicated, next).
-- **Open limitation:** no out-of-time / vintage validation (R7). Group-aware CV stops entity leakage, not the
-  shared-macro time leakage. A train-past / test-future split is the remediation.
+- **Hazard vs snapshot is not a like-for-like comparison.** The hazard Gini (0.474) is per-period default;
+  the snapshot Gini (0.464) is ever-default. Neither run supports "one is better"; a horizon-aggregated
+  loan-level evaluation would be needed.
+- **Two methodology upgrades were forced by this run, both shipped:** (1) the deployed-model, cluster-robust
+  calibration backtest; (2) a cluster-robust DeLong for parsimony — which confirmed rather than rescued
+  PARSIMONY-NULL.
+- **Out-of-time validation (R7) was added post-GF** (`ml_models/oot_validation.py`): train t ≤ 42, test t > 42
+  → OOT Gini **0.319** (−33% vs in-time 0.474), OOT AUC 0.660, calibrated-on-past per-grade **3/7**, HL
+  rejected; consistent across cuts 0.2/0.3/0.4 (Gini 0.315/0.319/0.299). The cause is only partly the
+  macro covariates (dropping them: +0.028 Gini) and is confounded by loan-age mix shift (mean age 10 → 29
+  months across the cut; no loan-age feature in the model) — untested. See the addendum in
+  `AEGIS_RUN_MORTGAGE_HAZARD.md`.
