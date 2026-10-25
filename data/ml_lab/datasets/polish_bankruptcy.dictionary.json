@@ -177,5 +177,14 @@
     "Attr63": "sales_to_short_term_liabilities",
     "Attr64": "sales_to_fixed_assets"
   },
-  "column_names_note": "APPLIED 2026-10-25: the CSV headers polish_bankruptcy_{1..5}year.csv now use these names (AttrN -> name below); only the header line was changed, data rows are byte-identical. Compact snake_case derived from the verbatim UCI definition in \"features\"; verbatim text is not usable as a header because XGBoost rejects [ ] < (Attr5 contains brackets) and 20-column group labels would exceed 1,000 characters. 64 unique, [a-z0-9_] only, max 66 chars; token-checked against the definitions (0 mismatches). Abbreviations only in Attr5/40/57: stl=short-term liabilities, recv=receivables, inv=inventory, ca=current assets, gp=gross profit, depr=depreciation, opex=operating expenses, sec=short-term securities; operating_profit = profit on operating activities; sales_profit = profit on sales. ORIGINAL LABELS: the Year-1 original (AttrN headers) is kept at data/ml_lab/datasets/archive/polish_bankruptcy_1year_Attr.csv; the sealed Year-1 records (SHARP_POLISH1, AEGIS_RUN_POLISH1, SAMPLE_RUNS_POLISH1, polish1.json) use the AttrN labels and that file. Years 2-5 originals are in git history before the header commit."
+  "column_names_note": "APPLIED 2026-10-25: the CSV headers polish_bankruptcy_{1..5}year.csv now use these names (AttrN -> name below); only the header line was changed, data rows are byte-identical. Compact snake_case derived from the verbatim UCI definition in \"features\"; verbatim text is not usable as a header because XGBoost rejects [ ] < (Attr5 contains brackets) and 20-column group labels would exceed 1,000 characters. 64 unique, [a-z0-9_] only, max 66 chars; token-checked against the definitions (0 mismatches). Abbreviations only in Attr5/40/57: stl=short-term liabilities, recv=receivables, inv=inventory, ca=current assets, gp=gross profit, depr=depreciation, opex=operating expenses, sec=short-term securities; operating_profit = profit on operating activities; sales_profit = profit on sales. ORIGINAL LABELS: the Year-1 original (AttrN headers) is kept at data/ml_lab/datasets/archive/polish_bankruptcy_1year_Attr.csv; the sealed Year-1 records (SHARP_POLISH1, AEGIS_RUN_POLISH1, SAMPLE_RUNS_POLISH1, polish1.json) use the AttrN labels and that file. Years 2-5 originals are in git history before the header commit.",
+  "target": {
+    "column": "target",
+    "renamed_from": "class",
+    "values": {
+      "1": "bankrupt within the file horizon",
+      "0": "did not go bankrupt"
+    },
+    "note": "Renamed class -> target on 2026-10-25 in all five CSVs (header-only change; data bytes identical; positives 271/400/495/515/410 match UCI). The archived Year-1 original (archive/polish_bankruptcy_1year_Attr.csv) and the sealed Year-1 records still use the label `class`."
+  }
 }

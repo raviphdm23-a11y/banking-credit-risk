@@ -277,3 +277,8 @@ them; the original Year-1 data is preserved at `data/ml_lab/datasets/archive/pol
 and `acceptance_cases/polish1.json` points to it. Equivalence was verified: header-only change (data bytes
 identical); the 37-column selected model reproduces OOF Gini 0.7832 on the renamed file; the regenerated
 acceptance pack is identical to `SAMPLE_RUNS_POLISH1.md`; all 64 columns remain `permissible`.
+
+**Target column.** The target was also renamed `class` → `target` in the shared CSVs (all five years; header-only,
+positives 271/400/495/515/410 match UCI). This record and the sealed Year-1 chain keep the label `class`, as does
+the archived original `archive/polish_bankruptcy_1year_Attr.csv`. On the renamed file the selected model still
+reproduces OOF Gini 0.7832 with `target='target'`.
