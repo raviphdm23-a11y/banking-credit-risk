@@ -426,7 +426,9 @@ month) comparison is worse (0.255), so seasoning is ruled out; 0% of test rows f
 covariate range. The default-rate history (crisis spike 3.7–4.4% at t=30–40, then 0.5–1.5%) is **consistent
 with a credit-cycle regime shift** (interpretation, not proven). The hazard (per-period) and
 snapshot (ever-default) Ginis are on different targets and are not compared. Governed → **GO-WITH-CONDITIONS**
-(`AEGIS_RUN_MORTGAGE_HAZARD.md`; R7 content updated by an append-only addendum, chain unchanged).
+(`dca8af15`), then **GF reconvened on the OOT evidence → option B, GO-WITH-CONDITIONS** (`000af56d`): OOT made
+binding for calibration (R4 PARTIAL) with the discrimination floor kept on in-time AUC for corpus consistency;
+conditions R4 + R7 + R12 (`AEGIS_RUN_MORTGAGE_HAZARD.md`).
 
 **Credit Risk Dataset — `SHARP_CREDIT_RISK.md` (⚠ demonstration, NOT a completed run):** documents a
 data-integrity finding (file's `target` column corrupted — disagrees with `loan_status` on 26% of rows; used

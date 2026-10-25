@@ -2,7 +2,7 @@
 
 **Run:** MORTGAGE_HAZARD (Baesens et al. US mortgage performance panel) · **discrete-time hazard framing**
 via `ml_models/panel_adapter.py` (all 622,489 loan-periods kept; group-aware CV) · **Gate:** G5 (deployment
-governance) · entry_hash `f4e28439` · **GF** `dca8af15`
+governance) · entry_hash `f4e28439` · **GF** `dca8af15` → **reconvened (B)** `000af56d`
 **Model:** AEGIS-approved WOE-logistic, **11 features** = 3 time-varying (`interest_rate_time`, `LTV_time`,
 `balance_time`) + 3 macro (`gdp_time`, `hpi_time`, `uer_time`) + 5 origination (`FICO_orig_time`,
 `LTV_orig_time`, `Interest_Rate_orig_time`, `balance_orig_time`, `hpi_orig_time`). Predicts default **in a
@@ -48,7 +48,11 @@ PD threshold** — exogenous, not derived here.
   (training spans the crisis peak, testing the recovery). The model must not be
   used forward without re-validation. Contemporaneous time-varying covariates are a standard
   discrete-time-hazard design (covariate observed at period start), not leakage.
-- **CALIBRATION — cluster-robust, deployed-model (resolved, not a defect).** The raw WOE-logistic OOF PDs
+- **CALIBRATION OUT-OF-TIME (R4, binding since GF reconvened `000af56d`).** Calibrated on the past and
+  assessed on the future (t > 42), only **3/7** grades pass and HL rejects; realised default falls below
+  predicted in the higher-risk grades as the base rate drops 2.70% → 1.75%. In-time calibration (below) is
+  clean; forward calibration is not. Any use would need recalibration on current-period data.
+- **CALIBRATION IN-TIME — cluster-robust, deployed-model (resolved, not a defect).** The raw WOE-logistic OOF PDs
   carried small per-grade bias and, on 622k clustered rows, both HL and the per-grade backtest over-rejected
   (1/7, HL p≈0). This was investigated and resolved: (a) the governing test must assess the **deployed**
   (isotonically-calibrated) model, not the raw OOF; (b) on panel data the interval must be **cluster-robust**.

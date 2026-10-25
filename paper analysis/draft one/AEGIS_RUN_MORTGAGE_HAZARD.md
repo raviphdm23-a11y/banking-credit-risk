@@ -26,8 +26,9 @@ attrs), but borrowers are natural persons so EU AI Act / ECOA are in scope. Sour
 | 4 | G4 | **A — approve calibration (clean)** | Ravi / Risk Officer | DEPLOYED model: cluster-robust per-grade **7/7**; HL g10 p=0.11/0.65-adj (not rejected); ECE 0.0005; AUC 0.737 ≥ floor; fairness N/A | `ba6d95cb` | `a877b2b0` |
 | 5 | G5 | **A — confirm controls + deliverables** | Ravi / Model Owner | adverse floor + exact WOE reason codes + reject-on-incomplete; near-zero missingness; cutoff policy + 6-case per-period acceptance pack | `a877b2b0` | `f4e28439` |
 | F | **GF** | **GO-WITH-CONDITIONS** (engine) | Ravi / MAC Chair + CRO | all gates signed; no must-have GAP; PARTIALs **R7** (TIME-LEAKAGE) + **R12** (AI-Act); conditions also NEVER-DEPLOY, ISOTONIC-CEILING | `f4e28439` | `dca8af15` |
+| F′ | **GF reconvened** | **B — GO-WITH-CONDITIONS** (engine) | Ravi / MAC Chair + CRO | out-of-time evidence (post-GF addendum) made **binding for calibration**: **R4 → PARTIAL** (3/7 forward, HL rejected); discrimination bar kept on in-time AUC, consistent with the corpus; R7 updated to "OOT performed, unfavourable" | `dca8af15` | `000af56d` |
 
-**Chain:** `GEN-MORTGAGE_HAZARD_0 → 9ececb8c → 52f57eb3 → 4802715c → ba6d95cb → a877b2b0 → f4e28439 → dca8af15`
+**Chain:** `GEN-MORTGAGE_HAZARD_0 → 9ececb8c → 52f57eb3 → 4802715c → ba6d95cb → a877b2b0 → f4e28439 → dca8af15 → 000af56d` (current; `dca8af15` retained as history)
 
 ---
 
@@ -142,6 +143,23 @@ At t=42 the test set has 14,295 loans, 2,020 of them not seen in training.
 
 **Effect on conditions.** R7 stays PARTIAL but its content changes from "not performed" to "performed;
 forward Gini −33%, calibration fails OOT; macro overfit, seasoning and extrapolation tested and
-not the cause; consistent with a credit-cycle regime shift". NEVER-DEPLOY is reinforced. GF (`dca8af15`)
-was ruled on in-time evidence for R3/R4; whether the MAC wishes to reconvene on this evidence is a governance
-decision not taken here.
+not the cause; consistent with a credit-cycle regime shift". NEVER-DEPLOY is reinforced.
+
+## GF reconvened · **B — GO-WITH-CONDITIONS** · `000af56d` (prev `dca8af15`)
+
+The MAC reconvened GF on the out-of-time evidence. The engine was run under three ratings of that evidence:
+**A** disclosed only (GO-WITH-CONDITIONS: R7, R12); **B** binding for calibration (GO-WITH-CONDITIONS: R4,
+R7, R12); **C** binding for discrimination, R3 GAP because OOT AUC 0.66 < the 0.70 MEDIUM floor (NO-GO,
+return to G3). **Signed: B** — rationale *"option B: OOT binding for calibration, discrimination bar
+consistent with corpus"*.
+
+Reasoning recorded: the 0.70 floor is applied to the in-time grouped-CV AUC for all 14 corpus datasets, and
+the cross-sectional datasets cannot be validated out-of-time (no time field), so applying it to OOT AUC for
+this run alone would set a stricter bar for one dataset; the forward calibration failure, by contrast, is
+unambiguous and is made binding. Option C remains the right reading if "out-of-time binds for panel models"
+is later adopted as a methodology rule — it would then apply to every panel run, not this one only.
+
+**Conditions now in force:** **R4** (MORTGAGE-HZ-CAL-OOT — calibrated on the past, 3/7 grades pass on the
+future and HL rejects; in-time 7/7), **R7** (MORTGAGE-HZ-TIME — OOT performed: Gini 0.319 vs 0.474,
+AUC 0.660; macro overfit minor, seasoning and extrapolation ruled out; consistent with a credit-cycle
+regime shift), **R12** (MORTGAGE-AIACT), plus NEVER-DEPLOY and ISOTONIC-CEILING.
