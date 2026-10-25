@@ -378,11 +378,10 @@ def prepare(source, manifest=None, verbose=True):
     if framing == 'snapshot':
         frame, groups, meta = frame_snapshot(df, m)
     else:
-        if not m.get('hazard', {}).get('allow_ungrouped_cv'):
-            raise NotImplementedError(
-                'hazard framing needs group-aware CV threaded through Stage 2 '
-                '(shapley_utils) before it is leakage-safe. Set '
-                'hazard.allow_ungrouped_cv=true only for development.')
+        # Group-aware CV is now wired through selection, shapley_utils and the
+        # pipeline, so hazard is supported. CONTRACT: the caller MUST pass the
+        # returned `groups` to run_pipeline(groups=...) (which threads it into
+        # Stage 2/3/4) - otherwise the repeated entity rows leak across folds.
         frame, groups, meta = frame_hazard(df, m)
 
     if verbose:

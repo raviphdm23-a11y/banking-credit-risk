@@ -212,7 +212,7 @@ def stage1_screen(df, target, tags=None, iv_min=IV_MIN, model_check_fn=None,
 
 
 def single_column_model_check(df, target, column, learner='woe_logistic',
-                              cv_folds=5, random_state=42, n_boot=300):
+                              cv_folds=5, random_state=42, n_boot=300, groups=None):
     """Stage-1 model check: is this one column better than chance?
 
     v3 s4.5 reports a Gini with a confidence interval and requires the CI to
@@ -220,7 +220,7 @@ def single_column_model_check(df, target, column, learner='woe_logistic',
     """
     y = df[target]
     oof = sel.oof_predictions(df[[column]], y, [column], learner=learner,
-                              cv_folds=cv_folds, random_state=random_state)
+                              cv_folds=cv_folds, random_state=random_state, groups=groups)
     rep = sel.score_report(y, oof, n_boot=n_boot, random_state=random_state)
     return {'column': column, 'gini': rep['gini'],
             'gini_ci_low': rep['gini_ci_low'], 'gini_ci_high': rep['gini_ci_high'],
@@ -301,7 +301,8 @@ def run_pipeline(df, target='target', dataset_name='dataset', *,
                  missing_policy='as_learned', floor_columns=None,
                  mandatory_columns=None, incomplete_policy='reject',
                  eligibility_overrides=None, availability_overrides=None,
-                 run_model_checks=True, random_state=42, verbose=True):
+                 run_model_checks=True, random_state=42, verbose=True, groups=None,
+                 shapley_row_subsample=None):
     """Stages 0-4 end to end. Returns a dict including a markdown report.
 
     missing_policy: 'as_learned' (default) keeps each column's learned WOE,
@@ -330,7 +331,8 @@ def run_pipeline(df, target='target', dataset_name='dataset', *,
     tags = s0['tags']
 
     mc = (lambda d, t, c: single_column_model_check(d, t, c, learner=learner,
-                                                    random_state=random_state)) \
+                                                    random_state=random_state,
+                                                    groups=groups)) \
         if run_model_checks else None
     s1_table, candidates = stage1_screen(df, target, tags=tags,
                                          model_check_fn=mc, verbose=verbose)
@@ -347,7 +349,8 @@ def run_pipeline(df, target='target', dataset_name='dataset', *,
         shadow_quantile=shadow_quantile, confirm_frequency_min=confirm_frequency_min,
         n_samples=n_samples, random_state=random_state,
         mode=shapley_mode, exact_max_players=exact_max_players,
-        progress_every=(50 if verbose else 0))
+        progress_every=(50 if verbose else 0), cv_groups=groups,
+        row_subsample=shapley_row_subsample)
 
     ranked = su.ranked_players(s2, confirmed_only=True)
     player_cols = {p: str(s2['players'].loc[p, 'columns']).split(',')
@@ -358,7 +361,8 @@ def run_pipeline(df, target='target', dataset_name='dataset', *,
                 'report': '(no player cleared the shadow-null bar)'}
 
     curve, extras = sel.parsimony_curve(X, y, ranked, player_cols, learner=learner,
-                                        random_state=random_state, progress=verbose)
+                                        random_state=random_state, progress=verbose,
+                                        groups=groups)
     decision = sel.select_parsimonious(curve,
                                        max_relative_gini_loss=max_relative_gini_loss,
                                        alpha=alpha)
@@ -374,7 +378,33 @@ def run_pipeline(df, target='target', dataset_name='dataset', *,
 
     calib = None
     if selected_cols:
-        calib = _calibrate(df, target, selected_cols, random_state=random_state)
+        calib = _calibrate(df, target, selected_cols, random_state=random_state,
+                           groups=groups)
+
+    # Deployment-relevant calibration backtest: assess the CALIBRATED model with a
+    # cluster-robust per-grade test (auto cluster-aware when `groups` present).
+    # Reuses the selected model's group-aware OOF from the parsimony stage, so no
+    # refit. This is the governing calibration evidence for G4 (CRE36.122).
+    backtest = None
+    if selected_cols:
+        try:
+            import calibration_gof as cgof
+            import rating_masterscale as _rms
+            k_sel = len(decision.get('selected_players') or [])
+            oof_sel = extras.get('oof_by_k', {}).get(k_sel, extras.get('oof_full'))
+            if oof_sel is not None:
+                _order = ['AAA', 'AA', 'A', 'BBB', 'BB', 'B', 'CCC', 'CC', 'C', 'D']
+                backtest = cgof.deployment_backtest(
+                    np.asarray(df[target].values), np.asarray(oof_sel),
+                    lambda pd_: _rms.pd_to_grade(pd_)['grade'], _order,
+                    groups=groups, random_state=random_state)
+                if verbose:
+                    print('[stage4] calibrated per-grade backtest (%s): %d/%d pass'
+                          % (backtest['method'], backtest['grades_passed'],
+                             backtest['grades_total']), flush=True)
+        except Exception as _e:   # backtest is diagnostic; never break the run
+            if verbose:
+                print('[stage4] backtest skipped: %r' % _e, flush=True)
 
     # resolve the omission-floor set once, shared by the report artifact and scorer
     resolved_floor = None
@@ -402,28 +432,40 @@ def run_pipeline(df, target='target', dataset_name='dataset', *,
     report = build_report(dataset_name, df, target, s0, s1_table, candidates, s2,
                           curve, decision, selected_cols, offenders, avail_flags,
                           calib, learner=learner, value_fn=value_fn,
-                          missing_floor=missing_floor, governance=governance)
+                          missing_floor=missing_floor, governance=governance,
+                          backtest=backtest)
     return {'dataset': dataset_name, 'stage0': s0, 'stage1': s1_table,
             'candidates': candidates, 'stage2': s2, 'curve': curve,
             'decision': decision, 'selected_columns': selected_cols,
             'ineligible_retained': offenders, 'availability_flags': avail_flags,
-            'calibration': calib, 'missing_policy': missing_policy,
+            'calibration': calib, 'backtest': backtest, 'missing_policy': missing_policy,
             'missing_floor': missing_floor, 'incomplete_policy': incomplete_policy,
             'mandatory_columns': mand, 'governance': governance,
             'scorer': scorer, 'report': report}
 
 
-def _calibrate(df, target, columns, random_state=42):
-    """Stage 4: isotonic calibration of the selected model (v3 s7)."""
-    from sklearn.model_selection import train_test_split
+def _calibrate(df, target, columns, random_state=42, groups=None):
+    """Stage 4: isotonic calibration of the selected model (v3 s7).
+
+    `groups` (panel/entity key) makes the calibration holdout split group-aware
+    (GroupShuffleSplit) so no entity straddles train/test; None keeps the
+    stratified split unchanged.
+    """
     from trainer import evaluate_calibration, train_model, _load_hyperparameters
     X = df[columns].copy()
     for c in X.columns:
         if X[c].dtype == object:
             X[c] = X[c].astype('category')
     y = df[target]
-    Xtr, Xte, ytr, yte = train_test_split(X, y, test_size=0.2, stratify=y,
-                                          random_state=random_state)
+    if groups is None:
+        from sklearn.model_selection import train_test_split
+        Xtr, Xte, ytr, yte = train_test_split(X, y, test_size=0.2, stratify=y,
+                                              random_state=random_state)
+    else:
+        from sklearn.model_selection import GroupShuffleSplit
+        gss = GroupShuffleSplit(n_splits=1, test_size=0.2, random_state=random_state)
+        tr, te = next(gss.split(X, y, groups=np.asarray(groups)))
+        Xtr, Xte, ytr, yte = X.iloc[tr], X.iloc[te], y.iloc[tr], y.iloc[te]
     hp = _load_hyperparameters()
     raw = train_model(Xtr, ytr, hp, model_type='xgboost')
     rep, _ = evaluate_calibration(raw, Xtr, ytr, Xte, yte, hp)
@@ -437,7 +479,7 @@ def _calibrate(df, target, columns, random_state=42):
 def build_report(dataset_name, df, target, s0, s1_table, candidates, s2, curve,
                  decision, selected_cols, offenders, avail_flags, calib,
                  learner='woe_logistic', value_fn='auc', missing_floor=None,
-                 governance=None):
+                 governance=None, backtest=None):
     tags = s0['tags']
     L = []
     L.append('# ' + dataset_name + ' - Methodology v3 results')
@@ -521,6 +563,13 @@ def build_report(dataset_name, df, target, s0, s1_table, candidates, s2, curve,
                     calib['calibrated_brier']))
         L.append('| ECE | - | %.4f | **%.4f** |' % (calib['raw_ece'], calib['calibrated_ece']))
         L.append('')
+
+    if backtest:
+        import calibration_gof as _cgof
+        bmd = _cgof.backtest_markdown(backtest)
+        if bmd:
+            L.append(bmd)
+            L.append('')
 
     if missing_floor and missing_floor.get('changes'):
         L.append('## Missing-value policy - adverse floor (anti-omission, METHODOLOGY v3 s9 #10)')

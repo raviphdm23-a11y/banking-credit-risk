@@ -1,0 +1,139 @@
+{
+ "title": "US mortgage (discrete-time hazard, per-period)",
+ "dataset": "mortgage_hazard_frame.csv (regenerate via panel_adapter from mortgage.csv + mortgage_hazard.manifest.json; 622k rows, not committed)",
+ "target": "default_time",
+ "selected_columns": [
+  "interest_rate_time",
+  "LTV_time",
+  "FICO_orig_time",
+  "hpi_orig_time",
+  "gdp_time",
+  "Interest_Rate_orig_time",
+  "hpi_time",
+  "uer_time",
+  "LTV_orig_time",
+  "balance_orig_time",
+  "balance_time"
+ ],
+ "mandatory_columns": [],
+ "floor_columns": [
+  "interest_rate_time",
+  "LTV_time",
+  "FICO_orig_time",
+  "hpi_orig_time",
+  "gdp_time",
+  "Interest_Rate_orig_time",
+  "hpi_time",
+  "uer_time",
+  "LTV_orig_time",
+  "balance_orig_time",
+  "balance_time"
+ ],
+ "incomplete_policy": "reject",
+ "cases": {
+  "MH-R1_low_nondefault": {
+   "interest_rate_time": 5.875,
+   "LTV_time": 54.33235349,
+   "FICO_orig_time": 718,
+   "hpi_orig_time": 161.27,
+   "gdp_time": 3.346929375,
+   "Interest_Rate_orig_time": 5.875,
+   "hpi_time": 208.86,
+   "uer_time": 5.2,
+   "LTV_orig_time": 75.0,
+   "balance_orig_time": 48750.0,
+   "balance_time": 45737.62
+  },
+  "MH-R2_elevated_nondefault": {
+   "interest_rate_time": 7.45,
+   "LTV_time": 117.0344006,
+   "FICO_orig_time": 677,
+   "hpi_orig_time": 222.39,
+   "gdp_time": 0.836858663,
+   "Interest_Rate_orig_time": 7.45,
+   "hpi_time": 180.52,
+   "uer_time": 5.0,
+   "LTV_orig_time": 95.0,
+   "balance_orig_time": 207100.0,
+   "balance_time": 207100.0
+  },
+  "MH-R3_default_period": {
+   "interest_rate_time": 8.5,
+   "LTV_time": 102.7686743,
+   "FICO_orig_time": 621,
+   "hpi_orig_time": 226.29,
+   "gdp_time": -3.516567987,
+   "Interest_Rate_orig_time": 8.5,
+   "hpi_time": 151.48,
+   "uer_time": 7.8,
+   "LTV_orig_time": 70.0,
+   "balance_orig_time": 35000.0,
+   "balance_time": 34397.01
+  },
+  "MH-R4_high_default_period": {
+   "interest_rate_time": 9.0,
+   "LTV_time": 134.180025,
+   "FICO_orig_time": 594,
+   "hpi_orig_time": 225.1,
+   "gdp_time": -4.146710947,
+   "Interest_Rate_orig_time": 0.0,
+   "hpi_time": 153.35,
+   "uer_time": 9.0,
+   "LTV_orig_time": 91.8,
+   "balance_orig_time": 413000.0,
+   "balance_time": 411247.74
+  },
+  "MH-S1_floor_check": {
+   "interest_rate_time": 2.0,
+   "LTV_time": 24.49833626,
+   "FICO_orig_time": 788,
+   "hpi_orig_time": 87.03,
+   "gdp_time": 3.556334582,
+   "Interest_Rate_orig_time": 9.2,
+   "hpi_time": 226.29,
+   "uer_time": 4.4,
+   "LTV_orig_time": 52.5,
+   "balance_orig_time": 45000.0,
+   "balance_time": 41303.42
+  },
+  "MH-S2_stress_check": {
+   "interest_rate_time": 10.5,
+   "LTV_time": 114.5859618,
+   "FICO_orig_time": 527,
+   "hpi_orig_time": 226.29,
+   "gdp_time": -3.516567987,
+   "Interest_Rate_orig_time": 5.75,
+   "hpi_time": 151.48,
+   "uer_time": 9.5,
+   "LTV_orig_time": 80.0,
+   "balance_orig_time": 212000.0,
+   "balance_time": 209058.33
+  }
+ },
+ "case_meta": {
+  "MH-R1_low_nondefault": {
+   "kind": "real",
+   "actual": 0
+  },
+  "MH-R2_elevated_nondefault": {
+   "kind": "real",
+   "actual": 0
+  },
+  "MH-R3_default_period": {
+   "kind": "real",
+   "actual": 1
+  },
+  "MH-R4_high_default_period": {
+   "kind": "real",
+   "actual": 1
+  },
+  "MH-S1_floor_check": {
+   "kind": "synthetic",
+   "design": "nondefault"
+  },
+  "MH-S2_stress_check": {
+   "kind": "synthetic",
+   "design": "default"
+  }
+ }
+}

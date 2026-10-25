@@ -270,7 +270,7 @@ class _ValueFunction:
 
     def __init__(self, X, y, learner='woe_logistic', value_fn='auc', cv_folds=5,
                  cv_repeats=2, random_state=42, hp=None, value_fn_kwargs=None,
-                 logistic_C=1.0):
+                 logistic_C=1.0, cv_groups=None):
         if learner not in LEARNERS:
             raise ValueError('learner must be one of ' + str(sorted(LEARNERS)))
         if value_fn not in VALUE_FNS:
@@ -284,9 +284,24 @@ class _ValueFunction:
         self.hp = hp
         self.random_state = random_state
         self.logistic_C = logistic_C
-        rskf = RepeatedStratifiedKFold(n_splits=cv_folds, n_repeats=cv_repeats,
-                                       random_state=random_state)
-        self.folds = list(rskf.split(self.X, self.y))
+        # cv_groups is the panel/entity key (panel_adapter, hazard framing). When
+        # given, folds are cut with StratifiedGroupKFold so every row of an entity
+        # stays in one fold - the leakage guard for repeated-measures data. Repeats
+        # re-seed the splitter so the bootstrap still sees fold-to-fold variation.
+        # When None (every cross-sectional / snapshot run) the folds are the
+        # unchanged RepeatedStratifiedKFold - byte-for-byte as before.
+        if cv_groups is None:
+            rskf = RepeatedStratifiedKFold(n_splits=cv_folds, n_repeats=cv_repeats,
+                                           random_state=random_state)
+            self.folds = list(rskf.split(self.X, self.y))
+        else:
+            from sklearn.model_selection import StratifiedGroupKFold
+            g = np.asarray(cv_groups)
+            self.folds = []
+            for r in range(cv_repeats):
+                sgkf = StratifiedGroupKFold(n_splits=cv_folds, shuffle=True,
+                                            random_state=random_state + r)
+                self.folds.extend(sgkf.split(self.X, self.y, groups=g))
         self.n_evals = len(self.folds)
         self.cache = {}
         self.n_fits = 0
@@ -443,7 +458,8 @@ def shapley_importance(X, y, players=None, *, learner='woe_logistic', value_fn='
                        n_bootstrap=2000, confirm_frequency_min=0.80,
                        mode='auto', exact_max_players=15, n_samples=300,
                        target_mc_se=None, random_state=42, hp=None,
-                       row_subsample=None, progress_every=25, checkpoint_path=None):
+                       row_subsample=None, progress_every=25, checkpoint_path=None,
+                       cv_groups=None):
     """Order-invariant importance for column selection (METHODOLOGY v3 s5).
 
     players: list of column groups. If None and auto_cluster, groups are derived
@@ -464,10 +480,24 @@ def shapley_importance(X, y, players=None, *, learner='woe_logistic', value_fn='
     y = pd.Series(np.asarray(y)).reset_index(drop=True)
 
     if row_subsample is not None and row_subsample < len(X):
-        from sklearn.model_selection import train_test_split
-        X, _, y, _ = train_test_split(X, y, train_size=row_subsample, stratify=y,
-                                      random_state=random_state)
-        X, y = X.reset_index(drop=True), y.reset_index(drop=True)
+        if cv_groups is not None:
+            # group-aware subsample: keep WHOLE entities until ~row_subsample rows,
+            # so no entity is split across the in/out of the subsample.
+            g = np.asarray(cv_groups)
+            rng = np.random.RandomState(random_state)
+            uniq = rng.permutation(np.unique(g))
+            keep, n = [], 0
+            for gid in uniq:
+                keep.append(gid); n += int((g == gid).sum())
+                if n >= row_subsample:
+                    break
+            mask = np.isin(g, keep)
+            X, y, cv_groups = X[mask].reset_index(drop=True), y[mask].reset_index(drop=True), g[mask]
+        else:
+            from sklearn.model_selection import train_test_split
+            X, _, y, _ = train_test_split(X, y, train_size=row_subsample, stratify=y,
+                                          random_state=random_state)
+            X, y = X.reset_index(drop=True), y.reset_index(drop=True)
 
     cluster_info = None
     if players is None:
@@ -488,7 +518,7 @@ def shapley_importance(X, y, players=None, *, learner='woe_logistic', value_fn='
 
     vf = _ValueFunction(X_aug, y, learner=learner, value_fn=value_fn, cv_folds=cv_folds,
                         cv_repeats=cv_repeats, random_state=random_state, hp=hp,
-                        value_fn_kwargs=value_fn_kwargs)
+                        value_fn_kwargs=value_fn_kwargs, cv_groups=cv_groups)
 
     print('[shapley] %d real players + %d shadows = %d; mode=%s; learner=%s; value_fn=%s'
           % (len(players), len(shadow_players), len(all_players),

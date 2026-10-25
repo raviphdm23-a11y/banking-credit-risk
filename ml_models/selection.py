@@ -117,6 +117,59 @@ def delong_test(y_true, proba_a, proba_b):
             'z': float(z), 'p_value': p}
 
 
+def cluster_delong_test(y_true, proba_a, proba_b, groups, n_boot=500,
+                        random_state=42):
+    """Cluster-robust analogue of `delong_test` for panel / repeated-measures data.
+
+    The classical DeLong variance assumes i.i.d. rows. On panel data (many
+    correlated rows per entity) it UNDER-estimates the variance of the AUC
+    difference, so the paired test is over-powered and declares two models
+    "distinguishable" on economically trivial gaps - the same pseudo-replication
+    that inflates the per-grade calibration test (see calibration_gof). This
+    estimates the standard error of the AUC difference by a CLUSTER bootstrap
+    (resample whole entities, not rows) and returns a Wald p-value on it.
+
+    Same contract as `delong_test`: a LARGE p-value means the two models are not
+    distinguishable (the condition for accepting the smaller feature set). Keyed
+    off the identical `diff = AUC_a - AUC_b`. Use when a `groups` vector is
+    available; `delong_test` remains the i.i.d. default.
+    """
+    from sklearn.metrics import roc_auc_score
+    y = np.asarray(y_true).astype(int)
+    pa = np.asarray(proba_a, dtype=float)
+    pb = np.asarray(proba_b, dtype=float)
+    g = np.asarray(groups)
+    if y.sum() == 0 or y.sum() == len(y):
+        return {'diff': np.nan, 'se': np.nan, 'z': np.nan, 'p_value': np.nan,
+                'method': 'cluster_bootstrap', 'n_boot': 0}
+    diff_obs = float(roc_auc_score(y, pa) - roc_auc_score(y, pb))
+    # precompute each cluster's row indices once
+    uniq, inv = np.unique(g, return_inverse=True)
+    C = len(uniq)
+    order = np.argsort(inv, kind='stable')
+    bnd = np.searchsorted(inv[order], np.arange(C + 1))
+    cl_rows = [order[bnd[c]:bnd[c + 1]] for c in range(C)]
+    rng = np.random.RandomState(random_state)
+    diffs = np.empty(n_boot)
+    diffs[:] = np.nan
+    for b in range(n_boot):
+        samp = rng.randint(0, C, C)
+        rows = np.concatenate([cl_rows[c] for c in samp])
+        yb = y[rows]
+        if yb.min() == yb.max():
+            continue
+        diffs[b] = roc_auc_score(yb, pa[rows]) - roc_auc_score(yb, pb[rows])
+    diffs = diffs[~np.isnan(diffs)]
+    se = float(diffs.std(ddof=1)) if len(diffs) > 1 else np.nan
+    if not (se > 0):
+        return {'diff': diff_obs, 'se': se, 'z': 0.0, 'p_value': 1.0,
+                'method': 'cluster_bootstrap', 'n_boot': len(diffs)}
+    z = diff_obs / se
+    p = float(2 * (1 - stats.norm.cdf(abs(z))))
+    return {'diff': diff_obs, 'se': se, 'z': float(z), 'p_value': p,
+            'method': 'cluster_bootstrap', 'n_boot': len(diffs)}
+
+
 # ===========================================================================
 # Metrics (Gini primary)
 # ===========================================================================
@@ -217,7 +270,7 @@ def oof_predictions(X, y, columns, learner='woe_logistic', cv_folds=5,
 
 def parsimony_curve(X, y, ranked_players, player_columns, learner='woe_logistic',
                     cv_folds=5, random_state=42, hp=None, n_boot=500,
-                    progress=True, groups=None):
+                    progress=True, groups=None, delong_n_boot=500):
     """Metrics for the top-k players, k = 1..K, plus the full-candidate model.
 
     ranked_players: player names in descending importance order.
@@ -244,7 +297,9 @@ def parsimony_curve(X, y, ranked_players, player_columns, learner='woe_logistic'
                                 random_state=random_state, hp=hp, groups=groups)
         oofs[k] = oof_k
         rep = score_report(y, oof_k, n_boot=n_boot, random_state=random_state)
-        dl = delong_test(y, oof_k, oof_full)
+        dl = (cluster_delong_test(y, oof_k, oof_full, groups,
+                                  n_boot=delong_n_boot, random_state=random_state)
+              if groups is not None else delong_test(y, oof_k, oof_full))
         rel_loss = ((full['gini'] - rep['gini']) / full['gini']) if full['gini'] > 0 else np.nan
         rows.append({
             'k': k, 'player_added': p, 'n_columns': len(cols_so_far),
