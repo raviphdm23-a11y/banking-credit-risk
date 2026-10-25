@@ -16,6 +16,7 @@ import numpy as np
 import pandas as pd
 import v3_pipeline as v3
 import staged_run as sr
+import run_scorecard as rsc
 from staged_run import StagedRun
 
 fails = []
@@ -101,7 +102,12 @@ check('look-ahead scan hits only the temporal definition',
 check('stage0 stores missingness + lookahead', 'missingness' in run.state['stage0']
       and list(run.state['stage0']['lookahead']) == ['x'])
 suf = run.sufficiency()
-check('sufficiency has G1, G2 and G3 rows', list(suf['stage']) == ['G1', 'G2', 'G3'])
+check('sufficiency has pool (governing), IV-screened, players and selected rows',
+      list(suf['stage']) == ['G1', 'G1', 'G2', 'G3'] and int(suf['governing'].sum()) == 1
+      and bool(suf.iloc[0]['governing']))
+check('pool P is the number of columns that entered Stage 1',
+      int(suf.iloc[0]['P']) == len(run.state['stage1']['s1_table']))
+check('R6 is governed on the pool', 'candidate pool' in {r['id']: r for r in run.checklist()}['R6']['note'])
 check('role report flags the multi-role person',
       run.role_report()['multi_role_persons'] == {'A': ['Data Steward', 'Model Validator']})
 check('seal records person and rationale_by outside the hash',
@@ -130,6 +136,25 @@ run.seal('G5', 'A', R)
 run.seal('GF', 'GO-WITH-CONDITIONS', R)
 check('gf_verdict runs from the running checklist', run.gf_verdict().verdict in
       ('GO', 'GO-WITH-CONDITIONS', 'NO-GO'))
+
+
+# --- scorecard -------------------------------------------------------------------------------
+card = rsc.build(run)
+check('scorecard has all six dimensions',
+      all(k in card for k in ('ranking', 'accuracy', 'grades', 'sufficiency', 'stability', 'integrity')))
+check('capture rates rise with the percentile',
+      card['ranking']['capture_top_5'] <= card['ranking']['capture_top_10'] <= card['ranking']['capture_top_20'] <= 1)
+check('Brier skill CI brackets the point value',
+      card['uncertainty']['ci']['brier_skill_oof'][0] <= card['accuracy']['brier_skill_oof']
+      <= card['uncertainty']['ci']['brier_skill_oof'][1])
+check('XGBoost calibration step is kept separate from the primary accuracy block',
+      'xgboost_calibration_step' in card and 'brier_calibrated' not in card['accuracy'])
+check('bars cleared <= applicable and fairness bar n/a without an AIR',
+      card['bars_cleared'] <= card['bars_applicable'] == 8)
+check('integrity block says governed', card['integrity']['governed'] is True)
+check('compare() renders both runs', 'EQ' in rsc.compare(card, card) and 'Lead' in rsc.compare(card, card))
+check('capture helper: perfect ranking captures all events in the top share',
+      rsc._capture([1, 1, 0, 0, 0, 0, 0, 0, 0, 0], [9, 8, 1, 1, 1, 1, 1, 1, 1, 1], 0.2)[0] == 1.0)
 
 # --- reopen voids this gate and later ones, keeps the audit trail -----------
 n = run.reopen('G2', 'test: a G2 player is challenged as a leak')

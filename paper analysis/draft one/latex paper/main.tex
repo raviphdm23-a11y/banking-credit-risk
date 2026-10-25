@@ -712,7 +712,7 @@ case.}
 
 \subsection{Calibration}
 With class reweighting off and isotonic calibration always on, calibrated probabilities are
-tight across the corpus: expected calibration error is $0.020$ on HMEQ, $0.012$ on LC,
+tight across the corpus: expected calibration error is $0.020$ on HMEQ, $0.002$ on LC,
 $0.033$ on German and $0.007$ on MORTGAGE, and Hosmer--Lemeshow is \emph{not} rejected even at the
 largest $N$ (GMSC $149{,}391$, LC). The one exception is the origination-only MORTGAGE model
 ($N{=}50{,}049$), where HL \emph{is} rejected at $g{=}10$ ($p{\approx}0$) but passes at $g{=}5$
@@ -739,57 +739,67 @@ small \textsc{ccc} grade, which over-predicts (a conservative direction).}
 \end{figure}
 
 \subsection{Sample-size adequacy (EPV and Riley)}
-Table~\ref{tab:riley} reports the two sufficiency diagnostics. Thirteen of fourteen runs meet the Riley
-minimum; the lone shortfall is \textbf{MSME} (requires $3{,}654$, has $1{,}707$), which is also the
-only run failing \emph{both} diagnostics and the only HIGH-tier NO-GO---so the single failure is the
-case already rejected. The two diagnostics diverge in both directions, which is exactly Riley's value
-over EPV. Below EPV $10$ sit \emph{two} runs---MSME ($6.8$) and \textbf{POLISH-5y} ($7.3$)---yet only MSME
-also fails Riley: POLISH's strong signal (Gini $0.78$) clears the shrinkage criterion despite thin
-events ($271$), so it meets Riley with room to spare. The converse is \textbf{PAK}, which has an
-enormous EPV ($2{,}173$) yet needs $4{,}041$ rows because its weak signal (AUC
-$0.57\Rightarrow R^2_{cs}{=}0.013$) makes shrinkage demand volume; and \textbf{TH02} passes by only
-$+55$ rows, a thinness EPV ($54$) does not convey.
+Table~\ref{tab:riley} reports the two sufficiency diagnostics on two bases. Riley's parameter count $P$ is
+the number of candidate parameters considered \emph{before} data-driven selection, so the governing basis is the
+candidate pool; the selected-feature count, which an earlier version of this analysis used, is shown beside it.
+Screening by information value, Shapley confirmation and parsimony selection all use the outcome, so a count reduced
+by them cannot lower the requirement. On the pool basis twelve of fourteen runs meet the Riley minimum. \textbf{MSME}
+is short (requires $21{,}200$, has $1{,}707$; on the selected basis $3{,}654$) and fails \emph{both} diagnostics---it is the
+only HIGH-tier NO-GO, so the clearest failure is the case already rejected. \textbf{TH02} is also short on the pool
+basis (requires $2{,}731$, has $1{,}225$) although it passed by $55$ rows on the selected basis; its sealed verdict
+was not altered, because sufficiency is a reported diagnostic and never an automatic rejection. The two diagnostics
+diverge in both directions, which is Riley's value over EPV. Below EPV $10$ on the pool basis sit \textbf{POLISH-5y}
+($4.2$) and MSME ($1.2$); POLISH-5y nonetheless meets Riley ($5{,}555$ against $7{,}027$) because its strong signal
+(Gini $0.78$) clears the shrinkage criterion despite thin events ($271$). The converse is \textbf{PAK}, whose
+EPV is enormous yet which needs $26{,}262$ rows on the pool basis because its weak signal (AUC
+$0.57\Rightarrow R^2_{cs}{=}0.013$) makes shrinkage demand volume.
 Fig.~\ref{fig:riley} shows the headroom as rows available over rows required.
 
 \begin{figure}[!t]
 \centering
 \includegraphics[width=0.84\linewidth]{fig_riley_headroom.pdf}
-\caption{Sample-size headroom: rows available divided by the Riley minimum required (log scale;
-dashed line is the $1\times$ meets-the-minimum point). Only MSME falls short ($0.47\times$); PAK
-clears by $12\times$ despite a huge EPV, because its weak signal raises the requirement.}
+\caption{Sample-size headroom on the governing (candidate-pool) basis: rows available divided by the Riley
+minimum required (log scale; dashed line is the $1\times$ meets-the-minimum point). MSME ($0.08\times$) and TH02
+($0.45\times$) fall short; PAK clears by $1.9\times$ despite a huge EPV, because its weak signal raises the
+requirement.}
 \label{fig:riley}
 \end{figure}
 
 \begin{table}[!t]
 \centering
-\caption{Riley minimum-$N$ retrospective (reported diagnostic). $N_{\text{req}}=\max(B1,B3,B4)$.}
+\caption{Riley minimum-$N$ retrospective (reported diagnostic), $N_{\text{req}}=\max(B1,B3,B4)$. The
+\emph{pool} columns are the governing basis: $P$ is the candidate pool (columns entering Stage~1 after
+eligibility), because selection that uses the outcome cannot lower the requirement. The selected-$P$ columns
+are the earlier basis. Meets? refers to the pool basis.}
 \label{tab:riley}
 \footnotesize
-\begin{tabular}{@{}lrrrl@{}}
+\setlength{\tabcolsep}{2.5pt}
+\begin{tabular}{@{}lrrrrrl@{}}
 \toprule
-Dataset & $N$ & $N_{\text{req}}$ & EPV & Meets? \\
+Dataset & $N$ & $N_{\text{req}}^{\text{sel}}$ & $N_{\text{req}}^{\text{pool}}$ & EPV$^{\text{sel}}$ & EPV$^{\text{pool}}$ & Meets? \\
 \midrule
-SBA        & 2{,}102   & 338   & 62    & yes \\
-HMEQ       & 5{,}960   & 278   & 108   & yes \\
-POLISH-5y  & 7{,}027   & 5{,}141 & 7.3 & yes ($+1{,}886$)\textsuperscript{\dag} \\
-CREDITRISK & 32{,}581  & 263   & 1185  & yes \\
-GMSC       & 149{,}391 & 570   & 1251  & yes \\
-HELOC      & 10{,}459  & 522   & 321   & yes \\
-TAIWAN     & 30{,}000  & 737   & 474   & yes \\
-GERMAN     & 1{,}000   & 323   & 60    & yes \\
-MORTGAGE   & 50{,}049  & 358   & 2526  & yes \\
-MSME       & 1{,}707   & 3{,}654 & 6.8 & \textbf{SHORT} \\
-LC         & 39{,}717  & 1{,}581 & 625 & yes \\
-LOAN       & 9{,}578   & 1{,}220 & 219 & yes \\
-TH02       & 1{,}225   & 1{,}170 & 54  & yes ($+55$) \\
-PAK        & 50{,}000  & 4{,}041 & 2173 & yes \\
+SBA        & 2{,}102 & 338 & 380 & 62 & 36.1 & yes \\
+HMEQ       & 5{,}960 & 278 & 304 & 108 & 99.1 & yes \\
+POLISH-5y  & 7{,}027 & 3{,}212 & 5{,}555 & 7.3 & 4.2 & yes \\
+CREDITRISK & 32{,}581 & 263 & 263 & 1185 & 790 & yes \\
+GMSC       & 149{,}391 & 570 & 642 & 1251 & 1112 & yes \\
+HELOC      & 10{,}459 & 522 & 706 & 321 & 237 & yes \\
+TAIWAN     & 30{,}000 & 737 & 1{,}052 & 474 & 332 & yes \\
+GERMAN     & 1{,}000 & 323 & 760 & 60 & 17.6 & yes \\
+MORTGAGE   & 50{,}049 & 358 & 597 & 2526 & 1516 & yes \\
+MSME       & 1{,}707 & 3{,}654 & 21{,}200 & 6.8 & 1.2 & \textbf{no} \\
+LC         & 39{,}717 & 1{,}581 & 3{,}690 & 625 & 268 & yes \\
+LOAN       & 9{,}578 & 1{,}220 & 2{,}267 & 219 & 118 & yes \\
+TH02       & 1{,}225 & 1{,}170 & 2{,}731 & 54 & 23.1 & \textbf{no} \\
+PAK        & 50{,}000 & 4{,}041 & 26{,}262 & 2173 & 334 & yes \\
 \bottomrule
 \end{tabular}
 
 \vspace{2pt}
-{\footnotesize \dag~POLISH-5y meets the Riley minimum but its EPV $7.3<10$ (events per selected column; its
-record also reports $4.2$ on the $64$-candidate screening pool)---strong signal clears the shrinkage
-criterion despite thin events, the mirror image of PAK. MSME alone fails both diagnostics.\par}
+{\footnotesize POLISH-5y's earlier entry ($5{,}141$) used $P{=}60$, the screened count, not the selected count of the
+other rows; on the selected basis it is $3{,}212$. Requirements vary by about $\pm2$ between the selected column
+here and the original table because the $R^2_{cs}$ simulation is seeded on rounded inputs. The pool figure uses the
+selected model's C-statistic, because the pool model is never fitted.\par}
 \end{table}
 
 \subsection{A staged run: Polish bankruptcy, one year ahead}\label{sec:polish1}
@@ -850,9 +860,10 @@ deployment. In the staged Polish run the researcher chose every option, but the 
 by an AI assistant, shown before sealing, and recorded as such; the independence rows of the acceptance
 checklist (R7, R8) are therefore partial. The Polish run also leaves two data questions open (a possible
 look-ahead in one ratio and a sampling-window confound between bankrupt and operating firms), and its
-discrimination partly rests on a blank-value pattern whose cause is unknown (\S\ref{sec:polish1}). Finally, the Riley diagnostic uses the selected-feature count as its parameter count
-and a closed-form approximation that can under-state the requirement at very high $C$; neither
-affects any verdict here, but both are disclosed.
+discrimination partly rests on a blank-value pattern whose cause is unknown (\S\ref{sec:polish1}). Finally, the Riley diagnostic is governed on the candidate pool, and the pool model is never
+fitted, so the selected model's C-statistic stands in for the anticipated one; the closed-form approximation can also
+under-state the requirement at very high $C$. Sufficiency is a reported diagnostic and altered no verdict, including
+the pool-basis shortfall of TH02; both points are disclosed.
 
 \section{Future Work}\label{sec:future}
 Several directions follow directly from the limitations above.

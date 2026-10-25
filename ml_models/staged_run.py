@@ -140,7 +140,8 @@ class StagedRun:
                  shapley_mode='auto', exact_max_players=15,
                  max_relative_gini_loss=0.05, alpha=0.05, run_model_checks=True,
                  random_state=42, shapley_row_subsample=None, oot_test_frac=0.3,
-                 verbose=False, roles=None, history_years=None, dictionary=None):
+                 verbose=False, roles=None, history_years=None, dictionary=None,
+                 exploratory=False):
         self.df = df.reset_index(drop=True)
         self.target, self.name, self.tier = target, name, tier
         self.outdir = outdir
@@ -159,6 +160,9 @@ class StagedRun:
         # roles: {signing role: person}; history_years: observation window of the PD data
         # (None = not verifiable from the file); dictionary: {column: definition text}
         self.roles, self.history_years, self.dictionary = roles, history_years, dictionary
+        # exploratory: stages run without waiting for a signed gate (used to compute a scorecard
+        # for comparison). Nothing is sealed, and the scorecard says so. Never use for a governed run.
+        self.exploratory = exploratory
         self.genesis = 'GEN-%s_0' % name
         self.chain = []          # sealed entries (active)
         self.voided = []         # entries voided by reopen()
@@ -234,7 +238,7 @@ class StagedRun:
         return None
 
     def _need(self, gate):
-        if not self.sealed(gate):
+        if not self.exploratory and not self.sealed(gate):
             raise RuntimeError('%s must be sealed by its stakeholder before the next '
                                'SHARP stage may run' % gate)
 
@@ -379,9 +383,9 @@ class StagedRun:
         events, n, prev = int(y.sum()), len(self.df), float(y.mean())
         rows = []
 
-        def add(stage, basis, P, cstat):
+        def add(stage, basis, P, cstat, governing=False):
             r = rl.riley_min_n(prev, int(P), cstat=cstat)
-            rows.append({'stage': stage, 'basis': basis, 'P': int(P),
+            rows.append({'stage': stage, 'basis': basis, 'governing': governing, 'P': int(P),
                          'EPV': round(events / P, 1), 'c_stat': round(cstat, 4),
                          'B1': r['n_B1_risk'], 'B3': r['n_B3_shrinkage'],
                          'B4': r['n_B4_optimism'], 'N_required': r['N_required'],
@@ -389,16 +393,26 @@ class StagedRun:
                          'riley_met': n >= r['N_required']})
         if 'stage1' in self.state:
             s1 = self.state['stage1']
-            add('G1', 'candidate columns', len(s1['candidates']), s1['cstat_all_candidates'])
+            # GOVERNING basis (convention of 2026-10-25): the candidate pool = every column that
+            # entered Stage 1 after the outcome-blind Stage-0 eligibility step. Riley's P is the
+            # number of candidate parameters considered before data-driven selection, so a count
+            # reduced by IV screening, Shapley or parsimony (all outcome-dependent) cannot
+            # lower the requirement. The C-statistic is the out-of-fold AUC of the Stage-1
+            # candidate model (the pool model itself is never fitted).
+            add('G1', 'candidate pool (Stage-0 eligible, outcome-blind)', len(s1['s1_table']),
+                s1['cstat_all_candidates'], governing=True)
+            add('G1', 'after IV screening (outcome-dependent)', len(s1['candidates']),
+                s1['cstat_all_candidates'])
             if 'stage2' in self.state:
                 pl = self.state['stage2']['s2']['players']
                 nconf = int(((~pl['is_shadow']) & pl['importance_confirmed']).sum())
-                add('G2', 'confirmed players', nconf, s1['cstat_all_candidates'])
+                add('G2', 'confirmed players (correlated columns grouped)', nconf,
+                    s1['cstat_all_candidates'])
         if 'stage3' in self.state and self.state['stage3']['selected_columns']:
             s3 = self.state['stage3']
             k = int(s3['decision']['selected_k'])
             auc = float(s3['curve'].loc[s3['curve']['k'] == k, 'auc'].iloc[0])
-            add('G3', 'selected columns', len(s3['selected_columns']), auc)
+            add('G3', 'selected model (after data-driven selection)', len(s3['selected_columns']), auc)
         return pd.DataFrame(rows)
 
     # ------------------------------------------------------------ role independence
@@ -473,20 +487,23 @@ class StagedRun:
                     % (d['gini'], auc, k))
         if 'stage1' in self.state:
             suf = self.sufficiency()
+            gov = suf[suf['governing']].iloc[0]
             bad = []
-            if float(suf.iloc[0]['EPV']) < 10:
-                bad.append('EPV %.1f on the candidate pool' % float(suf.iloc[0]['EPV']))
+            if float(gov['EPV']) < 10:
+                bad.append('EPV %.1f on the candidate pool' % float(gov['EPV']))
+            if not bool(gov['riley_met']):
+                bad.append('Riley minimum not met on the candidate pool (%d needed, %d '
+                           'available)' % (gov['N_required'], gov['available']))
             sel = suf[suf['stage'] == 'G3']
+            info = ''
             if len(sel):
-                if float(sel.iloc[0]['EPV']) < 10:
-                    bad.append('EPV %.1f on the selected model' % float(sel.iloc[0]['EPV']))
-                if not bool(sel.iloc[0]['riley_met']):
-                    bad.append('Riley minimum not met on the selected model')
-            elif not bool(suf.iloc[0]['riley_met']):
-                bad.append('Riley minimum not met on the candidate pool')
+                info = '; selected model EPV %.1f, Riley %s (informational, post-selection)' % (
+                    float(sel.iloc[0]['EPV']), 'met' if bool(sel.iloc[0]['riley_met'])
+                    else 'not met')
             put('R6', 'PARTIAL' if bad else 'SATISFIED',
-                ('; '.join(bad) + '; ' if bad else 'EPV >= 10 and Riley minimum met; ') +
-                'Margin of Conservatism not quantified by this run')
+                ('; '.join(bad) + '; ' if bad else 'EPV >= 10 and Riley minimum met on the '
+                 'candidate pool; ') + 'governed on the candidate pool' + info +
+                '; Margin of Conservatism not quantified by this run')
         s4 = self.state.get('stage4')
         if s4 and s4.get('backtest'):
             bt = s4['backtest']
@@ -558,10 +575,12 @@ class StagedRun:
             s1 = self.state['stage1']
             t = s1['s1_table']
             top = t.sort_values('iv_woe', ascending=False).iloc[0]
+            gov = self.sufficiency()
+            gov = gov[gov['governing']].iloc[0]
             return {'tier': self.tier, 'n_pass': len(s1['candidates']),
-                    'n_pool': self.df.shape[1] - 1,
-                    'epv': round(events / (self.df.shape[1] - 1), 1),
-                    'riley_req': s1['riley']['N_required'], 'riley_avail': n,
+                    'n_pool': int(gov['P']),
+                    'epv': round(events / int(gov['P']), 1),
+                    'riley_req': int(gov['N_required']), 'riley_avail': n,
                     'dominant_feature': str(top.name),
                     'dominant_iv': round(float(top['iv_woe']), 2)}
         if gate == 'G2':

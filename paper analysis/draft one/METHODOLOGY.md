@@ -673,9 +673,14 @@ parameter**:
 
 - Stage 0 also reports a blank-vs-outcome table (Fisher exact, Bonferroni reference) and a
   look-ahead scan of the column definitions. Both are reports; neither excludes a column.
-- Stages 1-3 report EPV and the Riley minimum N on every basis reached (candidate columns,
-  confirmed players, selected model) in one table.
+- Stages 1-3 report EPV and the Riley minimum N on every basis reached (candidate pool, after IV
+  screening, confirmed players, selected model) in one table. The **candidate pool** (columns that
+  entered Stage 1 after outcome-blind eligibility) is the governing basis; the others are
+  informational because they follow outcome-dependent selection (`RILEY_SAMPLE_SIZE.md` section 8).
 - Stage 5 (deliverables) reports which scoring controls the data actually exercises.
 - The Section 8 checklist (R1-R10) is derived as evidence appears, so the final Go/No-Go reads it.
+- Every run ends in a model reliability scorecard (`ml_models/run_scorecard.py`): six dimensions of
+  out-of-fold or held-out metrics and a count of the existing cited bars cleared. There is no composite
+  score and no cutoff-based metric; two scorecards are compared side by side, not ranked.
 
 Earlier runs were executed one-shot and are not re-run under this flow.

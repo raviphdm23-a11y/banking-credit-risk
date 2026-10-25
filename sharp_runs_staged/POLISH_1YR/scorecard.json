@@ -1,0 +1,190 @@
+{
+ "run": "POLISH_1YR",
+ "tier": "MEDIUM",
+ "n": 5910,
+ "events": 410,
+ "prevalence": 0.0694,
+ "ranking": {
+  "gini": 0.8260252771618626,
+  "gini_ci": [
+   0.7966007736260226,
+   0.85678636437112
+  ],
+  "auc": 0.9130126385809313,
+  "ks": 0.6974767184035476,
+  "partial_auc": 0.8927133776792313,
+  "capture_top_5": 0.4683,
+  "lift_top_5": 9.37,
+  "capture_top_10": 0.6585,
+  "lift_top_10": 6.59,
+  "capture_top_20": 0.8439,
+  "lift_top_20": 4.22
+ },
+ "uncertainty": {
+  "n_boot": 1000,
+  "seed": 42,
+  "level": 0.95,
+  "point": {
+   "brier_skill_oof": 0.36920197785579856,
+   "ece_oof": 0.006820774377451016,
+   "calibration_slope_oof": 0.9538809581778055,
+   "capture_top_5": 0.4682926829268293,
+   "capture_top_10": 0.6585365853658537,
+   "capture_top_20": 0.8439024390243902
+  },
+  "ci": {
+   "capture_top_5": [
+    0.43414634146341463,
+    0.5049390243902439
+   ],
+   "capture_top_10": [
+    0.6170731707317073,
+    0.7
+   ],
+   "capture_top_20": [
+    0.8048780487804879,
+    0.8804878048780488
+   ],
+   "brier_skill_oof": [
+    0.3252547268773308,
+    0.4100570178350046
+   ],
+   "ece_oof": [
+    0.0050810723001466565,
+    0.012925290672424442
+   ],
+   "calibration_slope_oof": [
+    0.8885302516188768,
+    1.0261112917409814
+   ]
+  }
+ },
+ "accuracy": {
+  "brier_baseline_always_base_rate": 0.0646,
+  "brier_skill_oof": 0.3692,
+  "ece_oof": 0.0068,
+  "ece_heldout_raw": 0.01571638956650535,
+  "ece_heldout_calibrated": 0.016866152407782175,
+  "calibration_slope_oof": 0.954,
+  "calibration_intercept_oof": -0.091,
+  "hl_p_g10": 0.07198002861041641,
+  "hl_p_g5": 0.018459383821456066
+ },
+ "xgboost_calibration_step": {
+  "learner": "xgboost (secondary, trained on the selected columns, 80/20 split)",
+  "brier_baseline": 0.0646,
+  "brier_raw": 0.0342,
+  "brier_calibrated": 0.0343,
+  "ece_raw": 0.0128,
+  "ece_calibrated": 0.0145,
+  "auc_calibrated": 0.9321
+ },
+ "grades": {
+  "grades_passed": 9,
+  "grades_total": 10,
+  "sparse_grades": [],
+  "failing": [
+   {
+    "grade": "B",
+    "n": 54,
+    "realised": 0.1667,
+    "expected": 0.0828,
+    "direction": "under-predicts risk"
+   }
+  ],
+  "n_heldout": 1182,
+  "method": "wilson"
+ },
+ "sufficiency": {
+  "events": 410,
+  "n": 5910,
+  "pool_P": 64,
+  "pool_epv": 6.4,
+  "pool_riley_required": 2884,
+  "pool_riley_margin": 2.05,
+  "pool_riley_met": true,
+  "selected_epv": 16.4,
+  "selected_riley_margin": 5.22
+ },
+ "stability": {
+  "players_real": 19,
+  "players_confirmed": 19,
+  "weakest_confirmed_x_bar": 1.74,
+  "min_confirmation_frequency": 0.968,
+  "k_selected": 4,
+  "columns_selected": 25,
+  "gini_retained_vs_full": 0.9859,
+  "delong_p_vs_full": 0.2554,
+  "relative_gini_loss_pct": 1.41
+ },
+ "integrity": {
+  "gates_sealed": [
+   "G0",
+   "G1",
+   "G2",
+   "G3",
+   "G4",
+   "G5",
+   "GF"
+  ],
+  "governed": true,
+  "gf_verdict": "GO-WITH-CONDITIONS",
+  "checklist_satisfied": 4,
+  "checklist_partial": 6,
+  "checklist_gap": 0,
+  "blank_pattern_columns_beyond_bonferroni": 9,
+  "lookahead_phrase_hits": 1,
+  "sentinel_leakage_candidates": 3,
+  "adverse_impact_ratio": null
+ },
+ "bars": [
+  {
+   "bar": "AUC at or above the tier floor",
+   "cleared": true,
+   "source": "tier floor 0.7"
+  },
+  {
+   "bar": "Selection tolerance met (DeLong p >= 0.05, loss <= 5%)",
+   "cleared": true,
+   "source": "pre-registered selection rule"
+  },
+  {
+   "bar": "Per-grade backtest: every grade inside Wilson 95%",
+   "cleared": false,
+   "source": "Basel CRE36.122-123"
+  },
+  {
+   "bar": "Hosmer-Lemeshow (10 groups) not rejected",
+   "cleared": true,
+   "source": "alpha 0.05"
+  },
+  {
+   "bar": "Pool EPV at least 10",
+   "cleared": false,
+   "source": "Peduzzi 1996"
+  },
+  {
+   "bar": "Riley minimum met on the candidate pool",
+   "cleared": true,
+   "source": "Riley et al. 2020"
+  },
+  {
+   "bar": "No sparse grade (every grade n >= 30)",
+   "cleared": true,
+   "source": "backtest rule"
+  },
+  {
+   "bar": "Four-fifths rule (fairness)",
+   "cleared": null,
+   "source": "only where protected attributes exist"
+  },
+  {
+   "bar": "No must-have checklist GAP",
+   "cleared": true,
+   "source": "AEGIS section 8"
+  }
+ ],
+ "bars_cleared": 6,
+ "bars_applicable": 8,
+ "note": "Describes the model and its data together; not a ranking of methods. Out-of-fold / held-out figures only; no cutoff-based metric (the cutoff is an institution input)."
+}

@@ -265,14 +265,14 @@ Held-out n=1182; per-grade **9/10** inside the Wilson 95% CI; ECE 0.0157->0.0169
 | Stage 2 | 19 real players, all confirmed; shadow bar 0.00161; weakest player 1.74x the bar |
 | Stage 3 | k = 4 players = 25 columns; Gini 0.8260 (CI 0.7966-0.8568) vs full 0.8379; DeLong p 0.2554; relative loss 1.41% |
 | Selected model sufficiency | EPV 16.4; Riley N 1,132 (5.22x margin) |
-| Stage 4 | AUC 0.913 (OOF, k=4); isotonic Brier 0.0343, ECE 0.0145; deployed-model backtest 9 of 10 grades pass (held-out n = 1,182); HL g=10 p 0.0720, g=5 p 0.0185 |
+| Stage 4 | AUC 0.913 (OOF, k=4); pipeline calibration step (XGBoost secondary learner, see correction) Brier 0.0343, ECE 0.0145; deployed-model backtest 9 of 10 grades pass (held-out n = 1,182); HL g=10 p 0.0720, g=5 p 0.0185 |
 
 Parsimony curve: k=1 Gini 0.733 (DeLong p 2e-9), k=2 0.811 (p 0.022), k=3 0.812 (p 0.027), **k=4 0.826 (p 0.255, first not distinguishable)**. `working_capital` is the player that earns k=4. The model is parsimonious in decisions (4 players), not in columns (25).
 
 ### Unfavourable or open results (not hidden)
 - **Grade B fails the Wilson backtest:** 9 defaults of 54 (16.7%) vs 8.3% expected, i.e. under-prediction. 9 of 10 grades pass. Not tested formally whether one failure in ten is within chance.
 - **HL depends on grouping:** g=10 passes narrowly, g=5 rejects.
-- **Calibration did not improve Brier or ECE** (isotonic applied as the standing rule). The held-out ECE rose 0.0157 -> 0.0169.
+- **Isotonic calibration did not improve ECE on the deployed WOE-logistic model** (held-out ECE 0.0157 -> 0.0169). The Brier/ECE figures in the Stage-4 calibration table above belong to the XGBoost secondary learner (see correction at the end of this file), not to the primary model.
 - **Blank `sales_n_to_sales_n_minus_1`:** 103 firms, 99 bankrupt (96.1%). Scored as-is, 101 of 103 land in grade D (median PD 99.9%). In-sample AUC (descriptive, not out-of-fold) is 0.9195 on all rows and 0.8949 on complete rows. Cause of the blanks unknown. Deployment control: mandatory field -> REFER. **The Stage 1-4 figures above include these firms.**
 - **Other blank pattern:** `operating_profit_to_financial_expenses` is blank for 391 firms, 123 bankrupt (31.5%).
 - **Completeness:** 2,879 of 5,910 firms (48.7%) have at least one blank among the 64 ratios; 844 among the 25 selected.
@@ -285,3 +285,15 @@ Parsimony curve: k=1 Gini 0.733 (DeLong p 2e-9), k=2 0.811 (p 0.022), k=3 0.812 
 
 ### Difference from older records
 Stage 1's Riley C-statistic comes from ONE out-of-fold fit of all Stage-1 candidates (the confirmed-model C-statistic does not exist yet at that stage), unlike older one-shot records. Backtest uses the deployed-model (isotonic) method, not raw OOF, so G4 here is stricter than POLISH1's (which reported 10/10 on raw OOF); they are not directly comparable.
+
+### Correction (2026-10-25): the Stage-4 calibration table is the XGBoost learner
+
+The "Stage 4 - calibration" table above (Brier 0.0646 / 0.0342 / 0.0343, ECE 0.0128 / 0.0145, calibrated AUC 0.9321)
+comes from `v3_pipeline._calibrate`, which trains an **XGBoost** model on the selected columns on a random
+80/20 split and calibrates that. It therefore describes the secondary (robustness) learner, not the primary
+WOE-logistic model whose Gini 0.8260, per-grade backtest and Hosmer-Lemeshow figures are reported elsewhere in this
+record. In the chat presentation of G4 these figures were described as the model's own calibration; they were not.
+The primary model's figures, from its out-of-fold predictions (scorecard, 95% bootstrap intervals): Brier skill
+0.369 (0.325 to 0.410), ECE 0.0068 (0.0051 to 0.0129), calibration slope 0.954 (0.889 to 1.026); held-out
+deployed-model ECE 0.0157 before and 0.0169 after isotonic. The sealed G4 decision (option B) rested on the AUC,
+the per-grade backtest (grade B), and Hosmer-Lemeshow, all of which are primary-model figures, so the seal stands.

@@ -34,7 +34,7 @@ Scope adopted. Sentinel flag on `working_capital` = 97 rests on one bankrupt row
 k = 4 of 19 (25 columns): Gini 0.8260 (CI 0.7966-0.8568) vs full 0.8379, DeLong p 0.2554, relative loss 1.41%. EPV 16.4, Riley N 1,132 (5.22x). `working_capital` earns k=4. Parsimonious in decisions, not columns.
 
 ## G4 — Calibration (fairness N/A) · B · `baa1f4ca`
-Option B (approve with conditions). AUC 0.913 vs floor 0.70. Deployed-model backtest 9/10 grades; grade B fails (9/54 = 16.7% vs 8.3% expected, under-prediction). HL g=10 p 0.0720, g=5 p 0.0185. Calibration did not improve Brier/ECE. Fairness N/A, no OOT (no time column). Conditions carried to GF.
+Option B (approve with conditions). AUC 0.913 vs floor 0.70. Deployed-model backtest 9/10 grades; grade B fails (9/54 = 16.7% vs 8.3% expected, under-prediction). HL g=10 p 0.0720, g=5 p 0.0185. Isotonic did not improve held-out ECE on the deployed model (0.0157 -> 0.0169); the Brier/ECE figures first shown for G4 were the XGBoost secondary learner's, corrected in SHARP_POLISH_1YR.md. Fairness N/A, no OOT (no time column). Conditions carried to GF.
 
 ## G5 — Deployment governance · A · `e9a2f3ff`
 Controls confirmed: mandatory `sales_n_to_sales_n_minus_1` (blank -> REFER; 103 firms, 99 bankrupt), exact WOE reason codes, PD floor 0.03% / cap 99.9%. Deliverables: `AEGIS_POLISH_1YR_CUTOFF_POLICY.md`, `SAMPLE_RUNS_POLISH_1YR.md` (5 real + 3 synthetic), `acceptance_cases/polish_1yr.json`. Floor demonstrated; cap NOT (max 51.43% on complete-data firms); real bankrupt R5 rated AAA at 0.32%. `adverse_fallback` was set ok because an incomplete policy (refer) is defined; no adverse-score fallback is configured.

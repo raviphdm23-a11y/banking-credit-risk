@@ -24,6 +24,10 @@ def _out(name):
 
 # name, N, base_rate, pool, sel, gini, auc, N_req(Riley), verdict ('GO'|'NO-GO')
 # fairness_live only affects fig_fairness_air (not built here).
+# Riley N required on the GOVERNING (candidate-pool) basis, from RILEY_SAMPLE_SIZE.md section 8.
+POOL_NREQ = {"SBA": 380, "HMEQ": 304, "POLISH": 5555, "CREDITRISK": 263, "GMSC": 642, "HELOC": 706,
+             "TAIWAN": 1052, "GERMAN": 760, "MORTGAGE": 597, "MSME": 21200, "LC": 3690, "LOAN": 2267,
+             "TH02": 2731, "PAK": 26262}
 CORPUS = [
     ("SBA",        2102,   0.326, 19, 11, 0.86, 0.93, 338,  "GO"),
     ("HMEQ",       5960,   0.200, 12, 11, 0.81, 0.91, 278,  "GO"),
@@ -91,9 +95,9 @@ def fig_signal_volume():
 
 
 def fig_riley_headroom():
-    rows = sorted(CORPUS, key=lambda r: r[1] / r[7])  # ascending headroom
+    rows = sorted(CORPUS, key=lambda r: r[1] / POOL_NREQ[r[0]])  # ascending headroom
     names = [r[0] for r in rows]
-    head = [r[1] / r[7] for r in rows]
+    head = [r[1] / POOL_NREQ[r[0]] for r in rows]
     cols = [(NOGO_C if hr < 1.0 else GO_C) for hr in head]
     fig, ax = plt.subplots(figsize=(5.2, 3.6))
     y = range(len(rows))
@@ -104,8 +108,8 @@ def fig_riley_headroom():
                 va="center", fontsize=7)
     ax.set_xscale("log")
     ax.set_yticks(list(y)); ax.set_yticklabels(names, fontsize=7.8)
-    ax.set_xlabel("Headroom = rows available / Riley minimum required (log scale)")
-    ax.set_xlim(0.3, 600)
+    ax.set_xlabel("Headroom = rows available / Riley minimum, candidate-pool basis (log scale)")
+    ax.set_xlim(0.05, 600)
     ax.text(1.02, len(rows) - 0.4, "meets minimum (1×)", fontsize=6.6,
             color="#555", rotation=90, va="top")
     fig.savefig(_out("fig_riley_headroom.pdf")); plt.close(fig)

@@ -110,3 +110,45 @@ count (P), and selection-stage OOF Gini → C-statistic = (Gini+1)/2. Bold = the
 recommendations can *under*-estimate required N when discrimination is very high (C ≳ 0.85); HMEQ (C 0.907),
 CREDITRISK (0.880) and GMSC (0.852) sit in that zone, so their Riley minimums are, if anything, slightly
 optimistic — all three clear their bar by orders of magnitude regardless, so no verdict is affected.
+
+---
+
+## 8. Update 2026-10-25 - the candidate pool is the governing basis
+
+**Convention (runs after this date; earlier records not re-opened).** Riley's P is the number of candidate
+parameters considered *before* data-driven selection. EPV and the Riley minimum N are therefore **governed on the
+candidate pool** = every column that entered Stage 1 after the outcome-blind Stage-0 eligibility step. The
+figures after IV screening, after Shapley (players) and after selection are shown beside it as informational:
+IV screening, Shapley confirmation and parsimony selection all use the outcome, so a count reduced by them cannot
+lower the requirement. Correlation grouping is outcome-blind and is shown (players basis) but does not govern.
+The selected-P figures in section 4 were the primary basis until this date.
+
+**Retrospective on the 14-dataset corpus.** Same engine and inputs as section 4 (prevalence and selection-stage
+C-statistic from the records; C-statistic of the selected model used for the pool figure, since the pool model is
+never fitted), with P = the pool size from the corpus table. N required varies by about +/-2 against section 4
+because the R2cs simulation is seeded on rounded inputs. SBA, POLISH and MORTGAGE (not in section 4) are added
+from their SHARP records.
+
+| Dataset | N | N req (selected P) | Pool P | **N req (pool)** | EPV (selected) | EPV (pool) | Meets pool basis? |
+|---|--:|--:|--:|--:|--:|--:|:--|
+| SBA | 2,102 | 338 | 19 | 380 | 62 | 36.1 | yes |
+| HMEQ | 5,960 | 278 | 12 | 304 | 108 | 99.1 | yes |
+| POLISH-5y | 7,027 | 3,212 | 64 | 5,555 | 7.3 | 4.2 | yes |
+| CREDITRISK | 32,581 | 263 | 9 | 263 | 1185 | 789.9 | yes |
+| GMSC | 149,391 | 570 | 9 | 642 | 1251 | 1112.1 | yes |
+| HELOC | 10,459 | 522 | 23 | 706 | 321 | 237.3 | yes |
+| TAIWAN | 30,000 | 737 | 20 | 1,052 | 474 | 331.8 | yes |
+| GERMAN | 1,000 | 323 | 17 | 760 | 60 | 17.6 | yes |
+| MORTGAGE | 50,049 | 358 | 10 | 597 | 2526 | 1515.5 | yes |
+| MSME | 1,707 | 3,654 | 87 | 21,200 | 6.8 | 1.2 | **SHORT** |
+| LC | 39,717 | 1,581 | 21 | 3,690 | 625 | 268.0 | yes |
+| LOAN | 9,578 | 1,220 | 13 | 2,267 | 219 | 118.0 | yes |
+| TH02 | 1,225 | 1,170 | 14 | 2,731 | 54 | 23.1 | **SHORT** |
+| PAK | 50,000 | 4,041 | 39 | 26,262 | 2173 | 334.4 | yes |
+
+**Reading.** (1) 12 of 14 meet Riley on the pool basis; MSME (needs 21,200, has 1,707) is short, as before.
+(2) **TH02 is newly short** (needs 2,731, has 1,225; it passed by +55 on the selected basis). Its sealed verdict
+(GO-WITH-CONDITIONS) is *not* altered - sufficiency is a reported diagnostic, never an auto-reject - but R6 would be
+PARTIAL on the pool basis. (3) POLISH-5y's earlier figure of 5,141 used P=60 (the screened count), not the
+selected count (37) as the other rows did; on the selected basis it is 3,212, on the pool basis 5,555 (meets,
+margin 1.26x). (4) EPV on the pool is below 10 for POLISH-5y (4.2) and MSME (1.2).
