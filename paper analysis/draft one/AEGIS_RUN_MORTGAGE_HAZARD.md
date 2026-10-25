@@ -122,17 +122,26 @@ At t=42 the test set has 14,295 loans, 2,020 of them not seen in training.
    macro series → Gini 0.347; static origination only (5) → 0.256.
 
 **What it does NOT establish (stated so it is not over-read)**
-- *Cause of the drop is not isolated.* Removing `gdp_time`, `hpi_time`, `uer_time` raises OOT Gini only from
-  0.319 to 0.347 (+0.028 of a ~0.155 drop), so contemporaneous macro overfit explains a minor part. A strong
-  untested candidate for the rest is **loan-age mix shift**: mean loan age is 10.0 months in the training
-  period vs 28.8 in the test period (only 2,386 test rows under 12 months old vs 301,385 in training), and
-  the model has no loan-age feature. The OOT degradation is therefore confounded by seasoning, not purely
-  time leakage.
+- *Cause — what was tested and ruled out (at the t=42 cut):*
+  - **Contemporaneous macro overfit — minor.** Dropping `gdp_time`, `hpi_time`, `uer_time` raises OOT Gini
+    only 0.319 → 0.347 (+0.028 of a ~0.155 drop).
+  - **Loan-age (seasoning) mix shift — ruled out.** Mean loan age is 10.0 months in training vs 28.8 in test,
+    so this was the leading candidate. But adding `loan_age = time − orig_time` as a feature leaves OOT Gini
+    unchanged (0.316; in-time 0.481), and restricting both periods to the same ages (12–36 months) makes OOT
+    *worse* (Gini 0.255, per-grade 0/6) — within that age band the default rate still falls 2.73% → 1.41%.
+  - **Covariate extrapolation — ruled out.** 0% of test-period rows fall outside the training range on
+    `gdp_time`, `uer_time`, `hpi_time`, `interest_rate_time` or `LTV_time`.
+- *What the evidence is consistent with (interpretation, not proven):* a **credit-cycle regime shift**. The
+  per-period default rate runs ~1–2% early, spikes to 3.7–4.4% at t=30–40 (inside the training window), then
+  falls to 0.5–1.5% in the test window. Training spans the crisis peak and testing the recovery; with
+  covariates in range and age held fixed, the same covariate values carry different default risk across the
+  cycle, which neither the macro series nor isotonic recalibration on the past captures.
 - *No hazard-vs-snapshot comparison follows from these numbers.* The earlier statement that the simple
   origination scorecard is "preferable" compared Ginis on different targets (per-period vs ever-default) and
   is not established by either run; the snapshot has not itself had OOT validation. Retracted here.
 
 **Effect on conditions.** R7 stays PARTIAL but its content changes from "not performed" to "performed;
-forward Gini −33%, calibration fails OOT, cause partly unisolated". NEVER-DEPLOY is reinforced. GF (`dca8af15`)
+forward Gini −33%, calibration fails OOT; macro overfit, seasoning and extrapolation tested and
+not the cause; consistent with a credit-cycle regime shift". NEVER-DEPLOY is reinforced. GF (`dca8af15`)
 was ruled on in-time evidence for R3/R4; whether the MAC wishes to reconvene on this evidence is a governance
 decision not taken here.

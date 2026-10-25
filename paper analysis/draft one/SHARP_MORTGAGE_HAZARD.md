@@ -71,7 +71,8 @@ isotonic step, and the interval must be cluster-robust. Fix shipped as `ml_model
   PARSIMONY-NULL.
 - **Out-of-time validation (R7) was added post-GF** (`ml_models/oot_validation.py`): train t ≤ 42, test t > 42
   → OOT Gini **0.319** (−33% vs in-time 0.474), OOT AUC 0.660, calibrated-on-past per-grade **3/7**, HL
-  rejected; consistent across cuts 0.2/0.3/0.4 (Gini 0.315/0.319/0.299). The cause is only partly the
-  macro covariates (dropping them: +0.028 Gini) and is confounded by loan-age mix shift (mean age 10 → 29
-  months across the cut; no loan-age feature in the model) — untested. See the addendum in
-  `AEGIS_RUN_MORTGAGE_HAZARD.md`.
+  rejected; consistent across cuts 0.2/0.3/0.4 (Gini 0.315/0.319/0.299). Tested causes: macro overfit is minor
+  (dropping them: +0.028 Gini); loan-age mix shift is ruled out (adding `loan_age` leaves OOT Gini at 0.316;
+  age-matched 12–36 months is worse, 0.255); covariate extrapolation is ruled out (0% of test rows outside
+  the training range). The default-rate history (crisis spike 3.7–4.4% at t=30–40, then 0.5–1.5%) is
+  consistent with a credit-cycle regime shift. See the addendum in `AEGIS_RUN_MORTGAGE_HAZARD.md`.

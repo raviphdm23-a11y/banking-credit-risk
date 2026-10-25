@@ -43,8 +43,9 @@ PD threshold** — exogenous, not derived here.
   the same calendar period, so there is cross-sectional (vintage) correlation an i.i.d. CV cannot see.
   **Out-of-time validation was added after GF** (train t ≤ 42, test t > 42): forward Gini **0.32** vs 0.47
   in-time (−33%), OOT AUC 0.66, calibrated-on-past per-grade 3/7 with HL rejected; the same at cuts 0.2 and
-  0.4. The cause is only partly the macro covariates (dropping them recovers +0.03 Gini) and is confounded
-  by loan-age mix shift (untested), so it is not attributable to time leakage alone. The model must not be
+  0.4. Macro overfit is a minor part (+0.03 Gini when dropped); loan-age mix shift and covariate
+  extrapolation were tested and ruled out; the evidence is consistent with a credit-cycle regime shift
+  (training spans the crisis peak, testing the recovery). The model must not be
   used forward without re-validation. Contemporaneous time-varying covariates are a standard
   discrete-time-hazard design (covariate observed at period start), not leakage.
 - **CALIBRATION — cluster-robust, deployed-model (resolved, not a defect).** The raw WOE-logistic OOF PDs

@@ -421,8 +421,10 @@ backtest (1/7, HL p≈0); the deployed (isotonic) model passes **7/7** under the
 not rejected (p 0.11 raw / 0.65 design-effect adj.) — fix shipped as `calibration_gof.deployment_backtest`.
 **Out-of-time (added post-GF):** train t ≤ 42 / test t > 42 → Gini **0.319** (−33% vs in-time), AUC 0.660,
 calibrated-on-past per-grade 3/7, HL rejected; Gini 0.315/0.319/0.299 at cuts 0.2/0.3/0.4. Dropping the macro
-covariates recovers only +0.028 Gini; loan-age mix shifts 10 → 29 months across the cut and the model has no
-age feature, so the drop is **confounded, not attributable to time leakage alone**. The hazard (per-period) and
+covariates recovers only +0.028 Gini; adding `loan_age` leaves OOT Gini at 0.316 and an age-matched (12–36
+month) comparison is worse (0.255), so seasoning is ruled out; 0% of test rows fall outside the training
+covariate range. The default-rate history (crisis spike 3.7–4.4% at t=30–40, then 0.5–1.5%) is **consistent
+with a credit-cycle regime shift** (interpretation, not proven). The hazard (per-period) and
 snapshot (ever-default) Ginis are on different targets and are not compared. Governed → **GO-WITH-CONDITIONS**
 (`AEGIS_RUN_MORTGAGE_HAZARD.md`; R7 content updated by an append-only addendum, chain unchanged).
 
