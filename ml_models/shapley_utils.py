@@ -384,7 +384,8 @@ def _exact_shapley(vf, players, progress_every=0):
 
 
 def _sampled_shapley(vf, players, n_samples, random_state=42, progress_every=25,
-                     target_mc_se=None, max_samples=5000, checkpoint_path=None):
+                     target_mc_se=None, max_samples=5000, checkpoint_path=None,
+                     checkpoint_meta=None):
     """Permutation-sampling Shapley. Returns (per-player sample matrix, info).
 
     Each row of the returned matrix is one player; each column is one sampled
@@ -399,7 +400,17 @@ def _sampled_shapley(vf, players, n_samples, random_state=42, progress_every=25,
     samples = [[] for _ in range(n)]
     t0 = time.time()
     s = 0
+    if checkpoint_path and os.path.exists(checkpoint_path):
+        ck = _load_checkpoint(checkpoint_path, players, checkpoint_meta)
+        if ck is not None:
+            samples, s = ck
+            for _ in range(s):                 # replay the shuffles so the resumed run is identical to an uninterrupted one
+                rng.shuffle(list(range(n)))
+            print('[shapley sampled] RESUMED from checkpoint: %d permutations already done' % s, flush=True)
+    s0 = s
     while True:
+        if s > 0 and s == s0 and target_mc_se is None and s >= n_samples:
+            break                              # resumed from a checkpoint that already holds all the permutations
         order = list(range(n))
         rng.shuffle(order)
         current = []
@@ -413,11 +424,15 @@ def _sampled_shapley(vf, players, n_samples, random_state=42, progress_every=25,
         if progress_every and s % progress_every == 0:
             ses = [np.std(v, ddof=1) / math.sqrt(len(v)) if len(v) > 1 else np.inf
                    for v in samples]
+            el = time.time() - t0
+            per = el / max(s - s0, 1)
+            eta = ('; %.0fs per permutation, about %.0f min left of %d' % (per, per * max(n_samples - s, 0) / 60.0, n_samples)
+                   if target_mc_se is None else '; %.0fs per permutation' % per)
             print('[shapley sampled] %d permutations, %d unique subsets, %d fits, '
-                  'max MC SE %.5f, %.0fs'
-                  % (s, len(vf.cache), vf.n_fits, max(ses), time.time() - t0), flush=True)
+                  'max MC SE %.5f, %.0fs%s'
+                  % (s, len(vf.cache), vf.n_fits, max(ses), el, eta), flush=True)
             if checkpoint_path:
-                _save_checkpoint(checkpoint_path, players, samples, s)
+                _save_checkpoint(checkpoint_path, players, samples, s, checkpoint_meta)
         if target_mc_se is not None and s >= 50:
             ses = [np.std(v, ddof=1) / math.sqrt(len(v)) for v in samples]
             if max(ses) <= target_mc_se or s >= max_samples:
@@ -428,15 +443,31 @@ def _sampled_shapley(vf, players, n_samples, random_state=42, progress_every=25,
         'mode': 'sampled', 'n_permutations': s, 'n_subsets_evaluated': len(vf.cache)}
 
 
-def _save_checkpoint(path, players, samples, n_done):
+def _save_checkpoint(path, players, samples, n_done, meta=None):
     try:
         os.makedirs(os.path.dirname(path) or '.', exist_ok=True)
-        with open(path, 'w') as f:
+        tmp = path + '.tmp'
+        with open(tmp, 'w') as f:
             json.dump({'players': [list(p) for p in players],
                        'samples': [list(map(float, v)) for v in samples],
-                       'n_permutations': n_done}, f)
+                       'n_permutations': n_done, 'meta': meta}, f)
+        os.replace(tmp, path)                  # atomic: a kill mid-write never leaves a half file
     except Exception as exc:  # checkpointing must never kill a long run
         print('[shapley] checkpoint write failed: ' + str(exc), flush=True)
+
+
+def _load_checkpoint(path, players, meta):
+    """Return (samples, n_done) if the checkpoint belongs to THIS run (same players and settings), else None."""
+    try:
+        with open(path) as f:
+            ck = json.load(f)
+        if [list(p) for p in players] != ck['players'] or ck.get('meta') != json.loads(json.dumps(meta)):
+            print('[shapley] checkpoint ignored: it was written for different players or settings', flush=True)
+            return None
+        return [list(v) for v in ck['samples']], int(ck['n_permutations'])
+    except Exception as exc:
+        print('[shapley] checkpoint unreadable, starting fresh: ' + str(exc), flush=True)
+        return None
 
 
 def _bh_adjust(pvals):
@@ -527,11 +558,16 @@ def shapley_importance(X, y, players=None, *, learner='woe_logistic', value_fn='
     if use_exact:
         mat, run_info = _exact_shapley(vf, all_players, progress_every=progress_every)
     else:
+        ck_meta = dict(n_rows=int(len(X)), n_cols=int(X.shape[1]), learner=learner, value_fn=value_fn,
+                       cv_folds=cv_folds, cv_repeats=cv_repeats, random_state=random_state,
+                       n_shadows=n_shadows, cluster_threshold=cluster_threshold, row_subsample=row_subsample,
+                       n_groups=(int(len(set(cv_groups))) if cv_groups is not None else None))
         mat, run_info = _sampled_shapley(vf, all_players, n_samples=n_samples,
                                          random_state=random_state,
                                          progress_every=progress_every,
                                          target_mc_se=target_mc_se,
-                                         checkpoint_path=checkpoint_path)
+                                         checkpoint_path=checkpoint_path,
+                                         checkpoint_meta=ck_meta)
 
     means = np.nanmean(mat, axis=1)
     shadow_idx = [i for i, p in enumerate(all_players) if is_shadow(_player_name(p))]
@@ -575,6 +611,7 @@ def shapley_importance(X, y, players=None, *, learner='woe_logistic', value_fn='
         rows.append({
             'player': names[i],
             'columns': ','.join(p),
+            'column_list': list(p),     # exact names: a column name may itself contain a comma, so never rebuild the list by splitting 'columns'
             'n_columns': len(p),
             'is_shadow': bool(is_shadow(names[i])),
             'shapley': float(means[i]),
@@ -625,13 +662,21 @@ def shapley_importance(X, y, players=None, *, learner='woe_logistic', value_fn='
     return {'players': out, 'shadow_bar': shadow_bar, 'info': info}
 
 
+def player_columns(players_df, player):
+    """The exact column list of one player (column names may contain commas, so use column_list when present)."""
+    row = players_df.loc[player]
+    if 'column_list' in players_df.columns and isinstance(row['column_list'], (list, tuple)):
+        return list(row['column_list'])
+    return str(row['columns']).split(',')
+
+
 def confirmed_columns(result):
     """Flatten the confirmed players back to a column list, ranked by Shapley."""
     df = result['players']
     conf = df[df['importance_confirmed']]
     cols = []
-    for _, row in conf.iterrows():
-        cols.extend(str(row['columns']).split(','))
+    for p in conf.index:
+        cols.extend(player_columns(df, p))
     return [c for c in cols if c]
 
 

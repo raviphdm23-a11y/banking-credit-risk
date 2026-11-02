@@ -353,7 +353,7 @@ def run_pipeline(df, target='target', dataset_name='dataset', *,
         row_subsample=shapley_row_subsample)
 
     ranked = su.ranked_players(s2, confirmed_only=True)
-    player_cols = {p: str(s2['players'].loc[p, 'columns']).split(',')
+    player_cols = {p: su.player_columns(s2['players'], p)
                    for p in s2['players'].index}
     if not ranked:
         return {'dataset': dataset_name, 'stage0': s0, 'stage1': s1_table,

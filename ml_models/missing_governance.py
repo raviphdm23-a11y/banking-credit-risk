@@ -55,7 +55,7 @@ class Scorer:
 
     def __init__(self, columns, encoder, coef, intercept, iso,
                  mandatory, floor, incomplete_policy, override_woe,
-                 pd_floor=0.0003, pd_cap=0.999):
+                 pd_floor=0.0005, pd_cap=0.999):
         self.columns = list(columns)
         self.encoder = encoder
         self.coef = np.asarray(coef, dtype=float)
@@ -125,18 +125,21 @@ class Scorer:
         praw = 1.0 / (1.0 + np.exp(-logit))
         pcal = self.iso.transform(praw)
         pcal = np.asarray(pcal, dtype=float)
-        pcal = np.clip(pcal, self.pd_floor, self.pd_cap)   # Basel CRE32.3 PD floor/ceiling
+        pcal = np.clip(pcal, self.pd_floor, self.pd_cap)   # PD floor 0.05% (Basel CRE32.4; CRR Art 160(1)/163(1)); the 0.03% used before 2026-10-26 was the superseded Basel 2019 value
         gated = np.isin(decision, ['REJECT', 'REFER'])
         pcal[gated] = np.nan
 
         return pd.DataFrame({'decision': decision, 'probability': pcal, 'reason': reason})
 
 
-def build_scorer(df, target, columns, *, mandatory_columns=(), floor_columns=(),
+def build_scorer(df, target, columns, *, mandatory_columns=(), floor_columns=None,
                  incomplete_policy='reject', random_state=42,
-                 pd_floor=0.0003, pd_cap=0.999):
+                 pd_floor=0.0005, pd_cap=0.999):
     """Fit a WOE-logistic scorer on the true data and attach the governance overlay.
 
+    floor_columns: None (default since 2026-10-26) = the ADVERSE FLOOR applies to every non-mandatory column, i.e. a blank
+        scores no better than the worst real bin and cannot lower risk (a blank bin with no defaults would otherwise score as
+        the safest value). Pass [] to switch it off, or a list to restrict it.
     incomplete_policy: 'reject' | 'refer' (PRIMARY gate - a blank mandatory field
         is not scored) or 'adverse_score' (FALLBACK - score the blank at worst case).
     Returns (Scorer, report_dict). The report records, per governed column, the
@@ -145,6 +148,8 @@ def build_scorer(df, target, columns, *, mandatory_columns=(), floor_columns=(),
     if incomplete_policy not in ('reject', 'refer', 'adverse_score'):
         raise ValueError("incomplete_policy must be 'reject', 'refer' or 'adverse_score'")
     cols = list(columns)
+    if floor_columns is None:
+        floor_columns = [c for c in cols if c not in set(mandatory_columns)]
     X = df[cols].copy()
     for c in cols:
         if X[c].dtype != object:

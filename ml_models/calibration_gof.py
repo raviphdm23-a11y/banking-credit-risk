@@ -212,7 +212,7 @@ def _ece(y, p, n_bins=10):
 
 def deployment_backtest(y, raw_pd, grade_fn, grade_order, groups=None,
                         test_size=0.2, random_state=42, n_boot=1000,
-                        floor=0.0003, cap=0.999, hl_g=(10, 5)):
+                        floor=0.0005, cap=0.999, hl_g=(10, 5)):
     """The goodness-of-fit the governance gates should actually read.
 
     Two things every prior gate-evidence script got wrong, fixed here and made

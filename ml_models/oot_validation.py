@@ -37,7 +37,7 @@ from panel_adapter import temporal_split
 def out_of_time_validation(X, y, columns, time_values, *, groups=None,
                            learner='woe_logistic', test_frac=0.3,
                            grade_fn=None, grade_order=None, in_time_gini=None,
-                           random_state=42, n_boot=500, floor=0.0003, cap=0.999,
+                           random_state=42, n_boot=500, floor=0.0005, cap=0.999,
                            hp=None):
     """Fit on rows up to the time cut, score the later rows.
 

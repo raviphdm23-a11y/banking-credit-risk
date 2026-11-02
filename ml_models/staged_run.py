@@ -55,7 +55,30 @@ MIN_RATIONALE = 20
 LOOKAHEAD_PATTERN = r'\b(in \d+ years?|next|following|future|forecast|subsequent|after)\b'
 MUST_HAVE_ROWS = ('R1', 'R2', 'R3', 'R4', 'R5', 'R6', 'R7', 'R8', 'R9')
 CHECKLIST_GATE = {'R1': 'G0', 'R2': 'G5', 'R3': 'G3', 'R4': 'G4', 'R5': 'G5', 'R6': 'G4',
-                  'R7': 'GF', 'R8': 'GF', 'R9': 'G0', 'R10': 'G0'}
+                  'R7': 'GF', 'R8': 'GF', 'R9': 'G0', 'R10': 'G0', 'R11': 'GF', 'R12': 'GF',
+                  'R13': 'GF', 'R14': 'GF'}
+# Rows R11-R14 apply only if their regime is declared binding at G0 (AEGIS section 8: "the MAC records
+# which regime(s) bind a given model at G0"). R1-R10 are treated as binding whatever the regime
+# (Basel/EBA credit-risk criteria and generic model-risk governance).
+REGIME_OF = {'R11': 'UK_PRA_SS1_23', 'R12': 'EU_AI_ACT_HIGH_RISK', 'R13': 'EU_AI_ACT_HUMAN_OVERSIGHT',
+             'R14': 'US_ECOA_REG_B'}
+# What closes a PARTIAL / GAP row, and who owns it. Generic actions only - no numbers.
+CLOSING_ACTION = {
+    'R1': ('Verify the observation window of the PD data (data-owner statement or dated records)', 'Data Steward / data owner'),
+    'R2': ('Complete the cutoff note and acceptance pack, and show the PDs feed real decisions', 'Model Owner'),
+    'R3': ('Justify or down-tier if discrimination is below the tier floor or no k meets the tolerance', 'Model Validator'),
+    'R4': ('Resolve failing grades and the HL result, or document them with an ongoing-monitoring plan', 'Risk Officer'),
+    'R5': ('Configure and document the override / refer controls', 'Model Owner'),
+    'R6': ('Quantify the Margin of Conservatism by category (EBA A/B/C) and address the EPV shortfall', 'Model Owner + Risk Officer'),
+    'R7': ('Appoint a validator independent of the developer', 'MAC Chair'),
+    'R8': ('Separate developer, validator and approver roles and constitute the committee', 'MAC Chair + CRO'),
+    'R9': ('Assign the materiality tier at G0', 'Data Steward'),
+    'R10': ('Explain or resolve blank patterns that track the outcome; lineage and completeness report', 'Data Steward'),
+    'R11': ('Map the lifecycle to the PRA SS1/23 principles and record the assessment', 'Model Owner'),
+    'R12': ('Record the Art 9/10/12/13/14 assessment for natural-person credit scoring', 'Model Owner'),
+    'R13': ('Show that overseers can understand, decline and halt the model output', 'Model Owner'),
+    'R14': ('Provide specific principal reasons for adverse action', 'Model Owner'),
+}
 
 
 def missingness_scan(df, target, alpha=0.05):
@@ -110,7 +133,7 @@ def acceptance_coverage(df, target, selected, mandatory_columns=(), incomplete_p
     demonstrate it from this data)."""
     import missing_governance as mg
     sc, _ = mg.build_scorer(df, target, selected, mandatory_columns=list(mandatory_columns),
-                            floor_columns=[], incomplete_policy=incomplete_policy,
+                            incomplete_policy=incomplete_policy,
                             random_state=random_state)
     r = sc.score(df[selected])
     scored = r['decision'].isin(['SCORE', 'SCORE_FLAGGED'])
@@ -141,7 +164,7 @@ class StagedRun:
                  max_relative_gini_loss=0.05, alpha=0.05, run_model_checks=True,
                  random_state=42, shapley_row_subsample=None, oot_test_frac=0.3,
                  verbose=False, roles=None, history_years=None, dictionary=None,
-                 exploratory=False):
+                 exploratory=False, regimes=None, live_use=True):
         self.df = df.reset_index(drop=True)
         self.target, self.name, self.tier = target, name, tier
         self.outdir = outdir
@@ -163,6 +186,11 @@ class StagedRun:
         # exploratory: stages run without waiting for a signed gate (used to compute a scorecard
         # for comparison). Nothing is sealed, and the scorecard says so. Never use for a governed run.
         self.exploratory = exploratory
+        # regimes: {regime key: {'binding': bool, 'reason': str}} for the keys in REGIME_OF; None = not
+        # declared (R11-R14 then read NOT ASSESSED). Declare at G0; the signer confirms it.
+        self.regimes = regimes
+        # live_use=False marks a research benchmark with no use in decisions, so the use test (R2) cannot be evidenced
+        self.live_use = live_use
         self.genesis = 'GEN-%s_0' % name
         self.chain = []          # sealed entries (active)
         self.voided = []         # entries voided by reopen()
@@ -294,7 +322,8 @@ class StagedRun:
             confirm_frequency_min=c['confirm_frequency_min'], n_samples=c['n_samples'],
             random_state=c['random_state'], mode=c['shapley_mode'],
             exact_max_players=c['exact_max_players'],
-            progress_every=(50 if self.verbose else 0), cv_groups=self.groups,
+            progress_every=self.cfg.get('shapley_progress_every', 50 if self.verbose else 0),
+            checkpoint_path=os.path.join(self.outdir, 'shapley_checkpoint.json'), cv_groups=self.groups,
             row_subsample=c['shapley_row_subsample'])
         self.state['stage2'] = {'s2': s2}
         return s2
@@ -309,12 +338,12 @@ class StagedRun:
         c, s1, s2 = self.cfg, self.state['stage1'], self.state['stage2']['s2']
         self.state['stage3_excluded_players'] = tuple(excluded_players)
         ranked = self._ranked()
-        player_cols = {p: str(s2['players'].loc[p, 'columns']).split(',')
+        player_cols = {p: su.player_columns(s2['players'], p)
                        for p in s2['players'].index}
         X, y = self.df[s1['candidates']], self.df[self.target]
         curve, extras = sel.parsimony_curve(
             X, y, ranked, player_cols, learner=c['learner'],
-            random_state=c['random_state'], progress=self.verbose, groups=self.groups)
+            random_state=c['random_state'], progress=self.cfg.get('parsimony_progress', self.verbose), groups=self.groups)
         decision = sel.select_parsimonious(
             curve, max_relative_gini_loss=c['max_relative_gini_loss'], alpha=c['alpha'])
         selected = []
@@ -389,6 +418,7 @@ class StagedRun:
                          'EPV': round(events / P, 1), 'c_stat': round(cstat, 4),
                          'B1': r['n_B1_risk'], 'B3': r['n_B3_shrinkage'],
                          'B4': r['n_B4_optimism'], 'N_required': r['N_required'],
+                         'N_required_default_r2': rl.riley_min_n(prev, int(P), r2cs=0.15 * rl.max_r2cs(prev))['N_required'],
                          'available': n, 'margin': round(n / r['N_required'], 2),
                          'riley_met': n >= r['N_required']})
         if 'stage1' in self.state:
@@ -427,21 +457,27 @@ class StagedRun:
             by.setdefault(who, []).append(role)
         multi = {w: r for w, r in by.items() if len(r) > 1}
         return {'declared': True, 'roles': dict(self.roles), 'multi_role_persons': multi,
-                'note': ('one person holds several roles: %s' % json.dumps(multi)) if multi
+                'note': ('one person holds several roles (%s)' % '; '.join('%d roles: %s' % (len(r), ', '.join(r)) for w, r in multi.items())) if multi
                 else 'each role held by a different person'}
 
     # ----------------------------------------------------------- running checklist
     def record_g5(self, controls_ok, cutoff_policy_present, acceptance_pack_present,
-                  coverage=None):
+                  coverage=None, override_policy=False):
         """Caller supplies the G5 facts; `coverage` is acceptance_coverage()'s dict."""
         self.state['g5'] = {'controls_ok': bool(controls_ok),
                             'cutoff_policy_present': bool(cutoff_policy_present),
                             'acceptance_pack_present': bool(acceptance_pack_present),
-                            'coverage': coverage}
+                            'coverage': coverage, 'override_policy': bool(override_policy)}
         return self.state['g5']
 
-    def checklist(self):
-        """Section-8 rows R1-R10 derived from the evidence recorded so far; a row with no
+    def checklist(self, strict=False):
+        """strict=True is the REGULATORY-USE reading (used by the dossier): R1 is a gap when the data history cannot be
+        shown, R6 a gap while no Margin of Conservatism is quantified (EBA/GL/2017/16 para 47(a) requires it to be above
+        zero), R7/R8 a gap while one person holds every role, R3 partial if realised default rates are not rank-ordered
+        across grades, R5 partial without an override policy, and R2 N/A for a benchmark with no live use. strict=False
+        keeps the earlier reading, which the sealed records used.
+
+        Section-8 rows R1-R10 derived from the evidence recorded so far; a row with no
         evidence yet is omitted. Statuses are PROPOSALS for the signer (override with
         set_checklist). The derivation uses only existing parameters (alpha, the tier AUC
         floor, the EPV>=10 rule of thumb, the Wilson per-grade backtest) - no new thresholds."""
@@ -538,6 +574,41 @@ class StagedRun:
             else:
                 put('R7', 'SATISFIED', rr['note'])
                 put('R8', 'SATISFIED', rr['note'])
+        for r, key in REGIME_OF.items():
+            if self.regimes is None or key not in self.regimes:
+                rows[r] = {'id': r, 'status': 'NOT ASSESSED', 'must_have': False, 'gate': 'GF',
+                           'source': 'derived',
+                           'note': 'regimes not declared at G0, so it is not known whether %s binds' % key}
+            elif not self.regimes[key].get('binding'):
+                rows[r] = {'id': r, 'status': 'N/A', 'must_have': False, 'gate': 'GF', 'source': 'derived',
+                           'note': 'not binding: %s' % self.regimes[key].get('reason', 'declared not binding')}
+            else:
+                rows[r] = {'id': r, 'status': 'PARTIAL', 'must_have': False, 'gate': 'GF', 'source': 'derived',
+                           'note': 'binding regime (%s); no assessment recorded' % key}
+        if strict:
+            def worsen(r, status, add):
+                if r in rows:
+                    rows[r] = dict(rows[r], status=status, note=rows[r]['note'] + '; ' + add)
+            if 'R1' in rows and rows['R1']['status'] == 'PARTIAL':
+                worsen('R1', 'GAP', 'for regulatory use a history that cannot be shown is a gap (CRE36.79)')
+            if 'R6' in rows and rows['R6']['status'] in ('PARTIAL', 'SATISFIED'):
+                worsen('R6', 'GAP', 'no Margin of Conservatism is quantified; EBA/GL/2017/16 para 47(a) requires a positive category-C margin')
+            rr_ = self.role_report()
+            if rr_['declared'] and rr_['multi_role_persons']:
+                for r_ in ('R7', 'R8'):
+                    worsen(r_, 'GAP', 'regulatory use needs a validator and approver independent of the developer')
+            s4_ = self.state.get('stage4')
+            if s4_ and s4_.get('backtest') and 'R3' in rows:
+                tb_ = s4_['backtest']['table']
+                real_ = [float(x) for x in tb_['realised']]
+                viol_ = sum(1 for a_, b_ in zip(real_, real_[1:]) if b_ < a_)
+                if viol_ and rows['R3']['status'] == 'SATISFIED':
+                    worsen('R3', 'PARTIAL', '%d rank-order break(s): realised default rates are not non-decreasing across grades, and grade concentration is not shown to be supported by evidence (CRE36.18-21)' % viol_)
+            g5_ = self.state.get('g5')
+            if g5_ and 'R5' in rows and not g5_.get('override_policy') and rows['R5']['status'] == 'SATISFIED':
+                worsen('R5', 'PARTIAL', 'no override policy or override tracking is evidenced (CRE36.44); only a refer rule exists')
+            if not self.live_use and 'R2' in rows:
+                rows['R2'] = dict(rows['R2'], status='N/A', note='research benchmark with no live use: the use test cannot be evidenced')
         for r, o in self.state.get('checklist_overrides', {}).items():
             base = rows.get(r, {'id': r, 'must_have': r in MUST_HAVE_ROWS,
                                 'gate': CHECKLIST_GATE.get(r, 'GF')})
@@ -545,21 +616,75 @@ class StagedRun:
                            source='override by ' + o['by'])
         return [rows[k] for k in sorted(rows, key=lambda x: int(x[1:]))]
 
+    def readiness_panel(self, strict=False):
+        """Regulatory-readiness panel shown BEFORE the final sign-off: which acceptance criteria are
+        complete, partial, pending, not applicable, and what closes each partial. It is an internal gate
+        summary, NOT a prediction of regulatory approval."""
+        cl = {r['id']: r for r in self.checklist(strict)}
+        names = {'R1': 'PD data history >= 5 years', 'R2': 'Use test', 'R3': 'Risk differentiation',
+                 'R4': 'Calibration backtest', 'R5': 'Override governance', 'R6': 'Margin of Conservatism',
+                 'R7': 'Independent validation', 'R8': 'Governance and accountability',
+                 'R9': 'Risk-proportionate rigour', 'R10': 'Data governance / completeness',
+                 'R11': 'Model risk management principles (PRA SS1/23)',
+                 'R12': 'High-risk AI obligations (EU AI Act)', 'R13': 'Human-oversight operability (EU AI Act Art 14)',
+                 'R14': 'Adverse-action reasons (ECOA / Reg B)'}
+        order = ['R%d' % i for i in range(1, 15)]
+        done = [r for r in order if r in cl and cl[r]['status'] == 'SATISFIED']
+        part = [r for r in order if r in cl and cl[r]['status'] == 'PARTIAL']
+        gap = [r for r in order if r in cl and cl[r]['status'] == 'GAP']
+        na = [r for r in order if r in cl and cl[r]['status'] == 'N/A']
+        nass = [r for r in order if r in cl and cl[r]['status'] == 'NOT ASSESSED']
+        pend = [r for r in order if r not in cl]
+        L = ['REGULATORY-READINESS PANEL - %s' % self.name, '',
+             'Complete %d | Partial %d | Gap %d | Pending (evidence not yet produced) %d | Not applicable %d | Not assessed %d'
+             % (len(done), len(part), len(gap), len(pend), len(na), len(nass)), '']
+        if self.regimes is None:
+            L += ['Regimes: NOT DECLARED. R11-R14 cannot be classified until the committee records which regimes bind (AEGIS section 8).', '']
+        else:
+            L += ['Regimes declared (confirm at G0): ' + '; '.join(
+                '%s = %s (%s)' % (k, 'BINDING' if v.get('binding') else 'not binding', v.get('reason', ''))
+                for k, v in self.regimes.items()), '']
+
+        def block(title, rows, with_action):
+            if not rows:
+                return
+            L.append(title)
+            for r in rows:
+                line = '  %s  %s - %s' % (r, names[r], cl[r]['note'] if r in cl else 'no evidence yet (stage not reached)')
+                L.append(line)
+                if with_action and r in CLOSING_ACTION:
+                    L.append('        closes with: %s [owner: %s]' % CLOSING_ACTION[r])
+            L.append('')
+        block('COMPLETE', done, False)
+        block('PARTIAL - what closes each', part, True)
+        block('GAP - hard stop if a must-have', gap, True)
+        block('PENDING - evidence produced at a later gate', pend, False)
+        block('NOT APPLICABLE', na, False)
+        block('NOT ASSESSED', nass, False)
+        L += ['Roles: ' + self.role_report()['note'], '',
+              'READ THIS AS: a gap analysis against the framework\'s own acceptance criteria. It does not predict a',
+              'supervisor\'s decision. A research benchmark on public data carries a NEVER-DEPLOY condition, which',
+              'a supervisor would not approve for capital use whatever the checklist says.', '',
+              'NOT COVERED BY THIS CHECKLIST (general knowledge, not verified in this session; confirm against the',
+              'primary texts before relying on it): the default definition used; long-run-average calibration of PD',
+              '(this model is estimated on one cross-section); LGD and EAD models; a quantified Margin of Conservatism.']
+        return '\n'.join(L)
+
     def set_checklist(self, row, status, note, by):
         """The signer overrides a derived row; kept with who and why."""
-        if status not in ag.VALID_STATUS:
-            raise ValueError('status must be one of %s' % sorted(ag.VALID_STATUS))
+        if status not in ag.VALID_STATUS | {'N/A'}:
+            raise ValueError('status must be one of %s' % sorted(ag.VALID_STATUS | {'N/A'}))
         if len((note or '').strip()) < MIN_RATIONALE:
             raise ValueError('note must be >= %d characters' % MIN_RATIONALE)
         self.state.setdefault('checklist_overrides', {})[row] = {
             'status': status, 'note': note, 'by': by}
 
-    def gf_verdict(self, residual_within_appetite=True):
+    def gf_verdict(self, residual_within_appetite=True, strict=False):
         """Engine verdict from the sealed gates and the running checklist."""
         states = {g: ('signed' if self.sealed(g) else 'unsigned')
                   for g in ('G0', 'G1', 'G2', 'G3', 'G4', 'G5')}
-        return ag.gf_engine(states, self.checklist(),
-                            residual_within_appetite=residual_within_appetite)
+        rows = [r for r in self.checklist(strict) if r['status'] in ag.VALID_STATUS]   # engine reads only assessed rows
+        return ag.gf_engine(states, rows, residual_within_appetite=residual_within_appetite)
 
     # ------------------------------------------------------------ gate evidence
     def gate_evidence(self, gate, **extra):

@@ -194,8 +194,13 @@ def expected_calibration_error(y_true, proba, n_bins=10):
 
 
 def score_report(y_true, proba, base_rate=None, n_boot=500, random_state=42,
-                 partial_auc_max_fpr=0.5):
-    """Gini (primary), KS, AUC, partial AUC, Brier, ECE - with a Gini CI."""
+                 partial_auc_max_fpr=0.5, groups=None):
+    """Gini (primary), KS, AUC, partial AUC, Brier, ECE - with a Gini CI.
+
+    groups: optional panel/entity key. When given, the Gini CI resamples whole entities (cluster bootstrap) instead
+    of rows, because repeated rows of one entity are not independent and a row bootstrap understates the interval.
+    None keeps the row bootstrap, byte-identical to before.
+    """
     y_true = np.asarray(y_true)
     proba = np.asarray(proba, dtype=float)
     auc = float(roc_auc_score(y_true, proba))
@@ -207,8 +212,14 @@ def score_report(y_true, proba, base_rate=None, n_boot=500, random_state=42,
     rng = np.random.RandomState(random_state)
     boots = []
     n = len(y_true)
+    if groups is not None:
+        _, inv = np.unique(np.asarray(groups), return_inverse=True)
+        cl_rows = [np.where(inv == c)[0] for c in range(inv.max() + 1)]
     for _ in range(n_boot):
-        idx = rng.randint(0, n, n)
+        if groups is not None:
+            idx = np.concatenate([cl_rows[c] for c in rng.randint(0, len(cl_rows), len(cl_rows))])
+        else:
+            idx = rng.randint(0, n, n)
         if len(np.unique(y_true[idx])) < 2:
             continue
         boots.append(2 * roc_auc_score(y_true[idx], proba[idx]) - 1)
@@ -285,9 +296,14 @@ def parsimony_curve(X, y, ranked_players, player_columns, learner='woe_logistic'
     y = pd.Series(np.asarray(y)).reset_index(drop=True)
     all_cols = [c for p in ranked_players for c in player_columns[p]]
 
+    import time as _time
+    _t0 = _time.time()
     oof_full = oof_predictions(X, y, all_cols, learner=learner, cv_folds=cv_folds,
                                random_state=random_state, hp=hp, groups=groups)
-    full = score_report(y, oof_full, n_boot=n_boot, random_state=random_state)
+    full = score_report(y, oof_full, n_boot=n_boot, random_state=random_state, groups=groups)
+    if progress:
+        print('[parsimony] full-model reference done in %.0fs; %d players to add one by one'
+              % (_time.time() - _t0, len(ranked_players)), flush=True)
 
     rows, oofs = [], {}
     cols_so_far = []
@@ -296,7 +312,7 @@ def parsimony_curve(X, y, ranked_players, player_columns, learner='woe_logistic'
         oof_k = oof_predictions(X, y, cols_so_far, learner=learner, cv_folds=cv_folds,
                                 random_state=random_state, hp=hp, groups=groups)
         oofs[k] = oof_k
-        rep = score_report(y, oof_k, n_boot=n_boot, random_state=random_state)
+        rep = score_report(y, oof_k, n_boot=n_boot, random_state=random_state, groups=groups)
         dl = (cluster_delong_test(y, oof_k, oof_full, groups,
                                   n_boot=delong_n_boot, random_state=random_state)
               if groups is not None else delong_test(y, oof_k, oof_full))
@@ -312,8 +328,10 @@ def parsimony_curve(X, y, ranked_players, player_columns, learner='woe_logistic'
                 if not np.isnan(dl['p_value']) else None,
         })
         if progress:
-            print('[parsimony] k=%d (%s): gini=%.4f rel_loss=%.2f%% delong_p=%.4f'
-                  % (k, p, rep['gini'], 100 * rel_loss, dl['p_value']), flush=True)
+            _el = _time.time() - _t0
+            print('[parsimony] k=%d/%d (%s): gini=%.4f rel_loss=%.2f%% delong_p=%.4f; %.0fs elapsed, about %.0f min left'
+                  % (k, len(ranked_players), p, rep['gini'], 100 * rel_loss, dl['p_value'], _el,
+                     _el / k * (len(ranked_players) - k) / 60.0), flush=True)
     curve = pd.DataFrame(rows)
     extras = {'full_model': full, 'oof_full': oof_full, 'oof_by_k': oofs,
               'all_columns': all_cols}
