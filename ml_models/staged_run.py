@@ -126,7 +126,7 @@ def lookahead_scan(dictionary):
 
 
 def acceptance_coverage(df, target, selected, mandatory_columns=(), incomplete_policy='refer',
-                        random_state=42):
+                        random_state=42, groups=None):
     """Score every row through the deployable scorer and report which scoring controls the
     data actually exercises: PD floor / cap bound, referrals, PD range of scored firms.
     A control that no row triggers is reported NOT EXERCISED (the acceptance pack cannot
@@ -134,7 +134,7 @@ def acceptance_coverage(df, target, selected, mandatory_columns=(), incomplete_p
     import missing_governance as mg
     sc, _ = mg.build_scorer(df, target, selected, mandatory_columns=list(mandatory_columns),
                             incomplete_policy=incomplete_policy,
-                            random_state=random_state)
+                            random_state=random_state, groups=groups)
     r = sc.score(df[selected])
     scored = r['decision'].isin(['SCORE', 'SCORE_FLAGGED'])
     p = r.loc[scored, 'probability'].astype(float)

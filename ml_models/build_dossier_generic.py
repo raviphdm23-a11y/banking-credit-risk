@@ -28,6 +28,13 @@ import build_dossier as bd  # noqa: E402  (helpers and preamble only; its sectio
 
 esc, f, pct, num, table = bd.esc, bd.f, bd.pct, bd.num, bd.table
 TBD = r'\textcolor{alertred}{[to be confirmed]}'
+DK = {'unit': 'observation', 'units': 'observations', 'population': 'see the manifest note', 'event_label': 'the event defined in the manifest',
+      'sample_note': 'see the manifest note', 'extra_limitations': []}      # dataset wording, overridden by the manifest "dossier" block
+RUN_LOC = {'run': '', 'manifest': '', 'records': ''}      # set by build(): where the sealed record, manifest and result records live
+
+
+def tt_path(p):
+    return esc(p.replace('\\', '/')).replace('/', '/\\allowbreak{}')
 STAT = {'SATISFIED': r'\stSAT', 'PARTIAL': r'\stPAR', 'GAP': r'\stGAP', 'N/A': r'\stNA'}
 
 
@@ -82,12 +89,17 @@ def doc_control(d):
 
 
 # ------------------------------------------------------------------------------------------------ sections
+def sel_row(d):
+    k = d['selection']['k']
+    return next(c for c in d['curve'] if c['k'] == k)
+
+
 def sec_summary(d, st, pf):
-    c0, oot = d['curve'][0], st['stage4']['oot']
+    c0, oot = sel_row(d), st['stage4']['oot']
     sel = d['selection']
     t = r'\section{Summary and decision requested}' + '\n'
-    t += (r'The model scores company-quarters (%s rows from %s firms; %s of the firms have at least one positive row) on the probability that the quarter falls within the pre-registered window before the firm\textquotesingle s first insolvency filing. '
-          % (num(pf['rows']), num(pf['firms']), num(pf['event_firms'])) +
+    t += (r'The model scores %s (%s rows from %s firms; %s of the firms have at least one positive row) on the probability of the event in the pre-registered window: %s. '
+          % (esc(DK['units']), num(pf['rows']), num(pf['firms']), num(pf['event_firms']), esc(DK['event_label'])) +
           r'It uses %d of %d candidate columns, selected by SHARP at k = %d. ' % (sel['columns'], sel['candidates_screened'], sel['k']) +
           'Company-grouped cross-validated Gini is %s (company-bootstrap 95\\%% interval %s--%s, AUC %s). On a later-period test the Gini is %s, a relative fall of %s. '
           % (f(c0['gini']), f(c0['gini_ci_low']), f(c0['gini_ci_high']), f(c0['auc']), f(oot['gini']), pct(oot['gini_drop_rel'])) + '\n\n')
@@ -100,11 +112,11 @@ def sec_summary(d, st, pf):
 
 def sec_scope(d, m, pf):
     t = r'\section{Scope and intended use}' + '\n'
-    t += table(['Item', 'Entry'], [['Population', 'Listed companies; %s firms, %s company-quarters, %s to %s (%d periods)' % (num(pf['firms']), num(pf['rows']), esc(pf['t0']), esc(pf['t1']), pf['periods'])],
+    t += table(['Item', 'Entry'], [['Population', '%s; %s firms, %s %s, %s to %s (%d periods)' % (esc(DK['population']), num(pf['firms']), num(pf['rows']), esc(DK['units']), esc(pf['t0']), esc(pf['t1']), pf['periods'])],
                                    ['Jurisdiction / borrower type', esc(m['jurisdiction']) + ' / ' + esc(m['borrower_type'])],
-                                   ['Event label', 'The target column marks a quarter that lies within the pre-registered window before the firm\'s first insolvency-resolution filing. A filing is not a confirmed admission and is not a loan default.'],
-                                   ['Framing', 'Panel, hazard: every company-quarter is a row; entity = %s, time = %s; cross-validation is grouped by company' % (tt(m['panel']['entity_id']), tt(m['panel']['time_col']))],
-                                   ['Intended use', esc(d['inventory']['Purpose']) + '. ' + esc(d['inventory']['Intended users']) + '; downstream uses: ' + esc(d['inventory']['Downstream uses'])],
+                                   ['Event label', esc(DK['event_label'])],
+                                   ['Framing', 'Panel, hazard: every %s is a row; entity = %s, time = %s; cross-validation is grouped by company' % (esc(DK['unit']), tt(m['panel']['entity_id']), tt(m['panel']['time_col']))],
+                                   ['Intended use', esc(DK.get('purpose') or d['inventory']['Purpose']) + '. ' + esc(d['inventory']['Intended users']) + '; downstream uses: ' + esc(d['inventory']['Downstream uses'])],
                                    ['Supervisor / applicable rulebook', TBD + ' (not verified in this document)']], r'@{}p{4cm}p{11.4cm}@{}')
     rows = [[esc(k.replace('_', ' ')), 'binding' if v['binding'] else 'not binding', esc(v['reason'])] for k, v in d['regimes'].items()]
     t += '\n' + table(['Regime', 'As recorded', 'Reason recorded'], rows, r'@{}p{3.6cm}p{2.2cm}p{9.6cm}@{}', caption='Regimes considered in the run (the supervisor above is not confirmed, so these are the run\'s own screening, not a legal conclusion)') + '\n'
@@ -118,8 +130,8 @@ def sec_data(d, m, ex, pf):
     t += table(['Item', 'Entry'], [['File', '%s, %s bytes, SHA-256 \\texttt{%s\\allowbreak{}%s}' % (tt(fl['name']), num(fl['bytes']), fl['sha256'][:32], fl['sha256'][32:])],
                                    ['Rows / firms / periods', '%s / %s / %d' % (num(dt['n']), num(pf['firms']), pf['periods'])],
                                    ['Positive rows / firms', '%s (%s) / %s' % (num(dt['events']), pct(dt['prevalence'], 2), num(pf['event_firms']))],
-                                   ['Model inputs', '%d financial columns. Identifier and date columns (%s) are not model inputs.' % (dt['n_columns'], ', '.join(tt(c) for c in pf['meta_cols']))],
-                                   ['Sample', 'Not a random sample of listed companies (see the manifest note); the default share is not a population rate'],
+                                   ['Model inputs', '%d model input columns. Identifier, date and outcome-related columns (%s) are not model inputs.' % (dt['n_columns'], ', '.join(tt(c) for c in pf['meta_cols']))],
+                                   ['Sample', esc(DK['sample_note'])],
                                    ['Rows with a blank', '%s of %s' % (num(dt['rows_with_blank']), num(dt['n']))]], r'@{}p{4cm}p{11.4cm}@{}')
     rows = [[tt(short(b['column'], 52)), num(b['n_blank']), f(b['pct_blank'], 1) + '\\%', num(b['events_in_blank']), pct(b['event_rate_blank'], 1), pct(b['event_rate_filled'], 1),
              '%.1e' % b['bonferroni_p'] if b['bonferroni_p'] < 0.001 else f(b['bonferroni_p'], 4), 'yes' if b['below_bonferroni'] else 'no'] for b in dt['blank_table']]
@@ -147,8 +159,8 @@ def sec_dev(d, st):
     rows = [[tt(short(c, 50)), f(r.iv_woe, 3), f(r.cramers_v_descriptive, 3), '%.1e' % r.p_value, 'yes' if r.passes_screen else 'no', 'selected' if c in sel else ''] for c, r in s1.iterrows()]
     t += table(['Column', 'IV', "Cram\\'er's V", 'p-value', 'Passes screen', 'In model'], rows, r'@{}p{6.4cm}rrrll@{}',
                caption='Screening of all %d candidate columns (%d pass)' % (d['selection']['candidates_screened'], d['selection']['candidates_passed']), long=True)
-    t += r'\subsection{Attribution}' + '\n' + (r'Columns were grouped into correlated players and ranked by Shapley value against a shadow (noise) bar of %s. %d players were real and %d confirmed above the bar. The selected set forms %d player: %s members, Shapley %s.' % (
-        f(d['shadow_bar'], 4), d['selection']['players_real'], d['selection']['players_confirmed'], len(d['players']), len(d['players'][0]['members']), f(d['players'][0]['shapley'], 4))) + '\n'
+    t += r'\subsection{Attribution}' + '\n' + (r'Columns were grouped into correlated players and ranked by Shapley value against a shadow (noise) bar of %s. %d players were real and %d confirmed above the bar. The parsimony rule then selected the top %d players. The top-ranked player has %d columns (Shapley %s).' % (
+        f(d['shadow_bar'], 4), d['selection']['players_real'], d['selection']['players_confirmed'], d['selection']['k'], len(d['players'][0]['members']), f(d['players'][0]['shapley'], 4))) + '\n'
     rows = [[str(c['k']), str(c['n_columns']), f(c['gini']), '%s--%s' % (f(c['gini_ci_low']), f(c['gini_ci_high'])), f(c['auc']), f(c['ks']), pct(c['relative_gini_loss_vs_full'], 1), f(c['delong_p_vs_full'], 3)] for c in d['curve']]
     t += r'\subsection{Parsimony curve}' + '\n' + table(['k', 'Columns', 'Gini', '95\\% interval', 'AUC', 'KS', 'Gini change vs full', 'DeLong p vs full'], rows, r'@{}rrrlrrrr@{}',
                                                          caption='Gini by number of retained players. Intervals and p-values resample whole companies. Rule: %s' % esc(st['stage3']['decision']['rule']))
@@ -175,7 +187,7 @@ def sec_model(d, m):
 
 
 def sec_perf(d, st, ex):
-    c0, oot, sc = d['curve'][0], st['stage4']['oot'], d['scorecard']
+    c0, oot, sc = sel_row(d), st['stage4']['oot'], d['scorecard']
     ac, cp, bm = sc['accuracy'], d['calibration_primary'], d['backtest_meta']
     t = r'\section{Performance and validation}' + '\n' + r'\subsection{In time (company-grouped cross-validation)}' + '\n'
     t += table(['Measure', 'Value'], [['Gini', '%s (95\\%% company-bootstrap %s--%s)' % (f(c0['gini']), f(c0['gini_ci_low']), f(c0['gini_ci_high']))], ['AUC / KS', '%s / %s' % (f(c0['auc']), f(c0['ks']))],
@@ -184,14 +196,16 @@ def sec_perf(d, st, ex):
                                       ['Hosmer--Lemeshow p (10 / 5 groups)','%s / %s' % (f(ac['hl_p_g10'], 3), f(ac['hl_p_g5'], 3))]], r'@{}p{7cm}p{8cm}@{}')
     t += '\nA calibration slope of %s is below 1: the raw predictions are more extreme than the outcomes warrant, which is typical of a model fitted on few events. Isotonic calibration (below) addresses level, not the shortage of events.\n' % f(ac['calibration_slope_oof'], 2)
     t += r'\subsection{Out of time}' + '\n'
-    t += ('Training on the first %s company-quarters and testing on the later %s (test event rate %s, %d firms, %d of them not seen in training): Gini %s against %s in time (a relative fall of %s), AUC %s, calibrated expected calibration error %s. '
-          % (num(oot['n_train']), num(oot['n_test']), pct(oot['test_event_rate'], 2), oot['n_test_entities'], oot['n_test_new_entities'], f(oot['gini']), f(oot['in_time_gini']), pct(oot['gini_drop_rel'], 1), f(oot['auc']), f(oot['ece_cal'], 4)) +
-          'Because every test firm also appears in training, this is out of time but not out of firm. Hosmer--Lemeshow on the test set: %s as computed, %s after adjusting for repeated quarters of the same firm (design effect %s).\n'
+    t += ('Training on the first %s %s and testing on the later %s (test event rate %s, %d firms, %d of them not seen in training): Gini %s against %s in time (a relative fall of %s), AUC %s, calibrated expected calibration error %s. '
+          % (num(oot['n_train']), esc(DK['units']), num(oot['n_test']), pct(oot['test_event_rate'], 2), oot['n_test_entities'], oot['n_test_new_entities'], f(oot['gini']), f(oot['in_time_gini']), pct(oot['gini_drop_rel'], 1), f(oot['auc']), f(oot['ece_cal'], 4)) +
+          ('Every test firm also appears in training, so this is out of time but not out of firm. ' if oot['n_test_new_entities'] == 0 else '%d of the %d test firms are not in the training period, so this is partly out of firm as well. ' % (oot['n_test_new_entities'], oot['n_test_entities'])) + 'Hosmer--Lemeshow on the test set: %s as computed, %s after adjusting for repeated observations of the same firm (design effect %s).\n'
           % ('p = %.1e' % oot['hl']['p_value'], 'p = %s' % f(oot['hl']['p_adj'], 3), f(oot['hl']['design_effect'], 2)))
     t += r'\subsection{Calibration and per-grade backtest}' + '\n'
     t += ('Isotonic calibration on 5-fold held-out scores (%s rows): Brier %s raw, %s calibrated, always-base-rate %s; expected calibration error %s raw, %s calibrated. '
           % (num(cp['n_heldout']), f(cp['raw_brier'], 4), f(cp['calibrated_brier'], 4), f(cp['baseline_brier_always_base_rate'], 4), f(cp['raw_ece'], 4), f(cp['calibrated_ece'], 4)) +
-          'The per-grade backtest below uses a separate held-out set of %s rows, with intervals that resample whole companies; %d of %d grades pass. The two held-out counts are as recorded by two different steps and are not reconciled here.\n' % (num(bm['n_heldout']), bm['passed'], bm['total']))
+          ('The per-grade backtest below uses the same held-out rows (%s), with intervals that resample whole companies; %d of %d grades pass.\n' % (num(bm['n_heldout']), bm['passed'], bm['total'])
+           if int(cp['n_heldout']) == int(bm['n_heldout']) else
+           'The per-grade backtest below uses a separate held-out set of %s rows, with intervals that resample whole companies; %d of %d grades pass. The two held-out counts come from two different steps and are not reconciled here.\n' % (num(bm['n_heldout']), bm['passed'], bm['total'])))
     rows = [[esc(b['grade']), num(b['n']), num(b['defaults']), pct(b['realised'], 2), pct(b['expected'], 2), '%s--%s' % (pct(b['ci_low'], 1), pct(b['ci_high'], 1)), r'\stPASS' if b['pass'] else r'\stFAIL'] for b in d['backtest']]
     t += table(['Grade', 'Rows', 'Positives', 'Realised', 'Expected', 'Realised interval', 'Result'], rows, r'@{}lrrrrll@{}', caption='Per-grade backtest (a grade with few rows has an interval too wide to be informative)')
     cv = d['coverage']
@@ -206,28 +220,27 @@ def sec_perf(d, st, ex):
 def sec_cases(d):
     rows, flags = [], []
     for c in d['cases']:
-        a = {1: 'bankrupt', 0: 'repaid', None: 'synthetic'}[c['actual']]
+        a = {1: DK.get('event_noun', 'bankrupt'), 0: 'repaid', None: 'synthetic'}[c['actual']]
         rows.append([tt(c['name'].split('-', 1)[-1]), esc(c['kind']), a, esc(c['decision']), pct(c['pd'], 2), esc(c['grade'])])
         if c['actual'] == 1 and c['grade'] in ('AAA', 'AA'):
             flags.append(c['name'].split('-', 1)[-1])
     t = r'\section{Acceptance cases}' + '\n' + table(['Case', 'Kind', 'Actual', 'Decision', 'PD', 'Grade'], rows, r'@{}p{6cm}llllr@{}', caption='Acceptance cases (real rows chosen by rule, plus synthetic extremes)')
     if flags:
-        t += r'\textbf{Flag:} %s is a real positive row that the model grades %s. It is shown because a model that rates a firm safe in the quarters before it fails is the failure that matters most; it is a single case and says nothing about frequency.' % (
+        t += r'\textbf{Flag:} %s is a real positive row that the model grades %s. It is shown because a model that rates a firm safe in the period before it fails is the failure that matters most; it is a single case and says nothing about frequency.' % (
             ', '.join(tt(x) for x in flags), esc([c['grade'] for c in d['cases'] if c['name'].split('-', 1)[-1] == flags[0]][0])) + '\n'
     return t
 
 
 def sec_limits(d, st, pf):
-    L = ['Only %d positive rows from %d firms: the model is fitted on very few independent events, and every interval above is wide. Events per variable is %s on the candidate pool; the Riley minimum sample size is not met on it (%s rows needed, %s available).' % (
-        d['data']['events'], pf['event_firms'], f(d['sufficiency'][0]['EPV'], 1), num(d['sufficiency'][0]['N_required']), num(d['sufficiency'][0]['available'])),
-         'Per-grade backtest: %d of %d grades pass on %s held-out rows with few positives in each grade; the test cannot confirm calibration grade by grade.' % (d['backtest_meta']['passed'], d['backtest_meta']['total'], num(d['backtest_meta']['n_heldout'])),
-         'The out-of-time test contains only firms also seen in training, and its Gini is %s below the in-time figure.' % pct(st['stage4']['oot']['gini_drop_rel'], 1),
-         'The event is an insolvency-resolution filing, not a loan default; it is a proxy and not the definition of default in CRE36.68.',
-         'The sample is not random and positive firms are over-represented, so the base rate here is not a population rate.',
-         '%d of %d coefficients on weight of evidence have the wrong sign (Section 5); the cause is not established.' % (d['coef_positive_count'], len(d['variables'])),
-         'Sample inputs show profit columns that disagree in sign for the same quarter; this was noticed during the run and was not investigated.',
-         'Ungrouped cross-validation overstates the Gini on this data (0.675 against 0.615 grouped by company, a diagnostic run while building this dossier and not part of the sealed record), because the same firm\'s quarters land in both train and test. Any figure from a split that ignores the firm grouping should be treated as inflated.',
-         'No independent validator is assigned and no margin of conservatism is quantified (Section 9).']
+    s0 = d['sufficiency'][0]
+    oot = st['stage4']['oot']
+    L = ['%d positive rows from %d firms: the number of independent events limits every interval above. Events per variable is %s on the candidate pool; the Riley minimum sample size is %s on rows (%s rows needed, %s available), and this counts rows, not firms (%s firms).' % (
+        d['data']['events'], pf['event_firms'], f(s0['EPV'], 1), 'met' if s0.get('riley_met', s0['available'] >= s0['N_required']) else 'not met', num(s0['N_required']), num(s0['available']), num(pf['firms'])),
+         'Per-grade backtest: %d of %d grades pass on %s held-out rows; grades with few positives have wide intervals.' % (d['backtest_meta']['passed'], d['backtest_meta']['total'], num(d['backtest_meta']['n_heldout'])),
+         'Out of time, the Gini is %s below the in-time figure, and calibration on the later period should be read from the out-of-time table above.' % pct(oot['gini_drop_rel'], 1),
+         '%d of %d coefficients on weight of evidence have the wrong sign (Section 5); the cause is not established.' % (d['coef_positive_count'], len(d['variables']))]
+    L += [esc(x) for x in DK['extra_limitations']]
+    L += ['No independent validator is assigned and no margin of conservatism is quantified (Section 9).']
     return r'\section{Limitations}' + '\n' + r'\begin{itemize}' + '\n' + '\n'.join(r'\item ' + x for x in L) + '\n' + r'\end{itemize}' + '\n'
 
 
@@ -248,7 +261,7 @@ def sec_gov(d):
             rows.append([k, STAT[stt], esc(act), esc(own)])
     t += table(['ID', 'Status', 'Action to close', 'Owner'], rows, r'@{}llp{8cm}p{3.4cm}@{}', caption='Actions to close open items (regulatory-use reading)')
     t += r'Regulatory-use blockers: ' + '; '.join(esc(b.split(':')[0]) for b in d['gf_strict']['blockers']) + '.\n'
-    inv = dict(d['inventory'], **{'Data lineage': 'See Section 3 and Annex D (file hash recorded)', 'Open issues': 'See Sections 8 and 9'})   # the stored text points at the Polish dossier's numbering
+    inv = dict(d['inventory'], **{'Data lineage': 'See Section 3 and Annex D (file hash recorded)', 'Open issues': 'See Sections 8 and 9'}, **({'Purpose': DK['purpose']} if DK.get('purpose') else {}))   # the stored text points at the Polish dossier's numbering
     t += r'\subsection{Inventory entry}' + '\n' + table(['Field', 'Entry'], [[esc(k), esc(v)] for k, v in inv.items()], r'@{}p{4cm}p{11.4cm}@{}')
     return t
 
@@ -269,28 +282,32 @@ def annex(d, m, ex):
          ('IV', 'Information value: strength of one column in separating positive from negative rows.'), ("Cram\\'er's V", 'Association between a column\'s bins and the outcome, 0 to 1.'),
          ('WOE', 'Weight of evidence of a bin.'), ('EPV', 'Events per variable: positive rows divided by candidate columns.'), ('Riley minimum', 'Rows needed so a fitted model does not overfit.'),
          ('DeLong test', 'Test of whether two AUCs differ; here resampled by company.'), ('Hosmer--Lemeshow', 'Test of whether predicted and observed rates agree across risk groups.'),
-         ('Isotonic calibration', 'A monotone step fit mapping scores to observed rates.'), ('Hazard framing', 'Every company-quarter is a row, with quarters of one company kept together in validation.'),
+         ('Isotonic calibration', 'A monotone step fit mapping scores to observed rates.'), ('Hazard framing', 'Every %s is a row, with all rows of one company kept together in validation.' % DK['unit']),
          ('Margin of conservatism', 'An addition to estimates to cover data deficiencies and estimation error.'), ('SHARP', 'Shapley Ranking with Parsimony: the feature-selection method.'),
          ('AEGIS', 'The gated, signed approval lifecycle (G0 to GF) around SHARP.')]
     t += r'\section{Annex C: Glossary}' + '\n' + table(['Term', 'Meaning'], [[a, esc(b) if "\\'" not in a else esc(b)] for a, b in g], r'@{}p{3.6cm}p{11.8cm}@{}')
     fl = ex['file']
-    rows = [['Sealed decision record', r'\texttt{munimji\_runs/%s/chain.json}' % esc(d['run'])], ['Run state', r'\texttt{munimji\_runs/%s/state.pkl}' % esc(d['run'])], ['Manifest', r'\texttt{munimji\_runs/%s.json}' % esc(d['run'])],
-            ['Result records', r'\texttt{munimji\_runs/records/}'], ['Data file', '%s, SHA-256 \\texttt{%s\\allowbreak{}%s}' % (tt(fl['name']), fl['sha256'][:32], fl['sha256'][32:])], ['Head hash', r'\texttt{%s}' % esc(d['head'])]]
+    rows = [['Sealed decision record', r'\texttt{%s/chain.json}' % tt_path(RUN_LOC['run'])], ['Run state', r'\texttt{%s/state.pkl}' % tt_path(RUN_LOC['run'])], ['Manifest', r'\texttt{%s}' % tt_path(RUN_LOC['manifest'])],
+            ['Result records', r'\texttt{%s/}' % tt_path(RUN_LOC['records'])], ['Data file', '%s, SHA-256 \\texttt{%s\\allowbreak{}%s}' % (tt(fl['name']), fl['sha256'][:32], fl['sha256'][32:])], ['Head hash', r'\texttt{%s}' % esc(d['head'])]]
     t += r'\section{Annex D: Evidence index}' + '\n' + table(['Item', 'Location'], rows, r'@{}p{4.6cm}p{10.8cm}@{}')
     t += r'\section{Annex E: What this document does not contain}' + '\n' + ('The challenger models, the duplicate-rows check, the blank-value floor comparison and the row-bootstrap performance intervals computed by the dossier-extras step are omitted because they were '
                                                                               'produced without the company grouping and are therefore leaky for panel data. Nested validation was not run. The few Basel clause numbers quoted in the text (CRE32.4, CRE36.68, CRE36.79, CRE36.18-21, CRE36.44) come from the run\'s own records and were not re-verified while building this document; the supervisor is unconfirmed.\n')
     return t
 
 
-def build(data, state, extras, manifest, outdir):
+def build(data, state, extras, manifest, outdir, outroot=None, records=None):
     d = pickle.load(open(data, 'rb'))
     st = pickle.load(open(state, 'rb'))['state']
     ex = json.load(open(extras, encoding='utf-8'))
     m = json.load(open(manifest, encoding='utf-8'))
     pf = panel_facts(m)
+    DK.update({k: v for k, v in (m.get('dossier') or {}).items()})
     # dossier_data.collect() rewrites the R3/R4 notes from extras.json, which ignores the company grouping; take the run's own checklist instead
     import standard_run as std
-    run = std.start(std.load_manifest(manifest), outroot=os.path.dirname(os.path.abspath(manifest)))
+    outroot = os.path.abspath(outroot or os.path.dirname(os.path.abspath(manifest)))
+    rel = lambda q: os.path.relpath(q, ROOT).replace('\\', '/') if os.path.abspath(q).startswith(ROOT) else os.path.abspath(q)   # noqa: E731
+    RUN_LOC.update(run=rel(os.path.join(outroot, d['run'])), manifest=rel(manifest), records=rel(records or os.path.join(outroot, 'records')))
+    run = std.start(std.load_manifest(manifest), outroot=outroot)
     fresh = {r['id']: r for r in run.checklist(strict=True)}
     assert [r['status'] for r in d['checklist_strict']] == [fresh[r['id']]['status'] for r in d['checklist_strict']], 'checklist statuses differ from the sealed run'
     for r in d['checklist_strict']:
@@ -313,5 +330,7 @@ if __name__ == '__main__':
     ap = argparse.ArgumentParser()
     for a in ('data', 'state', 'extras', 'manifest', 'out'):
         ap.add_argument('--' + a, required=True)
+    ap.add_argument('--outroot', default=None)
+    ap.add_argument('--records', default=None)
     a = ap.parse_args()
-    print(build(a.data, a.state, a.extras, a.manifest, a.out))
+    print(build(a.data, a.state, a.extras, a.manifest, a.out, a.outroot, a.records))

@@ -84,5 +84,28 @@
    ]
   }
  },
- "notes": "Built from data/ml_lab/datasets/annual_panel/archive/annual_panel_raw.csv (user-supplied, source and units not stated). target = 1 if the firm's default date falls 0-365 days after the statement date (FY end), else 0; rows dated after the firm's default date are dropped (4,399). Then cleaned (A1-A4: dropped FY end after 2025-10-31, non-12-month periods, total assets<=0; blanked codes -9/-8/-7 and impossible cells; n_sentinel_blanked added as a feature) -> annual_panel/annual_panel_clean.csv: 88,229 rows, 9,840 firms, 703 positive rows, 842 defaulting firms. Excluded from features (not financial statements or equal to the outcome): Company Name, Months, Slice, Limits, Category, Onset known, Year basis, the firm-level default flag, Default date. JURISDICTION IN IS PROVISIONAL (inferred from MSME categories; source not stated) - confirm at G0. Open: units; meaning of Slice/Limits/Onset known; defaulters vs non-defaulters cover different calendar windows; no filing-lag buffer; G5 inputs (mandatory field, legal-form gate, override policy) not yet given."
+ "notes": "Built from data/ml_lab/datasets/annual_panel/archive/annual_panel_raw.csv (user-supplied, source and units not stated). target = 1 if the firm's default date falls 0-365 days after the statement date (FY end), else 0; rows dated after the firm's default date are dropped (4,399). Then cleaned (A1-A4: dropped FY end after 2025-10-31, non-12-month periods, total assets<=0; blanked codes -9/-8/-7 and impossible cells; n_sentinel_blanked added as a feature) -> annual_panel/annual_panel_clean.csv: 88,229 rows, 9,840 firms, 703 positive rows, 842 defaulting firms. Excluded from features (not financial statements or equal to the outcome): Company Name, Months, Slice, Limits, Category, Onset known, Year basis, the firm-level default flag, Default date. JURISDICTION IN IS PROVISIONAL (inferred from MSME categories; source not stated) - confirm at G0. Open: units; meaning of Slice/Limits/Onset known; defaulters vs non-defaulters cover different calendar windows; no filing-lag buffer; G5 inputs (mandatory field, legal-form gate, override policy) not yet given. G5 inputs (user, 2026-11-02): mandatory field Total assets; no legal-form gate; no override policy.",
+ "mandatory_columns": [
+  "Total assets"
+ ],
+ "dossier": {
+  "unit": "firm-year",
+  "units": "firm-years",
+  "population": "Firms with annual financial statements (source not stated; listing status unknown)",
+  "event_label": "default within 0 to 365 days after the statement date (the financial year end); statements dated after the firm's default date and statements whose 12-month window was not fully observed were removed; the definition of default is not documented in the source file",
+  "sample_note": "The selection of firms is not documented. Defaulters' statements (median year 2016) come from earlier years than non-defaulters' (median year 2020), so the default share is not a population rate.",
+  "extra_limitations": [
+   "The definition of default and the source of the data are not documented, and the file has no filing dates, so a statement may not have been public when its 12-month window starts (22% of positive rows default within 90 days of the year end, 45% within 180 days).",
+   "Defaulters and non-defaulters cover different calendar windows, and positive rows fall from 165 in FY2015 to 11 in FY2025, so the out-of-time test period holds few events.",
+   "Out of time, the calibrated PDs in grades AA to B are about 2.6 to 3.4 times the realised default rates (the default rate fell from 0.94% in the training period to 0.29% in the test period); the PDs are for ranking only until recalibrated.",
+   "The column Total borrowings including default is in the first selected player and its definition is unknown; if it includes amounts already in default it is a consequence of default, not a predictor.",
+   "The currency and units of the amounts, and the meaning of Slice, Limits and Onset known, are not documented.",
+   "Cleanup A1 to A4 was applied (post-default and not-yet-observed rows, non-12-month periods, code values -9/-8/-7 blanked, impossible cells blanked); extreme values were not treated.",
+   "Exploratory runs (a 20-permutation run and several diagnostics) were made before the governed run completed; they did not change any fixed setting, and they informed the proposals in the pre-registration draft.",
+   "Corrections after the first final ruling: the deployed scorer's isotonic calibration was found to use ungrouped folds and to depend on row order, so G5 was reopened, the calibration was made company-grouped, and G5 and GF were sealed again (voided entries G5 00df5345 and GF 372e6df0 stay in the record). Stages G0 to G4 were not affected."
+  ],
+  "purpose": "Probability that a firm defaults within 12 months after the date of its annual financial statement (research benchmark)",
+  "event_noun": "defaulter"
+ },
+ "legal_form_gate": false
 }

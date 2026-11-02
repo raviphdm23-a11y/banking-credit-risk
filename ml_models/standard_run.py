@@ -131,7 +131,7 @@ def auto_cases(run, m):
     sel = list(run.state['stage3']['selected_columns'])
     mand = list(m['mandatory_columns'])
     y = df[target].astype(int)
-    sc, _ = mg.build_scorer(df, target, sel, mandatory_columns=mand, incomplete_policy='refer', random_state=run.cfg['random_state'])
+    sc, _ = mg.build_scorer(df, target, sel, mandatory_columns=mand, incomplete_policy='refer', random_state=run.cfg['random_state'], groups=run.groups)
     r = sc.score(df[sel])
     ok = (r['decision'] == 'SCORE').values
     pr = r['probability'].values.astype(float)
@@ -140,11 +140,16 @@ def auto_cases(run, m):
     pick = {}
     pick['R1_lowest_PD_repaid'] = int(ok0[np.argmin(pr[ok0])])
     pick['R2_median_PD_repaid'] = int(ok0[np.argsort(pr[ok0])[len(ok0) // 2]])
-    pick['R3_median_PD_bankrupt'] = int(ok1[np.argsort(pr[ok1])[len(ok1) // 2]])
-    ref = idx[(~ok) & (y.values == 1)]
-    if len(ref):
-        pick['R4_bankrupt_referred_blank_mandatory'] = int(ref[0])
-    pick['R5_bankrupt_rated_safest'] = int(ok1[np.argmin(pr[ok1])])
+    noun = ((m.get('dossier') or {}).get('event_noun')) or 'bankrupt'      # what a positive row is called (Polish data: bankrupt; annual data: defaulter)
+    pick['R3_median_PD_%s' % noun] = int(ok1[np.argsort(pr[ok1])[len(ok1) // 2]])
+    dec = r['decision'].values
+    ref_hard = idx[(dec == 'REFER') & (y.values == 1)]          # a positive row referred because the mandatory field is blank
+    ref_soft = idx[(dec == 'SCORE_FLAGGED') & (y.values == 1)]  # a positive row scored but flagged for a blank in another variable
+    if len(ref_hard):
+        pick['R4_%s_referred_blank_mandatory' % noun] = int(ref_hard[0])
+    elif len(ref_soft):
+        pick['R4_%s_flagged_blank_other_variable' % noun] = int(ref_soft[0])
+    pick['R5_%s_rated_safest' % noun] = int(ok1[np.argmin(pr[ok1])])
     row = lambda i: {c: (None if pd.isna(df.at[i, c]) else float(df.at[i, c])) for c in sel}   # noqa: E731
     cases = {('%s-%s' % (m['name'], k)): row(i) for k, i in pick.items()}
     meta = {('%s-%s' % (m['name'], k)): {'kind': 'real', 'actual': int(y.iloc[i])} for k, i in pick.items()}
@@ -157,9 +162,9 @@ def auto_cases(run, m):
     for nm, vals, des in (('S1_safe_extreme', safe, 'repaid'), ('S2_risky_extreme', risk, 'default'), ('S3_observed_extreme', ext, 'default')):
         key = '%s-%s' % (m['name'], nm)
         cases[key] = vals; meta[key] = {'kind': 'synthetic', 'design': des}
-    spec = {'title': '%s, version %s controls' % (m['name'], m['model_version']), 'dataset': os.path.basename(m['csv']), 'target': target,
+    spec = {'title': '%s, version %s controls' % (m['name'], m['model_version']), 'dataset': (m['csv'].replace('\\', '/').split('data/ml_lab/datasets/', 1)[1] if 'data/ml_lab/datasets/' in m['csv'].replace('\\', '/') else os.path.basename(m['csv'])), 'target': target,
             'selected_columns': sel, 'mandatory_columns': mand, 'floor_columns': [c for c in sel if c not in set(mand)],
-            'incomplete_policy': 'refer', 'cases': cases, 'case_meta': meta}
+            'incomplete_policy': 'refer', 'group_column': (m.get('panel') or {}).get('entity_id'), 'cases': cases, 'case_meta': meta}
     path = os.path.join(DOCS, 'acceptance_cases', '%s.json' % m['name'].lower())
     json.dump(spec, open(path, 'w', encoding='utf-8'), indent=1)
     return path
@@ -170,7 +175,7 @@ def prepare_g5(run, m):
     cases = auto_cases(run, m)
     pack = os.path.join(DOCS, 'SAMPLE_RUNS_%s.md' % m['name'])
     subprocess.run([sys.executable, os.path.join(HERE, 'score_acceptance_cases.py'), '--cases', cases, '--out', pack], check=True, cwd=ROOT)
-    cov = sr.acceptance_coverage(run.df, run.target, list(run.state['stage3']['selected_columns']), list(m['mandatory_columns']))
+    cov = sr.acceptance_coverage(run.df, run.target, list(run.state['stage3']['selected_columns']), list(m['mandatory_columns']), groups=run.groups)
     run.record_g5(True, True, True, cov, override_policy=False)
     note = os.path.join(DOCS, 'AEGIS_%s_CUTOFF_POLICY.md' % m['name'])
     ps = open(os.path.join(DOCS, 'AEGIS_POLISH_1YR_CUTOFF_POLICY.md'), encoding='utf-8').read() if False else None
@@ -201,13 +206,15 @@ It does **not** set an accept/decline cutoff or a price: those are the instituti
 | Blank values (all other variables) | Adverse floor: a blank scores no better than the worst real bin; application flagged |
 | PD floor / cap | 0.05% / 99.9% (always on) |
 | Reason codes | exact additive WOE |
-| Legal-form gate | a non-company applicant is referred (needed if the model is built for legal entities) |
+| Legal-form gate | {legal} |
 | Override policy | none documented - to be written by the model owner |
 
 ## 3. Acceptance demonstration
 `SAMPLE_RUNS_{name}.md`. PD floor exercised: {fl}; PD cap exercised: {cp}; mandatory-field referral exercised: {rf}. Controls the data does not exercise: {ne}.
 """.format(name=run.name, ver=m['model_version'], k=len(run.state['stage3']['decision']['selected_players']), n=len(sel), tier=run.tier, mand=mand,
-           fl=cov['floor_exercised'], cp=cov['cap_exercised'], rf=cov['refer_exercised'], ne=', '.join(cov['not_exercised']) or 'none')
+           fl=cov['floor_exercised'], cp=cov['cap_exercised'], rf=cov['refer_exercised'], ne=', '.join(cov['not_exercised']) or 'none',
+           legal=('a non-company applicant is referred (needed if the model is built for legal entities)' if m.get('legal_form_gate') else
+                  'none configured: the data holds no legal-form field, so every applicant is scored and none is referred for legal form'))
 
 
 # ------------------------------------------------------------------------------------------------ records and dossier

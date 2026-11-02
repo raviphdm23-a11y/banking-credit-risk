@@ -42,9 +42,10 @@ def main():
     port = float(df[target].mean())
     scorer, _ = mg.build_scorer(df, target, SEL,
                                 mandatory_columns=spec.get('mandatory_columns', []),
-                                floor_columns=spec.get('floor_columns', []),
+                                floor_columns=spec.get('floor_columns'),   # None = adverse floor on every non-mandatory column (default since 2026-10-26)
                                 incomplete_policy=spec.get('incomplete_policy', 'refer'),
-                                random_state=42)
+                                random_state=42,
+                                groups=(df[spec['group_column']].values if spec.get('group_column') in df.columns else None))
     enc, coef, intercept, iso, order = (scorer.encoder, scorer.coef, scorer.intercept,
                                         scorer.iso, scorer.columns)
     L = ['# SAMPLE RUNS — %s' % spec.get('title', spec['dataset']),
@@ -53,7 +54,7 @@ def main():
          '`ml_models/score_acceptance_cases.py` from `%s` — reproducible, not one-off.' % os.path.basename(a.cases),
          '',
          '**Model:** AEGIS-approved WOE-logistic (%d features) · **Portfolio default rate:** %.1f%% · '
-         'PD floored at %.2f%% (Basel CRE32.3).' % (len(order), 100*port, 100*scorer.pd_floor),
+         'PD floored at %.2f%% (Basel CRE32.4).' % (len(order), 100*port, 100*scorer.pd_floor),
          '',
          '> **Scope.** This pack reports only methodology/regulation-grounded outputs: calibrated PD, rating '
          'grade (risk tier, on the institution\'s internal master scale), exact WOE reason codes, and the '

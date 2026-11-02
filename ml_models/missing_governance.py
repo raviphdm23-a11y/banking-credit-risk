@@ -134,7 +134,7 @@ class Scorer:
 
 def build_scorer(df, target, columns, *, mandatory_columns=(), floor_columns=None,
                  incomplete_policy='reject', random_state=42,
-                 pd_floor=0.0005, pd_cap=0.999):
+                 pd_floor=0.0005, pd_cap=0.999, groups=None):
     """Fit a WOE-logistic scorer on the true data and attach the governance overlay.
 
     floor_columns: None (default since 2026-10-26) = the ADVERSE FLOOR applies to every non-mandatory column, i.e. a blank
@@ -159,11 +159,16 @@ def build_scorer(df, target, columns, *, mandatory_columns=(), floor_columns=Non
     clf = LogisticRegression(penalty='l2', C=1.0, solver='lbfgs', max_iter=1000,
                              random_state=random_state).fit(enc.transform(X).values, y)
     # isotonic calibration map from 5-fold OOF on the fitted representation
-    from sklearn.model_selection import StratifiedKFold
+    # groups (entity key of a panel): keep every row of an entity in one fold, as the stage-4 calibration does. Without it
+    # the folds are cut on rows, other years of the same firm leak into the out-of-fold scores, and the map depends on row order.
+    from sklearn.model_selection import StratifiedKFold, StratifiedGroupKFold
     oof = np.full(len(y), np.nan)
-    skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=random_state)
     W_all = enc.transform(X).values
-    for tr, te in skf.split(W_all, y):
+    if groups is not None:
+        folds = StratifiedGroupKFold(n_splits=5, shuffle=True, random_state=random_state).split(W_all, y, groups=np.asarray(groups))
+    else:
+        folds = StratifiedKFold(n_splits=5, shuffle=True, random_state=random_state).split(W_all, y)
+    for tr, te in folds:
         m = LogisticRegression(penalty='l2', C=1.0, solver='lbfgs', max_iter=1000,
                                random_state=random_state).fit(W_all[tr], y.iloc[tr])
         oof[te] = m.predict_proba(W_all[te])[:, 1]
