@@ -45,6 +45,9 @@ MANIFEST_DEFAULTS = {
     'roles': {'Data Steward': 'Researcher', 'Model Validator': 'Researcher', 'Risk Officer': 'Researcher'},
     'history_years': None, 'live_use': False, 'jurisdiction': 'EU', 'borrower_type': 'firm',
     'institution': '[Institution]', 'portfolio': '', 'dictionary': None, 'model_version': '1.0',
+    # Indian (RBI) pack facts, read when jurisdiction is IN (see staged_run.StagedRun.india); None = not declared.
+    # Set "india_pack": false in a manifest to switch the Indian rows off for an IN dataset.
+    'india': None, 'india_pack': True,
 }
 
 
@@ -71,12 +74,18 @@ def default_regimes(m):
     j, b = m['jurisdiction'].upper(), m['borrower_type'].lower()
     firm = b == 'firm'
     eu = j in ('EU', 'PL', 'DE', 'FR', 'IT', 'ES', 'NL')
-    return {
+    out = {
         'UK_PRA_SS1_23': {'binding': j == 'UK', 'reason': 'scope is set by the firm (a UK-incorporated bank with internal-model approval), not by where the exposure sits'},
         'EU_AI_ACT_HIGH_RISK': {'binding': (eu and not firm), 'reason': 'Annex III point 5(b) covers natural persons only; holds only while a legal-entity scope gate is enforced' if firm else 'natural-person credit scoring in the EU is high-risk (Annex III 5(b))'},
         'EU_AI_ACT_HUMAN_OVERSIGHT': {'binding': (eu and not firm), 'reason': 'applies to high-risk systems; follows the high-risk row'},
         'US_ECOA_REG_B': {'binding': j == 'US', 'reason': 'ECOA and Regulation B also reach business credit; they apply when a US creditor is involved, not because of the borrower type'},
     }
+    if j == 'IN' and m.get('india_pack', True):
+        # Indian (RBI) pack. Declared binding so that rows R15-R20 are derived: the model is assessed as if used by an
+        # RBI-regulated lender. The Draft is a consultation text, so the rows are conditions, not must-haves (regime_registry).
+        out['IN_RBI_MRM_DRAFT_2026'] = {'binding': True, 'reason': 'assessed as if used by an RBI-regulated lender; RBI Draft Guidance on Model Risk Management (June 2026) is a consultation text, not yet binding'}
+        out['IN_RBI_FREE_AI_2025'] = {'binding': True, 'reason': 'assessed as best practice for an RBI-regulated lender; FREE-AI (13 Aug 2025) is a recommendations report, not a regulation'}
+    return out
 
 
 def start(m, outroot=None):
@@ -92,7 +101,7 @@ def start(m, outroot=None):
     outdir = os.path.join(outroot or os.path.join(ROOT, 'sharp_runs_staged'), m['name'])
     run = sr.StagedRun(df, m['target'], m['name'], outdir, tier=m['tier'], groups=groups, time_values=time_values, roles=m['roles'],
                        history_years=m['history_years'], dictionary=_dictionary(m['dictionary']),
-                       regimes=m.get('regimes') or default_regimes(m), live_use=m['live_use'])
+                       regimes=m.get('regimes') or default_regimes(m), live_use=m['live_use'], india=m.get('india'))
     return run.load()
 
 
@@ -176,7 +185,9 @@ def prepare_g5(run, m):
     pack = os.path.join(DOCS, 'SAMPLE_RUNS_%s.md' % m['name'])
     subprocess.run([sys.executable, os.path.join(HERE, 'score_acceptance_cases.py'), '--cases', cases, '--out', pack], check=True, cwd=ROOT)
     cov = sr.acceptance_coverage(run.df, run.target, list(run.state['stage3']['selected_columns']), list(m['mandatory_columns']), groups=run.groups)
-    run.record_g5(True, True, True, cov, override_policy=False)
+    run.record_g5(True, True, True, cov, override_policy=bool(((m.get('india') or {}).get('override_path') or '').strip()))
+    if run._in_active():
+        run.write_inventory_card()          # Indian pack: evidence for R17 (RBI Draft paras 21-24)
     note = os.path.join(DOCS, 'AEGIS_%s_CUTOFF_POLICY.md' % m['name'])
     ps = open(os.path.join(DOCS, 'AEGIS_POLISH_1YR_CUTOFF_POLICY.md'), encoding='utf-8').read() if False else None
     with open(note, 'w', encoding='utf-8') as fh:
@@ -215,6 +226,50 @@ It does **not** set an accept/decline cutoff or a price: those are the instituti
            fl=cov['floor_exercised'], cp=cov['cap_exercised'], rf=cov['refer_exercised'], ne=', '.join(cov['not_exercised']) or 'none',
            legal=('a non-company applicant is referred (needed if the model is built for legal entities)' if m.get('legal_form_gate') else
                   'none configured: the data holds no legal-form field, so every applicant is scored and none is referred for legal form'))
+
+
+# ------------------------------------------------------------------------------------------------ Indian (RBI) diagnostics
+def run_rbi_checks(run, m, segments=None, days_to_event=None, select_fn=None, seeds=(42, 7, 11, 23, 99)):
+    """Reporting-only diagnostics behind R18/R19 (RBI Draft para 54, 42). Each needs its inputs; one without inputs is
+    skipped and its sub-item stays PARTIAL. Nothing here decides a gate.
+      segments       : array of segment labels per row (for example the size band)  -> 54(3)
+      days_to_event  : days from statement date to default per row (NaN if none)     -> 54(5)
+      select_fn      : callable(seed) -> selected feature names (re-runs attribution and selection) -> 54(6)
+    Returns the dict of what was recorded."""
+    import rbi_checks as rbc
+    from panel_adapter import temporal_split
+    df, target = run.df, run.target
+    sel = list(run.state['stage3']['selected_columns'])
+    mand = list(m['mandatory_columns'])
+    rs = run.cfg['random_state']
+    grade_fn = lambda p: rms.pd_to_grade(p)['grade']      # noqa: E731
+    out = {}
+    sc, _ = mg.build_scorer(df, target, sel, mandatory_columns=mand, incomplete_policy='refer', random_state=rs, groups=run.groups)
+    p_all = sc.score(df[sel])['probability'].values.astype(float)
+    if run.time_values is not None:                       # 54(7): training period against test period, same split as the OOT test
+        tr, te, _t = temporal_split(pd.DataFrame({'t': np.asarray(run.time_values)}), 't', run.cfg['oot_test_frac'])
+        out['feature_drift'] = run.record_rbi_check('feature_drift', rbc.feature_drift(df[tr], df[te], sel))
+        out['score_drift'] = run.record_rbi_check('score_drift', rbc.score_drift(p_all[tr], p_all[te]))
+    out['row_order'] = run.record_rbi_check('row_order', rbc.row_order_invariance(
+        df, target, sel, mg.build_scorer, groups=run.groups, mandatory_columns=mand, incomplete_policy='refer', random_state=rs))
+    if segments is not None:
+        out['segments'] = run.record_rbi_check('segments', rbc.segment_assessment(df[target].values, p_all, segments))
+    if days_to_event is not None:
+        out['label_lag'] = run.record_rbi_check('label_lag', rbc.label_lag_sensitivity(df[target].values, p_all, days_to_event))
+    out['sign_audit'] = run.record_rbi_check('sign_audit', rbc.coefficient_sign_audit(
+        sc.columns, sc.coef, corr=df[sel].apply(pd.to_numeric, errors='coerce').corr(method='spearman')))
+    out['perturbation'] = run.record_rbi_check('perturbation', rbc.perturbation_sensitivity(sc, df, sel, grade_fn))
+    out['outlier'] = run.record_rbi_check('outlier', rbc.outlier_sensitivity(sc, df, sel))
+    small = (m.get('india') or {}).get('benchmark_small_columns')
+    if small:
+        X = df[sel].apply(pd.to_numeric, errors='coerce')
+        out['benchmark'] = run.record_rbi_check('benchmark', rbc.benchmark_models(X, df[target].values, small, groups=run.groups, seed=rs))
+    if select_fn is not None:
+        out['seed_stability'] = run.record_rbi_check('seed_stability', rbc.selection_stability(select_fn, seeds))
+    s4 = run.state.get('stage4') or {}
+    out['material_change'] = run.record_rbi_check('material_change', rbc.material_change(oot=s4.get('oot'), drift=out.get('feature_drift')))
+    run.save()
+    return out
 
 
 # ------------------------------------------------------------------------------------------------ records and dossier

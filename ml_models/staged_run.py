@@ -41,6 +41,8 @@ import v3_pipeline as v3          # noqa: E402
 import selection as sel           # noqa: E402
 import shapley_utils as su        # noqa: E402
 import aegis_gates as ag          # noqa: E402
+import regime_registry as rr      # noqa: E402
+import rbi_checks as rbc          # noqa: E402
 
 STAGE_OF_GATE = {'G0': 0, 'G1': 1, 'G2': 2, 'G3': 3, 'G4': 4}
 GATE_ORDER = ['G0', 'G1', 'G2', 'G3', 'G4', 'G5', 'GF']
@@ -53,32 +55,18 @@ MIN_RATIONALE = 20
 # Look-ahead review (reporting only): definition phrases that MAY refer to information after
 # the statement date. A hit prompts a human to read the definition; it excludes nothing.
 LOOKAHEAD_PATTERN = r'\b(in \d+ years?|next|following|future|forecast|subsequent|after)\b'
-MUST_HAVE_ROWS = ('R1', 'R2', 'R3', 'R4', 'R5', 'R6', 'R7', 'R8', 'R9')
-CHECKLIST_GATE = {'R1': 'G0', 'R2': 'G5', 'R3': 'G3', 'R4': 'G4', 'R5': 'G5', 'R6': 'G4',
-                  'R7': 'GF', 'R8': 'GF', 'R9': 'G0', 'R10': 'G0', 'R11': 'GF', 'R12': 'GF',
-                  'R13': 'GF', 'R14': 'GF'}
+# Checklist metadata lives in regime_registry.py (R1-R14 identical to the literals that used to be here, frozen in
+# testing/test_rbi_regime.py; R15-R20 are the Indian RBI pack).
+MUST_HAVE_ROWS = tuple(rr.must_have_rows())
+CHECKLIST_GATE = rr.checklist_gate()
 # Rows R11-R14 apply only if their regime is declared binding at G0 (AEGIS section 8: "the MAC records
 # which regime(s) bind a given model at G0"). R1-R10 are treated as binding whatever the regime
 # (Basel/EBA credit-risk criteria and generic model-risk governance).
-REGIME_OF = {'R11': 'UK_PRA_SS1_23', 'R12': 'EU_AI_ACT_HIGH_RISK', 'R13': 'EU_AI_ACT_HUMAN_OVERSIGHT',
-             'R14': 'US_ECOA_REG_B'}
+REGIME_OF = rr.regime_of()
+# Rows R15-R20 (Indian RBI pack) are derived only when the Indian regime keys are declared at G0.
+IN_REGIME_OF = rr.in_regime_of()
 # What closes a PARTIAL / GAP row, and who owns it. Generic actions only - no numbers.
-CLOSING_ACTION = {
-    'R1': ('Verify the observation window of the PD data (data-owner statement or dated records)', 'Data Steward / data owner'),
-    'R2': ('Complete the cutoff note and acceptance pack, and show the PDs feed real decisions', 'Model Owner'),
-    'R3': ('Justify or down-tier if discrimination is below the tier floor or no k meets the tolerance', 'Model Validator'),
-    'R4': ('Resolve failing grades and the HL result, or document them with an ongoing-monitoring plan', 'Risk Officer'),
-    'R5': ('Configure and document the override / refer controls', 'Model Owner'),
-    'R6': ('Quantify the Margin of Conservatism by category (EBA A/B/C) and address the EPV shortfall', 'Model Owner + Risk Officer'),
-    'R7': ('Appoint a validator independent of the developer', 'MAC Chair'),
-    'R8': ('Separate developer, validator and approver roles and constitute the committee', 'MAC Chair + CRO'),
-    'R9': ('Assign the materiality tier at G0', 'Data Steward'),
-    'R10': ('Explain or resolve blank patterns that track the outcome; lineage and completeness report', 'Data Steward'),
-    'R11': ('Map the lifecycle to the PRA SS1/23 principles and record the assessment', 'Model Owner'),
-    'R12': ('Record the Art 9/10/12/13/14 assessment for natural-person credit scoring', 'Model Owner'),
-    'R13': ('Show that overseers can understand, decline and halt the model output', 'Model Owner'),
-    'R14': ('Provide specific principal reasons for adverse action', 'Model Owner'),
-}
+CLOSING_ACTION = rr.closing_actions()
 
 
 def missingness_scan(df, target, alpha=0.05):
@@ -164,7 +152,7 @@ class StagedRun:
                  max_relative_gini_loss=0.05, alpha=0.05, run_model_checks=True,
                  random_state=42, shapley_row_subsample=None, oot_test_frac=0.3,
                  verbose=False, roles=None, history_years=None, dictionary=None,
-                 exploratory=False, regimes=None, live_use=True):
+                 exploratory=False, regimes=None, live_use=True, india=None):
         self.df = df.reset_index(drop=True)
         self.target, self.name, self.tier = target, name, tier
         self.outdir = outdir
@@ -191,6 +179,10 @@ class StagedRun:
         self.regimes = regimes
         # live_use=False marks a research benchmark with no use in decisions, so the use test (R2) cannot be evidenced
         self.live_use = live_use
+        # india: the Indian (RBI) pack's declared facts, e.g. intended_use, exposure_materiality, complexity, autonomy,
+        # tier_justification, mrmf_in_place, validation_report_months, retention_years, dependencies,
+        # explainability_threshold, monitoring_plan, override_path, human_review_rate. None = pack not declared.
+        self.india = india
         self.genesis = 'GEN-%s_0' % name
         self.chain = []          # sealed entries (active)
         self.voided = []         # entries voided by reopen()
@@ -460,6 +452,200 @@ class StagedRun:
                 'note': ('one person holds several roles (%s)' % '; '.join('%d roles: %s' % (len(r), ', '.join(r)) for w, r in multi.items())) if multi
                 else 'each role held by a different person'}
 
+    # ------------------------------------------------------------ Indian (RBI) pack
+    def _in_active(self):
+        """True when the Indian regime keys were declared at G0 (standard_run.default_regimes does it for jurisdiction IN)."""
+        return bool(self.regimes) and any(k in self.regimes for k in rr.IN_REGIME_KEYS)
+
+    def tier_proposal(self):
+        """RBI anti-dilution tier proposal (Draft 19-20, 52) from the declared materiality, complexity and autonomy.
+        None when no materiality was declared. It only proposes; the G0 signer adopts it or records a justification."""
+        p = self.india or {}
+        if not p.get('exposure_materiality'):
+            return None
+        return ag.propose_tier(p['exposure_materiality'], p.get('complexity', 'LOW'), p.get('autonomy', 'LOW'))
+
+    def record_rbi_check(self, name, result):
+        """Store a reporting-only diagnostic from rbi_checks (row_order, seed_stability, feature_drift, segments,
+        rolling_oot, label_lag, sign_audit, perturbation, outlier, benchmark, material_change). Decides nothing."""
+        self.state.setdefault('rbi_checks', {})[name] = result
+        return result
+
+    def write_inventory_card(self, observations=None):
+        """Model inventory card (Draft 21-24, FREE-AI Rec 23): owners, developers, validators, approvers, tier, intended
+        use, dependencies, key observations, retention. Written next to the chain and kept in the run state."""
+        import datetime
+        p = self.india or {}
+        cl = self.checklist()
+        obs = observations or ['%s %s: %s' % (r['id'], r['status'], r['note'][:160]) for r in cl
+                               if r['status'] in ('PARTIAL', 'GAP')]
+        card = {'model': self.name, 'tier': self.tier, 'tier_proposal': self.tier_proposal(),
+                'intended_use': p.get('intended_use'), 'learner': self.cfg['learner'],
+                'roles': dict(self.roles or {}), 'role_note': self.role_report()['note'],
+                'dependencies': list(p.get('dependencies') or []), 'retention_years': p.get('retention_years'),
+                'key_observations': obs, 'regime_pack': rr.provenance(),
+                'written': datetime.date.today().isoformat(),
+                'note': 'Inventory fields follow RBI Draft para 22; this card is evidence for R17, not an RBI filing.'}
+        path = os.path.join(self.outdir, 'inventory_card.json')
+        json.dump(card, open(path, 'w', encoding='utf-8'), indent=1, default=str)
+        self.state['inventory_card'] = path
+        return card
+
+    def _in_rows(self, rows, strict):
+        """Derive R15-R20 from the declared india facts and the recorded rbi_checks. Earlier reading: conditions only.
+        Regulatory-use reading (strict): R15 and R16 are marked must-have, so a gap blocks (decision of 3 Nov 2026)."""
+        p = self.india or {}
+        chk = self.state.get('rbi_checks', {})
+        must = set(rr.must_have_rows())
+
+        def put(r, status, note):
+            meta = rr.row(r)
+            rows[r] = {'id': r, 'status': status, 'note': note, 'gate': meta['gate'],
+                       'must_have': (r in must) or (strict and meta['must_have_strict']),
+                       'source': 'derived', 'legal_status': meta['legal_status']}
+
+        def inactive(r):
+            key = IN_REGIME_OF[r]
+            if not self.regimes or key not in self.regimes:
+                rows[r] = {'id': r, 'status': 'NOT ASSESSED', 'must_have': False, 'gate': rr.row(r)['gate'], 'source': 'derived',
+                           'note': 'regime %s not declared at G0' % key}
+                return True
+            if not self.regimes[key].get('binding'):
+                rows[r] = {'id': r, 'status': 'N/A', 'must_have': False, 'gate': rr.row(r)['gate'], 'source': 'derived',
+                           'note': 'not binding: %s' % self.regimes[key].get('reason', 'declared not binding')}
+                return True
+            return False
+        rank = {'LOW': 0, 'MEDIUM': 1, 'HIGH': 2}
+
+        # R15 - framework, tier, use statement (Draft 9-20, 26)
+        if not inactive('R15'):
+            tp = self.tier_proposal()
+            issues, block = [], False
+            if not (p.get('intended_use') or '').strip():
+                issues.append('no written intended-use statement (Draft 26(1))')
+                block = True
+            if not p.get('mrmf_in_place'):
+                issues.append('no board-approved model risk framework referenced (Draft 9-11)')
+            if tp is None:
+                issues.append('no materiality declared, so the anti-dilution tier proposal (Draft 20) cannot be checked')
+            elif rank[self.tier] < rank[tp['proposed']]:
+                if len((p.get('tier_justification') or '').strip()) >= MIN_RATIONALE:
+                    issues.append('tier %s is below the proposed %s; justification recorded' % (self.tier, tp['proposed']))
+                else:
+                    issues.append('tier %s is below the anti-dilution proposal %s and no justification is recorded (Draft 20)'
+                                  % (self.tier, tp['proposed']))
+                    block = True
+            put('R15', 'SATISFIED' if not issues else ('GAP' if (strict and block) else 'PARTIAL'),
+                '; '.join(issues) if issues else 'use statement, framework and tier %s consistent with the proposal' % self.tier)
+
+        # R16 - independent validation and report (Draft 7(8), 15, 29-33)
+        if not inactive('R16'):
+            rr_ = self.role_report()
+            months = p.get('validation_report_months')
+            if not rr_['declared']:
+                put('R16', 'PARTIAL', 'role holders not declared')
+            elif rr_['multi_role_persons']:
+                put('R16', 'GAP' if strict else 'PARTIAL',
+                    'no validator independent of development, ownership and use (Draft 7(8)): ' + rr_['note'])
+            elif months is None:
+                put('R16', 'PARTIAL', 'roles are separate, but no validation report has been placed before the committee yet (Draft 33)')
+            elif months > 3:
+                put('R16', 'PARTIAL', 'validation report reached the committee after %s months; Draft 33 asks for three' % months)
+            else:
+                put('R16', 'SATISFIED', 'independent validator; report placed before the committee within %s months' % months)
+
+        # R17 - inventory, documentation, dependencies, retention (Draft 21-24, 57)
+        if not inactive('R17'):
+            issues = []
+            if not self.state.get('inventory_card'):
+                issues.append('inventory card not written (Draft 21-22)')
+            ret = p.get('retention_years')
+            if ret is None or ret < 10:
+                issues.append('retention not stated as at least ten years after decommissioning (Draft 23-24)')
+            if not p.get('dependencies'):
+                issues.append('upstream dependencies not listed (Draft 22)')
+            put('R17', 'SATISFIED' if not issues else 'PARTIAL',
+                '; '.join(issues) if issues else 'inventory card written; retention %s years; dependencies listed' % ret)
+
+        # R18 - Draft para 54(1)-(7): seven sub-items, each reported
+        if not inactive('R18'):
+            subs = []
+            thr = (p.get('explainability_threshold') or '').strip()
+            woe = self.cfg['learner'] == 'woe_logistic'
+            subs.append(('54(1) explainability', 'SATISFIED' if (woe and thr) else 'PARTIAL',
+                         'additive WOE reason codes' + ('' if woe else ' not available for this learner') +
+                         ('; threshold declared' if thr else '; no explainability threshold declared')))
+            subs.append(('54(2) hallucination', 'N/A', 'not a generative model'))
+            seg = chk.get('segments')
+            if seg is None:
+                subs.append(('54(3) fairness', 'PARTIAL', 'no group assessment recorded'))
+            elif seg.get('passes_four_fifths') is False:
+                subs.append(('54(3) fairness', 'PARTIAL', 'favourable-decision ratio %.2f < %.2f across segments (indicative cutoff)'
+                             % (seg['ratio'], rbc.FOUR_FIFTHS)))
+            else:
+                thin = seg.get('thin_segments') or []
+                subs.append(('54(3) fairness', 'SATISFIED' if not thin else 'PARTIAL',
+                             'segment ratio %s%s' % ('n/a' if seg.get('ratio') is None else '%.2f' % seg['ratio'],
+                                                     ('; thin segments: ' + ', '.join(thin)) if thin else '')))
+            oot = (self.state.get('stage4') or {}).get('oot')
+            if not oot or not oot.get('ok'):
+                subs.append(('54(4) generalisation', 'PARTIAL', 'validation is cross-validation only; no out-of-time test'))
+            else:
+                mcx = rbc.material_change(oot=oot)
+                subs.append(('54(4) generalisation', 'PARTIAL' if mcx['triggered'] else 'SATISFIED',
+                             '; '.join(mcx['triggered']) if mcx['triggered'] else 'out-of-time discrimination within the material-change criterion'))
+            s1 = self.state.get('stage1')
+            if s1 is None:
+                subs.append(('54(5) spurious correlation', 'PARTIAL', 'Stage 1 not run'))
+            else:
+                t = s1['s1_table']
+                n_big = int((t['iv_woe'] > 0.5).sum()) if 'iv_woe' in t.columns else 0
+                lag = chk.get('label_lag')
+                subs.append(('54(5) spurious correlation', 'PARTIAL' if n_big else 'SATISFIED',
+                             ('%d column(s) with IV above 0.5 (unusually strong; leakage or label mirroring not excluded)' % n_big
+                              if n_big else 'no column with IV above 0.5') + ('; label-lag sensitivity recorded' if lag is not None else '')))
+            roi, ss = chk.get('row_order'), chk.get('seed_stability')
+            if roi is None or ss is None:
+                subs.append(('54(6) output variability', 'PARTIAL', 'row-order and seed stability not both recorded'))
+            else:
+                ok = bool(roi.get('invariant')) and bool(ss.get('stable'))
+                subs.append(('54(6) output variability', 'SATISFIED' if ok else 'PARTIAL',
+                             'row-order max PD difference %.2e; selected-set min Jaccard %.2f' % (roi['max_abs_pd_diff'], ss['min_jaccard'])))
+            dr = chk.get('feature_drift')
+            if dr is None:
+                subs.append(('54(7) data and concept drift', 'PARTIAL', 'no drift measure recorded'))
+            else:
+                subs.append(('54(7) data and concept drift', 'PARTIAL' if dr.get('n_major') else 'SATISFIED',
+                             'max feature PSI %.3f; %d feature(s) above the major threshold' % (dr['max_psi'], dr['n_major'])))
+            status = 'SATISFIED' if all(x[1] in ('SATISFIED', 'N/A') for x in subs) else 'PARTIAL'
+            put('R18', status, ' | '.join('%s %s: %s' % x for x in subs))
+
+        # R19 - change management, material-change threshold, monitoring (Draft 36-42)
+        if not inactive('R19'):
+            oot = (self.state.get('stage4') or {}).get('oot')
+            mc = chk.get('material_change') or rbc.material_change(oot=oot, drift=chk.get('feature_drift'))
+            issues = []
+            if not (p.get('monitoring_plan') or '').strip():
+                issues.append('no monitoring plan declared (Draft 37)')
+            if mc['revalidation_required']:
+                issues.append('this run breaches the material-change criteria (%s): revalidation required before use (Draft 42)'
+                              % '; '.join(mc['triggered']))
+            put('R19', 'SATISFIED' if not issues else 'PARTIAL',
+                '; '.join(issues) if issues else 'criteria defined from the governance thresholds; none breached by this run; monitoring plan declared')
+
+        # R20 - human oversight (Draft 60-63; FREE-AI 4.4.62)
+        if not inactive('R20'):
+            g5 = self.state.get('g5') or {}
+            issues = []
+            if not (p.get('override_path') or '').strip():
+                issues.append('no override path documented (Draft 60)')
+            if not g5.get('override_policy'):
+                issues.append('no override policy evidenced at G5')
+            if p.get('human_review_rate') is None:
+                issues.append('no periodic human review of a decision sample (FREE-AI 4.4.62)')
+            put('R20', 'SATISFIED' if not issues else 'PARTIAL',
+                '; '.join(issues) if issues else 'override path, G5 override policy and human review sample declared')
+
     # ----------------------------------------------------------- running checklist
     def record_g5(self, controls_ok, cutoff_policy_present, acceptance_pack_present,
                   coverage=None, override_policy=False):
@@ -585,6 +771,8 @@ class StagedRun:
             else:
                 rows[r] = {'id': r, 'status': 'PARTIAL', 'must_have': False, 'gate': 'GF', 'source': 'derived',
                            'note': 'binding regime (%s); no assessment recorded' % key}
+        if self._in_active():
+            self._in_rows(rows, strict)
         if strict:
             def worsen(r, status, add):
                 if r in rows:
@@ -621,14 +809,8 @@ class StagedRun:
         complete, partial, pending, not applicable, and what closes each partial. It is an internal gate
         summary, NOT a prediction of regulatory approval."""
         cl = {r['id']: r for r in self.checklist(strict)}
-        names = {'R1': 'PD data history >= 5 years', 'R2': 'Use test', 'R3': 'Risk differentiation',
-                 'R4': 'Calibration backtest', 'R5': 'Override governance', 'R6': 'Margin of Conservatism',
-                 'R7': 'Independent validation', 'R8': 'Governance and accountability',
-                 'R9': 'Risk-proportionate rigour', 'R10': 'Data governance / completeness',
-                 'R11': 'Model risk management principles (PRA SS1/23)',
-                 'R12': 'High-risk AI obligations (EU AI Act)', 'R13': 'Human-oversight operability (EU AI Act Art 14)',
-                 'R14': 'Adverse-action reasons (ECOA / Reg B)'}
-        order = ['R%d' % i for i in range(1, 15)]
+        names = rr.names()
+        order = rr.ids(india=self._in_active())
         done = [r for r in order if r in cl and cl[r]['status'] == 'SATISFIED']
         part = [r for r in order if r in cl and cl[r]['status'] == 'PARTIAL']
         gap = [r for r in order if r in cl and cl[r]['status'] == 'GAP']
@@ -668,6 +850,10 @@ class StagedRun:
               'NOT COVERED BY THIS CHECKLIST (general knowledge, not verified in this session; confirm against the',
               'primary texts before relying on it): the default definition used; long-run-average calibration of PD',
               '(this model is estimated on one cross-section); LGD and EAD models; a quantified Margin of Conservatism.']
+        if self._in_active():
+            L += ['', 'INDIAN (RBI) PACK: rows R15-R20 are read from the RBI Draft (consultation text, June 2026) and the FREE-AI report;',
+                  'they are conditions, not must-haves, while the source is a draft. NOT YET READ and therefore not scored: RBI default',
+                  'definition (asset classification), the expected-credit-loss directions, Basel III capital use of ratings.']
         return '\n'.join(L)
 
     def set_checklist(self, row, status, note, by):
@@ -692,10 +878,18 @@ class StagedRun:
         events = int(y.sum())
         if gate == 'G0':
             s0 = self.state['stage0']['s0']
-            return {'tier': self.tier, 'n_rows': n, 'event_rate': round(events / n, 4),
-                    'history_years': None, 'excluded': extra.get('excluded', []),
-                    'borderline_exclusions': [], 'label_integrity': True,
-                    'epv_pool': round(events / (self.df.shape[1] - 1), 1)}
+            ev = {'tier': self.tier, 'n_rows': n, 'event_rate': round(events / n, 4),
+                  'history_years': None, 'excluded': extra.get('excluded', []),
+                  'borderline_exclusions': [], 'label_integrity': True,
+                  'epv_pool': round(events / (self.df.shape[1] - 1), 1)}
+            if self._in_active():           # Indian pack only: keys absent otherwise, so other runs are unchanged
+                tp = self.tier_proposal()
+                if tp:
+                    ev['tier_proposal'] = tp
+                ev['regime_pack'] = {'pack_version': rr.PACK_VERSION, 'final_rbi_issued': rr.FINAL_RBI_ISSUED,
+                                     'sources': {k: {'sha256': v['sha256'], 'verified_on': v['verified_on']}
+                                                 for k, v in rr.RBI_SOURCES.items()}}
+            return ev
         if gate == 'G1':
             s1 = self.state['stage1']
             t = s1['s1_table']

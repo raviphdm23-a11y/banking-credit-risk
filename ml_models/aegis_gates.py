@@ -51,6 +51,26 @@ _AUC_FLOOR = {"LOW": None, "MEDIUM": 0.70, "HIGH": 0.80}
 # EPV handling by tier.
 _EPV_MIN = 10  # Peduzzi 1996 / Riley 2019 guideline (not law)
 
+_TIER_RANK = {"LOW": 0, "MEDIUM": 1, "HIGH": 2}
+
+
+def propose_tier(materiality: str, complexity: str = "LOW", autonomy: str = "LOW") -> dict:
+    """Indian (RBI) pack: propose a materiality tier with an ANTI-DILUTION rule (RBI Draft paras 19-20, 52).
+
+    Draft para 20: the integration of factors must not let one factor offset another, "a low complexity should not
+    result in a disproportionate reduction of the overall risk tiering of a highly material model". So the proposed
+    tier is the HIGHEST of the factors and can never be below the materiality tier. Draft para 52 adds reliance and
+    autonomy for AI models. Inputs are LOW / MEDIUM / HIGH; the function only proposes - the signer at G0 adopts it or
+    records a justification for a lower tier. It changes the tier bar, never the analytics (P6/P8)."""
+    for name, v in (("materiality", materiality), ("complexity", complexity), ("autonomy", autonomy)):
+        if v not in TIERS:
+            raise ValueError(f"{name} must be one of {TIERS}, got {v!r}")
+    proposed = max((materiality, complexity, autonomy), key=lambda t: _TIER_RANK[t])
+    return {"proposed": proposed, "materiality": materiality, "complexity": complexity, "autonomy": autonomy,
+            "rule": "anti-dilution (RBI Draft paras 19-20, 52): tier = highest factor, never below materiality",
+            "diluted_by_low_complexity": _TIER_RANK[materiality] > _TIER_RANK[complexity]}
+
+
 GATE_ORDER = ["G0", "G1", "G2", "G3", "G4", "G5", "GF"]
 GATE_NAME = {
     "G0": "Data & Scope Adequacy",
@@ -195,6 +215,18 @@ def gate_g0(ev: dict) -> GateDecision:
             risks="Delay while data/label issues are remediated.",
             residual="Accept schedule delay to protect model integrity.",
         ))
+
+    # Indian (RBI) pack only: present the tier proposal (anti-dilution). Absent key -> the card is unchanged.
+    tp = ev.get("tier_proposal")
+    if tp:
+        below = _TIER_RANK[tier] < _TIER_RANK[tp["proposed"]]
+        opts[0].data += (f" RBI tier proposal: {tp['proposed']} (materiality {tp['materiality']}, complexity "
+                         f"{tp['complexity']}, autonomy {tp['autonomy']}; {tp['rule']}).")
+        if below:
+            flags.append(f"tier {tier} is below the RBI anti-dilution proposal {tp['proposed']}: "
+                         f"record a justification or adopt {tp['proposed']}")
+            opts[0].risks += (f" The chosen tier {tier} is below the proposed {tp['proposed']}; "
+                              f"a written justification is required (RBI Draft para 20).")
 
     gd = GateDecision("G0", GATE_NAME["G0"], GATE_QUESTION["G0"], tier,
                       signer_role(tier), rec, opts, flags=flags)
@@ -697,6 +729,23 @@ def _selftest():
     v4 = gf_engine(sba_states, allgood)
     assert v4.verdict == "GO", v4
     print("all satisfied ->", v4.verdict, "OK")
+
+    # --- Indian (RBI) pack: anti-dilution tier proposal and the R15-R20 rows in the engine ---
+    tp = propose_tier("HIGH", complexity="LOW")
+    assert tp["proposed"] == "HIGH" and tp["diluted_by_low_complexity"], tp
+    assert propose_tier("LOW", complexity="HIGH")["proposed"] == "HIGH"
+    assert propose_tier("MEDIUM", "LOW", "MEDIUM")["proposed"] == "MEDIUM"
+    g0 = build_gate("G0", {"tier": "MEDIUM", "n_rows": 1000, "event_rate": 0.1, "tier_proposal": tp})
+    assert any("below the RBI anti-dilution proposal" in f for f in g0.flags)
+    assert not any("RBI" in f for f in build_gate("G0", {"tier": "MEDIUM", "n_rows": 1000, "event_rate": 0.1}).flags)   # no proposal -> unchanged
+    india = [dict(r) for r in sba_checklist] + [
+        {"id": "R15", "status": "GAP", "must_have": False, "gate": "G0", "note": "tier below proposal"}]
+    v5 = gf_engine(sba_states, india)
+    assert v5.verdict == "GO-WITH-CONDITIONS" and any("R15" in c for c in v5.conditions), v5
+    india[-1]["must_have"] = True                      # the regulatory-use reading marks R15/R16 must-have
+    v6 = gf_engine(sba_states, india)
+    assert v6.verdict == "NO-GO" and v6.return_to == "G0", v6
+    print("RBI pack      -> R15 GAP is a condition (earlier), NO-GO when must-have (regulatory-use) OK")
 
     # --- corrected-German G1 option set, built from evidence ---
     g1 = build_gate("G1", {

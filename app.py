@@ -4595,7 +4595,7 @@ def rm_report_pdf(case_id, version):
 
 
 # ============================================================================
-# MODEL GOVERNANCE DEPARTMENT — SR 26-2 / Basel / EU AI Act controls
+# MODEL GOVERNANCE DEPARTMENT — SR 26-2 / Basel / EU AI Act / RBI (draft) controls
 # KPI monitoring (PSI drift, AUC stability, fairness gap), threshold alerts,
 # per-model governance wiki, six-pillar validation sign-offs, regulatory
 # mapping, and the hash-chained model-lifecycle audit trail.

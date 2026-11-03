@@ -1,10 +1,12 @@
 """
 governance_store.py
 ───────────────────
-The Model Governance department's data layer — the SR 26-2 / Basel / EU AI Act
-control backbone that wraps policy, thresholds and sign-off workflow around
+The Model Governance department's data layer — the SR 26-2 / Basel / EU AI Act /
+RBI control backbone that wraps policy, thresholds and sign-off workflow around
 what the ML pipeline already computes. (SR 26-2, issued 17 Apr 2026 by the Fed,
-OCC and FDIC, superseded SR 11-7 and SR 21-8.)
+OCC and FDIC, superseded SR 11-7 and SR 21-8. The RBI rows come from the RBI Draft
+Guidance on Model Risk Management of June 2026, a consultation draft, and the FREE-AI
+Committee report of Aug 2025, a recommendations report; neither is a binding rule yet.)
 
 Storage (sqlite, in bank.db — every table self-creates on first use):
     gov_audit_events          — unified, hash-chained model-lifecycle audit log
@@ -399,8 +401,10 @@ DEFAULT_PROSE = {
                          'audit trail.'),
     'regulatory_references': ('SR 26-2 (Fed/OCC/FDIC model risk management, 17 Apr 2026, '
                               'supersedes SR 11-7); Basel Committee principles (BCBS); EU AI '
-                              'Act Articles 9-15 (high-risk credit scoring systems); RBI IRB '
-                              'guidelines.'),
+                              'Act Articles 9-15 (high-risk credit scoring systems); RBI Draft '
+                              'Guidance on Model Risk Management (June 2026, consultation draft, '
+                              'not yet binding); RBI FREE-AI Committee report (Aug 2025, '
+                              'recommendations).'),
 }
 
 
@@ -611,10 +615,49 @@ def get_latest_baselines(conn, slot_key):
 
 
 # ── regulatory mapping ───────────────────────────────────────────────────────
+RBI_MRM = 'RBI MRM Draft 2026'
+RBI_FREE_AI = 'RBI FREE-AI 2025'
+# RBI Draft para 23: decommissioned models stay in the inventory for at least ten years. No code path deletes or
+# rewrites gov_* rows (the audit chain is append-only), so retention is limited only by the database being kept.
+RETENTION_YEARS = 10
+_TIER_RANK = {'LOW': 0, 'MEDIUM': 1, 'HIGH': 2}
+_SIMPLE_MODELS = ('logistic_regression', 'woe_logistic', 'logistic')
+
+
+def _gov_thresholds():
+    """The application's material-change thresholds (hyperparameters.json['governance']); same defaults as
+    drift_monitor.DEFAULT_THRESHOLDS. Read here rather than imported, because drift_monitor imports this module."""
+    t = {'psi_major': 0.25, 'psi_watch': 0.10, 'auc_drop_pct': 5.0, 'fairness_gap': 0.05, 'promotion_gate_enabled': True}
+    try:
+        g = json.loads((ML_DIR / 'hyperparameters.json').read_text()).get('governance') or {}
+        for k in t:
+            if k in g:
+                t[k] = g[k]
+    except Exception:
+        pass
+    return t
+
+
+def rbi_tier_proposal(model_type):
+    """RBI anti-dilution tier proposal (Draft paras 19-20, 52): the tier is the HIGHEST of materiality, complexity and
+    autonomy and never below materiality. Every governed model feeds credit decisions, so materiality is HIGH; complexity is
+    LOW for a logistic scorecard and MEDIUM for a tree ensemble; autonomy is LOW because the relationship manager holds
+    final authority. A proposal only: the wiki's risk_tier is the recorded decision."""
+    complexity = 'LOW' if (model_type or '').lower() in _SIMPLE_MODELS else 'MEDIUM'
+    factors = {'materiality': 'HIGH', 'complexity': complexity, 'autonomy': 'LOW'}
+    proposed = max(factors.values(), key=lambda t: _TIER_RANK[t])
+    return dict(factors, proposed=proposed,
+                rule='anti-dilution (RBI Draft paras 19-20, 52): tier = highest factor, never below materiality')
+
+
 def regulatory_mapping(conn, slot_key):
-    """Auto-derived SR 26-2 / Basel / EU AI Act requirement status for one slot.
+    """Auto-derived SR 26-2 / Basel / EU AI Act / RBI requirement status for one slot.
     Statuses are computed from live governance state — not hand-asserted — so
-    the compliance view can never claim more than the system actually does."""
+    the compliance view can never claim more than the system actually does.
+
+    The RBI rows (frameworks RBI MRM Draft 2026 and RBI FREE-AI 2025) carry a `legal_status`: the RBI Draft Guidance on
+    Model Risk Management (June 2026) is a consultation draft and the FREE-AI report (Aug 2025) is a recommendations report,
+    so neither is a binding rule. Paragraph numbers are the documents' own (read in full 2026-11-03)."""
     ensure_wiki_entry(conn, slot_key)
     cur = conn.execute("SELECT * FROM gov_wiki_entries WHERE slot_key=?", (slot_key,))
     cols = [d[0] for d in cur.description]
@@ -693,6 +736,106 @@ def regulatory_mapping(conn, slot_key):
                      'reason codes and adverse-action applicant report '
                      '(public/report-applicant.html)'},
     ]
+    # ── RBI pack ────────────────────────────────────────────────────────────
+    # Retag the existing rows where the RBI text asks for the same thing.
+    for r in requirements:
+        if r['requirement'] in ('Independent Validation', 'Documentation', 'Ongoing Monitoring'):
+            r['frameworks'] = r['frameworks'] + [RBI_MRM]
+        if r['requirement'] == 'Human Oversight':
+            r['frameworks'] = r['frameworks'] + [RBI_FREE_AI]
+
+    th = _gov_thresholds()
+    tier = (wiki.get('risk_tier') or '').upper()
+    prop = rbi_tier_proposal(auto.get('model_type'))
+    tier_ok = tier in _TIER_RANK and _TIER_RANK[tier] >= _TIER_RANK[prop['proposed']]
+    registered = not str(signoffs['model_id']).startswith('unregistered::')
+    chain = verify_chain(conn)
+
+    rbi = []
+    rbi.append({
+        'requirement': 'RBI: Risk Tiering and Model Risk Framework',
+        'frameworks': [RBI_MRM, 'RBI FREE-AI 2025'], 'legal_status': 'draft',
+        'source': 'RBI Draft paras 9-20, 26; FREE-AI 4.4.44',
+        'status': 'SATISFIED' if (tier_ok and gov_ok) else ('PARTIAL' if (tier_ok or gov_ok) else 'GAP'),
+        'evidence': (f"Recorded tier {tier or 'not set'}; RBI anti-dilution proposal {prop['proposed']} "
+                     f"(materiality {prop['materiality']}: credit decisions; complexity {prop['complexity']}; autonomy "
+                     f"{prop['autonomy']}: the relationship manager holds final authority). Purpose and escalation rules "
+                     f"{'recorded' if gov_ok else 'missing'}. A board-approved framework (Draft 9-11) is an institutional "
+                     f"act outside this application.")})
+    inv_ok = prose_complete and bool(tier) and registered
+    rbi.append({
+        'requirement': 'RBI: Model Inventory, Documentation and Retention',
+        'frameworks': [RBI_MRM, RBI_FREE_AI], 'legal_status': 'draft',
+        'source': 'RBI Draft paras 21-24, 57; FREE-AI Rec 16, 23',
+        'status': 'SATISFIED' if inv_ok else ('PARTIAL' if (registered or prose_complete) else 'GAP'),
+        'evidence': (f"Inventory fields for {signoffs['model_id']}: tier {tier or 'not set'}, purpose and data lineage "
+                     f"{'complete' if prose_complete else 'incomplete'}, validators from the sign-off table, observations from "
+                     f"the KPI and alert tables, wiki version history. The audit chain is append-only and no code path deletes "
+                     f"governance rows; the retention policy is {RETENTION_YEARS} years after decommissioning (Draft 23). "
+                     f"Registered model: {'yes' if registered else 'no'}.")})
+    validators = sorted({(p['validator'] or '').strip() for p in signoffs['pillars']
+                         if p['status'] == 'SIGNED_OFF' and (p['validator'] or '').strip()})
+    authors = {(wiki.get('updated_by') or '').strip().lower()}
+    authors |= {(r[0] or '').strip().lower() for r in conn.execute(
+        "SELECT DISTINCT edited_by FROM gov_wiki_versions WHERE slot_key=?", (slot_key,)).fetchall()}
+    authors -= {'', 'system'}
+    overlap = sorted(v for v in validators if v.lower() in authors)
+    independent = bool(validators) and not overlap
+    if signoffs['complete'] and independent:
+        ind_status = 'SATISFIED'
+    elif signoffs['signed_off'] > 0:
+        ind_status = 'PARTIAL'
+    else:
+        ind_status = 'GAP'
+    rbi.append({
+        'requirement': 'RBI: Independent Validation (independent of development)',
+        'frameworks': [RBI_MRM, 'RBI FREE-AI 2025'], 'legal_status': 'draft',
+        'source': 'RBI Draft paras 7(8), 15, 29-33; FREE-AI 4.4.51',
+        'status': ind_status,
+        'evidence': (f"{signoffs['signed_off']}/{signoffs['total']} pillars signed by "
+                     f"{', '.join(validators) or 'no one'}; "
+                     + (f"validator(s) {', '.join(overlap)} also edited the model's wiki, so independence is not shown. "
+                        if overlap else "no signing validator is also a wiki author. ")
+                     + "Placing the report before the board risk committee within three months (Draft 33) is not recorded "
+                       "by the application.")})
+    kpi_seen = {r[0] for r in conn.execute(
+        "SELECT DISTINCT kpi FROM gov_kpi_snapshots WHERE slot_key=?", (slot_key,)).fetchall()}
+    items = [('54(1) explainability', True, 'SHAP attributions, reason codes and the adverse-action report'),
+             ('54(3) fairness', 'fairness_gap' in kpi_seen, 'fairness-gap KPI snapshotted'),
+             ('54(4) generalisation', stress_evidence, 'cross-validation and significance diagnostics in metadata'),
+             ('54(7) data and concept drift', bool(mon_row) or 'psi_score' in kpi_seen, 'PSI and AUC-stability monitor'),
+             ('54(5) spurious correlations', False, 'not measured by the application'),
+             ('54(6) output variability', False, 'not measured by the application')]
+    n_ok = sum(1 for _, ok, _ in items if ok)
+    rbi.append({
+        'requirement': 'RBI: Behavioural Risk Controls (Draft para 54)',
+        'frameworks': [RBI_MRM], 'legal_status': 'draft', 'source': 'RBI Draft para 54(1)-(7), 55',
+        'status': 'PARTIAL' if n_ok >= 3 else 'GAP',
+        'evidence': '; '.join(f"{k}: {'yes' if ok else 'NO'} ({why})" for k, ok, why in items)
+                    + '. 54(2) hallucination is not applicable to a non-generative model.'})
+    thr_ok = all(k in th for k in ('psi_major', 'auc_drop_pct', 'fairness_gap')) and bool(th.get('promotion_gate_enabled'))
+    rbi.append({
+        'requirement': 'RBI: Change Management and Material-Change Thresholds',
+        'frameworks': [RBI_MRM, RBI_FREE_AI], 'legal_status': 'draft',
+        'source': 'RBI Draft paras 36-42; FREE-AI Rec 21',
+        'status': 'SATISFIED' if (thr_ok and chain['intact']) else 'PARTIAL',
+        'evidence': (f"Material-change thresholds: PSI above {th['psi_major']}, AUC degradation above {th['auc_drop_pct']}%, "
+                     f"fairness gap above {th['fairness_gap']}; challenger-vs-champion promotion gate "
+                     f"{'enabled' if th.get('promotion_gate_enabled') else 'DISABLED'}; every promotion, block, force-promote and "
+                     f"rollback is on the hash chain ({chain['events']} events, "
+                     f"{'intact' if chain['intact'] else 'BROKEN from seq %s' % chain['first_broken_seq']}).")})
+    rbi.append({
+        'requirement': 'RBI: Human Oversight, Override and Deactivation',
+        'frameworks': [RBI_MRM, RBI_FREE_AI], 'legal_status': 'draft / recommendation',
+        'source': 'RBI Draft paras 60-63; FREE-AI 4.4.62',
+        'status': 'SATISFIED' if n_final > 0 else 'PARTIAL',
+        'evidence': ((f"Relationship manager accepts or rejects every model recommendation: {n_final} finalised decisions, "
+                      f"override rate {ins.get('override_rate_pct', 0)}%; ") if n_final else
+                     "The accept/reject flow exists but no decision has been finalised yet; ")
+                    + "an admin rollback can deactivate a model. A periodic human review of a decision sample "
+                      "(FREE-AI mentions 1%) is not scheduled by the application."})
+    requirements = requirements + rbi
+
     satisfied = sum(1 for r in requirements if r['status'] == 'SATISFIED')
     return {'slot_key': slot_key, 'model_id': signoffs['model_id'],
             'requirements': requirements,

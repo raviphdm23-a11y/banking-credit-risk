@@ -289,14 +289,37 @@ authoritative/commentary, flagged for final primary confirmation.
 | R12 | **High-risk AI — risk management, data governance, logging, transparency, human oversight.** Credit scoring/creditworthiness of natural persons = high-risk. | **EU AI Act**, Annex III §5(b); Arts 9, 10, 12, 13, 14 | ⚠️ | Arts 12/13/14: audit log (`gov_audit_events`), SHAP + reason codes + adverse-action report, RM human-in-the-loop with anti-automation-bias. | G5,GF |
 | R13 | **AI transparency / human oversight operability** — overseers can understand output, avoid automation bias, and decline/intervene/halt. | **EU AI Act** Art 14 | ⚠️ | RM accept/reject is a real, recorded intervention point; override path exists. | G5 |
 | R14 | **Adverse-action reasons** — specific principal reasons for denial. | **ECOA / Reg B** (US) | ⚠️ | Reason codes + `report-applicant.html`. | G5 |
+| R15 | **Model risk framework, tier and use statement** — board-approved framework; risk tier by materiality and complexity with an **anti-dilution** rule ("a low complexity should not result in a disproportionate reduction of the overall risk tiering of a highly material model"); a written rationale and scope before development. | **RBI Draft Guidance on Model Risk Management (June 2026)** paras 9–20, 26; **FREE-AI** 4.4.44 (credit underwriting is a high-risk use) | ✅ (draft) | G0: `tier_proposal` on the G0 card; written intended-use statement; framework reference; a recorded justification for any tier below the proposal. | G0 |
+| R16 | **Independent validation and validation report** — validation of every model by a validator independent of development, ownership and use, before and after deployment; report to the board risk committee within three months of completion. | **RBI Draft** paras 7(8), 15, 29–33; **FREE-AI** 4.4.51 | ✅ (draft) | Role report (R7 evidence) plus the date the validation report reached the committee. | G1–G4, GF |
+| R17 | **Inventory, documentation, dependencies, retention** — inventory of owners, developers, validators, approvers, tier, intended use, dependencies and key observations; no model used unless inventoried; ten-year retention after decommissioning. | **RBI Draft** paras 21–24, 57; **FREE-AI** Rec 16, 23 | ✅ (draft) | `inventory_card.json` written at G5; declared dependencies and retention. | G5 |
+| R18 | **Behavioural risks (seven sub-items)** — 54(1) explainability thresholds; 54(2) hallucination (n/a for a non-generative model); 54(3) fairness assessment, which may include limiting feature selection; 54(4) out-of-sample generalisation in evolving conditions; 54(5) no spurious correlation; 54(6) output stability; 54(7) data and concept drift. | **RBI Draft** para 54(1)–(7), 55 | ✅ (draft) | Reporting-only diagnostics (`ml_models/rbi_checks.py`): segment assessment, out-of-time test, IV-above-0.5 audit and label-lag sensitivity, row-order invariance and selection stability, PSI drift. Each sub-item is shown separately. | G2–G5 |
+| R19 | **Change management and monitoring** — a defined material-change threshold that restarts validation; monitoring plan; impact assessment before any change. | **RBI Draft** paras 36–42; **FREE-AI** Rec 21 | ✅ (draft) | Material-change criteria taken from the application's governance thresholds (`hyperparameters.json`: PSI major 0.25, AUC drop 5%); whether this run's own evidence breaches them; declared monitoring plan. | G4, G5 |
+| R20 | **Human oversight** — override, suspension and deactivation; periodic human review of model-driven decisions; a sample human check (FREE-AI mentions 1%). | **RBI Draft** paras 60–63; **FREE-AI** 4.4.62 | ✅ (draft / recommendation) | Declared override path, the G5 override policy and a human review sample rate. | G5 |
 
 **Timeline note (R12):** the EU AI Act **high-risk (Annex III) obligations deadline was moved from
 2 Aug 2026 to 2 December 2027** by the "Digital Omnibus" (Reg (EU) 2026/1744, in force 27 Jul 2026);
 Art 50 transparency duties still apply from 2 Aug 2026. ⚠️ *Confirm on EUR-Lex before publication.*
 
 **Must-have vs should-have.** R1–R9 (Basel + SR 26-2 + EBA) are **must-haves** — a GAP is a hard NO-GO.
-R10–R14 are **context-dependent**: must-have where the model is in that jurisdiction's scope, else
-tracked as applicable best practice. The MAC records which regime(s) bind a given model at G0.
+R10–R14 are **context-dependent**: in the code they produce **conditions**, never a blocker (only R1–R9 are
+must-haves in `regime_registry.MUST_HAVE`); an earlier version of this paragraph said "must-have where the model is
+in that jurisdiction's scope", which the code never implemented. The MAC records which regime(s) bind a given model
+at G0.
+
+**Indian (RBI) pack, rows R15–R20 (added 3 Nov 2026).** Active when the manifest jurisdiction is `IN` (switch off with
+`"india_pack": false`). The model is assessed as if used by an RBI-regulated lender. The sources are a **draft for
+consultation** and a **committee report**, not binding rules, so R15–R20 are **conditions, not must-haves**, with one
+exception: in the **regulatory-use reading** R15 (tier and use statement) and R16 (independent validation) are marked
+must-have, so a GAP there blocks. `regime_registry.FINAL_RBI_ISSUED` / `PROMOTE_WHEN_FINAL` promote all six rows to
+must-haves the day RBI issues a final text and the wording has been re-verified. Rows for the RBI default definition,
+the expected-credit-loss directions and Basel III capital use of ratings are registered as **pending, unverified, not
+scored** until those documents are read. Tier bars (AUC floor, EPV, history) are unchanged; the RBI pack changes who must
+sign and what is evidenced, never the analytics (P8). Each sealed G0 record stores the pack version and the SHA-256 of
+the RBI texts it was assessed against.
+
+**Tier proposal (RBI anti-dilution).** For an Indian-pack run G0 shows `propose_tier(materiality, complexity,
+autonomy)` = the highest of the three, never below materiality (RBI Draft paras 19–20, 52). It only proposes: the signer
+adopts it or records a justification for a lower tier. It is not a new numeric bar.
 
 ### 8.1 Primary-source provenance
 
@@ -308,6 +331,9 @@ tracked as applicable best practice. The MAC records which regime(s) bind a give
 | BCBS 239 | Standard (Jan 2013) — principle structure from BIS; ⚠️ P3–P5 wording not re-read this pass. |
 | PRA SS1/23 | BoE publication page + Apr 2026 amendment (LIAF01/26); ⚠️ five-principle wording from official summary. |
 | EU AI Act | Annex III §5(b) + Arts 9/10/12/13/14; Digital Omnibus delay — ⚠️ practitioner sources, EUR-Lex confirmation pending. |
+| RBI Draft Guidance on Model Risk Management (June 2026) | **Read in full (2026-11-03)** from the PDF in `paper analysis/important papers/papers/RBI folder/` (SHA-256 `b32a0e24…cca1b4`); a **draft for consultation**, reference "DoR.ORG.REC.XXXX/XX-XX-XXXX/2026-27", date "June xx, 2026". Paragraph numbers in R15–R20 are the draft's own. |
+| RBI FREE-AI Committee Report (13 Aug 2025) | **Read in full (2026-11-03)** from the PDF in the same folder (SHA-256 `569d0385…9419d8`); a committee report with 26 recommendations, not a regulation. Section numbers in R15–R20 are the report's own. |
+| RBI default definition, expected-credit-loss directions (in force 1 Apr 2027), Basel III capital use of ratings | **Not read.** Registered as pending in `regime_registry.PENDING_SOURCES`; not scored. |
 
 ---
 
@@ -432,7 +458,10 @@ instead of making a fresh judgement.
 | 6 | **Role holders declared at G0** - who holds which signing role; a person holding several roles is shown at G0, and the seal records `person` and `rationale_by` (`signer` or `assistant-drafted`) outside the hash. | G0, every seal | One person signed every gate, so R7/R8 came out PARTIAL only at GF; and every rationale was assistant-drafted. |
 | 7 | **Governing sufficiency basis** - EPV and the Riley minimum N are *governed* on the candidate pool (every column that entered Stage 1 after the outcome-blind Stage-0 eligibility step); the figures after IV screening, after Shapley (players) and after selection are shown beside it and are informational. Riley's P is the number of candidate parameters considered before data-driven selection, so a count reduced by outcome-dependent steps cannot lower the requirement. | G1 (shown again G2, G3), R6 | Reduction by outcome-dependent steps (IV, Shapley, parsimony) is not a legitimate way to become "sufficient"; reduction by outcome-blind steps (eligibility, correlation grouping) is shown but does not govern. On the 14-dataset corpus the pool basis leaves MSME short (already NO-GO) and also makes TH02 short; TH02's sealed verdict is not altered. |
 | 8 | **Model reliability scorecard** - a final one-page output per run (`ml_models/run_scorecard.py`): ranking power (Gini with CI, AUC, KS, capture of events in the riskiest 5/10/20% of the ranking), probability accuracy (Brier skill score, ECE, calibration slope, Hosmer-Lemeshow), grade reliability (Wilson backtest), sufficiency (pool EPV and Riley margin), stability and parsimony, and integrity (gates, checklist, flags). The headline is a count of EXISTING cited bars cleared, not a weighted score. No cutoff-based metric (F1, precision, recall at a PD cutoff) is reported because the cutoff is an institution input. | After G4, shown at GF | Two runs on different datasets could not be compared on one page; the verdict alone does not say which model is more reliable. The scorecard describes model and data together and does not rank methods. |
+| 10 | **Regulatory-readiness panel and regimes declared at G0** - R11-R14 join the running checklist (each reads N/A with a reason, NOT ASSESSED if regimes were never declared, or PARTIAL if the regime binds and no assessment is recorded); before GF the committee is shown which rows are complete, partial (with what closes each and who owns it), pending, or not applicable, and a standing note that the panel is an internal gap analysis, not a prediction of regulatory approval. | G0 (regimes), before GF | The checklist stopped at R10, so GF could not show what was possible and what could not work. |
 | 9 | **One learner for every stage** - the Stage-4 calibration step now calibrates the deployed WOE-logistic scorer on a held-out split (it previously trained an XGBoost model, whose Brier / ECE / AUC were shown as if they were the model's own). XGBoost is no longer part of the governed process; it remains an unused option in the learner registry. Pre-2026-10-25 Stage-4 tables are XGBoost-derived and labelled legacy; the legacy function `_calibrate_xgboost_legacy` regenerates them. | Stage 4 / G4 | The calibration table did not describe the model that is selected, backtested and deployed; the paper's "XGBoost robustness learner with Kendall tau" claim had no implementation. |
+| 11 | **PD floor corrected to 0.05% going forward** - the 0.03% used before 2026-10-26 was the Basel Framework's superseded 2019 value; in force are Basel CRE32.4 (0.05%) and CRR Art 160(1)/163(1) (0.05% from 1 Jan 2025). `build_scorer`, `deployment_backtest` and the out-of-time module default to 0.05%; sealed records keep the value they were sealed with. | Stage 5 / G5 | Regulator-persona review of the POLISH_1YR dossier. |
+| 12 | **Adverse floor on blanks, strict (regulatory-use) checklist, scored-population reporting, nested validation** - blank values on every non-mandatory variable score no better than the worst real bin; `checklist(strict=True)` reads R1/R6/R7/R8 as not met when history, margin of conservatism or independence are absent, R3 partial on rank-order breaks, R5 partial without an override policy, R2 N/A for a benchmark with no live use; performance is reported on the firms the model actually scores; `nested_validation.py` re-runs selection inside each fold. | Stage 4-5, dossier | Same review. The sealed gates are not changed; re-sealing G5 and GF is the committee's act. |
 
 Not adopted in this revision: a single generated record per run, and a new name for the merged
 flow. The method keeps the name SHARP; the governance keeps AEGIS.
@@ -441,6 +470,27 @@ Implemented in `ml_models/staged_run.py` (`missingness_scan`, `lookahead_scan`,
 `StagedRun.sufficiency`, `role_report`, `checklist`, `set_checklist`, `record_g5`,
 `acceptance_coverage`, `gf_verdict`) and covered by `testing/test_staged_equivalence.py`.
 The hash format is unchanged, so sealed chains verify as before.
+
+### 11.2 Standing procedure for a new dataset (`ml_models/standard_run.py`)
+
+Starting a dataset from scratch means: write a manifest (`name`, `csv`, `target`, optional `dictionary`, `mandatory_columns`, `refer_column`, `roles`, `history_years`, `live_use`, `jurisdiction`, `borrower_type`),
+then call the kit step by step. A stage never runs ahead of its signed gate.
+
+| Step | Automatic | Needs a human |
+|---|---|---|
+| Stage 0 | eligibility and availability tags, sentinel scan, blank-vs-outcome scan, look-ahead scan, role report, regimes proposed from jurisdiction and borrower type, G0 card | the G0 option and rationale; confirming regimes, roles, history window |
+| Stages 1-3 | screening table, pool EPV and both Riley bases, Shapley with noise benchmark, parsimony curve, player/column accounting, gate cards, running checklist (earlier and regulatory-use readings) | each gate's option and rationale; any column or player exclusion |
+| Stage 4 | primary-model calibration, deployed-model backtest at the 0.05% floor, HL at two groupings, scorecard with bootstrap intervals | G4 option and rationale |
+| G5 | rule-based acceptance cases, sample-runs pack, cutoff note, control-coverage report (floor, cap, referral), adverse floor on blanks | the mandatory field, the legal-form gate, an override policy, the G5 option |
+| Final ruling inputs | both readiness panels and both engine verdicts side by side | GF option and rationale; independent validator and approver (not automatable) |
+| Records | `SHARP_<name>.md`, `AEGIS_RUN_<name>.md` generated from the sealed state | adding the RESULTS_LOG row and paper text |
+| Dossier | supporting analyses (scored population, duplicates, challengers, sensitivity, reason codes, file hash), nested validation in the background, PDF build | supplying definition notes, event definition and supervisor note in the manifest; running the reviewer loop |
+
+**Reviewer loop (a standing process, run by the assistant on request).** After each dossier phase, six reviewer subagents (`basel_eu`, `us_sr262`, `uk_pra`, `eu_ai_act`, `bcbs239`, `validator`) each write a review to
+`dossier/reviews/phase<N>_<id>.md`, following `BRIEF.md` (phase 1) or `BRIEF_PHASE2.md` (re-review). The builder verifies reviewer claims against the data before acting, writes a response, revises, and the human decides when the
+quality is good enough. Reviewers can be wrong (two misnamed the variable with a +13 blank bin), so claims are checked, not accepted.
+
+**What the kit cannot do:** choose a defensible event definition, supply a validator independent of the developer, set model-specific monitoring tolerances, write an override policy, or settle look-ahead questions about a definition.
 
 ## Appendix A — Source links
 

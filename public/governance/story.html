@@ -181,7 +181,7 @@
 
   <p class="lede">
     This page walks through what the <strong>Model Risk Dashboard</strong> is actually checking for —
-    and exactly where every active model stands against three real regulatory frameworks.
+    and exactly where every active model stands against four regulatory frameworks — one of them, RBI's, still a draft.
     Every status below is read live from the governance database, not asserted — if something says
     <strong>Gap</strong>, the system genuinely hasn't done that thing yet.
   </p>
@@ -202,6 +202,12 @@
       <span class="tag">EU AI ACT</span>
       <p>Credit scoring is a "high-risk" AI use case under the Act: it requires human oversight,
         transparency to the person being scored, and continuous post-market monitoring.</p>
+    </div>
+    <div class="fw-card">
+      <span class="tag">RBI (INDIA)</span>
+      <p>The Reserve Bank's draft Guidance on Model Risk Management (June 2026, open for comment, not yet binding)
+        and the FREE-AI committee report (Aug 2025, recommendations): risk tiering that a simple model cannot dilute,
+        independent validation, a model inventory, material-change thresholds and human oversight.</p>
     </div>
   </div>
 
@@ -246,6 +252,30 @@ const REQ_META = {
   },
   'Transparency': {
     why: "The person being scored has a right to know why — a real, specific reason, not \"the algorithm said so.\" This means feature-level reasons behind every decision."
+  },
+  'RBI: Risk Tiering and Model Risk Framework': {
+    why: "RBI's draft guidance asks lenders to give every model a risk tier from its materiality and complexity, with an anti-dilution rule: a simple model that drives credit decisions can't be tiered low just because it is simple.",
+    toClose: "Open this model's Governance Wiki and set the risk tier to the proposed tier or higher; fill in purpose and escalation rules. Board approval of the framework itself happens outside this application."
+  },
+  'RBI: Model Inventory, Documentation and Retention': {
+    why: "RBI's draft guidance says no model may be used unless it is in an inventory that records its owner, developer, validator, approver, tier, intended use, dependencies and key findings, kept for at least ten years after the model is retired.",
+    toClose: "Complete the Governance Wiki sections for this model and make sure it is registered as an active model."
+  },
+  'RBI: Independent Validation (independent of development)': {
+    why: "RBI's draft guidance requires every model, including vendor models, to be validated by someone independent of whoever developed, owns or uses it. Here the check is stricter than the SR 26-2 row: a validator who also edited the model's wiki does not count as independent.",
+    toClose: "Have a reviewer who has not edited this model's wiki sign all six pillars. Placing the report before the board risk committee within three months is tracked outside this application."
+  },
+  'RBI: Behavioural Risk Controls (Draft para 54)': {
+    why: "RBI's draft lists behavioural checks for AI/ML models: explainability, fairness across customer groups, generalisation to new data, no reliance on spurious correlations, stable outputs for similar inputs, and monitoring for data and concept drift.",
+    toClose: "Run the drift monitor, retrain with cross-validation, and add checks for spurious correlations and output stability; the last two are not measured by this application yet."
+  },
+  'RBI: Change Management and Material-Change Thresholds': {
+    why: "RBI's draft guidance wants a defined threshold for what counts as a material change, so that a breach restarts validation and approval, and a log of every change and approval.",
+    toClose: "Keep the governance thresholds set in the model settings and keep the promotion gate enabled; the hash-chained audit log records every change."
+  },
+  'RBI: Human Oversight, Override and Deactivation': {
+    why: "RBI's draft guidance and the FREE-AI report ask for human-in-command arrangements, the ability to override, suspend or switch off a model, and periodic human review of a sample of model-driven decisions.",
+    toClose: "Run applicants through the Relationship Management queue so decisions are accepted or rejected by a person. A scheduled review of a decision sample is not set up in this application."
   }
 };
 
@@ -342,7 +372,7 @@ function renderRequirements(requirements){
       <div class="req-top">
         <div>
           <div class="req-title">${esc(r.requirement)}</div>
-          <div class="req-tags">${r.frameworks.map(f=>`<span class="req-tag">${esc(f)}</span>`).join('')}</div>
+          <div class="req-tags">${r.frameworks.map(f=>`<span class="req-tag">${esc(f)}</span>`).join('')}${r.legal_status ? `<span class="req-tag" title="${esc(r.source||'')}">${esc(r.legal_status)}</span>` : ''}</div>
         </div>
         <span class="chip ${chipClass(r.status)}">${chipLabel(r.status)}</span>
       </div>
@@ -452,7 +482,7 @@ function renderModel(source, isOnly){
 
   <section>
     <h2>What's expected, and what's actually true today</h2>
-    <p class="section-sub">Seven checks, each mapped to one or more of the frameworks above. <strong>Satisfied</strong> means the system found real evidence in the database. <strong>Gap</strong> means the feature exists but hasn't been used yet on this model.</p>
+    <p class="section-sub">${regulatory.requirements.length} checks, each mapped to one or more of the frameworks above. The six RBI checks come from a draft and a recommendations report, so they are shown as conditions, not legal requirements. <strong>Satisfied</strong> means the system found real evidence in the database. <strong>Gap</strong> means the feature exists but hasn't been used yet on this model.</p>
     ${renderRequirements(regulatory.requirements)}
   </section>
 
@@ -488,15 +518,26 @@ async function loadStory(){
   root.innerHTML = '<div class="empty-state">Loading live governance data…</div>';
   try {
     const summary = await fetchJSON('/governance/api/summary');
-    const inventory = summary.inventory || [];
+    let inventory = summary.inventory || [];
+    const slotParam = new URLSearchParams(location.search).get('slot');
+    if (slotParam) {
+      inventory = inventory.filter(m => m.slot_key === slotParam);
+      document.getElementById('snapBanner').innerHTML = inventory.length ? `
+        <div class="snap-banner">
+          <span>Showing only <span class="mono">${esc(slotParam)}</span>.</span>
+          <a href="/governance/story">View all models →</a>
+        </div>` : '';
+    }
     document.getElementById('mastheadMeta').innerHTML =
-      `${inventory.length} active model slot${inventory.length===1?'':'s'}<br>
+      `${inventory.length} active model slot${inventory.length===1?'':'s'}${slotParam?' (filtered)':''}<br>
        Last monitor run ${fmtTs(summary.last_monitor_run)}<br>
        Generated ${fmtTs(new Date().toISOString())}`;
     document.getElementById('genTs').textContent = fmtTs(new Date().toISOString());
 
     if (!inventory.length) {
-      root.innerHTML = `<div class="empty-state">No active model in the registry yet. Train and promote one from the Admin dashboard, then reload this page.</div>`;
+      root.innerHTML = slotParam
+        ? `<div class="empty-state">No active model found for slot "${esc(slotParam)}". <a href="/governance/story">View all models →</a></div>`
+        : `<div class="empty-state">No active model in the registry yet. Train and promote one from the Admin dashboard, then reload this page.</div>`;
       return;
     }
     const sources = await Promise.all(inventory.map(async inv => {

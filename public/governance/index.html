@@ -125,7 +125,7 @@ body{font-family:'IBM Plex Sans',sans-serif;background:var(--off);color:var(--t1
   <div class="page-head">
     <div>
       <div class="page-title">Model Risk Dashboard</div>
-      <div class="page-desc">SR 26-2 / Basel / EU AI Act aligned governance over every active PD model:
+      <div class="page-desc">SR 26-2 / Basel / EU AI Act / RBI (draft) aligned governance over every active PD model:
         data-drift (PSI), performance stability (AUC), fairness-gap monitoring, champion/challenger
         promotion gating, six-pillar independent validation, and a hash-chained model-lifecycle audit trail.</div>
     </div>
@@ -155,7 +155,10 @@ body{font-family:'IBM Plex Sans',sans-serif;background:var(--off);color:var(--t1
         <div class="drill-title" id="drillTitle">—</div>
         <div class="drill-meta" id="drillMeta">—</div>
       </div>
-      <button class="btn btn-sm" onclick="closeDrill()">✕ Close</button>
+      <div style="display:flex;gap:8px">
+        <a class="btn btn-sm" id="drillLedgerLink" href="#">📒 Trust Ledger</a>
+        <button class="btn btn-sm" onclick="closeDrill()">✕ Close</button>
+      </div>
     </div>
     <div class="tabs">
       <div class="tab active" data-tab="kpis" onclick="switchTab('kpis')">KPI History</div>
@@ -283,7 +286,7 @@ function renderInventory(){
   if (!inv.length){ document.getElementById('inventoryBox').innerHTML = '<div class="empty">No active models found.</div>'; return; }
   document.getElementById('inventoryBox').innerHTML = `<table class="tbl"><thead><tr>
     <th>Slot</th><th>Type</th><th>Scope</th><th>AUC</th><th>Promoted</th><th>Risk Tier</th>
-    <th>Validation</th><th>PSI</th><th>AUC Stab.</th><th>Alerts</th></tr></thead><tbody>` +
+    <th>Validation</th><th>PSI</th><th>AUC Stab.</th><th>Alerts</th><th></th></tr></thead><tbody>` +
     inv.map(m=>{
       const psi = m.kpis.psi_score||m.kpis.psi_feature, auc = m.kpis.auc_stability;
       return `<tr class="clickable" onclick="openModel('${esc(m.slot_key)}')">
@@ -295,7 +298,8 @@ function renderInventory(){
         <td><span class="badge ${m.validation_signed===m.validation_total?'SIGNED_OFF':(m.validation_signed>0?'PARTIAL':'PENDING')}">${m.validation_signed}/${m.validation_total}</span></td>
         <td>${psi?`<span class="badge ${psi.status}">${psi.status}</span>`:'<span class="badge NO_DATA">—</span>'}</td>
         <td>${auc?`<span class="badge ${auc.status}">${auc.status}</span>`:'<span class="badge NO_DATA">—</span>'}</td>
-        <td>${m.open_alerts?`<span class="badge OPEN">${m.open_alerts}</span>`:'<span class="badge OK">0</span>'}</td></tr>`;
+        <td>${m.open_alerts?`<span class="badge OPEN">${m.open_alerts}</span>`:'<span class="badge OK">0</span>'}</td>
+        <td><a href="/governance/story?slot=${encodeURIComponent(m.slot_key)}" onclick="event.stopPropagation()" title="Model Trust Ledger for ${esc(m.slot_key)}">📒</a></td></tr>`;
     }).join('') + '</tbody></table>';
 }
 
@@ -311,6 +315,7 @@ async function openModel(slot, scroll=true){
   const d = document.getElementById('drill'); d.style.display='block';
   const inv = (SUMMARY?.inventory||[]).find(m=>m.slot_key===slot) || {};
   document.getElementById('drillTitle').textContent = slot;
+  document.getElementById('drillLedgerLink').href = '/governance/story?slot=' + encodeURIComponent(slot);
   document.getElementById('drillMeta').textContent =
     `${inv.model_type||'?'} · ${inv.model_id||'unregistered'} · AUC ${inv.auc_roc!=null?fmt(inv.auc_roc,4):'—'}`;
   if (scroll) d.scrollIntoView({behavior:'smooth'});
@@ -419,7 +424,7 @@ function renderRegulatory(r){
     <table class="tbl"><thead><tr><th>Requirement</th><th>Frameworks</th><th>Status</th><th>Evidence</th></tr></thead><tbody>` +
     (r.requirements||[]).map(q=>`<tr>
       <td style="font-weight:600">${esc(q.requirement)}</td>
-      <td><div class="fw">${q.frameworks.map(f=>`<span class="chip">${esc(f)}</span>`).join('')}</div></td>
+      <td><div class="fw">${q.frameworks.map(f=>`<span class="chip">${esc(f)}</span>`).join('')}${q.legal_status ? `<span class="chip" title="${esc(q.source||'')}">${esc(q.legal_status)}</span>` : ''}</div></td>
       <td><span class="badge ${esc(q.status)}">${esc(q.status)}</span></td>
       <td style="font-size:11px;line-height:1.5">${esc(q.evidence)}</td></tr>`).join('') + '</tbody></table>';
   document.getElementById('pane-regulatory').innerHTML = html;

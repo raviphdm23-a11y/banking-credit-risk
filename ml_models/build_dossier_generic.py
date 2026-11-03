@@ -266,6 +266,71 @@ def sec_gov(d):
     return t
 
 
+def sec_rbi(d, run):
+    """Indian (RBI) regulatory pack: sources and their legal status, rows R15-R20 under both readings, the reporting-only
+    diagnostics behind R18/R19, the tier proposal and the inventory card. Emitted only when the Indian regimes were declared."""
+    import regime_registry as rr
+    stat = lambda s: STAT.get(s, esc(s))   # noqa: E731
+    t = r'\section{Indian regulatory pack (RBI)}' + '\n'
+    t += ('The model is assessed here as if it were used by an RBI-regulated lender. The two RBI texts are a draft for consultation and a '
+          'committee report with recommendations; neither is a binding rule. Rows R15 to R20 are therefore conditions, not must-haves, '
+          'except that R15 and R16 block in the regulatory-use reading. The pack is version %s.\n\n' % esc(rr.PACK_VERSION))
+    rows = [[esc(v['title']), esc(v['legal_status']), tt(v['sha256'][:16]), esc(v['verified_on'])] for v in rr.RBI_SOURCES.values()]
+    t += table(['Source', 'Legal status', 'SHA-256 (first 16)', 'Read on'], rows, r'@{}p{6.2cm}p{4.6cm}p{3.2cm}p{1.4cm}@{}',
+               caption='RBI sources the Indian rows were built from (each read in full)') + '\n'
+    cl, cs = {r['id']: r for r in run.checklist()}, {r['id']: r for r in run.checklist(strict=True)}
+    ids = [i for i in ('R15', 'R16', 'R17', 'R18', 'R19', 'R20') if i in cl]
+    rows = [[i, esc(rr.row(i)['source']), stat(cl[i]['status']), stat(cs[i]['status']), esc(cs[i]['note'])] for i in ids]
+    t += table(['ID', 'RBI source', 'Earlier', 'Regulatory', 'Evidence (regulatory-use reading)'], rows, r'@{}lp{3.4cm}llp{7.4cm}@{}',
+               caption='Indian rows R15 to R20, both readings', long=True) + '\n'
+    tp = run.tier_proposal()
+    if tp:
+        t += ('\\textbf{Tier.} Declared tier %s; the anti-dilution rule (RBI Draft paras 19--20, 52) proposes %s from materiality %s, complexity %s and autonomy %s. %s\n\n'
+              % (esc(run.tier), esc(tp['proposed']), esc(tp['materiality']), esc(tp['complexity']), esc(tp['autonomy']),
+                 ('A tier below the proposal needs a recorded justification.' if run.tier != tp['proposed'] else 'The declared tier matches the proposal.')))
+    chk = run.state.get('rbi_checks', {})
+    rows = []
+    if chk.get('feature_drift'):
+        x = chk['feature_drift']
+        rows.append(['54(7) feature drift (PSI)', 'max %.3f; %d major, %d watch' % (x['max_psi'], x['n_major'], x['n_watch'])])
+    if chk.get('score_drift'):
+        rows.append(['54(7) score drift (PSI)', '%.3f (%s)' % (chk['score_drift']['psi'], chk['score_drift']['status'])])
+    if chk.get('row_order'):
+        x = chk['row_order']
+        rows.append(['54(6) row-order invariance', 'max PD difference %.2e over %d orderings; %s' % (x['max_abs_pd_diff'], x['n_orders'], 'invariant' if x['invariant'] else 'NOT invariant')])
+    if chk.get('seed_stability'):
+        x = chk['seed_stability']
+        rows.append(['54(6) selection stability', 'sizes %s; minimum pairwise Jaccard %.2f' % (x['sizes'], x['min_jaccard'])])
+    if chk.get('segments'):
+        x = chk['segments']
+        rows.append(['54(3) segment assessment', 'favourable-rate ratio %s (%s); thin segments: %s' % ('n/a' if x['ratio'] is None else '%.2f' % x['ratio'], esc(x['cutoff_basis']), esc(', '.join(x['thin_segments']) or 'none'))])
+    if chk.get('label_lag') is not None:
+        ll = chk['label_lag']
+        rows.append(['54(5) label-lag sensitivity', '; '.join('lag %d d: %d positives, Gini %s' % (r['lag_days'], r['n_positives'], 'n/a' if r['gini'] is None else '%.3f' % r['gini']) for _, r in ll.iterrows())])
+    if chk.get('sign_audit'):
+        x = chk['sign_audit']
+        rows.append(['31 coefficient signs', '%d of %d with the unexpected (positive) sign: %s' % (x['n_unexpected'], x['n_columns'], esc(', '.join(x['unexpected']) or 'none'))])
+    if chk.get('perturbation') is not None:
+        pt = chk['perturbation']
+        rows.append(['54, 55 input perturbation', '; '.join('+-%.0f\\%%: %.1f\\%% of rows change grade' %(100 * r['scale'], 100 * r['share_grade_changed']) for _, r in pt.iterrows())])
+    if chk.get('outlier'):
+        x = chk['outlier']
+        rows.append(['54, 55 outlier clipping (%.0f\\%%/%.0f\\%%)' % (100 * x['q'], 100 * (1 - x['q'])), 'max PD change %.4f; %.1f\\%% of rows move more than 1 point' %(x['max_abs_pd_change'], 100 * x['share_rows_changed_over_1pct_abs'])])
+    if chk.get('benchmark'):
+        rows.append(['16 benchmarks (out-of-fold)', '; '.join('%s: AUC %.3f' % (esc(k), v['auc']) for k, v in chk['benchmark'].items())])
+    if chk.get('material_change'):
+        x = chk['material_change']
+        rows.append(['42 material change', ('breached: ' + esc('; '.join(x['triggered']))) if x['triggered'] else 'no trigger breached by this run'])
+    if rows:
+        t += table(['Diagnostic (RBI Draft para)', 'Result (reporting only; decides nothing)'], rows, r'@{}p{5cm}p{10.4cm}@{}', caption='Reporting-only diagnostics recorded for the Indian rows') + '\n'
+    else:
+        t += 'No Indian diagnostics were recorded for this run, so the sub-items of R18 and R19 that need them are open.\n\n'
+    t += (r'\textbf{Not yet covered.} The two RBI documents say nothing on RBI\textquotesingle s default definition (asset classification), the expected-credit-loss '
+          'directions (in force 1 April 2027) or Basel III capital use of ratings. Those rows are registered as pending, unverified and are not scored. '
+          'The checklist is a gap analysis against the framework\'s own criteria; it does not predict a supervisor\'s decision.\n')
+    return t
+
+
 def annex(d, m, ex):
     t = r'\appendix' + '\n' + r'\section{Annex A: Scorecard (weight-of-evidence tables)}' + '\n'
     t += 'For each variable: the bin, rows, positives, positive rate and weight of evidence (WOE = ln share of negatives over share of positives; lower means riskier).\n\n'
@@ -314,7 +379,7 @@ def build(data, state, extras, manifest, outdir, outroot=None, records=None):
         r['note'] = fresh[r['id']]['note']
     os.makedirs(outdir, exist_ok=True)
     pre = bd.PREAMBLE.replace(r'\begin{document}', r'\usepackage{needspace}' + '\n' + r'\begin{document}') % dict(header_left=esc('Model Approval Dossier: ' + d['run']), header_right=esc('Research benchmark, review draft'), footer_left=esc('Head ' + d['head']))
-    parts = [pre, cover(d, m), doc_control(d), sec_summary(d, st, pf), sec_scope(d, m, pf), sec_data(d, m, ex, pf), sec_dev(d, st), sec_model(d, m), sec_perf(d, st, ex), sec_cases(d), sec_limits(d, st, pf), sec_gov(d), annex(d, m, ex), r'\end{document}']
+    parts = [pre, cover(d, m), doc_control(d), sec_summary(d, st, pf), sec_scope(d, m, pf), sec_data(d, m, ex, pf), sec_dev(d, st), sec_model(d, m), sec_perf(d, st, ex), sec_cases(d), sec_limits(d, st, pf), sec_gov(d), (sec_rbi(d, run) if run._in_active() else ''), annex(d, m, ex), r'\end{document}']
     name = 'DOSSIER_%s_generic' % d['run']
     body = re.sub(r'(\\(?:sub)?section\{)', lambda mo: r'\Needspace{8\baselineskip}' + mo.group(1), '\n'.join(parts))   # keep a heading with its first lines
     open(os.path.join(outdir, name + '.tex'), 'w', encoding='utf-8').write(body)
